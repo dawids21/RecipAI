@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: RecipAI
+  devtools:
+    restart:
+      enabled: false
+  ai:
+    openai:
+      api-key: ${SPRING_AI_API_KEY}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai/
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: gemini-2.5-flash
+          reasoning-effort: none
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor: DEBUG
+    web: DEBUG
