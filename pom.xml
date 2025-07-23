@@ -40,7 +40,16 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
-<!--        <dependency>-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-pdf-document-reader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.53.0</version>
+        </dependency>
+        <!--        <dependency>-->
 <!--            <groupId>org.springframework.modulith</groupId>-->
 <!--            <artifactId>spring-modulith-starter-core</artifactId>-->
 <!--        </dependency>-->
@@ -78,7 +87,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-<!--        <dependency>-->
+        <!--        <dependency>-->
 <!--            <groupId>org.springframework.modulith</groupId>-->
 <!--            <artifactId>spring-modulith-starter-test</artifactId>-->
 <!--            <scope>test</scope>-->

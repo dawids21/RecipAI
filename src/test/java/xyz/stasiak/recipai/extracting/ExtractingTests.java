@@ -1,11 +1,19 @@
 package xyz.stasiak.recipai.extracting;
 
+import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.LoadState;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.content.Media;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
+import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.junit.jupiter.api.Test;
@@ -21,6 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.net.http.HttpClient;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,9 +39,15 @@ class ExtractingTests {
     @Autowired
     ChatClient chatClient;
 
-    @Test
-    void extractRecipeDataFromImage() {
-        ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
+    @ParameterizedTest
+    @CsvSource({
+            "recipe_sources/kwestia_smaku.jpg,wegańskie chili",
+            "recipe_sources/ania_gotuje.jpg,pappardelle z kurczakiem",
+            "recipe_sources/instagram.jpg,curry z tofu",
+            "recipe_sources/tiktok.jpg,danie jednogarnkowe"
+    })
+    void extractRecipeDataFromImage(String image, String expectedName) {
+        ClassPathResource imageResource = new ClassPathResource(image);
         Media imageMedia = new Media(MimeTypeUtils.IMAGE_JPEG, imageResource);
         UserMessage userMessage = UserMessage.builder()
                 .media(imageMedia)
@@ -45,27 +60,88 @@ class ExtractingTests {
                 .entity(Recipe.class);
 
         assertThat(recipe).isNotNull();
-        assertThat(recipe.name).containsIgnoringCase("wegańskie chili");
+        assertThat(recipe.name).containsIgnoringCase(expectedName);
     }
 
-    @Test
-    void extractRecipeDataFromLink() {
+    @ParameterizedTest
+    @CsvSource({
+            "https://www.kwestiasmaku.com/przepis/weganskie-chili-z-soczewica-i-fasola,wegańskie chili",
+            "https://aniagotuje.pl/przepis/pappardelle-z-kurczakiem,pappardelle z kurczakiem",
+//            "https://www.instagram.com/p/CslHY_bIjIF/,curry z tofu",
+//            "https://www.tiktok.com/@jakjalubiejesc/video/7205547465674624261,danie jednogarnkowe"
+    })
+    void extractRecipeDataFromUrl(String url, String expectedName) {
         RestClient restClient = RestClient.create();
 
-        String linkContent = restClient.get()
-                .uri("https://www.kwestiasmaku.com/przepis/weganskie-chili-z-soczewica-i-fasola")
+        String urlContent = restClient.get()
+                .uri(url)
                 .retrieve()
                 .body(String.class);
-        assert linkContent != null;
+        assert urlContent != null;
 
         PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as HTML content\n<CONTENT>{content}</CONTENT>");
-        Prompt prompt = promptTemplate.create(Map.of("content", linkContent));
+        Prompt prompt = promptTemplate.create(Map.of("content", urlContent));
         Recipe recipe = chatClient.prompt(prompt)
                 .call()
                 .entity(Recipe.class);
 
         assertThat(recipe).isNotNull();
-        assertThat(recipe.name).containsIgnoringCase("wegańskie chili");
+        assertThat(recipe.name).containsIgnoringCase(expectedName);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "https://www.kwestiasmaku.com/przepis/weganskie-chili-z-soczewica-i-fasola,wegańskie chili",
+            "https://aniagotuje.pl/przepis/pappardelle-z-kurczakiem,pappardelle z kurczakiem",
+//            "https://www.instagram.com/p/CslHY_bIjIF/,curry z tofu",
+//            "https://www.tiktok.com/@jakjalubiejesc/video/7205547465674624261,danie jednogarnkowe"
+    })
+    void extractRecipeDataFromUrlUsingPlaywright(String url, String expectedName) {
+        String urlContent;
+        try (Playwright playwright = Playwright.create()) {
+            try (Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setSlowMo(50))) {
+                Page page = browser.newContext().newPage();
+                page.navigate(url);
+                page.waitForLoadState(LoadState.NETWORKIDLE);
+                List<ElementHandle> elements = page.querySelectorAll("body");
+                urlContent = elements.stream()
+                        .map(ElementHandle::textContent)
+                        .collect(Collectors.joining("\n\n"));
+            }
+        }
+
+        PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as HTML content\n<CONTENT>{content}</CONTENT>");
+        Prompt prompt = promptTemplate.create(Map.of("content", urlContent));
+        Recipe recipe = chatClient.prompt(prompt)
+                .call()
+                .entity(Recipe.class);
+
+        assertThat(recipe).isNotNull();
+        assertThat(recipe.name).containsIgnoringCase(expectedName);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "recipe_sources/kwestia_smaku.pdf,wegańskie chili",
+            "recipe_sources/ania_gotuje.pdf,pappardelle z kurczakiem",
+    })
+    void extractRecipeDataFromPdf(String fileName, String expectedName) {
+        ClassPathResource pdfFileResource = new ClassPathResource(fileName);
+        PagePdfDocumentReader reader = new PagePdfDocumentReader(pdfFileResource);
+        TokenTextSplitter splitter = new TokenTextSplitter();
+        List<Document> documents = splitter.split(reader.read());
+        String pdfContent = documents.stream()
+                .map(Document::getText)
+                .collect(Collectors.joining("\n\n"));
+
+        PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as HTML content\n<CONTENT>{content}</CONTENT>");
+        Prompt prompt = promptTemplate.create(Map.of("content", pdfContent));
+        Recipe recipe = chatClient.prompt(prompt)
+                .call()
+                .entity(Recipe.class);
+
+        assertThat(recipe).isNotNull();
+        assertThat(recipe.name).containsIgnoringCase(expectedName);
     }
 
     record Recipe(String name, String description, List<Ingredient> ingredients, List<Step> steps) {
