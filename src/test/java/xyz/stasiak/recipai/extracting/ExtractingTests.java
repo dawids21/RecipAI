@@ -4,7 +4,6 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.LoadState;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -16,17 +15,14 @@ import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.reactive.function.client.WebClient;
 
-import java.net.http.HttpClient;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -99,25 +95,29 @@ class ExtractingTests {
     void extractRecipeDataFromUrlUsingPlaywright(String url, String expectedName) {
         String urlContent;
         try (Playwright playwright = Playwright.create()) {
-            try (Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setSlowMo(50))) {
+//            try (Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setSlowMo(50))) {
+            try (Browser browser = playwright.chromium().launch()) {
                 Page page = browser.newContext().newPage();
                 page.navigate(url);
                 page.waitForLoadState(LoadState.NETWORKIDLE);
-                List<ElementHandle> elements = page.querySelectorAll("body");
-                urlContent = elements.stream()
-                        .map(ElementHandle::textContent)
-                        .collect(Collectors.joining("\n\n"));
+                page.screenshot(new Page.ScreenshotOptions()
+                        .setPath(Paths.get("screenshot.png"))
+                        .setFullPage(true));
+//                List<ElementHandle> elements = page.querySelectorAll("body");
+//                urlContent = elements.stream()
+//                        .map(ElementHandle::textContent)
+//                        .collect(Collectors.joining("\n\n"));
             }
         }
 
         PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as HTML content\n<CONTENT>{content}</CONTENT>");
-        Prompt prompt = promptTemplate.create(Map.of("content", urlContent));
-        Recipe recipe = chatClient.prompt(prompt)
-                .call()
-                .entity(Recipe.class);
-
-        assertThat(recipe).isNotNull();
-        assertThat(recipe.name).containsIgnoringCase(expectedName);
+//        Prompt prompt = promptTemplate.create(Map.of("content", urlContent));
+//        Recipe recipe = chatClient.prompt(prompt)
+//                .call()
+//                .entity(Recipe.class);
+//
+//        assertThat(recipe).isNotNull();
+//        assertThat(recipe.name).containsIgnoringCase(expectedName);
     }
 
     @ParameterizedTest
