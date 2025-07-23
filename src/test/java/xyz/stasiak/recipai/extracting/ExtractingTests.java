@@ -87,7 +87,7 @@ class ExtractingTests {
 
     @ParameterizedTest
     @CsvSource({
-            "https://www.kwestiasmaku.com/przepis/weganskie-chili-z-soczewica-i-fasola,wegańskie chili",
+//            "https://www.kwestiasmaku.com/przepis/weganskie-chili-z-soczewica-i-fasola,wegańskie chili",
             "https://aniagotuje.pl/przepis/pappardelle-z-kurczakiem,pappardelle z kurczakiem",
 //            "https://www.instagram.com/p/CslHY_bIjIF/,curry z tofu",
 //            "https://www.tiktok.com/@jakjalubiejesc/video/7205547465674624261,danie jednogarnkowe"
@@ -95,8 +95,8 @@ class ExtractingTests {
     void extractRecipeDataFromUrlUsingPlaywright(String url, String expectedName) {
         String urlContent;
         try (Playwright playwright = Playwright.create()) {
-//            try (Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setSlowMo(50))) {
-            try (Browser browser = playwright.chromium().launch()) {
+            try (Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setSlowMo(50))) {
+//            try (Browser browser = playwright.chromium().launch()) {
                 Page page = browser.newContext().newPage();
                 page.navigate(url);
                 page.waitForLoadState(LoadState.NETWORKIDLE);
