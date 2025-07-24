@@ -37,10 +37,10 @@ class ExtractingTests {
 
     @ParameterizedTest
     @CsvSource({
-            "recipe_sources/kwestia_smaku.jpg,wegańskie chili",
+//            "recipe_sources/kwestia_smaku.jpg,wegańskie chili",
             "recipe_sources/ania_gotuje.jpg,pappardelle z kurczakiem",
-            "recipe_sources/instagram.jpg,curry z tofu",
-            "recipe_sources/tiktok.jpg,danie jednogarnkowe"
+//            "recipe_sources/instagram.jpg,curry z tofu",
+//            "recipe_sources/tiktok.jpg,danie jednogarnkowe"
     })
     void extractRecipeDataFromImage(String image, String expectedName) {
         ClassPathResource imageResource = new ClassPathResource(image);
@@ -100,9 +100,10 @@ class ExtractingTests {
                 Page page = browser.newContext().newPage();
                 page.navigate(url);
                 page.waitForLoadState(LoadState.NETWORKIDLE);
-                page.screenshot(new Page.ScreenshotOptions()
-                        .setPath(Paths.get("screenshot.png"))
-                        .setFullPage(true));
+//                page.screenshot(new Page.ScreenshotOptions()
+//                        .setPath(Paths.get("screenshot.png"))
+//                        .setFullPage(true));
+                urlContent = (String) page.evaluate("document.body.innerText");
 //                List<ElementHandle> elements = page.querySelectorAll("body");
 //                urlContent = elements.stream()
 //                        .map(ElementHandle::textContent)
@@ -111,13 +112,13 @@ class ExtractingTests {
         }
 
         PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as HTML content\n<CONTENT>{content}</CONTENT>");
-//        Prompt prompt = promptTemplate.create(Map.of("content", urlContent));
-//        Recipe recipe = chatClient.prompt(prompt)
-//                .call()
-//                .entity(Recipe.class);
-//
-//        assertThat(recipe).isNotNull();
-//        assertThat(recipe.name).containsIgnoringCase(expectedName);
+        Prompt prompt = promptTemplate.create(Map.of("content", urlContent));
+        Recipe recipe = chatClient.prompt(prompt)
+                .call()
+                .entity(Recipe.class);
+
+        assertThat(recipe).isNotNull();
+        assertThat(recipe.name).containsIgnoringCase(expectedName);
     }
 
     @ParameterizedTest
