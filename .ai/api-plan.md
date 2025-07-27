@@ -1,0 +1,58 @@
+# REST API - RecipAI
+## Resources
+- Recipes: Maps the `recipes` DB table.
+## Endpoints
+### Recipes
+- GET /recipes
+  - Description: Get all recipes as list with basic info
+  - Example response:
+    ```json
+    [
+      {
+        "id": "uuid",
+        "name": "Pizza"
+      },
+      {
+        "id": "uuid",
+        "name": "Spaghetti"
+      }
+    ]
+    ```
+  - Success: 200 OK
+- GET /recipes/{uuid}
+  - Description: Get recipe by UUID
+  - Example response:
+    ```json
+    {
+      "id": "uuid",
+      "name": "Pizza",
+      "data": {
+        "...": "..."
+      }
+    }
+    ```
+  - Success: 200 OK
+  - Errors: 404 Not Found
+### Extracting
+- POST /extract/text
+  - Description: Extract recipe information from text
+  - Request body:
+    ```json
+    {
+      "text": "text with recipe for pizza"
+    }
+    ```
+  - Example response:
+    ```json
+    {
+      "id": "uuid",
+      "name": "Pizza",
+      "data": {
+        "...": "..."
+      }
+    }
+    ```
+  - Success: 200 OK
+  - Errors: 400 Bad request
+## Authentication and Authorization
+- Currently not implemented
