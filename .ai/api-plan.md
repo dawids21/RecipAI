@@ -33,6 +33,29 @@
     ```
   - Success: 200 OK
   - Errors: 404 Not Found
+- POST /recipes
+  - Description: Add new recipe
+  - Request body:
+    ```json
+    {
+      "name": "Pizza",
+      "data": {
+        "...": "..."
+      }
+    }
+    ```
+  - Example response:
+    ```json
+    {
+      "id": "uuid",
+      "name": "Pizza",
+      "data": {
+        "...": "..."
+      }
+    }
+    ```
+  - Success: 201 Created
+  - Errors: 400 Bad request
 ### Extracting
 - POST /extract/text
   - Description: Extract recipe information from text
