@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.extracting;
+package xyz.stasiak.recipai.extraction;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnableAutoConfiguration(exclude = {
         DataSourceAutoConfiguration.class
 })
-class ExtractingTests {
+class ExtractionTests {
 
     @Autowired
     ChatClient chatClient;

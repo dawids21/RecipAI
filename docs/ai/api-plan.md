@@ -56,7 +56,7 @@
     ```
   - Success: 201 Created
   - Errors: 400 Bad request
-### Extracting
+### Extraction
 - POST /extract/text
   - Description: Extract recipe information from text and save it as a new recipe
   - Request body:
