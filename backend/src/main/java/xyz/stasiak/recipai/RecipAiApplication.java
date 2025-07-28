@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class RecipAiApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(RecipAiApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(RecipAiApplication.class, args);
+	}
 
 }
