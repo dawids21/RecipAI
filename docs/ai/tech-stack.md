@@ -17,7 +17,7 @@
     - Spring Boot Testcontainers 3.5.4
     - Spring Boot Configuration Processor 3.5.4
 - Lombok 1.18.38
-- PostgreSQL
+- PostgreSQL 17.5
 
 ## Frontend and mobile
 

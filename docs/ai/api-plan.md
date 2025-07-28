@@ -58,7 +58,7 @@
   - Errors: 400 Bad request
 ### Extracting
 - POST /extract/text
-  - Description: Extract recipe information from text
+  - Description: Extract recipe information from text and save it as a new recipe
   - Request body:
     ```json
     {
