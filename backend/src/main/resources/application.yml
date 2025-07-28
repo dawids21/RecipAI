@@ -4,6 +4,10 @@ spring:
   devtools:
     restart:
       enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
   ai:
     openai:
       api-key: ${SPRING_AI_API_KEY}
