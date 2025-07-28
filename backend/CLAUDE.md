@@ -51,6 +51,7 @@
 - Use constructor injection with `@RequiredArgsConstructor`
 - Prefer Java `record` over Lombok’s `@Value` when applicable
 - Avoid using `@Data` in non-DTO classes, instead, use specific annotations like `@Getter`, `@Setter`, and `@ToString`
+- Don't use `@Data` in JPA classes
 - Apply Lombok annotations to fields rather than the class if only some fields require them
 - Use Lombok’s `@Slf4j` to generate loggers
 
@@ -58,6 +59,11 @@
 ## CODING_PRACTICES
 
 ### Guidelines for ARCHITECTURE
+
+### Modular
+- Modules (packages) should be split by feature not by layer (like controller, entity, repository).
+- Each module should have all required classes to provide a single feature
+- Most of the classes should have package-private visibility unless they need to be public
 
 #### ADR
 
