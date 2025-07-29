@@ -21,36 +21,22 @@ class RecipeController {
     @GetMapping
     public List<RecipeListDto> getAllRecipes() {
         log.debug("Getting all recipes");
-        return recipeService.findAll().stream()
-                .map(this::toRecipeListDto)
-                .toList();
+        return recipeService.findAll();
     }
 
     @GetMapping("/{id}")
     public RecipeDto getRecipeById(@PathVariable UUID id) {
         log.debug("Getting recipe by id: {}", id);
-        Recipe recipe = recipeService.findById(id)
+        return recipeService.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
-        return toRecipeDto(recipe);
     }
 
     @PostMapping
     public ResponseEntity<RecipeDto> createRecipe(@Valid @RequestBody CreateRecipeRequest request) {
         log.debug("Creating recipe with name: {}", request.name());
-        Recipe recipe = new Recipe();
-        recipe.setName(request.name());
-        recipe.setData(request.data());
-        
-        Recipe savedRecipe = recipeService.save(recipe);
+        RecipeDto savedRecipe = recipeService.save(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(toRecipeDto(savedRecipe));
+                .body(savedRecipe);
     }
 
-    private RecipeListDto toRecipeListDto(Recipe recipe) {
-        return new RecipeListDto(recipe.getId(), recipe.getName());
-    }
-
-    private RecipeDto toRecipeDto(Recipe recipe) {
-        return new RecipeDto(recipe.getId(), recipe.getName(), recipe.getData());
-    }
 }

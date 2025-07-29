@@ -9,19 +9,35 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-class RecipeService {
+public class RecipeService {
 
     private final RecipeRepository recipeRepository;
 
-    public List<Recipe> findAll() {
-        return recipeRepository.findAll();
+    public List<RecipeListDto> findAll() {
+        return recipeRepository.findAll().stream()
+                .map(this::toRecipeListDto)
+                .toList();
     }
 
-    public Optional<Recipe> findById(UUID id) {
-        return recipeRepository.findById(id);
+    public Optional<RecipeDto> findById(UUID id) {
+        return recipeRepository.findById(id)
+                .map(this::toDto);
     }
 
-    public Recipe save(Recipe recipe) {
-        return recipeRepository.save(recipe);
+    public RecipeDto save(CreateRecipeRequest request) {
+        Recipe recipe = new Recipe();
+        recipe.setName(request.name());
+        recipe.setData(request.data());
+        
+        Recipe savedRecipe = recipeRepository.save(recipe);
+        return toDto(savedRecipe);
+    }
+
+    private RecipeDto toDto(Recipe recipe) {
+        return new RecipeDto(recipe.getId(), recipe.getName(), recipe.getData());
+    }
+
+    private RecipeListDto toRecipeListDto(Recipe recipe) {
+        return new RecipeListDto(recipe.getId(), recipe.getName());
     }
 }
