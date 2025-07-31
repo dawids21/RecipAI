@@ -1,4 +1,4 @@
-# REST API - RecipAI
+# REST API Documentation - RecipAI
 ## Resources
 - Recipes: Maps the `recipes` DB table.
 ## Endpoints

@@ -1,18 +1,5 @@
 # AI Rules for RecipAI backend
 
-## Codebase Structure
-
-```
-backend/
-├── src/main/java/xyz/stasiak/recipai/
-│   ├── RecipAiApplication.java          # Main Spring Boot application entry point
-│   ├── extraction/                      # Module for extracting recipes from text/images using AI
-│   └── recipes/                         # Module for managing recipe CRUD operations and data persistence
-├── src/main/resources/
-│   └── application.yml                  # Spring Boot configuration
-└── src/test/java/xyz/stasiak/recipai/   # Integration and unit tests with Testcontainers setup
-```
-
 ## Tech Stack
 
 - Java 24

@@ -6,16 +6,17 @@
 - Backend for the project is built with Spring Boot and Java. Source code is available in the `backend/` directory.
 - Mobile application is built with Flutter and Dart, available in the `mobile/` directory.
 - Documentation for the project is available in the `docs/` directory.
+- Always read `docs/prd.md` at the start of a new conversation to understand the project
 
-## Project Context
-
-- When implementing new features, restrict changes to a single codebase (either backend or mobile).
-- Always read `docs/prd.md` to understand the product requirements and current scope.
-- Before planning a new feature on the backend, check the `docs/api.md` file to check API endpoints and `docs/db.md` to check database structure.
-- Before planning a new feature on the mobile app, check the `docs/api.md` file to check backend API endpoints and `docs/ui.md` to check UI components.
-
-## Planning and Implementation
+## Documentation
+- `docs/prd.md` - **Product Requirements Document (PRD)** - Contains product overview, user problems, functional requirements, and user stories.
+- `docs/backend/backend.md` - **Backend App Overview** - Provides an overview of the backend modules and codebase structure.
+- `docs/backend/api.md` - **API Documentation** - Contains API endpoints, request/response formats, and examples.
+- `docs/backend/db.md` - **Database Schema** - Describes the database structure, tables
+- `docs/mobile/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app codebase structure.
+- `docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app.
 
 ## AI Behavior
+- When implementing new features, restrict changes to a single codebase (either backend or mobile).
 - Never assume missing context. Ask questions if uncertain.
 - Never hallucinate libraries or functions.
