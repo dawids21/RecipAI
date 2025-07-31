@@ -27,7 +27,26 @@
       "id": "uuid",
       "name": "Pizza",
       "data": {
-        "...": "..."
+        "ingredients": [
+          {
+            "name": "flour",
+            "quantity": "300g",
+            "unit": null
+          },
+          {
+            "name": "tomato sauce",
+            "quantity": "200ml",
+            "unit": null
+          }
+        ],
+        "instructions": [
+          {
+            "step": "Make dough"
+          },
+          {
+            "step": "Add sauce and toppings"
+          }
+        ]
       }
     }
     ```
@@ -40,7 +59,26 @@
     {
       "name": "Pizza",
       "data": {
-        "...": "..."
+        "ingredients": [
+          {
+            "name": "flour",
+            "quantity": "300g",
+            "unit": null
+          },
+          {
+            "name": "tomato sauce",
+            "quantity": "200ml",
+            "unit": null
+          }
+        ],
+        "instructions": [
+          {
+            "step": "Make dough"
+          },
+          {
+            "step": "Add sauce and toppings"
+          }
+        ]
       }
     }
     ```
@@ -50,7 +88,26 @@
       "id": "uuid",
       "name": "Pizza",
       "data": {
-        "...": "..."
+        "ingredients": [
+          {
+            "name": "flour",
+            "quantity": "300g",
+            "unit": null
+          },
+          {
+            "name": "tomato sauce",
+            "quantity": "200ml",
+            "unit": null
+          }
+        ],
+        "instructions": [
+          {
+            "step": "Make dough"
+          },
+          {
+            "step": "Add sauce and toppings"
+          }
+        ]
       }
     }
     ```
@@ -71,7 +128,26 @@
       "id": "uuid",
       "name": "Pizza",
       "data": {
-        "...": "..."
+        "ingredients": [
+          {
+            "name": "flour",
+            "quantity": "300g",
+            "unit": null
+          },
+          {
+            "name": "tomato sauce",
+            "quantity": "200ml",
+            "unit": null
+          }
+        ],
+        "instructions": [
+          {
+            "step": "Make dough"
+          },
+          {
+            "step": "Add sauce and toppings"
+          }
+        ]
       }
     }
     ```

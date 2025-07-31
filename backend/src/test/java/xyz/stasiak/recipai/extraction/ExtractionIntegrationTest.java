@@ -1,8 +1,6 @@
 package xyz.stasiak.recipai.extraction;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -53,11 +51,10 @@ class ExtractionIntegrationTest {
         assertThat(extractedRecipe.id()).isNotNull();
         assertThat(extractedRecipe.name()).isNotNull();
         assertThat(extractedRecipe.data()).isNotNull();
-        assertThat(extractedRecipe.data().get("name")).isNotNull();
-        assertThat(extractedRecipe.data().get("ingredients").isArray()).isTrue();
-        assertThat(extractedRecipe.data().get("steps").isArray()).isTrue();
+        assertThat(extractedRecipe.data().ingredients()).isNotEmpty();
+        assertThat(extractedRecipe.data().instructions()).isNotEmpty();
 
-        // Verify the extracted recipe is available in the recipes list
+        // Verify the extracted recipe is available in the recipes list (independent of existing count)
         List<RecipeListDto> recipes = restClient()
                 .get()
                 .uri("/recipes")
