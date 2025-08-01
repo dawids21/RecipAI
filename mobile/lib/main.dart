@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recipai/core/api_service.dart';
 
 import 'core/app_config.dart';
+import 'core/theme.dart';
 import 'features/recipe/recipe_list_screen.dart';
 
 void main() async {
@@ -28,9 +29,7 @@ class _RecipAIAppState extends State<RecipAIApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'RecipAI',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-      ),
+      theme: AppTheme.theme,
       home: const RecipeListScreen(),
     );
   }

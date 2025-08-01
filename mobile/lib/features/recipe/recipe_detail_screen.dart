@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
+import '../../core/theme.dart';
+import '../../shared/error_icon.dart';
 import '../../shared/loading_widget.dart';
+import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
+import 'step_number_badge.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -24,10 +28,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recipe Details'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: FutureBuilder<RecipeDetail>(
         future: futureRecipeDetail,
@@ -39,14 +44,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
+                  const ErrorIcon(),
+                  const SizedBox(height: AppSpacing.medium),
                   Text(
                     'Error: ${snapshot.error}',
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: theme.textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.medium),
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
@@ -63,46 +68,44 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           } else if (snapshot.hasData) {
             final recipeDetail = snapshot.data!;
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: AppSpacing.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Recipe Name
                   Text(
                     recipeDetail.name,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.large),
 
                   // Ingredients Section
                   Text(
                     'Ingredients',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.small),
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: AppSpacing.cardMargin,
                       child: Column(
                         children: recipeDetail.data.ingredients.map((
                           ingredient,
                         ) {
                           return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            padding: AppSpacing.smallVertical,
                             child: Row(
                               children: [
-                                const Icon(Icons.circle, size: 8),
-                                const SizedBox(width: 8),
+                                const IngredientBullet(),
+                                const SizedBox(width: AppSpacing.small),
                                 Expanded(
                                   child: Text(
                                     '${ingredient.quantity} ${ingredient.name}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
+                                    style: theme.textTheme.bodyLarge,
                                   ),
                                 ),
                               ],
@@ -112,19 +115,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.large),
 
                   // Instructions Section
                   Text(
                     'Instructions',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.small),
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: AppSpacing.screenPadding,
                       child: Column(
                         children: recipeDetail.data.instructions
                             .asMap()
@@ -133,37 +136,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               int index = entry.key;
                               Instruction instruction = entry.value;
                               return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                ),
+                                padding: AppSpacing.mediumVertical,
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).primaryColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
+                                    StepNumberBadge(stepNumber: index + 1),
+                                    const SizedBox(
+                                      width:
+                                          AppSpacing.small +
+                                          AppSpacing.extraSmall,
                                     ),
-                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
                                         instruction.step,
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge,
+                                        style: theme.textTheme.bodyLarge,
                                       ),
                                     ),
                                   ],

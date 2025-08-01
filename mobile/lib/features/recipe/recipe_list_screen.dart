@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
+import '../../core/theme.dart';
+import '../../shared/error_icon.dart';
 import '../../shared/loading_widget.dart';
 import 'recipe.dart';
 import 'recipe_detail_screen.dart';
@@ -33,10 +35,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('RecipAI'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: FutureBuilder<List<Recipe>>(
         future: futureRecipes,
@@ -48,14 +51,14 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
+                  const ErrorIcon(),
+                  const SizedBox(height: AppSpacing.medium),
                   Text(
                     'Error: ${snapshot.error}',
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: theme.textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.medium),
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
@@ -70,8 +73,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           } else if (snapshot.hasData) {
             final recipes = snapshot.data!;
             if (recipes.isEmpty) {
-              return const Center(
-                child: Text('No recipes found', style: TextStyle(fontSize: 18)),
+              return Center(
+                child: Text(
+                  'No recipes found',
+                  style: theme.textTheme.labelMedium,
+                ),
               );
             }
             return ListView.builder(

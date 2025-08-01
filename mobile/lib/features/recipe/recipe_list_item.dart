@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme.dart';
 import 'recipe.dart';
 
 class RecipeListItem extends StatelessWidget {
@@ -10,19 +11,14 @@ class RecipeListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      margin: AppSpacing.cardMargin,
       child: ListTile(
-        title: Text(
-          recipe.name,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        title: Text(recipe.name, style: theme.textTheme.titleMedium),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 8.0,
-        ),
+        contentPadding: AppSpacing.listTilePadding,
       ),
     );
   }
