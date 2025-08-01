@@ -58,7 +58,7 @@ the backend REST API and allows navigation to detailed recipe views.
 
 ### API Integration
 
-- **Base URL**: http://localhost:8080 (configured for local development)
+- **Base URL**: http://10.0.2.2:8080 (configured for local development)
 - **Endpoints**: GET /recipes, GET /recipes/{id}
 - **Error Handling**: Network errors, HTTP status codes, JSON parsing errors
 - **Loading States**: FutureBuilder pattern with loading indicators
@@ -93,7 +93,7 @@ The app is ready for manual testing. Users should verify:
 ## Integration Points
 
 - **Backend API**: Successfully connects to Spring Boot backend on port 8080
-- **Network Config**: Uses local IP address (localhost) for device testing
+- **Network Config**: Uses local IP address (10.0.2.2) for device testing
 - **JSON Handling**: Properly processes different API response formats
 - **Navigation**: Implements proper Flutter navigation patterns
 

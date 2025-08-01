@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 class AppConfig {
-  static const String _defaultApiBaseUrl = 'http://localhost:8080';
+  static const String _defaultApiBaseUrl = 'http://10.0.2.2:8080';
   static const String _apiBaseUrlKey = 'API_BASE_URL';
 
   static Map<String, dynamic>? _config;

@@ -26,7 +26,7 @@ Edit `assets/config/app_config.json` to change the API settings:
 
 ### 3. Default Fallback (Lowest Priority)
 
-If no configuration is provided, the app uses `http://localhost:8080` as the default.
+If no configuration is provided, the app uses `http://10.0.2.2:8080` as the default.
 
 ## Getting Started
 
