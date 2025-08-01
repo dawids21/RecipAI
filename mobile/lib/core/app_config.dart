@@ -1,10 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
 
 class AppConfig {
   static const String _defaultApiBaseUrl = 'http://10.0.2.2:8080';
   static const String _apiBaseUrlKey = 'API_BASE_URL';
+
+  static final Logger _logger = Logger('AppConfig');
 
   static Map<String, dynamic>? _config;
 
@@ -16,7 +19,7 @@ class AppConfig {
       );
       _config = json.decode(configString);
     } catch (e) {
-      print('Warning: Could not load app_config.json, using defaults: $e');
+      _logger.warning('Could not load app_config.json, using defaults: $e');
     }
   }
 
