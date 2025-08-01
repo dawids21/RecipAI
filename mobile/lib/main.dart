@@ -30,7 +30,6 @@ class _RecipAIAppState extends State<RecipAIApp> {
       title: 'RecipAI',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        useMaterial3: true,
       ),
       home: const RecipeListScreen(),
     );
