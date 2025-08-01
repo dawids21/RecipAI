@@ -2,9 +2,10 @@
 
 ## Modules
 
-- `config` -
-- `services` -
-- `recipe` -
+- `config` - Manages application configuration including API base URL with support for environment variables and JSON
+  config files
+- `services` - Provides HTTP API communication services for fetching data from the backend
+- `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
 
 ## Codebase Structure
 
