@@ -15,12 +15,11 @@ class RecipeListScreen extends StatefulWidget {
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
   late Future<List<Recipe>> futureRecipes;
-  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    futureRecipes = _apiService.fetchRecipes();
+    futureRecipes = ApiService.fetchRecipes();
   }
 
   void _onRecipeTap(Recipe recipe) {
@@ -60,7 +59,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        futureRecipes = _apiService.fetchRecipes();
+                        futureRecipes = ApiService.fetchRecipes();
                       });
                     },
                     child: const Text('Retry'),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recipai/services/api_service.dart';
 
 import 'config/app_config.dart';
 import 'recipe/recipe_list_screen.dart';
@@ -9,8 +10,19 @@ void main() async {
   runApp(const RecipAIApp());
 }
 
-class RecipAIApp extends StatelessWidget {
+class RecipAIApp extends StatefulWidget {
   const RecipAIApp({super.key});
+
+  @override
+  State<RecipAIApp> createState() => _RecipAIAppState();
+}
+
+class _RecipAIAppState extends State<RecipAIApp> {
+  @override
+  void dispose() {
+    ApiService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

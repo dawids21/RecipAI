@@ -7,20 +7,10 @@ import '../recipe/recipe.dart';
 import '../recipe/recipe_detail.dart';
 
 class ApiService {
-  static final ApiService _instance = ApiService._internal();
-  late final http.Client _client;
-  late final String _baseUrl;
+  static final http.Client _client = http.Client();
+  static final String _baseUrl = AppConfig.apiBaseUrl;
 
-  factory ApiService() {
-    return _instance;
-  }
-
-  ApiService._internal() {
-    _client = http.Client();
-    _baseUrl = AppConfig.apiBaseUrl;
-  }
-
-  Future<List<Recipe>> fetchRecipes() async {
+  static Future<List<Recipe>> fetchRecipes() async {
     try {
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes'),
@@ -40,7 +30,7 @@ class ApiService {
     }
   }
 
-  Future<RecipeDetail> fetchRecipeDetail(String id) async {
+  static Future<RecipeDetail> fetchRecipeDetail(String id) async {
     try {
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes/$id'),
@@ -60,7 +50,7 @@ class ApiService {
     }
   }
 
-  void dispose() {
+  static void dispose() {
     _client.close();
   }
 }
