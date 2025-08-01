@@ -50,6 +50,25 @@ class ApiService {
     }
   }
 
+  static Future<RecipeDetail> extractRecipeFromText(String htmlContent) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/extract/text'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'text': htmlContent}),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> json = jsonDecode(response.body);
+        return RecipeDetail.fromJson(json);
+      } else {
+        throw Exception('Failed to extract recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while extracting recipe: $e');
+    }
+  }
+
   static void dispose() {
     _client.close();
   }

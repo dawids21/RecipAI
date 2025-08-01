@@ -40,6 +40,9 @@ dependencies:
   
   # Official Dart logging package
   logging: ^1.2.0
+  
+  # WebView plugin for displaying web pages
+  webview_flutter: ^4.13.0
 
 dev_dependencies:
   flutter_test:
