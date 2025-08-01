@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/api_service.dart';
+import '../../core/api_service.dart';
 import 'loading_widget.dart';
 import 'recipe_detail.dart';
 

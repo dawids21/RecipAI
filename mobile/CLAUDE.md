@@ -13,8 +13,8 @@
 
 ### Modular Architecture
 
-- Modules (packages) should be split by feature not by layer e.g. all widgets, screens, models related to recipes should
-  be in `recipe/` package (with no sub-packages for widgets, models, etc.)
+- Code should be split by feature not by layer e.g. all widgets, screens, models related to recipes should
+  be in `features/recipe/` folder (with no sub-folders for widgets, models, etc.)
 - Each module should have all required classes to provide a single feature
 
 ## Architecture Patterns

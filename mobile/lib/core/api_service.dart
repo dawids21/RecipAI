@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../config/app_config.dart';
-import '../recipe/recipe.dart';
-import '../recipe/recipe_detail.dart';
+import '../features/recipe/recipe.dart';
+import '../features/recipe/recipe_detail.dart';
+import 'app_config.dart';
 
 class ApiService {
   static final http.Client _client = http.Client();

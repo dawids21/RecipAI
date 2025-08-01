@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:recipai/services/api_service.dart';
+import 'package:recipai/core/api_service.dart';
 
-import 'config/app_config.dart';
-import 'recipe/recipe_list_screen.dart';
+import 'core/app_config.dart';
+import 'features/recipe/recipe_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
