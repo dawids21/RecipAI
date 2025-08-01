@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
-import 'loading_widget.dart';
+import '../../shared/loading_widget.dart';
 import 'recipe_detail.dart';
 
 class RecipeDetailScreen extends StatefulWidget {

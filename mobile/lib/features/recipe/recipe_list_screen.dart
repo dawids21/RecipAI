@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
-import 'loading_widget.dart';
+import '../../shared/loading_widget.dart';
 import 'recipe.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_list_item.dart';
