@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
 import '../../core/theme.dart';
-import '../../shared/error_icon.dart';
+import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
@@ -40,30 +40,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LoadingWidget();
           } else if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const ErrorIcon(),
-                  const SizedBox(height: AppSpacing.medium),
-                  Text(
-                    'Error: ${snapshot.error}',
-                    style: theme.textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.medium),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        futureRecipeDetail = ApiService.fetchRecipeDetail(
-                          widget.recipeId,
-                        );
-                      });
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ApiErrorWidget(
+              errorMessage: 'Error: ${snapshot.error}',
+              onRetry: () {
+                setState(() {
+                  futureRecipeDetail = ApiService.fetchRecipeDetail(
+                    widget.recipeId,
+                  );
+                });
+              },
             );
           } else if (snapshot.hasData) {
             final recipeDetail = snapshot.data!;

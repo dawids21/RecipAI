@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_service.dart';
-import '../../core/theme.dart';
-import '../../shared/error_icon.dart';
+import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'recipe.dart';
 import 'recipe_detail_screen.dart';
@@ -47,28 +46,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LoadingWidget();
           } else if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const ErrorIcon(),
-                  const SizedBox(height: AppSpacing.medium),
-                  Text(
-                    'Error: ${snapshot.error}',
-                    style: theme.textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.medium),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        futureRecipes = ApiService.fetchRecipes();
-                      });
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+            return ApiErrorWidget(
+              errorMessage: 'Error: ${snapshot.error}',
+              onRetry: () {
+                setState(() {
+                  futureRecipes = ApiService.fetchRecipes();
+                });
+              },
             );
           } else if (snapshot.hasData) {
             final recipes = snapshot.data!;
