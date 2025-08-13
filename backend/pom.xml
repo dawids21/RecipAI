@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>xyz.stasiak</groupId>
-	<artifactId>recipai</artifactId>
+    <artifactId>recipai-backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>recipai</name>
+    <name>recipai-backend</name>
 	<description>RecipAI</description>
 	<url/>
 	<licenses>
