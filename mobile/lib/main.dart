@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recipai/core/api_service.dart';
+import 'package:recipai_mobile/core/api_service.dart';
 
 import 'core/app_config.dart';
 import 'core/theme.dart';

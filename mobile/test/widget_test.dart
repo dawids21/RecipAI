@@ -6,7 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:recipai/main.dart';
+import 'package:recipai_mobile/main.dart';
 
 void main() {
   testWidgets('RecipAI app smoke test', (WidgetTester tester) async {
