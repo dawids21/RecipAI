@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:recipai_mobile/core/theme.dart';
 
 import '../../core/api_service.dart';
@@ -20,7 +20,6 @@ class RecipeListScreen extends StatefulWidget {
 }
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
-  final _fabKey = GlobalKey<ExpandableFabState>();
   late Future<List<Recipe>> futureRecipes;
 
   @override
@@ -29,15 +28,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     futureRecipes = ApiService.fetchRecipes();
   }
 
-  void _closeFab() {
-    final state = _fabKey.currentState;
-    if (state != null) {
-      state.toggle();
-    }
-  }
-
   void _onRecipeTap(Recipe recipe) {
-    _closeFab();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -47,7 +38,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   void _onImportTap() async {
-    _closeFab();
     final result = await Navigator.push<RecipeDetail>(
       context,
       MaterialPageRoute(builder: (context) => const ImportScreen()),
@@ -60,7 +50,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   void _onCreateTap() async {
-    _closeFab();
     final result = await Navigator.push<RecipeDetail>(
       context,
       MaterialPageRoute(builder: (context) => const CreateRecipeScreen()),
@@ -124,35 +113,21 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           }
         },
       ),
-      floatingActionButtonLocation: ExpandableFab.location,
-      floatingActionButton: ExpandableFab(
-        key: _fabKey,
-        distance: 64,
-        type: ExpandableFabType.up,
+      floatingActionButton: SpeedDial(
+        spaceBetweenChildren: AppSpacing.medium,
+        animatedIcon: AnimatedIcons.menu_close,
         children: [
-          Row(
-            children: [
-              Text("Import"),
-              SizedBox(width: AppSpacing.medium),
-              FloatingActionButton.small(
-                heroTag: "import",
-                onPressed: _onImportTap,
-                tooltip: 'Import Recipe',
-                child: const Icon(Icons.download),
-              ),
-            ],
+          SpeedDialChild(
+            shape: const CircleBorder(),
+            child: const Icon(Icons.download),
+            label: 'Import Recipe',
+            onTap: _onImportTap,
           ),
-          Row(
-            children: [
-              Text("Create"),
-              SizedBox(width: AppSpacing.medium),
-              FloatingActionButton.small(
-                heroTag: "create",
-                onPressed: _onCreateTap,
-                tooltip: 'Create Recipe',
-                child: const Icon(Icons.edit),
-              ),
-            ],
+          SpeedDialChild(
+            shape: const CircleBorder(),
+            child: const Icon(Icons.edit),
+            label: 'Create Recipe',
+            onTap: _onCreateTap,
           ),
         ],
       ),

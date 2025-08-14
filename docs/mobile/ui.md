@@ -4,7 +4,7 @@
 
 ### Recipe module
 
-- List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with expandable FAB for
+- List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with Speed Dial FAB for
   importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes with ingredient
@@ -30,8 +30,8 @@
 
 1. **App Launch** → Recipe List Screen
 2. **Recipe Tap** → Recipe Detail Screen (with recipe ID parameter)
-3. **Expandable FAB → Import Tap** → Import Screen
-4. **Expandable FAB → Create Tap** → Create Recipe Screen
+3. **Speed Dial → Import Tap** → Import Screen
+4. **Speed Dial → Create Tap** → Create Recipe Screen
 5. **Successful Import/Creation** → Back to Recipe List Screen (with new recipe added)
 
 ## Theme System

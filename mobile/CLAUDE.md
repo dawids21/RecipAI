@@ -6,6 +6,8 @@
 - Flutter 3.32
 - Cupertino Icons 1.0.8
 - HTTP 1.1.0 - HTTP client for API communication
+- Flutter WebView 4.13.0
+- Flutter Speed Dial 7.0.0 - Speed dial floating action button
 - Flutter Lints 5.0.0 (dev dependency)
 - Flutter Test (dev dependency)
 
