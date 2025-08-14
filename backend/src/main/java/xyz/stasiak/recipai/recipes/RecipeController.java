@@ -39,4 +39,18 @@ class RecipeController {
                 .body(savedRecipe);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<RecipeDto> updateRecipe(@PathVariable UUID id, @Valid @RequestBody UpdateRecipeRequest request) {
+        log.debug("Updating recipe with id: {}", id);
+        RecipeDto updatedRecipe = recipeService.updateById(id, request);
+        return ResponseEntity.ok(updatedRecipe);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRecipe(@PathVariable UUID id) {
+        log.debug("Deleting recipe with id: {}", id);
+        boolean deleted = recipeService.deleteById(id);
+        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
 }

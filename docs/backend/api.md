@@ -113,6 +113,72 @@
     ```
   - Success: 201 Created
   - Errors: 400 Bad request
+- PUT /recipes/{uuid}
+    - Description: Update existing recipe by UUID
+    - Request body:
+      ```json
+      {
+        "name": "Updated Pizza",
+        "data": {
+          "ingredients": [
+            {
+              "name": "flour",
+              "quantity": "400g",
+              "unit": null
+            },
+            {
+              "name": "cheese",
+              "quantity": "200g",
+              "unit": null
+            }
+          ],
+          "instructions": [
+            {
+              "step": "Make better dough"
+            },
+            {
+              "step": "Add cheese"
+            }
+          ]
+        }
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "uuid",
+        "name": "Updated Pizza",
+        "data": {
+          "ingredients": [
+            {
+              "name": "flour",
+              "quantity": "400g",
+              "unit": null
+            },
+            {
+              "name": "cheese",
+              "quantity": "200g",
+              "unit": null
+            }
+          ],
+          "instructions": [
+            {
+              "step": "Make better dough"
+            },
+            {
+              "step": "Add cheese"
+            }
+          ]
+        }
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 404 Not Found, 400 Bad request
+- DELETE /recipes/{uuid}
+    - Description: Delete recipe by UUID
+    - Example response: No content
+    - Success: 204 No Content
+    - Errors: 404 Not Found
 ### Extraction
 - POST /extract/text
   - Description: Extract recipe information from text and save it as a new recipe

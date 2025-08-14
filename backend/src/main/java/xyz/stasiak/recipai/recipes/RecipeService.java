@@ -39,6 +39,29 @@ public class RecipeService {
         return toDto(savedRecipe);
     }
 
+    public RecipeDto updateById(UUID id, UpdateRecipeRequest request) {
+        log.debug("Updating recipe with id: {}", id);
+
+        Recipe existingRecipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new RecipeNotFoundException(id));
+
+        existingRecipe.setName(request.name());
+        existingRecipe.setData(convertToJsonNode(request.data()));
+
+        Recipe savedRecipe = recipeRepository.save(existingRecipe);
+        return toDto(savedRecipe);
+    }
+
+    public boolean deleteById(UUID id) {
+        log.debug("Deleting recipe with id: {}", id);
+
+        if (recipeRepository.existsById(id)) {
+            recipeRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
     private RecipeDto toDto(Recipe recipe) {
         RecipeData recipeData = convertToRecipeData(recipe.getData());
         return new RecipeDto(recipe.getId(), recipe.getName(), recipeData);
