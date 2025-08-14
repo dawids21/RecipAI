@@ -14,7 +14,8 @@
 ### Modular Architecture
 
 - Code should be split by feature not by layer e.g. all widgets, screens, models related to recipes should
-  be in `features/recipe/` folder (with no sub-folders for widgets, models, etc.)
+  be in `features/recipe/` folder with no sub-folders for widgets, models, screens, etc.
+- All files related to a feature are placed directly in the single feature directory
 - Each module should have all required classes to provide a single feature
 
 ## Architecture Patterns

@@ -3,6 +3,7 @@
 ## Features
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
+- `import` - Recipe import functionality using WebView to browse recipe websites and extract recipe data
 
 ## Codebase Structure
 
@@ -14,7 +15,8 @@ mobile/
 │   │   ├── api_service.dart           # API service for backend communication
 │   │   └── app_config.dart            # Application configuration
 │   └── features/                       # Feature modules
-│       └── recipe/                     # Recipe feature
+│       ├── recipe/                     # Recipe feature
+│       └── import/                     # Recipe import feature
 ├── assets/
 │   └── config/
 │       └── app_config.json            # App configuration file
