@@ -43,6 +43,9 @@ dependencies:
   
   # WebView plugin for displaying web pages
   webview_flutter: ^4.13.0
+  
+  # Expandable floating action button
+  flutter_expandable_fab: ^2.5.2
 
 dev_dependencies:
   flutter_test:

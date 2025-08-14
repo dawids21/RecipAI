@@ -4,9 +4,14 @@
 
 ### Recipe module
 
-- List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with FAB for importing
+- List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with expandable FAB for
+  importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
+- Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes with ingredient
+  and instruction inputs
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes in a list
+- Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
+  with validation
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 
@@ -25,8 +30,9 @@
 
 1. **App Launch** → Recipe List Screen
 2. **Recipe Tap** → Recipe Detail Screen (with recipe ID parameter)
-3. **Import FAB Tap** → Import Screen
-4. **Successful Import** → Back to Recipe List Screen (with new recipe added)
+3. **Expandable FAB → Import Tap** → Import Screen
+4. **Expandable FAB → Create Tap** → Create Recipe Screen
+5. **Successful Import/Creation** → Back to Recipe List Screen (with new recipe added)
 
 ## Theme System
 

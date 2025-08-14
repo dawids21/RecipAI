@@ -13,7 +13,13 @@ mobile/
 │   ├── main.dart                       # RecipAI app entry point with MaterialApp setup
 │   ├── core/                           # Core services and configuration
 │   │   ├── api_service.dart           # API service for backend communication
-│   │   └── app_config.dart            # Application configuration
+│   │   ├── app_config.dart            # Application configuration
+│   │   └── theme.dart                 # App theme and spacing constants
+│   ├── shared/                         # Shared/reusable widgets and utilities
+│   │   ├── loading_widget.dart        # Loading indicator widget
+│   │   ├── api_error_widget.dart      # API error display widget
+│   │   ├── error_message_widget.dart  # General error message widget
+│   │   └── error_icon.dart           # Error icon widget
 │   └── features/                       # Feature modules
 │       ├── recipe/                     # Recipe feature
 │       └── import/                     # Recipe import feature

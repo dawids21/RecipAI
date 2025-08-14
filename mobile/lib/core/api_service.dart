@@ -69,6 +69,25 @@ class ApiService {
     }
   }
 
+  static Future<RecipeDetail> createRecipe(RecipeDetail recipe) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/recipes'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(recipe.toJson()),
+      );
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> json = jsonDecode(response.body);
+        return RecipeDetail.fromJson(json);
+      } else {
+        throw Exception('Failed to create recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while creating recipe: $e');
+    }
+  }
+
   static void dispose() {
     _client.close();
   }
