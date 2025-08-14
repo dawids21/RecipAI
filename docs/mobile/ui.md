@@ -26,12 +26,22 @@
 - **API Error Widget** (`api_error_widget.dart`) - Reusable error display with retry functionality for API failures
 - **Error Icon** (`error_icon.dart`) - Standardized error icon (64px, theme-based color)
 
-## Navigation Flow
+## Navigation
 
-1. **App Launch** → Recipe List Screen
-2. **Recipe Tap** → Recipe Detail Screen (with recipe ID parameter)
-3. **Speed Dial → Import Tap** → Import Screen
-4. **Speed Dial → Create Tap** → Create Recipe Screen
+### Route Structure
+
+- `/` - Home route (redirects to `/recipes`)
+- `/recipes` - Main recipe list screen
+- `/recipes/import` - Recipe import screen with WebView
+- `/recipes/create` - Manual recipe creation screen
+- `/recipes/:id` - Recipe detail screen with dynamic ID parameter
+
+### Flow
+
+1. **App Launch** → Recipe List Screen (`/recipes`)
+2. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
+3. **Speed Dial → Import Tap** → Import Screen (`/recipes/import`)
+4. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
 5. **Successful Import/Creation** → Back to Recipe List Screen (with new recipe added)
 
 ## Theme System

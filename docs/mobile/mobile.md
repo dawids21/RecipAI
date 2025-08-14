@@ -10,8 +10,9 @@
 ```
 mobile/
 ├── lib/
-│   ├── main.dart                       # RecipAI app entry point with MaterialApp setup
+│   ├── main.dart                       # RecipAI app entry point with MaterialApp.router setup
 │   ├── core/                           # Core services and configuration
+│   │   ├── routes.dart                 # Go router configuration with AppRoute enum
 │   │   ├── api_service.dart           # API service for backend communication
 │   │   ├── app_config.dart            # Application configuration
 │   │   └── theme.dart                 # App theme and spacing constants

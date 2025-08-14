@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/theme.dart';
 
 import '../../core/api_service.dart';
+import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
-import '../import/import_screen.dart';
-import 'create_recipe_screen.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
-import 'recipe_detail_screen.dart';
 import 'recipe_list_item.dart';
 
 class RecipeListScreen extends StatefulWidget {
@@ -29,18 +28,15 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   void _onRecipeTap(Recipe recipe) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecipeDetailScreen(recipeId: recipe.id),
-      ),
+    context.pushNamed(
+      AppRoute.recipeDetail.name,
+      pathParameters: {'id': recipe.id},
     );
   }
 
   void _onImportTap() async {
-    final result = await Navigator.push<RecipeDetail>(
-      context,
-      MaterialPageRoute(builder: (context) => const ImportScreen()),
+    final result = await context.pushNamed<RecipeDetail>(
+      AppRoute.recipeImport.name,
     );
 
     // If a recipe was imported, refresh the list
@@ -50,9 +46,8 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   void _onCreateTap() async {
-    final result = await Navigator.push<RecipeDetail>(
-      context,
-      MaterialPageRoute(builder: (context) => const CreateRecipeScreen()),
+    final result = await context.pushNamed<RecipeDetail>(
+      AppRoute.recipeCreate.name,
     );
 
     // If a recipe was created, refresh the list

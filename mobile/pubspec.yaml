@@ -46,6 +46,9 @@ dependencies:
   
   # Speed dial floating action button
   flutter_speed_dial: ^7.0.0
+  
+  # Go router for declarative routing
+  go_router: ^16.1.0
 
 dev_dependencies:
   flutter_test:

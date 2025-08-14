@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api_service.dart';
@@ -104,7 +105,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
       // Navigate back with the imported recipe
       if (mounted) {
-        Navigator.pop(context, recipe);
+        context.pop(recipe);
       }
     } catch (e) {
       _showSnackBar('Failed to import recipe: ${e.toString()}');

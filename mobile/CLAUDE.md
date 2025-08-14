@@ -8,6 +8,7 @@
 - HTTP 1.1.0 - HTTP client for API communication
 - Flutter WebView 4.13.0
 - Flutter Speed Dial 7.0.0 - Speed dial floating action button
+- Go Router 16.1.0 - Declarative routing with nested routes and deep linking
 - Flutter Lints 5.0.0 (dev dependency)
 - Flutter Test (dev dependency)
 
@@ -24,6 +25,13 @@
 
 - **API Service**: Singleton pattern with HTTP client
 - **Error Handling**: Try-catch blocks with user-friendly error messages
+
+### Navigation
+
+- **Route Configuration**: All routes are defined in `core/routes.dart` using the AppRoute enum pattern
+- **Named Routes**: Always use `AppRoute.routeName.name` for type-safe navigation
+- **Route Order Rule**: When defining nested routes, always define routes without path parameters first, then routes
+  with parameters (e.g., `/import`, `/create` before `/:id`)
 
 ### Theming and Styling
 

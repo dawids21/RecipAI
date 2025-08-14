@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/api_service.dart';
 import '../../core/theme.dart';
@@ -133,7 +134,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         );
 
         // Navigate back with the created recipe
-        Navigator.pop(context, createdRecipe);
+        context.pop(createdRecipe);
       }
     } catch (e) {
       if (mounted) {

@@ -13,6 +13,9 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const RecipAIApp());
 
+    // Wait for the app to settle, including any pending timers
+    await tester.pumpAndSettle();
+
     // Verify that the app title is displayed.
     expect(find.text('RecipAI'), findsOneWidget);
   });
