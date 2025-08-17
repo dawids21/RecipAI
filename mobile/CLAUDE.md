@@ -30,8 +30,8 @@
 
 - **Route Configuration**: All routes are defined in `core/routes.dart` using the AppRoute enum pattern
 - **Named Routes**: Always use `AppRoute.routeName.name` for type-safe navigation
-- **Route Order Rule**: When defining nested routes, always define routes without path parameters first, then routes
-  with parameters (e.g., `/import`, `/create` before `/:id`)
+- **Route Order Rule**: When defining nested routes, always define most specific routes first, followed by more generic
+  routes. For example, define `/recipes/:id` before `/recipes/create`, `/recipes/:id/edit` before `/recipes/:id`
 
 ### Theming and Styling
 

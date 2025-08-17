@@ -9,14 +9,21 @@
 - Always read `docs/prd.md` at the start of a new conversation to understand the project
 
 ## Documentation
-- `docs/prd.md` - **Product Requirements Document (PRD)** - Contains product overview, user problems, functional requirements, and user stories.
-- `docs/backend/backend.md` - **Backend App Overview** - Provides an overview of the backend modules and codebase structure.
+
+- `docs/prd.md` - **Product Requirements Document (PRD)** - Contains product overview, user problems, functional
+  requirements, and user stories.
+- `docs/backend/backend.md` - **Backend App Overview** - Provides an overview of the backend modules and codebase
+  structure.
 - `docs/backend/api.md` - **API Documentation** - Contains API endpoints, request/response formats, and examples.
 - `docs/backend/db.md` - **Database Schema** - Describes the database structure, tables
-- `docs/mobile/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app codebase structure.
-- `docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app.
+- `docs/mobile/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app, implemented features, its
+  codebase structure and data models.
+- `docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app. Contains
+  navigation
+  flow, theme system and data models.
 
 ## AI Behavior
+
 - When implementing new features, restrict changes to a single codebase (either backend or mobile).
 - Never assume missing context. Ask questions if uncertain.
 - Never hallucinate libraries or functions.

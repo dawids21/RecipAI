@@ -5,6 +5,13 @@
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
 - `import` - Recipe import functionality using WebView to browse recipe websites and extract recipe data
 
+## Data Models
+
+### Recipe module
+
+- Recipe (`recipe.dart`) - Basic recipe data model with id and name
+- Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information
+
 ## Codebase Structure
 
 ```
