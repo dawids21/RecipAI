@@ -88,6 +88,47 @@ class ApiService {
     }
   }
 
+  static Future<RecipeDetail> updateRecipe(String id,
+      RecipeDetail recipe) async {
+    try {
+      final response = await _client.put(
+        Uri.parse('$_baseUrl/recipes/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(recipe.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> json = jsonDecode(response.body);
+        return RecipeDetail.fromJson(json);
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to update recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while updating recipe: $e');
+    }
+  }
+
+  static Future<void> deleteRecipe(String id) async {
+    try {
+      final response = await _client.delete(
+        Uri.parse('$_baseUrl/recipes/$id'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 204) {
+        return;
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to delete recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while deleting recipe: $e');
+    }
+  }
+
   static void dispose() {
     _client.close();
   }

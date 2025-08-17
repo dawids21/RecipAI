@@ -27,11 +27,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     futureRecipes = ApiService.fetchRecipes();
   }
 
-  void _onRecipeTap(Recipe recipe) {
-    context.pushNamed(
+  void _onRecipeTap(Recipe recipe) async {
+    await context.pushNamed(
       AppRoute.recipeDetail.name,
       pathParameters: {'id': recipe.id},
     );
+    _refreshRecipeList();
   }
 
   void _onImportTap() async {
@@ -110,16 +111,17 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       ),
       floatingActionButton: SpeedDial(
         spaceBetweenChildren: AppSpacing.medium,
-        animatedIcon: AnimatedIcons.menu_close,
+        icon: Icons.add,
+        activeIcon: Icons.menu,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16.0))),
         children: [
           SpeedDialChild(
-            shape: const CircleBorder(),
             child: const Icon(Icons.download),
             label: 'Import Recipe',
             onTap: _onImportTap,
           ),
           SpeedDialChild(
-            shape: const CircleBorder(),
             child: const Icon(Icons.edit),
             label: 'Create Recipe',
             onTap: _onCreateTap,

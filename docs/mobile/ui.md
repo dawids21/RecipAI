@@ -7,8 +7,12 @@
 - List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with Speed Dial FAB for
   importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
-- Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes with ingredient
-  and instruction inputs
+  with Edit FAB and Delete button for recipe management
+- Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
+  RecipeFormWidget
+- Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
+- Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
+  and instruction inputs, validation, and save functionality
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes in a list
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
@@ -35,6 +39,7 @@
 - `/recipes/import` - Recipe import screen with WebView
 - `/recipes/create` - Manual recipe creation screen
 - `/recipes/:id` - Recipe detail screen with dynamic ID parameter
+- `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter
 
 ### Flow
 
@@ -42,7 +47,10 @@
 2. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
 3. **Speed Dial → Import Tap** → Import Screen (`/recipes/import`)
 4. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
-5. **Successful Import/Creation** → Back to Recipe List Screen (with new recipe added)
+5. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
+6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
+7. **Successful Import/Creation** → Back to Recipe List Screen (with recipe added)
+8. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 ## Theme System
 

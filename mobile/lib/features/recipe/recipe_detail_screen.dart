@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:recipai_mobile/core/routes.dart';
 
 import '../../core/api_service.dart';
 import '../../core/theme.dart';
@@ -26,6 +28,68 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     futureRecipeDetail = ApiService.fetchRecipeDetail(widget.recipeId);
   }
 
+  Future<void> _navigateToEdit() async {
+    final result = await context.push('/recipes/${widget.recipeId}/edit');
+    if (result != null) {
+      // Refresh recipe data if recipe was updated
+      setState(() {
+        futureRecipeDetail = ApiService.fetchRecipeDetail(widget.recipeId);
+      });
+    }
+  }
+
+  Future<void> _showDeleteConfirmation() async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Recipe'),
+        content: const Text(
+          'Are you sure you want to delete this recipe? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      await _deleteRecipe();
+    }
+  }
+
+  Future<void> _deleteRecipe() async {
+    try {
+      await ApiService.deleteRecipe(widget.recipeId);
+
+      if (mounted) {
+        _showSnackBar('Recipe deleted successfully!');
+        context.goNamed(AppRoute.recipes.name);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Failed to delete recipe: ${e.toString()}');
+      }
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -33,6 +97,31 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       appBar: AppBar(
         title: const Text('Recipe Details'),
         backgroundColor: theme.colorScheme.inversePrimary,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _showDeleteConfirmation();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete),
+                    const SizedBox(width: AppSpacing.small),
+                    Text('Delete Recipe'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navigateToEdit,
+        child: const Icon(Icons.edit),
       ),
       body: FutureBuilder<RecipeDetail>(
         future: futureRecipeDetail,

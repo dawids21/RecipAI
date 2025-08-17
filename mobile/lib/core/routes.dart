@@ -4,6 +4,7 @@ import 'package:recipai_mobile/core/theme.dart';
 
 import '../features/import/import_screen.dart';
 import '../features/recipe/create_recipe_screen.dart';
+import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_list_screen.dart';
 
@@ -13,7 +14,8 @@ enum AppRoute {
   recipes('/recipes'),
   recipeDetail(':id'), // nested under /recipes
   recipeImport('import'), // nested under /recipes
-  recipeCreate('create'); // nested under /recipes
+  recipeCreate('create'), // nested under /recipes
+  recipeEdit('edit'); // nested under /recipes/:id
 
   const AppRoute(this.path);
 
@@ -91,6 +93,16 @@ final GoRouter appRouter = GoRouter(
             final id = state.pathParameters['id']!;
             return RecipeDetailScreen(recipeId: id);
           },
+          routes: [
+            GoRoute(
+              path: AppRoute.recipeEdit.path,
+              name: AppRoute.recipeEdit.name,
+              builder: (context, state) {
+                final id = state.pathParameters['id']!;
+                return EditRecipeScreen(recipeId: id);
+              },
+            ),
+          ],
         ),
       ],
     ),
