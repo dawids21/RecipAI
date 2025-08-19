@@ -3,22 +3,23 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/api_service.dart';
+import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../shared/loading_widget.dart';
 import 'web_recipe_extractor.dart';
 
-class ImportScreen extends StatefulWidget {
-  const ImportScreen({super.key});
+class ExtractionScreen extends StatefulWidget {
+  const ExtractionScreen({super.key});
 
   @override
-  State<ImportScreen> createState() => _ImportScreenState();
+  State<ExtractionScreen> createState() => _ExtractionScreenState();
 }
 
-class _ImportScreenState extends State<ImportScreen> {
+class _ExtractionScreenState extends State<ExtractionScreen> {
   late final WebViewController _controller;
   final TextEditingController _urlController = TextEditingController();
   bool _isLoading = false;
-  bool _isImporting = false;
+  bool _isExtracting = false;
   String? _errorMessage;
 
   @override
@@ -80,11 +81,11 @@ class _ImportScreenState extends State<ImportScreen> {
     }
   }
 
-  Future<void> _importRecipe() async {
-    if (_isImporting) return;
+  Future<void> _extractRecipe() async {
+    if (_isExtracting) return;
 
     setState(() {
-      _isImporting = true;
+      _isExtracting = true;
     });
 
     try {
@@ -98,21 +99,26 @@ class _ImportScreenState extends State<ImportScreen> {
       }
 
       // Extract recipe using API
-      final recipe = await ApiService.extractRecipeFromText(htmlContent);
+      final extractedRecipe = await ApiService.extractRecipeFromText(
+        htmlContent,
+      );
 
       // Show success message
-      _showSnackBar('Recipe imported successfully!');
+      _showSnackBar('Recipe extracted successfully!');
 
-      // Navigate back with the imported recipe
+      // Navigate to create recipe screen with extracted data
       if (mounted) {
-        context.pop(recipe);
+        context.goNamed(
+          AppRoute.recipeCreate.name,
+          extra: extractedRecipe.toRecipeDetail(),
+        );
       }
     } catch (e) {
-      _showSnackBar('Failed to import recipe: ${e.toString()}');
+      _showSnackBar('Failed to extract recipe: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() {
-          _isImporting = false;
+          _isExtracting = false;
         });
       }
     }
@@ -138,7 +144,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Import Recipe'),
+        title: const Text('Extract Recipe'),
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: Column(
@@ -203,15 +209,15 @@ class _ImportScreenState extends State<ImportScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isImporting ? null : _importRecipe,
-        icon: _isImporting
+        onPressed: _isExtracting ? null : _extractRecipe,
+        icon: _isExtracting
             ? const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.download),
-        label: Text(_isImporting ? 'Importing...' : 'Import Recipe'),
+        label: Text(_isExtracting ? 'Extracting...' : 'Extract Recipe'),
       ),
     );
   }

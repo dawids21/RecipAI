@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/theme.dart';
+import 'package:recipai_mobile/features/recipe/recipe_detail.dart';
 
-import '../features/import/import_screen.dart';
+import '../features/extraction/extraction_screen.dart';
 import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
@@ -11,9 +12,9 @@ import '../features/recipe/recipe_list_screen.dart';
 /// Route definitions with enum for type-safe navigation
 enum AppRoute {
   home('/'),
+  extraction('/extraction'),
   recipes('/recipes'),
   recipeDetail(':id'), // nested under /recipes
-  recipeImport('import'), // nested under /recipes
   recipeCreate('create'), // nested under /recipes
   recipeEdit('edit'); // nested under /recipes/:id
 
@@ -72,19 +73,22 @@ final GoRouter appRouter = GoRouter(
       redirect: (context, state) => AppRoute.recipes.path,
     ),
     GoRoute(
+      path: AppRoute.extraction.path,
+      name: AppRoute.extraction.name,
+      builder: (context, state) => const ExtractionScreen(),
+    ),
+    GoRoute(
       path: AppRoute.recipes.path,
       name: AppRoute.recipes.name,
       builder: (context, state) => const RecipeListScreen(),
       routes: [
         GoRoute(
-          path: AppRoute.recipeImport.path,
-          name: AppRoute.recipeImport.name,
-          builder: (context, state) => const ImportScreen(),
-        ),
-        GoRoute(
           path: AppRoute.recipeCreate.path,
           name: AppRoute.recipeCreate.name,
-          builder: (context, state) => const CreateRecipeScreen(),
+          builder: (context, state) {
+            final recipeDetail = state.extra as RecipeDetail?;
+            return CreateRecipeScreen(prefilledRecipe: recipeDetail);
+          },
         ),
         GoRoute(
           path: AppRoute.recipeDetail.path,

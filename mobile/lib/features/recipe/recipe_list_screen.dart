@@ -35,15 +35,8 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     _refreshRecipeList();
   }
 
-  void _onImportTap() async {
-    final result = await context.pushNamed<RecipeDetail>(
-      AppRoute.recipeImport.name,
-    );
-
-    // If a recipe was imported, refresh the list
-    if (result != null) {
-      _refreshRecipeList();
-    }
+  void _onExtractionTap() {
+    context.goNamed(AppRoute.extraction.name);
   }
 
   void _onCreateTap() async {
@@ -114,12 +107,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         icon: Icons.add,
         activeIcon: Icons.menu,
         shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16.0))),
+          borderRadius: BorderRadius.all(Radius.circular(16.0)),
+        ),
         children: [
           SpeedDialChild(
             child: const Icon(Icons.download),
-            label: 'Import Recipe',
-            onTap: _onImportTap,
+            label: 'Extract Recipe',
+            onTap: _onExtractionTap,
           ),
           SpeedDialChild(
             child: const Icon(Icons.edit),

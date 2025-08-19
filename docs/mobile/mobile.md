@@ -3,7 +3,7 @@
 ## Features
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
-- `import` - Recipe import functionality using WebView to browse recipe websites and extract recipe data
+- `extraction` - Recipe extraction functionality using WebView to browse recipe websites and extract recipe data
 
 ## Data Models
 
@@ -29,8 +29,8 @@ mobile/
 │   │   ├── error_message_widget.dart  # General error message widget
 │   │   └── error_icon.dart           # Error icon widget
 │   └── features/                       # Feature modules
-│       ├── recipe/                     # Recipe feature
-│       └── import/                     # Recipe import feature
+│       ├── recipe/                     # `recipe` feature
+│       └── extraction/                 # `extraction` feature
 ├── assets/
 │   └── config/
 │       └── app_config.json            # App configuration file

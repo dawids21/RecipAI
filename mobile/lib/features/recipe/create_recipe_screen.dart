@@ -5,7 +5,9 @@ import 'recipe_detail.dart';
 import 'recipe_form_widget.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
-  const CreateRecipeScreen({super.key});
+  final RecipeDetail? prefilledRecipe;
+
+  const CreateRecipeScreen({super.key, this.prefilledRecipe});
 
   @override
   State<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
@@ -26,6 +28,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: RecipeFormWidget(
+        initialRecipe: widget.prefilledRecipe,
         onSave: _createRecipe,
       ),
     );

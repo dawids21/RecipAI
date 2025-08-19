@@ -19,9 +19,9 @@
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 
-### Import module
+### Extraction module
 
-- Import Screen (`import_screen.dart`) - WebView-based screen for importing recipes from web pages
+- Extraction Screen (`extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages
 - Web Recipe Extractor (`web_recipe_extractor.dart`) - Utility class for extracting HTML content from WebView
 
 ## Shared Widgets
@@ -35,9 +35,9 @@
 ### Route Structure
 
 - `/` - Home route (redirects to `/recipes`)
+- `/extraction` - Recipe extraction screen with WebView
 - `/recipes` - Main recipe list screen
-- `/recipes/import` - Recipe import screen with WebView
-- `/recipes/create` - Manual recipe creation screen
+- `/recipes/create` - Recipe creation screen (supports both manual creation and creation from extracted data)
 - `/recipes/:id` - Recipe detail screen with dynamic ID parameter
 - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter
 
@@ -45,12 +45,14 @@
 
 1. **App Launch** → Recipe List Screen (`/recipes`)
 2. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
-3. **Speed Dial → Import Tap** → Import Screen (`/recipes/import`)
+3. **Speed Dial → Extract Tap** → Extraction Screen (`/recipes/extraction`)
 4. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
 5. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
 6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
-7. **Successful Import/Creation** → Back to Recipe List Screen (with recipe added)
-8. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+7. **Successful Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
+   List Screen
+8. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
+9. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 ## Theme System
 

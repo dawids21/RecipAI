@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../features/extraction/extracted_recipe.dart';
 import '../features/recipe/recipe.dart';
 import '../features/recipe/recipe_detail.dart';
 import 'app_config.dart';
@@ -50,7 +51,9 @@ class ApiService {
     }
   }
 
-  static Future<RecipeDetail> extractRecipeFromText(String htmlContent) async {
+  static Future<ExtractedRecipe> extractRecipeFromText(
+    String htmlContent,
+  ) async {
     try {
       final response = await _client.post(
         Uri.parse('$_baseUrl/extract/text'),
@@ -60,7 +63,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> json = jsonDecode(response.body);
-        return RecipeDetail.fromJson(json);
+        return ExtractedRecipe.fromJson(json);
       } else {
         throw Exception('Failed to extract recipe: ${response.statusCode}');
       }
@@ -88,8 +91,10 @@ class ApiService {
     }
   }
 
-  static Future<RecipeDetail> updateRecipe(String id,
-      RecipeDetail recipe) async {
+  static Future<RecipeDetail> updateRecipe(
+    String id,
+    RecipeDetail recipe,
+  ) async {
     try {
       final response = await _client.put(
         Uri.parse('$_baseUrl/recipes/$id'),
