@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import xyz.stasiak.recipai.recipes.RecipeDto;
 
 @RestController
 @RequestMapping("/extract")
@@ -18,7 +17,7 @@ class ExtractionController {
     private final ExtractionService extractionService;
 
     @PostMapping("/text")
-    public RecipeDto extractFromText(@Valid @RequestBody ExtractTextRequest request) {
+    public ExtractedRecipe extractFromText(@Valid @RequestBody ExtractTextRequest request) {
         log.debug("Extracting recipe from text");
         return extractionService.extractFromText(request.text());
     }

@@ -181,7 +181,7 @@
     - Errors: 404 Not Found
 ### Extraction
 - POST /extract/text
-  - Description: Extract recipe information from text and save it as a new recipe
+    - Description: Extract recipe information from text
   - Request body:
     ```json
     {
@@ -191,30 +191,28 @@
   - Example response:
     ```json
     {
-      "id": "uuid",
       "name": "Pizza",
-      "data": {
-        "ingredients": [
-          {
-            "name": "flour",
-            "quantity": "300g",
-            "unit": null
-          },
-          {
-            "name": "tomato sauce",
-            "quantity": "200ml",
-            "unit": null
-          }
-        ],
-        "instructions": [
-          {
-            "step": "Make dough"
-          },
-          {
-            "step": "Add sauce and toppings"
-          }
-        ]
-      }
+      "description": "Homemade pizza recipe",
+      "ingredients": [
+        {
+          "name": "flour",
+          "quantity": "300g",
+          "unit": null
+        },
+        {
+          "name": "tomato sauce",
+          "quantity": "200ml",
+          "unit": null
+        }
+      ],
+      "instructions": [
+        {
+          "step": "Make dough"
+        },
+        {
+          "step": "Add sauce and toppings"
+        }
+      ]
     }
     ```
   - Success: 200 OK

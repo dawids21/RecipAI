@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,7 +13,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class RecipeService {
+class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final ObjectMapper objectMapper;
@@ -73,7 +72,6 @@ public class RecipeService {
 
     private RecipeData convertToRecipeData(JsonNode jsonNode) {
         try {
-            // Handle both ExtractedRecipe format (from AI extraction) and RecipeData format (from API)
             List<Ingredient> ingredients;
             List<Instruction> instructions;
 
@@ -85,17 +83,9 @@ public class RecipeService {
             }
 
             if (jsonNode.has("instructions")) {
-                // Direct mapping for RecipeData format
                 instructions = objectMapper.treeToValue(jsonNode.get("instructions"),
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, Instruction.class));
-            } else if (jsonNode.has("steps")) {
-                // Convert from ExtractedRecipe format (steps with "description" field to instructions with "step" field)
-                JsonNode stepsNode = jsonNode.get("steps");
-                instructions = new ArrayList<>();
-                for (JsonNode stepNode : stepsNode) {
-                    String stepDescription = stepNode.get("description").asText();
-                    instructions.add(new Instruction(stepDescription));
-                }
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, Instruction.class)
+                );
             } else {
                 instructions = List.of();
             }
