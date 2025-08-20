@@ -4,6 +4,7 @@ import 'package:recipai_mobile/core/api_service.dart';
 import 'core/app_config.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
+import 'features/recipe/recipe_list_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,18 +20,30 @@ class RecipAIApp extends StatefulWidget {
 }
 
 class _RecipAIAppState extends State<RecipAIApp> {
+  late final RecipeListModel _recipeListModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _recipeListModel = RecipeListModel();
+  }
+
   @override
   void dispose() {
+    _recipeListModel.dispose();
     ApiService.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'RecipAI',
-      theme: AppTheme.theme,
-      routerConfig: appRouter,
+    return InheritedRecipeListModel(
+      notifier: _recipeListModel,
+      child: MaterialApp.router(
+        title: 'RecipAI',
+        theme: AppTheme.theme,
+        routerConfig: appRouter,
+      ),
     );
   }
 }

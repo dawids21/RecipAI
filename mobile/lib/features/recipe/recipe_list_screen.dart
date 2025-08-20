@@ -3,69 +3,46 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/theme.dart';
 
-import '../../core/api_service.dart';
 import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_item.dart';
+import 'recipe_list_model.dart';
 
-class RecipeListScreen extends StatefulWidget {
+class RecipeListScreen extends StatelessWidget {
   const RecipeListScreen({super.key});
 
-  @override
-  State<RecipeListScreen> createState() => _RecipeListScreenState();
-}
-
-class _RecipeListScreenState extends State<RecipeListScreen> {
-  late Future<List<Recipe>> futureRecipes;
-
-  @override
-  void initState() {
-    super.initState();
-    futureRecipes = ApiService.fetchRecipes();
-  }
-
-  void _onRecipeTap(Recipe recipe) async {
+  void _onRecipeTap(BuildContext context, Recipe recipe) async {
     await context.pushNamed(
       AppRoute.recipeDetail.name,
       pathParameters: {'id': recipe.id},
     );
-    _refreshRecipeList();
   }
 
-  void _onExtractionTap() {
+  void _onExtractionTap(BuildContext context) {
     context.goNamed(AppRoute.extraction.name);
   }
 
-  void _onCreateTap() async {
-    final result = await context.pushNamed<RecipeDetail>(
+  void _onCreateTap(BuildContext context) async {
+    await context.pushNamed<RecipeDetail>(
       AppRoute.recipeCreate.name,
     );
-
-    // If a recipe was created, refresh the list
-    if (result != null) {
-      _refreshRecipeList();
-    }
-  }
-
-  void _refreshRecipeList() {
-    setState(() {
-      futureRecipes = ApiService.fetchRecipes();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final recipeListModel = InheritedRecipeListModel.of(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('RecipAI'),
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: FutureBuilder<List<Recipe>>(
-        future: futureRecipes,
+        future: recipeListModel.recipes,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LoadingWidget();
@@ -73,9 +50,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             return ApiErrorWidget(
               errorMessage: 'Error: ${snapshot.error}',
               onRetry: () {
-                setState(() {
-                  futureRecipes = ApiService.fetchRecipes();
-                });
+                recipeListModel.refresh();
               },
             );
           } else if (snapshot.hasData) {
@@ -93,7 +68,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               itemBuilder: (context, index) {
                 return RecipeListItem(
                   recipe: recipes[index],
-                  onTap: () => _onRecipeTap(recipes[index]),
+                  onTap: () => _onRecipeTap(context, recipes[index]),
                 );
               },
             );
@@ -113,12 +88,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           SpeedDialChild(
             child: const Icon(Icons.download),
             label: 'Extract Recipe',
-            onTap: _onExtractionTap,
+            onTap: () => _onExtractionTap(context),
           ),
           SpeedDialChild(
             child: const Icon(Icons.edit),
             label: 'Create Recipe',
-            onTap: _onCreateTap,
+            onTap: () => _onCreateTap(context),
           ),
         ],
       ),

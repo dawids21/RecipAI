@@ -5,6 +5,7 @@ import '../../shared/error_message_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'ingredient_input_widget.dart';
 import 'recipe_detail.dart';
+import 'recipe_list_model.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
@@ -173,6 +174,9 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(successMessage)));
+
+        final recipeListModel = InheritedRecipeListModel.of(context);
+        recipeListModel.refresh();
 
         // Navigate back with the saved recipe
         Navigator.of(context).pop(savedRecipe);

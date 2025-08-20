@@ -8,6 +8,7 @@ import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
+import 'recipe_list_model.dart';
 import 'step_number_badge.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -73,6 +74,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
       if (mounted) {
         _showSnackBar('Recipe deleted successfully!');
+        final recipeListModel = InheritedRecipeListModel.of(context);
+        recipeListModel.refresh();
         context.goNamed(AppRoute.recipes.name);
       }
     } catch (e) {
