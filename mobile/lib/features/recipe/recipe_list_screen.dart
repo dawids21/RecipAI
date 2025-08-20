@@ -7,15 +7,14 @@ import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'recipe.dart';
-import 'recipe_detail.dart';
 import 'recipe_list_item.dart';
 import 'recipe_list_model.dart';
 
 class RecipeListScreen extends StatelessWidget {
   const RecipeListScreen({super.key});
 
-  void _onRecipeTap(BuildContext context, Recipe recipe) async {
-    await context.pushNamed(
+  void _onRecipeTap(BuildContext context, Recipe recipe) {
+    context.goNamed(
       AppRoute.recipeDetail.name,
       pathParameters: {'id': recipe.id},
     );
@@ -25,8 +24,8 @@ class RecipeListScreen extends StatelessWidget {
     context.goNamed(AppRoute.extraction.name);
   }
 
-  void _onCreateTap(BuildContext context) async {
-    await context.pushNamed<RecipeDetail>(
+  void _onCreateTap(BuildContext context) {
+    context.goNamed(
       AppRoute.recipeCreate.name,
     );
   }

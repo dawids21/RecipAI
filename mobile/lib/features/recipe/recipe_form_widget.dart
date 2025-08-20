@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
 import '../../shared/error_message_widget.dart';
@@ -178,8 +179,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
         final recipeListModel = InheritedRecipeListModel.of(context);
         recipeListModel.refresh();
 
-        // Navigate back with the saved recipe
-        Navigator.of(context).pop(savedRecipe);
+        context.pop(savedRecipe);
       }
     } catch (e) {
       if (mounted) {

@@ -30,7 +30,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Future<void> _navigateToEdit() async {
-    final result = await context.push('/recipes/${widget.recipeId}/edit');
+    final result = await context.pushNamed(
+      AppRoute.recipeEdit.name,
+      pathParameters: {'id': widget.recipeId},
+    );
     if (result != null) {
       // Refresh recipe data if recipe was updated
       setState(() {
@@ -49,11 +52,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
