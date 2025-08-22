@@ -5,6 +5,7 @@
 ### Recipes
 - GET /recipes
   - Description: Get all recipes as list with basic info
+  - Authenticated: true
   - Example response:
     ```json
     [
@@ -21,6 +22,7 @@
   - Success: 200 OK
 - GET /recipes/{uuid}
   - Description: Get recipe by UUID
+  - Authenticated: true
   - Example response:
     ```json
     {
@@ -54,6 +56,7 @@
   - Errors: 404 Not Found
 - POST /recipes
   - Description: Add new recipe
+  - Authenticated: true
   - Request body:
     ```json
     {
@@ -115,6 +118,7 @@
   - Errors: 400 Bad request
 - PUT /recipes/{uuid}
     - Description: Update existing recipe by UUID
+  - Authenticated: true
     - Request body:
       ```json
       {
@@ -176,12 +180,14 @@
     - Errors: 404 Not Found, 400 Bad request
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
+  - Authenticated: true
     - Example response: No content
     - Success: 204 No Content
     - Errors: 404 Not Found
 ### Extraction
 - POST /extract/text
     - Description: Extract recipe information from text
+  - Authenticated: true
   - Request body:
     ```json
     {
@@ -217,5 +223,3 @@
     ```
   - Success: 200 OK
   - Errors: 400 Bad request
-## Authentication and Authorization
-- Currently not implemented

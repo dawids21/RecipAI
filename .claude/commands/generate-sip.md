@@ -51,8 +51,8 @@ uv run pytest tests/ -v
 ```
 #### Java example
 ```bash
-# Syntax/Style
-ruff check --fix && mypy .
+# Syntax (no command for style)
+mvn compile
 
 # Unit Tests
 mvn test

@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RecipeIntegrationTest {
 
@@ -24,6 +25,7 @@ class RecipeIntegrationTest {
     private RestClient restClient() {
         return RestClient.builder()
                 .baseUrl("http://localhost:" + port)
+                .defaultHeader("Authorization", "Bearer " + TestSecurityConfiguration.AUTH_TOKEN)
                 .build();
     }
 

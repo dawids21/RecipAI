@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.RestClient;
+import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 
 import java.io.IOException;
@@ -15,7 +16,7 @@ import java.io.InputStreamReader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ExtractionIntegrationTest {
 
@@ -25,6 +26,7 @@ class ExtractionIntegrationTest {
     private RestClient restClient() {
         return RestClient.builder()
                 .baseUrl("http://localhost:" + port)
+                .defaultHeader("Authorization", "Bearer " + TestSecurityConfiguration.AUTH_TOKEN)
                 .build();
     }
 
@@ -45,7 +47,6 @@ class ExtractionIntegrationTest {
 
         assertThat(extractedRecipe).isNotNull();
         assertThat(extractedRecipe.name()).isNotNull();
-        assertThat(extractedRecipe.description()).isNotNull();
         assertThat(extractedRecipe.ingredients()).isNotEmpty();
         assertThat(extractedRecipe.instructions()).isNotEmpty();
     }

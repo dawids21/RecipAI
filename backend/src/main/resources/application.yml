@@ -17,6 +17,11 @@ spring:
         options:
           model: gemini-2.5-flash
           reasoning-effort: none
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://accounts.google.com
 logging:
   level:
     org.springframework.ai.chat.client.advisor: DEBUG
