@@ -49,6 +49,7 @@ dependencies:
   
   # Go router for declarative routing
   go_router: ^16.1.0
+  firebase_core: ^4.1.0
 
 dev_dependencies:
   flutter_test:
