@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "934414686934-8ib4tbj4oeiskmcr9gkmtpme28kjfthv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "xyz.stasiak.recipai",
+            "certificate_hash": "c3a9d75c5de757a5d2a9ec6a67460e7986123b52"
+          }
+        },
+        {
           "client_id": "934414686934-i2o01ndv2rnm547pbv67bc3e9fltbtma.apps.googleusercontent.com",
           "client_type": 3
         }

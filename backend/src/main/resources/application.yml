@@ -21,7 +21,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://accounts.google.com
+          issuer-uri: https://securetoken.google.com/recipai-751ae
 logging:
   level:
     org.springframework.ai.chat.client.advisor: DEBUG

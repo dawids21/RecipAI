@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../features/auth/auth_service.dart';
 import '../features/extraction/extracted_recipe.dart';
 import '../features/recipe/recipe.dart';
 import '../features/recipe/recipe_detail.dart';
@@ -11,11 +12,21 @@ class ApiService {
   static final http.Client _client = http.Client();
   static final String _baseUrl = AppConfig.apiBaseUrl;
 
+  static Future<Map<String, String>> _getAuthHeaders() async {
+    final token = await authService.idToken;
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   static Future<List<Recipe>> fetchRecipes() async {
     try {
+      final headers = await _getAuthHeaders();
+      print(headers['Authorization']);
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -33,9 +44,10 @@ class ApiService {
 
   static Future<RecipeDetail> fetchRecipeDetail(String id) async {
     try {
+      final headers = await _getAuthHeaders();
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -55,9 +67,10 @@ class ApiService {
     String htmlContent,
   ) async {
     try {
+      final headers = await _getAuthHeaders();
       final response = await _client.post(
         Uri.parse('$_baseUrl/extract/text'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode({'text': htmlContent}),
       );
 
@@ -74,9 +87,10 @@ class ApiService {
 
   static Future<RecipeDetail> createRecipe(RecipeDetail recipe) async {
     try {
+      final headers = await _getAuthHeaders();
       final response = await _client.post(
         Uri.parse('$_baseUrl/recipes'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(recipe.toJson()),
       );
 
@@ -96,9 +110,10 @@ class ApiService {
     RecipeDetail recipe,
   ) async {
     try {
+      final headers = await _getAuthHeaders();
       final response = await _client.put(
         Uri.parse('$_baseUrl/recipes/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(recipe.toJson()),
       );
 
@@ -117,9 +132,10 @@ class ApiService {
 
   static Future<void> deleteRecipe(String id) async {
     try {
+      final headers = await _getAuthHeaders();
       final response = await _client.delete(
         Uri.parse('$_baseUrl/recipes/$id'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       );
 
       if (response.statusCode == 204) {

@@ -7,6 +7,7 @@ import 'package:recipai_mobile/firebase_options.dart';
 import 'core/app_config.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
+import 'features/auth/auth_service.dart';
 import 'features/recipe/recipe_list_model.dart';
 
 void main() async {
@@ -37,6 +38,7 @@ class _RecipAIAppState extends State<RecipAIApp> {
   void dispose() {
     _recipeListModel.dispose();
     ApiService.dispose();
+    authService.dispose();
     super.dispose();
   }
 

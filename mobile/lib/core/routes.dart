@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/theme.dart';
 import 'package:recipai_mobile/features/recipe/recipe_detail.dart';
 
+import '../features/auth/auth_service.dart';
+import '../features/auth/login_screen.dart';
 import '../features/extraction/extraction_screen.dart';
 import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
@@ -12,6 +14,7 @@ import '../features/recipe/recipe_list_screen.dart';
 /// Route definitions with enum for type-safe navigation
 enum AppRoute {
   home('/'),
+  login('/login'),
   extraction('/extraction'),
   recipes('/recipes'),
   recipeDetail(':id'), // nested under /recipes
@@ -65,12 +68,35 @@ class ErrorPage extends StatelessWidget {
 /// Main router configuration for the application
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoute.home.path,
+  refreshListenable: authService,
+  redirect: (context, state) {
+    final isAuthenticated = authService.isAuthenticated;
+    final isLoginRoute = state.matchedLocation == AppRoute.login.path;
+
+    // If not authenticated and not on login route, redirect to login
+    if (!isAuthenticated && !isLoginRoute) {
+      return AppRoute.login.path;
+    }
+
+    // If authenticated and on login route, redirect to recipes
+    if (isAuthenticated && isLoginRoute) {
+      return AppRoute.recipes.path;
+    }
+
+    // No redirect needed
+    return null;
+  },
   errorBuilder: (context, state) => ErrorPage(error: state.error),
   routes: [
     GoRoute(
       path: AppRoute.home.path,
       name: AppRoute.home.name,
       redirect: (context, state) => AppRoute.recipes.path,
+    ),
+    GoRoute(
+      path: AppRoute.login.path,
+      name: AppRoute.login.name,
+      builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
       path: AppRoute.extraction.path,
