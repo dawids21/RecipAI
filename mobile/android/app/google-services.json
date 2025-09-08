@@ -12,7 +12,12 @@
           "package_name": "xyz.stasiak.recipai"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "934414686934-i2o01ndv2rnm547pbv67bc3e9fltbtma.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCdHRWPqRGKT5zt6xfq78RSnNTki3CGBDo"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "934414686934-i2o01ndv2rnm547pbv67bc3e9fltbtma.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

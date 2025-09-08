@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recipai_mobile/core/api_service.dart';
 import 'package:recipai_mobile/firebase_options.dart';
 
@@ -11,6 +12,7 @@ import 'features/recipe/recipe_list_model.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await GoogleSignIn.instance.initialize();
   await AppConfig.loadConfig();
   runApp(const RecipAIApp());
 }
