@@ -19,6 +19,15 @@
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 
+### Auth feature
+
+- Login Screen (`login_screen.dart`) - Welcome screen with Google Sign-In button, app branding (RecipAI logo and
+  title), loading states during authentication, and error handling for sign-in failures
+- Auth Service (`auth_service.dart`) - Abstract service interface defining authentication contracts with
+  `isAuthenticated`, `idToken`, `signIn()`, and `signOut()` methods
+- Firebase Auth Service (`firebase_auth_service.dart`) - Firebase implementation with Google Sign-In integration,
+  user state management, and automatic token refresh
+
 ### Extraction feature
 
 - Extraction Screen (`extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages
@@ -35,24 +44,40 @@
 ### Route Structure
 
 - `/` - Home route (redirects to `/recipes`)
-- `/extraction` - Recipe extraction screen with WebView
-- `/recipes` - Main recipe list screen
-- `/recipes/create` - Recipe creation screen (supports both manual creation and creation from extracted data)
-- `/recipes/:id` - Recipe detail screen with dynamic ID parameter
-- `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter
+- `/login` - Authentication screen with Google Sign-In (only accessible when unauthenticated)
+- `/extraction` - Recipe extraction screen with WebView (requires authentication)
+- `/recipes` - Main recipe list screen with logout functionality (requires authentication)
+- `/recipes/create` - Recipe creation screen (supports both manual creation and creation from extracted data, requires
+  authentication)
+- `/recipes/:id` - Recipe detail screen with dynamic ID parameter (requires authentication)
+- `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (requires authentication)
+
+### Authentication & Route Protection
+
+All routes except `/login` require user authentication. The app automatically redirects unauthenticated users to the
+login screen and authenticated users away from the login screen to the recipes list.
 
 ### Flow
 
-1. **App Launch** → Recipe List Screen (`/recipes`)
-2. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
-3. **Speed Dial → Extract Tap** → Extraction Screen (`/recipes/extraction`)
-4. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
-5. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
-6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
-7. **Successful Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
+#### Authentication Flow
+
+1. **App Launch** → Authentication check:
+    - **If unauthenticated** → Login Screen (`/login`)
+    - **If authenticated** → Recipe List Screen (`/recipes`)
+2. **Login Screen → Google Sign-In Tap** → Authentication process → Recipe List Screen (`/recipes`)
+3. **Recipe List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
+
+#### Recipe Management Flow
+
+1. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
+2. **Speed Dial → Extract Tap** → Extraction Screen (`/extraction`)
+3. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
+4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
+5. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
+6. **Successful Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
    List Screen
-8. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
-9. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+7. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
+8. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 ## Theme System
 
