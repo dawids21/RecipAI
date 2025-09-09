@@ -66,75 +66,77 @@ class ErrorPage extends StatelessWidget {
 }
 
 /// Main router configuration for the application
-final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoute.home.path,
-  refreshListenable: authService,
-  redirect: (context, state) {
-    final isAuthenticated = authService.isAuthenticated;
-    final isLoginRoute = state.matchedLocation == AppRoute.login.path;
+GoRouter createAppRouter(AuthService authService) {
+  return GoRouter(
+    initialLocation: AppRoute.home.path,
+    refreshListenable: authService,
+    redirect: (context, state) {
+      final isAuthenticated = authService.isAuthenticated;
+      final isLoginRoute = state.matchedLocation == AppRoute.login.path;
 
-    // If not authenticated and not on login route, redirect to login
-    if (!isAuthenticated && !isLoginRoute) {
-      return AppRoute.login.path;
-    }
+      // If not authenticated and not on login route, redirect to login
+      if (!isAuthenticated && !isLoginRoute) {
+        return AppRoute.login.path;
+      }
 
-    // If authenticated and on login route, redirect to recipes
-    if (isAuthenticated && isLoginRoute) {
-      return AppRoute.recipes.path;
-    }
+      // If authenticated and on login route, redirect to recipes
+      if (isAuthenticated && isLoginRoute) {
+        return AppRoute.recipes.path;
+      }
 
-    // No redirect needed
-    return null;
-  },
-  errorBuilder: (context, state) => ErrorPage(error: state.error),
-  routes: [
-    GoRoute(
-      path: AppRoute.home.path,
-      name: AppRoute.home.name,
-      redirect: (context, state) => AppRoute.recipes.path,
-    ),
-    GoRoute(
-      path: AppRoute.login.path,
-      name: AppRoute.login.name,
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: AppRoute.extraction.path,
-      name: AppRoute.extraction.name,
-      builder: (context, state) => const ExtractionScreen(),
-    ),
-    GoRoute(
-      path: AppRoute.recipes.path,
-      name: AppRoute.recipes.name,
-      builder: (context, state) => const RecipeListScreen(),
-      routes: [
-        GoRoute(
-          path: AppRoute.recipeCreate.path,
-          name: AppRoute.recipeCreate.name,
-          builder: (context, state) {
-            final recipeDetail = state.extra as RecipeDetail?;
-            return CreateRecipeScreen(prefilledRecipe: recipeDetail);
-          },
-        ),
-        GoRoute(
-          path: AppRoute.recipeDetail.path,
-          name: AppRoute.recipeDetail.name,
-          builder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return RecipeDetailScreen(recipeId: id);
-          },
-          routes: [
-            GoRoute(
-              path: AppRoute.recipeEdit.path,
-              name: AppRoute.recipeEdit.name,
-              builder: (context, state) {
-                final id = state.pathParameters['id']!;
-                return EditRecipeScreen(recipeId: id);
-              },
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+      // No redirect needed
+      return null;
+    },
+    errorBuilder: (context, state) => ErrorPage(error: state.error),
+    routes: [
+      GoRoute(
+        path: AppRoute.home.path,
+        name: AppRoute.home.name,
+        redirect: (context, state) => AppRoute.recipes.path,
+      ),
+      GoRoute(
+        path: AppRoute.login.path,
+        name: AppRoute.login.name,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.extraction.path,
+        name: AppRoute.extraction.name,
+        builder: (context, state) => const ExtractionScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.recipes.path,
+        name: AppRoute.recipes.name,
+        builder: (context, state) => const RecipeListScreen(),
+        routes: [
+          GoRoute(
+            path: AppRoute.recipeCreate.path,
+            name: AppRoute.recipeCreate.name,
+            builder: (context, state) {
+              final recipeDetail = state.extra as RecipeDetail?;
+              return CreateRecipeScreen(prefilledRecipe: recipeDetail);
+            },
+          ),
+          GoRoute(
+            path: AppRoute.recipeDetail.path,
+            name: AppRoute.recipeDetail.name,
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return RecipeDetailScreen(recipeId: id);
+            },
+            routes: [
+              GoRoute(
+                path: AppRoute.recipeEdit.path,
+                name: AppRoute.recipeEdit.name,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return EditRecipeScreen(recipeId: id);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}

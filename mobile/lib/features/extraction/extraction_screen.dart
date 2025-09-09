@@ -89,6 +89,7 @@ class _ExtractionScreenState extends State<ExtractionScreen> {
     });
 
     try {
+      final apiService = InheritedApiService.of(context);
       // Extract HTML content from WebView
       final htmlContent = await WebRecipeExtractor.extractHtmlContent(
         _controller,
@@ -99,7 +100,7 @@ class _ExtractionScreenState extends State<ExtractionScreen> {
       }
 
       // Extract recipe using API
-      final extractedRecipe = await ApiService.extractRecipeFromText(
+      final extractedRecipe = await apiService.extractRecipeFromText(
         htmlContent,
       );
 

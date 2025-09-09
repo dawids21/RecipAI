@@ -4,16 +4,19 @@ import '../../core/api_service.dart';
 import 'recipe.dart';
 
 class RecipeListModel extends ChangeNotifier {
+  final ApiService _apiService;
   late Future<List<Recipe>> _recipes = _initRecipes();
+
+  RecipeListModel(this._apiService);
 
   Future<List<Recipe>> get recipes => _recipes;
 
   Future<List<Recipe>> _initRecipes() {
-    return ApiService.fetchRecipes();
+    return _apiService.fetchRecipes();
   }
 
   void refresh() {
-    _recipes = ApiService.fetchRecipes();
+    _recipes = _apiService.fetchRecipes();
     notifyListeners();
   }
 }

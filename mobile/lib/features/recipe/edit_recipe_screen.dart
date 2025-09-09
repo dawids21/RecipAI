@@ -21,11 +21,13 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   @override
   void initState() {
     super.initState();
-    futureRecipeDetail = ApiService.fetchRecipeDetail(widget.recipeId);
+    futureRecipeDetail =
+        InheritedApiService.of(context).fetchRecipeDetail(widget.recipeId);
   }
 
   Future<RecipeDetail> _updateRecipe(RecipeDetail recipe) async {
-    return await ApiService.updateRecipe(widget.recipeId, recipe);
+    return await InheritedApiService.of(context).updateRecipe(
+        widget.recipeId, recipe);
   }
 
   @override
@@ -47,7 +49,8 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
               errorMessage: 'Error: ${snapshot.error}',
               onRetry: () {
                 setState(() {
-                  futureRecipeDetail = ApiService.fetchRecipeDetail(
+                  futureRecipeDetail =
+                      InheritedApiService.of(context).fetchRecipeDetail(
                     widget.recipeId,
                   );
                 });

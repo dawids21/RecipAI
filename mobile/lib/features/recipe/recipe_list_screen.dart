@@ -32,6 +32,8 @@ class RecipeListScreen extends StatelessWidget {
   }
 
   Future<void> _onLogoutTap(BuildContext context) async {
+    final authService = InheritedAuthService.of(context);
+
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {

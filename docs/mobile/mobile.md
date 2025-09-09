@@ -4,6 +4,7 @@
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
 - `extraction` - Recipe extraction functionality using WebView to browse recipe websites and extract recipe data
+- `auth` - User authentication using Firebase Authentication with Google Sign-In
 
 ## Data Models
 
@@ -17,10 +18,10 @@
 ```
 mobile/
 ├── lib/
-│   ├── main.dart                       # RecipAI app entry point with MaterialApp.router setup
+│   ├── main.dart                       # RecipAI app entry point with DI setup
 │   ├── core/                           # Core services and configuration
 │   │   ├── routes.dart                 # Go router configuration with AppRoute enum
-│   │   ├── api_service.dart           # API service for backend communication
+│   │   ├── api_service.dart           # API service with InheritedApiService
 │   │   ├── app_config.dart            # Application configuration
 │   │   └── theme.dart                 # App theme and spacing constants
 │   ├── shared/                         # Shared/reusable widgets and utilities
@@ -29,14 +30,33 @@ mobile/
 │   │   ├── error_message_widget.dart  # General error message widget
 │   │   └── error_icon.dart           # Error icon widget
 │   └── features/                       # Feature modules
-│       ├── recipe/                     # `recipe` feature
-│       └── extraction/                 # `extraction` feature
+│       ├── auth/                       # "authentication" feature
+│       ├── recipe/                     # "recipe" feature
+│       └── extraction/                 # "extraction" feature
 ├── assets/
 │   └── config/
 │       └── app_config.json            # App configuration file
 ├── android/                            # Android-specific configuration and native code
 ├── test/
-│   └── widget_test.dart               # Widget and unit tests
+│   └── widget_test.dart               # Smoke test
 ├── pubspec.yaml                       # Flutter dependencies and project configuration
 └── analysis_options.yaml             # Dart/Flutter linting rules
+```
+
+## Usage Patterns
+
+### Accessing Services in Widgets
+
+```dart
+// AuthService access
+final authService = InheritedAuthService.of(context);
+await
+authService.signIn
+();
+
+// ApiService access  
+final apiService = InheritedApiService.of(context);
+final recipes = await
+apiService.fetchRecipes
+();
 ```

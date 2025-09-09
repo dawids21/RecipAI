@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await authService.signInWithGoogle();
+      await InheritedAuthService.of(context).signIn();
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to sign in with Google. Please try again.';
@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: ListenableBuilder(
-        listenable: authService,
+        listenable: InheritedAuthService.of(context),
         builder: (context, child) {
           if (_isLoading) {
             return const LoadingWidget(message: 'Signing you in...');

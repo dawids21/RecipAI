@@ -2,7 +2,7 @@
 
 ## Screens
 
-### Recipe module
+### Recipe feature
 
 - List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with Speed Dial FAB for
   importing and creating recipes
@@ -19,7 +19,7 @@
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 
-### Extraction module
+### Extraction feature
 
 - Extraction Screen (`extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages
 - Web Recipe Extractor (`web_recipe_extractor.dart`) - Utility class for extracting HTML content from WebView

@@ -26,7 +26,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    futureRecipeDetail = ApiService.fetchRecipeDetail(widget.recipeId);
+    futureRecipeDetail =
+        InheritedApiService.of(context).fetchRecipeDetail(widget.recipeId);
   }
 
   Future<void> _navigateToEdit() async {
@@ -37,7 +38,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (result != null) {
       // Refresh recipe data if recipe was updated
       setState(() {
-        futureRecipeDetail = ApiService.fetchRecipeDetail(widget.recipeId);
+        futureRecipeDetail =
+            InheritedApiService.of(context).fetchRecipeDetail(widget.recipeId);
       });
     }
   }
@@ -73,7 +75,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   Future<void> _deleteRecipe() async {
     try {
-      await ApiService.deleteRecipe(widget.recipeId);
+      await InheritedApiService.of(context).deleteRecipe(widget.recipeId);
 
       if (mounted) {
         _showSnackBar('Recipe deleted successfully!');
@@ -139,7 +141,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               errorMessage: 'Error: ${snapshot.error}',
               onRetry: () {
                 setState(() {
-                  futureRecipeDetail = ApiService.fetchRecipeDetail(
+                  futureRecipeDetail =
+                      InheritedApiService.of(context).fetchRecipeDetail(
                     widget.recipeId,
                   );
                 });

@@ -23,7 +23,8 @@
 
 ## Architecture Patterns
 
-- **API Service**: Singleton pattern with HTTP client
+- **Dependency Injection**: Anything that communicates with outside world (e.g., ApiService, AuthService) should be
+  injected using InheritedWidget pattern
 - **Error Handling**: Try-catch blocks with user-friendly error messages
 
 ### Navigation

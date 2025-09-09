@@ -1,72 +1,28 @@
-import 'dart:async';
-
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
-class AuthService extends ChangeNotifier {
-  User? _currentUser;
-  StreamSubscription<User?>? _userSubscription;
+abstract class AuthService extends ChangeNotifier {
+  bool get isAuthenticated;
 
-  AuthService() {
-    _userSubscription = FirebaseAuth.instance.userChanges().listen(
-      _handleUserChanges,
-      onError: _handleUserChangesError,
-    );
-  }
+  Future<String?> get idToken;
 
-  bool get isAuthenticated => _currentUser != null;
+  Future<void> signIn();
 
-  User? get currentUser => _currentUser;
-
-  Future<String?> get idToken async {
-    return await _currentUser?.getIdToken();
-  }
-
-  void _handleUserChanges(User? user) {
-    _currentUser = user;
-    notifyListeners();
-  }
-
-  void _handleUserChangesError(Object error) {
-    debugPrint('Auth state error: $error');
-  }
-
-  Future<void> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount googleSignInAccount = await GoogleSignIn
-          .instance
-          .authenticate();
-      final GoogleSignInAuthentication googleSignInAuthentication =
-          googleSignInAccount.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleSignInAuthentication.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
-    } catch (e) {
-      debugPrint('Google Sign-In error: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> signOut() async {
-    try {
-      await Future.wait([
-        FirebaseAuth.instance.signOut(),
-        GoogleSignIn.instance.signOut(),
-      ]);
-    } catch (e) {
-      debugPrint('Sign out error: $e');
-      rethrow;
-    }
-  }
-
+  Future<void> signOut();
   @override
-  void dispose() {
-    _userSubscription?.cancel();
-    super.dispose();
-  }
+  void dispose();
 }
 
-// Global instance
-final authService = AuthService();
+class InheritedAuthService extends InheritedNotifier<AuthService> {
+  const InheritedAuthService({
+    super.key,
+    required super.notifier,
+    required super.child,
+  });
+
+  static AuthService of(BuildContext context) {
+    final result = context
+        .dependOnInheritedWidgetOfExactType<InheritedAuthService>();
+    assert(result != null, 'No InheritedAuthService found in context');
+    return result!.notifier!;
+  }
+}

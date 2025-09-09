@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../features/auth/auth_service.dart';
@@ -9,21 +10,23 @@ import '../features/recipe/recipe_detail.dart';
 import 'app_config.dart';
 
 class ApiService {
-  static final http.Client _client = http.Client();
-  static final String _baseUrl = AppConfig.apiBaseUrl;
+  final AuthService _authService;
+  final http.Client _client = http.Client();
+  final String _baseUrl = AppConfig.apiBaseUrl;
 
-  static Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await authService.idToken;
+  ApiService(this._authService);
+
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final token = await _authService.idToken;
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
-  static Future<List<Recipe>> fetchRecipes() async {
+  Future<List<Recipe>> fetchRecipes() async {
     try {
       final headers = await _getAuthHeaders();
-      print(headers['Authorization']);
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes'),
         headers: headers,
@@ -42,7 +45,7 @@ class ApiService {
     }
   }
 
-  static Future<RecipeDetail> fetchRecipeDetail(String id) async {
+  Future<RecipeDetail> fetchRecipeDetail(String id) async {
     try {
       final headers = await _getAuthHeaders();
       final response = await _client.get(
@@ -63,7 +66,7 @@ class ApiService {
     }
   }
 
-  static Future<ExtractedRecipe> extractRecipeFromText(
+  Future<ExtractedRecipe> extractRecipeFromText(
     String htmlContent,
   ) async {
     try {
@@ -85,7 +88,7 @@ class ApiService {
     }
   }
 
-  static Future<RecipeDetail> createRecipe(RecipeDetail recipe) async {
+  Future<RecipeDetail> createRecipe(RecipeDetail recipe) async {
     try {
       final headers = await _getAuthHeaders();
       final response = await _client.post(
@@ -105,7 +108,7 @@ class ApiService {
     }
   }
 
-  static Future<RecipeDetail> updateRecipe(
+  Future<RecipeDetail> updateRecipe(
     String id,
     RecipeDetail recipe,
   ) async {
@@ -130,7 +133,7 @@ class ApiService {
     }
   }
 
-  static Future<void> deleteRecipe(String id) async {
+  Future<void> deleteRecipe(String id) async {
     try {
       final headers = await _getAuthHeaders();
       final response = await _client.delete(
@@ -150,7 +153,29 @@ class ApiService {
     }
   }
 
-  static void dispose() {
+  void dispose() {
     _client.close();
+  }
+}
+
+class InheritedApiService extends InheritedWidget {
+  final ApiService apiService;
+
+  const InheritedApiService({
+    super.key,
+    required this.apiService,
+    required super.child,
+  });
+
+  static ApiService of(BuildContext context) {
+    final result = context
+        .dependOnInheritedWidgetOfExactType<InheritedApiService>();
+    assert(result != null, 'No InheritedApiService found in context');
+    return result!.apiService;
+  }
+
+  @override
+  bool updateShouldNotify(InheritedApiService oldWidget) {
+    return apiService != oldWidget.apiService;
   }
 }
