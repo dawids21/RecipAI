@@ -1,7 +1,20 @@
 # REST API Documentation - RecipAI
 ## Resources
-- Recipes: Maps the `recipes` DB table.
+
+- Users: Maps the `users` DB table.
+- Recipes: Maps the `recipes` DB table with user-scoped access.
 ## Endpoints
+
+### Users
+
+- POST /users/register
+    - Description: Register current user (extracted from JWT token)
+    - Authenticated: true
+    - Request body: None (user email extracted from JWT)
+    - Example response: 200 OK (empty body)
+    - Success: 200 OK
+    - Errors: 401 Unauthorized (if JWT is invalid)
+
 ### Recipes
 - GET /recipes
   - Description: Get all recipes as list with basic info

@@ -16,30 +16,48 @@ import java.util.UUID;
 class RecipeService {
 
     private final RecipeRepository recipeRepository;
+    private final UserRecipeRepository userRecipeRepository;
     private final ObjectMapper objectMapper;
 
-    public List<RecipeListDto> findAll() {
-        return recipeRepository.findAll().stream()
+    public List<RecipeListDto> findAll(String userEmail) {
+        return recipeRepository.findAllByUserEmail(userEmail).stream()
                 .map(this::toRecipeListDto)
                 .toList();
     }
 
-    public Optional<RecipeDto> findById(UUID id) {
+    public Optional<RecipeDto> findById(UUID id, String userEmail) {
+        // Check if user has access to this recipe
+        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
+            return Optional.empty();
+        }
+        
         return recipeRepository.findById(id)
                 .map(this::toDto);
     }
 
-    public RecipeDto save(CreateRecipeRequest request) {
+    public RecipeDto save(CreateRecipeRequest request, String userEmail) {
         Recipe recipe = new Recipe();
         recipe.setName(request.name());
         recipe.setData(convertToJsonNode(request.data()));
 
         Recipe savedRecipe = recipeRepository.save(recipe);
+
+        // Create UserRecipe association
+        UserRecipe userRecipe = new UserRecipe();
+        UserRecipeId userRecipeId = new UserRecipeId(userEmail, savedRecipe.getId());
+        userRecipe.setId(userRecipeId);
+        userRecipeRepository.save(userRecipe);
+        
         return toDto(savedRecipe);
     }
 
-    public RecipeDto updateById(UUID id, UpdateRecipeRequest request) {
-        log.debug("Updating recipe with id: {}", id);
+    public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
+        log.debug("Updating recipe with id: {} for user: {}", id, userEmail);
+
+        // Check if user has access to this recipe
+        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
+            throw new RecipeNotFoundException(id);
+        }
 
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
@@ -51,10 +69,20 @@ class RecipeService {
         return toDto(savedRecipe);
     }
 
-    public boolean deleteById(UUID id) {
-        log.debug("Deleting recipe with id: {}", id);
+    public boolean deleteById(UUID id, String userEmail) {
+        log.debug("Deleting recipe with id: {} for user: {}", id, userEmail);
+
+        // Check if user has access to this recipe
+        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
+            return false;
+        }
 
         if (recipeRepository.existsById(id)) {
+            // Delete UserRecipe association first
+            UserRecipeId userRecipeId = new UserRecipeId(userEmail, id);
+            userRecipeRepository.deleteById(userRecipeId);
+
+            // Then delete the recipe itself
             recipeRepository.deleteById(id);
             return true;
         }
