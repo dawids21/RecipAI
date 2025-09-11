@@ -2,7 +2,6 @@
 
 ## Modules
 
-- `users` - manages user registration and user data persistence
 - `recipes` - manages user-scoped recipe CRUD operations and data persistence
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
@@ -13,10 +12,6 @@
 backend/
 ├── src/main/java/xyz/stasiak/recipai/
 │   ├── RecipAiApplication.java          # Main Spring Boot application entry point
-│   ├── users/                           # "users" module
-│   │   ├── User.java                    # User entity
-│   │   ├── UserRepository.java          # User data access
-│   │   └── UserController.java          # User registration endpoint
 │   ├── recipes/                         # "recipes" module
 │   │   ├── Recipe.java                  # Recipe entity
 │   │   ├── UserRecipe.java              # User-Recipe association entity

@@ -2,10 +2,6 @@
 
 ## Tables
 
-### users
-
-- email: VARCHAR(255) PRIMARY KEY
-
 ### recipes
 
 - id: UUID PRIMARY KEY
@@ -14,16 +10,15 @@
 
 ### user_recipes
 
-- email: VARCHAR(255) NOT NULL (FK -> users.email)
+- email: VARCHAR(255) NOT NULL
 - recipe_id: UUID NOT NULL (FK -> recipes.id)
 - PRIMARY KEY (email, recipe_id)
 
 ## Relationships
 
-- **users** ↔ **recipes**: Many-to-Many relationship through `user_recipes` join table
-    - One user can have many recipes
+- **user_recipes** ↔ **recipes**: Many-to-Many relationship through `user_recipes` join table
+    - One user (identified by email) can have many recipes
     - One recipe can belong to multiple users (sharing functionality)
-- **user_recipes.email** → **users.email**: Foreign key relationship
 - **user_recipes.recipe_id** → **recipes.id**: Foreign key relationship
 
 ## Indexes
