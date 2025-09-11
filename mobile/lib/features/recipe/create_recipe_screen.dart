@@ -14,8 +14,16 @@ class CreateRecipeScreen extends StatefulWidget {
 }
 
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
+  late ApiService _apiService;
+
+  @override
+  void didChangeDependencies() {
+    _apiService = InheritedApiService.of(context);
+    super.didChangeDependencies();
+  }
+
   Future<RecipeDetail> _createRecipe(RecipeDetail recipe) async {
-    return await InheritedApiService.of(context).createRecipe(recipe);
+    return _apiService.createRecipe(recipe);
   }
 
   @override

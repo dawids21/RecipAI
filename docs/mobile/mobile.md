@@ -48,15 +48,24 @@ mobile/
 ### Accessing Services in Widgets
 
 ```dart
-// AuthService access
-final authService = InheritedAuthService.of(context);
-await
-authService.signIn
-();
+class _MyScreenState extends State<MyScreen> {
+  late ApiService _apiService;
+  late AuthService _authService;
 
-// ApiService access  
-final apiService = InheritedApiService.of(context);
-final recipes = await
-apiService.fetchRecipes
-();
+  @override
+  void didChangeDependencies() {
+    _apiService = InheritedApiService.of(context);
+    _authService = InheritedAuthService.of(context);
+    super.didChangeDependencies();
+  }
+
+  Future<void> _loadData() async {
+    // Use cached service references
+    final recipes = await _apiService.fetchRecipes();
+  }
+
+  Future<void> _signIn() async {
+    await _authService.signIn();
+  }
+}
 ```

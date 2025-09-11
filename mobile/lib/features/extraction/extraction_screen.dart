@@ -17,6 +17,7 @@ class ExtractionScreen extends StatefulWidget {
 
 class _ExtractionScreenState extends State<ExtractionScreen> {
   late final WebViewController _controller;
+  late ApiService _apiService;
   final TextEditingController _urlController = TextEditingController();
   bool _isLoading = false;
   bool _isExtracting = false;
@@ -59,6 +60,12 @@ class _ExtractionScreenState extends State<ExtractionScreen> {
       );
   }
 
+  @override
+  void didChangeDependencies() {
+    _apiService = InheritedApiService.of(context);
+    super.didChangeDependencies();
+  }
+
   void _loadUrl() {
     final url = _urlController.text.trim();
     if (url.isEmpty) {
@@ -89,7 +96,6 @@ class _ExtractionScreenState extends State<ExtractionScreen> {
     });
 
     try {
-      final apiService = InheritedApiService.of(context);
       // Extract HTML content from WebView
       final htmlContent = await WebRecipeExtractor.extractHtmlContent(
         _controller,
@@ -100,7 +106,7 @@ class _ExtractionScreenState extends State<ExtractionScreen> {
       }
 
       // Extract recipe using API
-      final extractedRecipe = await apiService.extractRecipeFromText(
+      final extractedRecipe = await _apiService.extractRecipeFromText(
         htmlContent,
       );
 
