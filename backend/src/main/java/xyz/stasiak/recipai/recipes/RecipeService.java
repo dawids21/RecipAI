@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,14 +24,17 @@ class RecipeService {
                 .toList();
     }
 
-    public Optional<RecipeDto> findById(UUID id, String userEmail) {
+    public RecipeDto findById(UUID id, String userEmail) {
+        RecipeDto recipeDto = recipeRepository.findById(id)
+                .map(this::toDto)
+                .orElseThrow(() -> new RecipeNotFoundException(id));
+
         // Check if user has access to this recipe
         if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
-            return Optional.empty();
+            throw new RecipeAccessDeniedException(id);
         }
-        
-        return recipeRepository.findById(id)
-                .map(this::toDto);
+
+        return recipeDto;
     }
 
     public RecipeDto save(CreateRecipeRequest request, String userEmail) {
@@ -54,13 +56,13 @@ class RecipeService {
     public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
         log.debug("Updating recipe with id: {} for user: {}", id, userEmail);
 
-        // Check if user has access to this recipe
-        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
-            throw new RecipeNotFoundException(id);
-        }
-
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
+
+        // Check if user has access to this recipe
+        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
+            throw new RecipeAccessDeniedException(id);
+        }
 
         existingRecipe.setName(request.name());
         existingRecipe.setData(convertToJsonNode(request.data()));
@@ -69,24 +71,24 @@ class RecipeService {
         return toDto(savedRecipe);
     }
 
-    public boolean deleteById(UUID id, String userEmail) {
+    public void deleteById(UUID id, String userEmail) {
         log.debug("Deleting recipe with id: {} for user: {}", id, userEmail);
+
+        if (!recipeRepository.existsById(id)) {
+            throw new RecipeNotFoundException(id);
+        }
 
         // Check if user has access to this recipe
         if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
-            return false;
+            throw new RecipeAccessDeniedException(id);
         }
 
-        if (recipeRepository.existsById(id)) {
-            // Delete UserRecipe association first
-            UserRecipeId userRecipeId = new UserRecipeId(userEmail, id);
-            userRecipeRepository.deleteById(userRecipeId);
+        // Delete UserRecipe association first
+        UserRecipeId userRecipeId = new UserRecipeId(userEmail, id);
+        userRecipeRepository.deleteById(userRecipeId);
 
-            // Then delete the recipe itself
-            recipeRepository.deleteById(id);
-            return true;
-        }
-        return false;
+        // Then delete the recipe itself
+        recipeRepository.deleteById(id);
     }
 
     private RecipeDto toDto(Recipe recipe) {

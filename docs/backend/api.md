@@ -1,149 +1,90 @@
 # REST API Documentation - RecipAI
+
 ## Resources
 
 - Recipes: Maps the `recipes` DB table with user-scoped access.
+
 ## Endpoints
 
 ### Recipes
+
 - GET /recipes
-  - Description: Get all recipes as list with basic info
-  - Authenticated: true
-  - Example response:
-    ```json
-    [
-      {
-        "id": "uuid",
-        "name": "Pizza"
-      },
-      {
-        "id": "uuid",
-        "name": "Spaghetti"
-      }
-    ]
-    ```
-  - Success: 200 OK
+    - Description: Get all recipes as list with basic info
+    - Authenticated: true
+    - Example response:
+      ```json
+      [
+        {
+          "id": "uuid",
+          "name": "Pizza"
+        },
+        {
+          "id": "uuid",
+          "name": "Spaghetti"
+        }
+      ]
+      ```
+    - Success: 200 OK
 - GET /recipes/{uuid}
-  - Description: Get recipe by UUID
-  - Authenticated: true
-  - Example response:
-    ```json
-    {
-      "id": "uuid",
-      "name": "Pizza",
-      "data": {
-        "ingredients": [
-          {
-            "name": "flour",
-            "quantity": "300g",
-            "unit": null
-          },
-          {
-            "name": "tomato sauce",
-            "quantity": "200ml",
-            "unit": null
-          }
-        ],
-        "instructions": [
-          {
-            "step": "Make dough"
-          },
-          {
-            "step": "Add sauce and toppings"
-          }
-        ]
-      }
-    }
-    ```
-  - Success: 200 OK
-  - Errors: 404 Not Found
-- POST /recipes
-  - Description: Add new recipe
-  - Authenticated: true
-  - Request body:
-    ```json
-    {
-      "name": "Pizza",
-      "data": {
-        "ingredients": [
-          {
-            "name": "flour",
-            "quantity": "300g",
-            "unit": null
-          },
-          {
-            "name": "tomato sauce",
-            "quantity": "200ml",
-            "unit": null
-          }
-        ],
-        "instructions": [
-          {
-            "step": "Make dough"
-          },
-          {
-            "step": "Add sauce and toppings"
-          }
-        ]
-      }
-    }
-    ```
-  - Example response:
-    ```json
-    {
-      "id": "uuid",
-      "name": "Pizza",
-      "data": {
-        "ingredients": [
-          {
-            "name": "flour",
-            "quantity": "300g",
-            "unit": null
-          },
-          {
-            "name": "tomato sauce",
-            "quantity": "200ml",
-            "unit": null
-          }
-        ],
-        "instructions": [
-          {
-            "step": "Make dough"
-          },
-          {
-            "step": "Add sauce and toppings"
-          }
-        ]
-      }
-    }
-    ```
-  - Success: 201 Created
-  - Errors: 400 Bad request
-- PUT /recipes/{uuid}
-    - Description: Update existing recipe by UUID
-  - Authenticated: true
-    - Request body:
+    - Description: Get recipe by UUID
+    - Authenticated: true
+    - Example response:
       ```json
       {
-        "name": "Updated Pizza",
+        "id": "uuid",
+        "name": "Pizza",
         "data": {
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "400g",
+              "quantity": "300g",
               "unit": null
             },
             {
-              "name": "cheese",
-              "quantity": "200g",
+              "name": "tomato sauce",
+              "quantity": "200ml",
               "unit": null
             }
           ],
           "instructions": [
             {
-              "step": "Make better dough"
+              "step": "Make dough"
             },
             {
-              "step": "Add cheese"
+              "step": "Add sauce and toppings"
+            }
+          ]
+        }
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
+- POST /recipes
+    - Description: Add new recipe
+    - Authenticated: true
+    - Request body:
+      ```json
+      {
+        "name": "Pizza",
+        "data": {
+          "ingredients": [
+            {
+              "name": "flour",
+              "quantity": "300g",
+              "unit": null
+            },
+            {
+              "name": "tomato sauce",
+              "quantity": "200ml",
+              "unit": null
+            }
+          ],
+          "instructions": [
+            {
+              "step": "Make dough"
+            },
+            {
+              "step": "Add sauce and toppings"
             }
           ]
         }
@@ -153,40 +94,104 @@
       ```json
       {
         "id": "uuid",
-        "name": "Updated Pizza",
+        "name": "Pizza",
         "data": {
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "400g",
+              "quantity": "300g",
               "unit": null
             },
             {
-              "name": "cheese",
-              "quantity": "200g",
+              "name": "tomato sauce",
+              "quantity": "200ml",
               "unit": null
             }
           ],
           "instructions": [
             {
-              "step": "Make better dough"
+              "step": "Make dough"
             },
             {
-              "step": "Add cheese"
+              "step": "Add sauce and toppings"
             }
           ]
         }
       }
       ```
-    - Success: 200 OK
-    - Errors: 404 Not Found, 400 Bad request
+    - Success: 201 Created
+    - Errors: 400 Bad request
+- PUT /recipes/{uuid}
+    - Description: Update existing recipe by UUID
+  - Authenticated: true
+      - Request body:
+        ```json
+        {
+          "name": "Updated Pizza",
+          "data": {
+            "ingredients": [
+              {
+                "name": "flour",
+                "quantity": "400g",
+                "unit": null
+              },
+              {
+                "name": "cheese",
+                "quantity": "200g",
+                "unit": null
+              }
+            ],
+            "instructions": [
+              {
+                "step": "Make better dough"
+              },
+              {
+                "step": "Add cheese"
+              }
+            ]
+          }
+        }
+        ```
+      - Example response:
+        ```json
+        {
+          "id": "uuid",
+          "name": "Updated Pizza",
+          "data": {
+            "ingredients": [
+              {
+                "name": "flour",
+                "quantity": "400g",
+                "unit": null
+              },
+              {
+                "name": "cheese",
+                "quantity": "200g",
+                "unit": null
+              }
+            ],
+            "instructions": [
+              {
+                "step": "Make better dough"
+              },
+              {
+                "step": "Add cheese"
+              }
+            ]
+          }
+        }
+        ```
+      - Success: 200 OK
+      - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found, 400 Bad request
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true
-    - Example response: No content
-    - Success: 204 No Content
-    - Errors: 404 Not Found
+      - Example response: No content
+      - Success: 204 No Content
+      - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
+
 ### Extraction
+
 - POST /extract/text
     - Description: Extract recipe information from text
   - Authenticated: true

@@ -323,7 +323,7 @@ class RecipeIntegrationTest {
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // User 2 should not be able to update user 1's recipe
@@ -338,7 +338,7 @@ class RecipeIntegrationTest {
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // User 2 should not be able to delete user 1's recipe
@@ -351,7 +351,7 @@ class RecipeIntegrationTest {
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
     }
 }

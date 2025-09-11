@@ -31,8 +31,7 @@ class RecipeController {
     public RecipeDto getRecipeById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Getting recipe by id: {} for user: {}", id, userEmail);
-        return recipeService.findById(id, userEmail)
-                .orElseThrow(() -> new RecipeNotFoundException(id));
+        return recipeService.findById(id, userEmail);
     }
 
     @PostMapping
@@ -56,8 +55,8 @@ class RecipeController {
     public ResponseEntity<Void> deleteRecipe(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Deleting recipe with id: {} for user: {}", id, userEmail);
-        boolean deleted = recipeService.deleteById(id, userEmail);
-        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        recipeService.deleteById(id, userEmail);
+        return ResponseEntity.noContent().build();
     }
 
 }
