@@ -43,14 +43,13 @@
 
 ### Route Structure
 
-- `/` - Home route (redirects to `/recipes`)
+- `/` - Main recipe list screen with logout functionality (requires authentication)
 - `/login` - Authentication screen with Google Sign-In (only accessible when unauthenticated)
-- `/extraction` - Recipe extraction screen with WebView (requires authentication)
-- `/recipes` - Main recipe list screen with logout functionality (requires authentication)
-- `/recipes/create` - Recipe creation screen (supports both manual creation and creation from extracted data, requires
+- `/extraction` - Recipe extraction screen with WebView (nested under recipes, requires authentication)
+- `/create` - Recipe creation screen (supports both manual creation and creation from extracted data, requires
   authentication)
-- `/recipes/:id` - Recipe detail screen with dynamic ID parameter (requires authentication)
-- `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (requires authentication)
+- `/:id` - Recipe detail screen with dynamic ID parameter (requires authentication)
+- `/:id/edit` - Recipe edit screen with dynamic ID parameter (requires authentication)
 
 ### Authentication & Route Protection
 
@@ -63,16 +62,16 @@ login screen and authenticated users away from the login screen to the recipes l
 
 1. **App Launch** → Authentication check:
     - **If unauthenticated** → Login Screen (`/login`)
-    - **If authenticated** → Recipe List Screen (`/recipes`)
-2. **Login Screen → Google Sign-In Tap** → Authentication process → Recipe List Screen (`/recipes`)
+   - **If authenticated** → Recipe List Screen (`/`)
+2. **Login Screen → Google Sign-In Tap** → Authentication process → Recipe List Screen (`/`)
 3. **Recipe List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
 
 #### Recipe Management Flow
 
-1. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
+1. **Recipe Tap** → Recipe Detail Screen (`/:id` with recipe ID parameter)
 2. **Speed Dial → Extract Tap** → Extraction Screen (`/extraction`)
-3. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
-4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
+3. **Speed Dial → Create Tap** → Create Recipe Screen (`/create`)
+4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/:id/edit` with recipe ID parameter)
 5. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
 6. **Successful Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
    List Screen

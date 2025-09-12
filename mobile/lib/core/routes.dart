@@ -13,13 +13,12 @@ import '../features/recipe/recipe_list_screen.dart';
 
 /// Route definitions with enum for type-safe navigation
 enum AppRoute {
-  home('/'),
   login('/login'),
-  extraction('/extraction'),
-  recipes('/recipes'),
-  recipeDetail(':id'), // nested under /recipes
-  recipeCreate('create'), // nested under /recipes
-  recipeEdit('edit'); // nested under /recipes/:id
+  recipes('/'),
+  extraction('extraction'), // '/extraction'
+  recipeCreate('create'), // '/create'
+  recipeDetail(':id'), // '/:id'
+  recipeEdit('edit'); // '/:id/edit');
 
   const AppRoute(this.path);
 
@@ -55,7 +54,7 @@ class ErrorPage extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.large),
             ElevatedButton(
-              onPressed: () => context.goNamed(AppRoute.home.name),
+              onPressed: () => context.goNamed(AppRoute.recipes.name),
               child: const Text('Go to home'),
             ),
           ],
@@ -68,7 +67,7 @@ class ErrorPage extends StatelessWidget {
 /// Main router configuration for the application
 GoRouter createAppRouter(AuthService authService) {
   return GoRouter(
-    initialLocation: AppRoute.home.path,
+    initialLocation: AppRoute.recipes.path,
     refreshListenable: authService,
     redirect: (context, state) {
       final isAuthenticated = authService.isAuthenticated;
@@ -90,25 +89,20 @@ GoRouter createAppRouter(AuthService authService) {
     errorBuilder: (context, state) => ErrorPage(error: state.error),
     routes: [
       GoRoute(
-        path: AppRoute.home.path,
-        name: AppRoute.home.name,
-        redirect: (context, state) => AppRoute.recipes.path,
-      ),
-      GoRoute(
         path: AppRoute.login.path,
         name: AppRoute.login.name,
         builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: AppRoute.extraction.path,
-        name: AppRoute.extraction.name,
-        builder: (context, state) => const ExtractionScreen(),
       ),
       GoRoute(
         path: AppRoute.recipes.path,
         name: AppRoute.recipes.name,
         builder: (context, state) => const RecipeListScreen(),
         routes: [
+          GoRoute(
+            path: AppRoute.extraction.path,
+            name: AppRoute.extraction.name,
+            builder: (context, state) => const ExtractionScreen(),
+          ),
           GoRoute(
             path: AppRoute.recipeCreate.path,
             name: AppRoute.recipeCreate.name,

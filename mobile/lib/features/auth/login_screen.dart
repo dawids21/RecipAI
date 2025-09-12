@@ -13,8 +13,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  late AuthService _authService;
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void didChangeDependencies() {
+    _authService = InheritedAuthService.of(context);
+    super.didChangeDependencies();
+  }
 
   Future<void> _handleGoogleSignIn() async {
     setState(() {
@@ -23,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await InheritedAuthService.of(context).signIn();
+      await _authService.signIn();
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to sign in with Google. Please try again.';
@@ -47,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
       body: ListenableBuilder(
-        listenable: InheritedAuthService.of(context),
+        listenable: _authService,
         builder: (context, child) {
           if (_isLoading) {
             return const LoadingWidget(message: 'Signing you in...');

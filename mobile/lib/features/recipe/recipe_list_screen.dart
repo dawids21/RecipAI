@@ -11,8 +11,21 @@ import 'recipe.dart';
 import 'recipe_list_item.dart';
 import 'recipe_list_model.dart';
 
-class RecipeListScreen extends StatelessWidget {
+class RecipeListScreen extends StatefulWidget {
   const RecipeListScreen({super.key});
+
+  @override
+  State<RecipeListScreen> createState() => _RecipeListScreenState();
+}
+
+class _RecipeListScreenState extends State<RecipeListScreen> {
+  late AuthService _authService;
+
+  @override
+  void didChangeDependencies() {
+    _authService = InheritedAuthService.of(context);
+    super.didChangeDependencies();
+  }
 
   void _onRecipeTap(BuildContext context, Recipe recipe) {
     context.goNamed(
@@ -32,8 +45,6 @@ class RecipeListScreen extends StatelessWidget {
   }
 
   Future<void> _onLogoutTap(BuildContext context) async {
-    final authService = InheritedAuthService.of(context);
-
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -56,7 +67,7 @@ class RecipeListScreen extends StatelessWidget {
 
     if (shouldLogout == true) {
       try {
-        await authService.signOut();
+        await _authService.signOut();
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -71,7 +82,7 @@ class RecipeListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final recipeListModel = InheritedRecipeListModel.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('RecipAI'),
