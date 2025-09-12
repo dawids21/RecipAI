@@ -7,6 +7,7 @@ import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../auth/auth_service.dart';
+import '../extraction/extraction_dialog.dart';
 import 'recipe.dart';
 import 'recipe_list_item.dart';
 import 'recipe_list_model.dart';
@@ -34,14 +35,25 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     );
   }
 
-  void _onExtractionTap(BuildContext context) {
-    context.goNamed(AppRoute.extraction.name);
+  Future<void> _onExtractionTap(BuildContext context) async {
+    final method = await showDialog<ExtractionMethod>(
+      context: context,
+      builder: (context) => const ExtractionDialog(),
+    );
+
+    if (method == ExtractionMethod.url) {
+      if (context.mounted) {
+        context.goNamed(AppRoute.urlExtraction.name);
+      }
+    } else if (method == ExtractionMethod.image) {
+      if (context.mounted) {
+        context.goNamed(AppRoute.imageExtraction.name);
+      }
+    }
   }
 
   void _onCreateTap(BuildContext context) {
-    context.goNamed(
-      AppRoute.recipeCreate.name,
-    );
+    context.goNamed(AppRoute.recipeCreate.name);
   }
 
   Future<void> _onLogoutTap(BuildContext context) async {
@@ -70,9 +82,9 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         await _authService.signOut();
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to logout: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to logout: $e')));
         }
       }
     }

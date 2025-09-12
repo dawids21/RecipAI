@@ -9,6 +9,9 @@
 - Flutter WebView 4.13.0
 - Flutter Speed Dial 7.0.0 - Speed dial floating action button
 - Go Router 16.1.0 - Declarative routing with nested routes and deep linking
+- Image Picker 1.2.0 - Plugin for selecting images from camera and gallery
+- HTTP Parser 4.1.2 - HTTP content type parsing for multipart uploads
+- MIME 2.0.0 - MIME type detection for file uploads
 - Flutter Lints 5.0.0 (dev dependency)
 - Flutter Test (dev dependency)
 

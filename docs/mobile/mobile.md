@@ -3,7 +3,8 @@
 ## Features
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
-- `extraction` - Recipe extraction functionality using WebView to browse recipe websites and extract recipe data
+- `extraction` - Recipe extraction functionality supporting both URL extraction via WebView and image extraction via
+  camera/gallery
 - `auth` - User authentication using Firebase Authentication with Google Sign-In
 
 ## Data Models

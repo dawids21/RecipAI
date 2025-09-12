@@ -52,6 +52,11 @@ dependencies:
   firebase_core: ^4.1.0
   firebase_auth: ^6.0.2
   google_sign_in: ^7.1.1
+  
+  # Image picker for selecting images from camera or gallery
+  image_picker: ^1.2.0
+  http_parser: ^4.1.2
+  mime: ^2.0.0
 
 dev_dependencies:
   flutter_test:

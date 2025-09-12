@@ -8,14 +8,14 @@ import '../../core/theme.dart';
 import '../../shared/loading_widget.dart';
 import 'web_recipe_extractor.dart';
 
-class ExtractionScreen extends StatefulWidget {
-  const ExtractionScreen({super.key});
+class UrlExtractionScreen extends StatefulWidget {
+  const UrlExtractionScreen({super.key});
 
   @override
-  State<ExtractionScreen> createState() => _ExtractionScreenState();
+  State<UrlExtractionScreen> createState() => _UrlExtractionScreenState();
 }
 
-class _ExtractionScreenState extends State<ExtractionScreen> {
+class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
   late final WebViewController _controller;
   late ApiService _apiService;
   final TextEditingController _urlController = TextEditingController();

@@ -5,7 +5,8 @@ import 'package:recipai_mobile/features/recipe/recipe_detail.dart';
 
 import '../features/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
-import '../features/extraction/extraction_screen.dart';
+import '../features/extraction/image_extraction_screen.dart';
+import '../features/extraction/url_extraction_screen.dart';
 import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
@@ -15,7 +16,8 @@ import '../features/recipe/recipe_list_screen.dart';
 enum AppRoute {
   login('/login'),
   recipes('/'),
-  extraction('extraction'), // '/extraction'
+  urlExtraction('url-extraction'), // '/url-extraction'
+  imageExtraction('image-extraction'), // '/image-extraction'
   recipeCreate('create'), // '/create'
   recipeDetail(':id'), // '/:id'
   recipeEdit('edit'); // '/:id/edit');
@@ -99,9 +101,14 @@ GoRouter createAppRouter(AuthService authService) {
         builder: (context, state) => const RecipeListScreen(),
         routes: [
           GoRoute(
-            path: AppRoute.extraction.path,
-            name: AppRoute.extraction.name,
-            builder: (context, state) => const ExtractionScreen(),
+            path: AppRoute.urlExtraction.path,
+            name: AppRoute.urlExtraction.name,
+            builder: (context, state) => const UrlExtractionScreen(),
+          ),
+          GoRoute(
+            path: AppRoute.imageExtraction.path,
+            name: AppRoute.imageExtraction.name,
+            builder: (context, state) => const ImageExtractionScreen(),
           ),
           GoRoute(
             path: AppRoute.recipeCreate.path,

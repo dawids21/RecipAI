@@ -30,7 +30,9 @@
 
 ### Extraction feature
 
-- Extraction Screen (`extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages
+- URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with URL input field and loading states
+- Image Extraction Screen (`image_extraction_screen.dart`) - Screen for extracting recipes from images using camera or gallery selection with image preview and upload functionality
+- Extraction Dialog (`extraction_dialog.dart`) - Modal dialog for choosing between URL and image extraction methods with Material Design buttons
 - Web Recipe Extractor (`web_recipe_extractor.dart`) - Utility class for extracting HTML content from WebView
 
 ## Shared Widgets
@@ -73,7 +75,7 @@ login screen and authenticated users away from the login screen to the recipes l
 3. **Speed Dial → Create Tap** → Create Recipe Screen (`/create`)
 4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/:id/edit` with recipe ID parameter)
 5. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
-6. **Successful Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
+6. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
    List Screen
 7. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
 8. **Successful Edit** → Back to Recipe Detail Screen (with updated data)

@@ -25,8 +25,11 @@ class RecipAIApp extends StatefulWidget {
   final AuthService authService;
   final ApiService apiService;
 
-  const RecipAIApp(
-      {super.key, required this.authService, required this.apiService});
+  const RecipAIApp({
+    super.key,
+    required this.authService,
+    required this.apiService,
+  });
 
   @override
   State<RecipAIApp> createState() => _RecipAIAppState();
