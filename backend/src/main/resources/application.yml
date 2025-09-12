@@ -28,5 +28,6 @@ spring:
           issuer-uri: https://securetoken.google.com/recipai-751ae
 logging:
   level:
-    org.springframework.ai.chat.client.advisor: DEBUG
-    web: DEBUG
+    xyz.stasiak: DEBUG
+#    org.springframework.ai.chat.client.advisor: DEBUG
+#    web: DEBUG
