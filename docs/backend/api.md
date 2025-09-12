@@ -230,3 +230,38 @@
     ```
   - Success: 200 OK
   - Errors: 400 Bad request
+
+- POST /extract/image
+    - Description: Extract recipe information from uploaded image file (JPEG/PNG)
+    - Authenticated: true
+    - Request: multipart/form-data with file parameter
+    - Supported formats: JPEG, PNG
+    - Example response:
+      ```json
+      {
+        "name": "Veggie Burger",
+        "description": "Delicious plant-based burger recipe",
+        "ingredients": [
+          {
+            "name": "black beans",
+            "quantity": "1 cup",
+            "unit": null
+          },
+          {
+            "name": "breadcrumbs", 
+            "quantity": "1/2 cup",
+            "unit": null
+          }
+        ],
+        "instructions": [
+          {
+            "step": "Mash the black beans in a bowl"
+          },
+          {
+            "step": "Mix in breadcrumbs and seasonings"
+          }
+        ]
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 400 Bad request (unsupported file type), 413 Payload too large

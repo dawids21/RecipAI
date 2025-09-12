@@ -6,6 +6,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.FileCopyUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
@@ -42,6 +44,28 @@ class ExtractionIntegrationTest {
                 .post()
                 .uri("/extract/text")
                 .body(request)
+                .retrieve()
+                .body(ExtractedRecipe.class);
+
+        assertThat(extractedRecipe).isNotNull();
+        assertThat(extractedRecipe.name()).isNotNull();
+        assertThat(extractedRecipe.ingredients()).isNotEmpty();
+        assertThat(extractedRecipe.instructions()).isNotEmpty();
+    }
+
+    @Test
+    void shouldExtractRecipeFromImage() throws Exception {
+        ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
+
+        // Prepare multipart request
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("file", imageResource);
+
+        // Extract recipe from image
+        ExtractedRecipe extractedRecipe = restClient()
+                .post()
+                .uri("/extract/image")
+                .body(parts)
                 .retrieve()
                 .body(ExtractedRecipe.class);
 

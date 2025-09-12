@@ -17,10 +17,9 @@
 - `docs/backend/api.md` - **API Documentation** - Contains API endpoints, request/response formats, and examples.
 - `docs/backend/db.md` - **Database Schema** - Describes the database structure, tables
 - `docs/mobile/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app, implemented features, its
-  codebase structure and data models.
+  codebase structure and usage patterns.
 - `docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app. Contains
-  navigation
-  flow, theme system and data models.
+  navigation flow, theme system and data models.
 
 ## AI Behavior
 
