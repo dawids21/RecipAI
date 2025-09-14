@@ -75,4 +75,11 @@ class RecipeController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/{id}/shared_users")
+    public List<SharedUserDto> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting shared users for recipe: {} by user: {}", id, userEmail);
+        return recipeService.getSharedUsers(id, userEmail);
+    }
+
 }

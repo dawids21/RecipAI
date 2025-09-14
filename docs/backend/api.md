@@ -196,6 +196,25 @@
       - Success: 204 No Content
     - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
     - Note: Only OWNER role can delete recipes
+- GET /recipes/{uuid}/shared_users
+    - Description: Get all users that a recipe is shared with, including their roles
+    - Authenticated: true
+    - Example response:
+      ```json
+      [
+        {
+          "email": "owner@example.com",
+          "role": "OWNER"
+        },
+        {
+          "email": "editor@example.com",
+          "role": "EDITOR"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
+    - Note: OWNER appears first in the returned list, followed by EDITOR roles
 
 ### Extraction
 

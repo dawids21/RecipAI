@@ -196,4 +196,22 @@ class RecipeService {
 
         log.info("Recipe {} unshared successfully from {} for {}", recipeId, requesterEmail, targetEmail);
     }
+
+    public List<SharedUserDto> getSharedUsers(UUID recipeId, String userEmail) {
+        log.debug("Getting shared users for recipe: {} by user: {}", recipeId, userEmail);
+
+        // Validate recipe exists
+        if (!recipeRepository.existsById(recipeId)) {
+            throw new RecipeNotFoundException(recipeId);
+        }
+
+        // Validate user has access
+        userRecipeRepository.getUserRole(userEmail, recipeId)
+                .orElseThrow(() -> new RecipeAccessDeniedException(recipeId));
+
+        // Get all users with access to this recipe (OWNER first due to ORDER BY role DESC)
+        return userRecipeRepository.findAllByRecipeId(recipeId).stream()
+                .map(userRecipe -> new SharedUserDto(userRecipe.getId().email(), userRecipe.getRole()))
+                .toList();
+    }
 }

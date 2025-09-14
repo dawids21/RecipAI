@@ -405,6 +405,20 @@ class RecipeIntegrationTest {
         assertThat(sharedRecipe.role()).isEqualTo(UserRole.EDITOR);
         assertThat(sharedRecipe.name()).isEqualTo("Shared Recipe");
 
+        // Test shared users endpoint after sharing - should show OWNER first, then EDITOR
+        List<SharedUserDto> sharedUsersAfterSharing = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .get()
+                .uri("/recipes/" + ownerRecipe.id() + "/shared_users")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+        assertThat(sharedUsersAfterSharing).isNotNull();
+        assertThat(sharedUsersAfterSharing).hasSize(2);
+        assertThat(sharedUsersAfterSharing.get(0).email()).isEqualTo("user1@example.com");
+        assertThat(sharedUsersAfterSharing.get(0).role()).isEqualTo(UserRole.OWNER);
+        assertThat(sharedUsersAfterSharing.get(1).email()).isEqualTo("user2@example.com");
+        assertThat(sharedUsersAfterSharing.get(1).role()).isEqualTo(UserRole.EDITOR);
+
         // User 2 (EDITOR) should be able to update the recipe
         RecipeData updatedData = new RecipeData(
                 List.of(new Ingredient("updated ingredient", "200g", null)),
@@ -454,6 +468,18 @@ class RecipeIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
+
+        // Test shared users endpoint after unsharing - should show only OWNER
+        List<SharedUserDto> sharedUsersAfterUnsharing = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .get()
+                .uri("/recipes/" + ownerRecipe.id() + "/shared_users")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+        assertThat(sharedUsersAfterUnsharing).isNotNull();
+        assertThat(sharedUsersAfterUnsharing).hasSize(1);
+        assertThat(sharedUsersAfterUnsharing.getFirst().email()).isEqualTo("user1@example.com");
+        assertThat(sharedUsersAfterUnsharing.getFirst().role()).isEqualTo(UserRole.OWNER);
 
         // User 1 (OWNER) should still be able to delete the recipe
         restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
