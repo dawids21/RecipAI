@@ -111,6 +111,7 @@ class RecipeIntegrationTest {
         assertThat(detailedRecipe.data().instructions()).hasSize(3);
         assertThat(detailedRecipe.data().ingredients().getFirst().name()).isEqualTo("flour");
         assertThat(detailedRecipe.data().instructions().getFirst().step()).isEqualTo("Make dough");
+        assertThat(detailedRecipe.role()).isEqualTo(UserRole.OWNER);
 
         // UPDATE: Update the pizza recipe
         RecipeData updatedPizzaData = new RecipeData(
@@ -353,5 +354,255 @@ class RecipeIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
+    }
+
+    @Test
+    void shouldShareAndUnshareRecipes() {
+        // User 1 creates a recipe
+        RecipeData recipeData = new RecipeData(
+                List.of(new Ingredient("secret ingredient", "100g", null)),
+                List.of(new Instruction("Secret recipe step"))
+        );
+        CreateRecipeRequest request = new CreateRecipeRequest("Shared Recipe", recipeData);
+
+        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes")
+                .body(request)
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(ownerRecipe).isNotNull();
+        assertThat(ownerRecipe.role()).isEqualTo(UserRole.OWNER);
+
+        // User 2 should not have access initially
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .get()
+                    .uri("/recipes/" + ownerRecipe.id())
+                    .retrieve()
+                    .body(RecipeDto.class);
+            assertThat(false).isTrue(); // Should not reach here
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User 1 shares recipe with User 2
+        ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes/" + ownerRecipe.id() + "/share")
+                .body(shareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // User 2 should now have EDITOR access
+        RecipeDto sharedRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .get()
+                .uri("/recipes/" + ownerRecipe.id())
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(sharedRecipe).isNotNull();
+        assertThat(sharedRecipe.role()).isEqualTo(UserRole.EDITOR);
+        assertThat(sharedRecipe.name()).isEqualTo("Shared Recipe");
+
+        // User 2 (EDITOR) should be able to update the recipe
+        RecipeData updatedData = new RecipeData(
+                List.of(new Ingredient("updated ingredient", "200g", null)),
+                List.of(new Instruction("Updated recipe step"))
+        );
+        UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Updated Shared Recipe", updatedData);
+
+        RecipeDto updatedRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .put()
+                .uri("/recipes/" + ownerRecipe.id())
+                .body(updateRequest)
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(updatedRecipe).isNotNull();
+        assertThat(updatedRecipe.name()).isEqualTo("Updated Shared Recipe");
+        assertThat(updatedRecipe.role()).isEqualTo(UserRole.EDITOR);
+
+        // User 2 (EDITOR) should NOT be able to delete the recipe
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .delete()
+                    .uri("/recipes/" + ownerRecipe.id())
+                    .retrieve()
+                    .toBodilessEntity();
+            assertThat(false).isTrue(); // Should not reach here
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User 1 unshares the recipe from User 2
+        UnshareRecipeRequest unshareRequest = new UnshareRecipeRequest("user2@example.com");
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes/" + ownerRecipe.id() + "/unshare")
+                .body(unshareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // User 2 should no longer have access
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .get()
+                    .uri("/recipes/" + ownerRecipe.id())
+                    .retrieve()
+                    .body(RecipeDto.class);
+            assertThat(false).isTrue(); // Should not reach here
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User 1 (OWNER) should still be able to delete the recipe
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .delete()
+                .uri("/recipes/" + ownerRecipe.id())
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    @Test
+    void shouldAllowEditorsToShareAndUnshareButPreventUnsharingOwner() {
+        // User 1 creates a recipe
+        RecipeData recipeData = new RecipeData(
+                List.of(new Ingredient("ingredient", "100g", null)),
+                List.of(new Instruction("Step"))
+        );
+        CreateRecipeRequest request = new CreateRecipeRequest("Editor Sharing Test Recipe", recipeData);
+
+        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes")
+                .body(request)
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(ownerRecipe).isNotNull();
+
+        // User 1 shares recipe with User 2 (making User 2 an EDITOR)
+        ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes/" + ownerRecipe.id() + "/share")
+                .body(shareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // User 2 (EDITOR) should be able to share the recipe with a third user
+        ShareRecipeRequest editorShareRequest = new ShareRecipeRequest("user@example.com");
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .post()
+                .uri("/recipes/" + ownerRecipe.id() + "/share")
+                .body(editorShareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // Verify the third user now has access
+        RecipeDto thirdUserRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN)
+                .get()
+                .uri("/recipes/" + ownerRecipe.id())
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(thirdUserRecipe).isNotNull();
+        assertThat(thirdUserRecipe.role()).isEqualTo(UserRole.EDITOR);
+
+        // User 2 (EDITOR) should be able to unshare the recipe from the third user
+        UnshareRecipeRequest editorUnshareRequest = new UnshareRecipeRequest("user@example.com");
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .post()
+                .uri("/recipes/" + ownerRecipe.id() + "/unshare")
+                .body(editorUnshareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // Verify third user no longer has access
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN)
+                    .get()
+                    .uri("/recipes/" + ownerRecipe.id())
+                    .retrieve()
+                    .body(RecipeDto.class);
+            assertThat(false).isTrue(); // Should not reach here
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User 2 (EDITOR) should NOT be able to unshare the OWNER (User 1)
+        UnshareRecipeRequest unshareOwnerRequest = new UnshareRecipeRequest("user1@example.com");
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .post()
+                    .uri("/recipes/" + ownerRecipe.id() + "/unshare")
+                    .body(unshareOwnerRequest)
+                    .retrieve()
+                    .toBodilessEntity();
+            assertThat(false).isTrue(); // Should not reach here
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // Verify User 1 (OWNER) still has access
+        RecipeDto ownerStillHasAccess = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .get()
+                .uri("/recipes/" + ownerRecipe.id())
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(ownerStillHasAccess).isNotNull();
+        assertThat(ownerStillHasAccess.role()).isEqualTo(UserRole.OWNER);
+    }
+
+    @Test
+    void shouldHandleSharedRecipesInUserRecipeList() {
+        // User 1 creates a recipe
+        RecipeData recipeData = new RecipeData(
+                List.of(new Ingredient("ingredient", "100g", null)),
+                List.of(new Instruction("Step"))
+        );
+        CreateRecipeRequest request = new CreateRecipeRequest("Recipe To Be Shared", recipeData);
+
+        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes")
+                .body(request)
+                .retrieve()
+                .body(RecipeDto.class);
+        assertThat(ownerRecipe).isNotNull();
+
+        // User 2 should not see the recipe in their list initially
+        List<RecipeListDto> user2RecipesBefore = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .get()
+                .uri("/recipes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+
+        assertThat(user2RecipesBefore)
+                .extracting(RecipeListDto::id)
+                .doesNotContain(ownerRecipe.id());
+
+        // User 1 shares recipe with User 2
+        ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
+        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/recipes/" + ownerRecipe.id() + "/share")
+                .body(shareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // User 2 should now see the recipe in their list
+        List<RecipeListDto> user2RecipesAfter = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .get()
+                .uri("/recipes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+
+        assertThat(user2RecipesAfter)
+                .extracting(RecipeListDto::id)
+                .contains(ownerRecipe.id());
+        assertThat(user2RecipesAfter)
+                .extracting(RecipeListDto::name)
+                .contains("Recipe To Be Shared");
     }
 }

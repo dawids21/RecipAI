@@ -59,4 +59,20 @@ class RecipeController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/share")
+    public ResponseEntity<Void> shareRecipe(@PathVariable UUID id, @Valid @RequestBody ShareRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Sharing recipe with id: {} from user: {} to user: {}", id, userEmail, request.email());
+        recipeService.shareRecipe(request.email(), id, userEmail);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/unshare")
+    public ResponseEntity<Void> unshareRecipe(@PathVariable UUID id, @Valid @RequestBody UnshareRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Unsharing recipe with id: {} from user: {} for user: {}", id, userEmail, request.email());
+        recipeService.unshareRecipe(request.email(), id, userEmail);
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -2,7 +2,7 @@
 
 ## Modules
 
-- `recipes` - manages user-scoped recipe CRUD operations and data persistence
+- `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
 
@@ -14,12 +14,26 @@ backend/
 │   ├── RecipAiApplication.java          # Main Spring Boot application entry point
 │   ├── recipes/                         # "recipes" module
 │   │   ├── Recipe.java                  # Recipe entity
-│   │   ├── UserRecipe.java              # User-Recipe association entity
+│   │   ├── UserRecipe.java              # User-Recipe association entity with roles
 │   │   ├── UserRecipeId.java            # Composite key for user-recipe associations
-│   │   ├── UserRecipeRepository.java    # User-Recipe association data access
+│   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
+│   │   ├── UserRecipeRepository.java    # Role-based user-recipe data access
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering
-│   │   ├── RecipeService.java           # Recipe business logic with user context
-│   │   └── RecipeController.java        # Recipe REST endpoints with JWT extraction
+│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing
+│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing support
+│   │   ├── RecipeDto.java               # Recipe response DTO with role information
+│   │   ├── RecipeListDto.java           # Recipe list response DTO
+│   │   ├── CreateRecipeRequest.java     # Create recipe request DTO
+│   │   ├── UpdateRecipeRequest.java     # Update recipe request DTO
+│   │   ├── ShareRecipeRequest.java      # Share recipe request DTO
+│   │   ├── UnshareRecipeRequest.java    # Unshare recipe request DTO
+│   │   ├── RecipeData.java              # Recipe data structure
+│   │   ├── Ingredient.java              # Ingredient model
+│   │   ├── Instruction.java             # Instruction model
+│   │   ├── RecipeNotFoundException.java # Recipe not found exception
+│   │   ├── RecipeAccessDeniedException.java # Access denied exception
+│   │   ├── ErrorResponse.java           # Error response DTO
+│   │   └── GlobalExceptionHandler.java  # Exception handling
 │   ├── extraction/                      # "extraction" module
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration

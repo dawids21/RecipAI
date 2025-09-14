@@ -54,11 +54,14 @@
               "step": "Add sauce and toppings"
             }
           ]
-        }
+        },
+        "role": "OWNER"
       }
       ```
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
+  - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare) or "EDITOR" (can
+    view and edit only)
 - POST /recipes
     - Description: Add new recipe
     - Authenticated: true
@@ -116,7 +119,8 @@
               "step": "Add sauce and toppings"
             }
           ]
-        }
+        },
+        "role": "OWNER"
       }
       ```
     - Success: 201 Created
@@ -178,17 +182,20 @@
                 "step": "Add cheese"
               }
             ]
-          }
+          },
+          "role": "OWNER"
         }
         ```
       - Success: 200 OK
       - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found, 400 Bad request
+    - Note: Both OWNER and EDITOR roles can update recipes
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true
       - Example response: No content
       - Success: 204 No Content
-      - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
+    - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
+    - Note: Only OWNER role can delete recipes
 
 ### Extraction
 
@@ -265,3 +272,30 @@
       ```
     - Success: 200 OK
     - Errors: 400 Bad request (unsupported file type), 413 Payload too large
+
+- POST /recipes/{uuid}/share
+    - Description: Share recipe with another user (grants EDITOR access)
+    - Authenticated: true
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 403 Forbidden (if user has no access to the recipe), 404 Not Found, 400 Bad request
+    - Note: Shared user receives EDITOR access.
+
+- POST /recipes/{uuid}/unshare
+    - Description: Remove shared access from another user
+    - Authenticated: true
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 403 Forbidden (if user has no access to the recipe or EDITOR tries to unshare from OWNER), 404 Not Found,
+      400 Bad request
+    - Note: Removes EDITOR access from target user.

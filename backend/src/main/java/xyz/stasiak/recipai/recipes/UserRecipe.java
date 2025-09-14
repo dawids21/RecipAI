@@ -1,8 +1,6 @@
 package xyz.stasiak.recipai.recipes;
 
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,15 +19,19 @@ class UserRecipe {
     @EmbeddedId
     private UserRecipeId id;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         UserRecipe userRecipe = (UserRecipe) o;
-        return Objects.equals(id, userRecipe.id);
+        return Objects.equals(id, userRecipe.id) && role == userRecipe.role;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(id, role);
     }
 }

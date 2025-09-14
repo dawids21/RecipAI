@@ -25,16 +25,14 @@ class RecipeService {
     }
 
     public RecipeDto findById(UUID id, String userEmail) {
-        RecipeDto recipeDto = recipeRepository.findById(id)
-                .map(this::toDto)
+        Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
-        // Check if user has access to this recipe
-        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
-            throw new RecipeAccessDeniedException(id);
-        }
+        // Check if user has access and get their role
+        UserRole userRole = userRecipeRepository.getUserRole(userEmail, id)
+                .orElseThrow(() -> new RecipeAccessDeniedException(id));
 
-        return recipeDto;
+        return toDto(recipe, userRole);
     }
 
     public RecipeDto save(CreateRecipeRequest request, String userEmail) {
@@ -44,13 +42,14 @@ class RecipeService {
 
         Recipe savedRecipe = recipeRepository.save(recipe);
 
-        // Create UserRecipe association
+        // Create UserRecipe association with OWNER role
         UserRecipe userRecipe = new UserRecipe();
         UserRecipeId userRecipeId = new UserRecipeId(userEmail, savedRecipe.getId());
         userRecipe.setId(userRecipeId);
+        userRecipe.setRole(UserRole.OWNER);
         userRecipeRepository.save(userRecipe);
-        
-        return toDto(savedRecipe);
+
+        return toDto(savedRecipe, UserRole.OWNER);
     }
 
     public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
@@ -59,8 +58,12 @@ class RecipeService {
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
-        // Check if user has access to this recipe
-        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
+        // Check if user has access (OWNER or EDITOR) and get their role
+        UserRole userRole = userRecipeRepository.getUserRole(userEmail, id)
+                .orElseThrow(() -> new RecipeAccessDeniedException(id));
+
+        // Both OWNER and EDITOR can update recipes
+        if (userRole != UserRole.OWNER && userRole != UserRole.EDITOR) {
             throw new RecipeAccessDeniedException(id);
         }
 
@@ -68,7 +71,7 @@ class RecipeService {
         existingRecipe.setData(convertToJsonNode(request.data()));
 
         Recipe savedRecipe = recipeRepository.save(existingRecipe);
-        return toDto(savedRecipe);
+        return toDto(savedRecipe, userRole);
     }
 
     public void deleteById(UUID id, String userEmail) {
@@ -78,22 +81,24 @@ class RecipeService {
             throw new RecipeNotFoundException(id);
         }
 
-        // Check if user has access to this recipe
-        if (userRecipeRepository.doesNotExistByIdEmailAndIdRecipeId(userEmail, id)) {
+        // Only OWNER can delete recipes
+        UserRole userRole = userRecipeRepository.getUserRole(userEmail, id)
+                .orElseThrow(() -> new RecipeAccessDeniedException(id));
+
+        if (userRole != UserRole.OWNER) {
             throw new RecipeAccessDeniedException(id);
         }
 
-        // Delete UserRecipe association first
-        UserRecipeId userRecipeId = new UserRecipeId(userEmail, id);
-        userRecipeRepository.deleteById(userRecipeId);
+        // Delete ALL UserRecipe associations first (including shared users)
+        userRecipeRepository.deleteAllByRecipeId(id);
 
         // Then delete the recipe itself
         recipeRepository.deleteById(id);
     }
 
-    private RecipeDto toDto(Recipe recipe) {
+    private RecipeDto toDto(Recipe recipe, UserRole userRole) {
         RecipeData recipeData = convertToRecipeData(recipe.getData());
-        return new RecipeDto(recipe.getId(), recipe.getName(), recipeData);
+        return new RecipeDto(recipe.getId(), recipe.getName(), recipeData, userRole);
     }
 
     private RecipeListDto toRecipeListDto(Recipe recipe) {
@@ -129,5 +134,66 @@ class RecipeService {
 
     private JsonNode convertToJsonNode(RecipeData recipeData) {
         return objectMapper.valueToTree(recipeData);
+    }
+
+    public void shareRecipe(String targetEmail, UUID recipeId, String requesterEmail) {
+        log.debug("Sharing recipe {} from {} to {}", recipeId, requesterEmail, targetEmail);
+
+        // Validate recipe exists
+        if (!recipeRepository.existsById(recipeId)) {
+            throw new RecipeNotFoundException(recipeId);
+        }
+
+        // Validate that the requester has access (OWNER or EDITOR can share)
+        userRecipeRepository.getUserRole(requesterEmail, recipeId)
+                .orElseThrow(() -> new RecipeAccessDeniedException(recipeId));
+
+        // Check if target user already has access
+        if (userRecipeRepository.getUserRole(targetEmail, recipeId).isPresent()) {
+            log.warn("Recipe {} is already shared with user {}", recipeId, targetEmail);
+            return; // Already shared, no-op
+        }
+
+        // Create EDITOR association for target user
+        UserRecipe sharedRecipe = new UserRecipe();
+        UserRecipeId sharedRecipeId = new UserRecipeId(targetEmail, recipeId);
+        sharedRecipe.setId(sharedRecipeId);
+        sharedRecipe.setRole(UserRole.EDITOR);
+        userRecipeRepository.save(sharedRecipe);
+
+        log.info("Recipe {} shared successfully from {} to {}", recipeId, requesterEmail, targetEmail);
+    }
+
+    public void unshareRecipe(String targetEmail, UUID recipeId, String requesterEmail) {
+        log.debug("Unsharing recipe {} from {} for {}", recipeId, requesterEmail, targetEmail);
+
+        // Validate recipe exists
+        if (!recipeRepository.existsById(recipeId)) {
+            throw new RecipeNotFoundException(recipeId);
+        }
+
+        // Validate that the requester has access (OWNER or EDITOR can unshare)
+        userRecipeRepository.getUserRole(requesterEmail, recipeId)
+                .orElseThrow(() -> new RecipeAccessDeniedException(recipeId));
+
+        // Get target user's role - validate they have access and prevent unsharing OWNER
+        UserRole targetRole = userRecipeRepository.getUserRole(targetEmail, recipeId)
+                .orElse(null);
+
+        if (targetRole == null) {
+            log.warn("User {} does not have access to recipe {} or recipe doesn't exist", targetEmail, recipeId);
+            return; // No access to remove, no-op
+        }
+
+        if (targetRole == UserRole.OWNER) {
+            log.warn("Cannot unshare OWNER {} from recipe {}", targetEmail, recipeId);
+            throw new RecipeAccessDeniedException(recipeId);
+        }
+
+        // Remove the EDITOR association
+        UserRecipeId targetUserRecipeId = new UserRecipeId(targetEmail, recipeId);
+        userRecipeRepository.deleteById(targetUserRecipeId);
+
+        log.info("Recipe {} unshared successfully from {} for {}", recipeId, requesterEmail, targetEmail);
     }
 }

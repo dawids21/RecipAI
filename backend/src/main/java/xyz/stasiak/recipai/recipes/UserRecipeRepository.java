@@ -1,13 +1,19 @@
 package xyz.stasiak.recipai.recipes;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 interface UserRecipeRepository extends JpaRepository<UserRecipe, UserRecipeId> {
-    boolean existsByIdEmailAndIdRecipeId(String email, UUID recipeId);
+    @Query("SELECT ur.role FROM UserRecipe ur WHERE ur.id.email = ?1 AND ur.id.recipeId = ?2")
+    Optional<UserRole> getUserRole(String email, UUID recipeId);
 
-    default boolean doesNotExistByIdEmailAndIdRecipeId(String email, UUID recipeId) {
-        return !existsByIdEmailAndIdRecipeId(email, recipeId);
-    }
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM UserRecipe ur WHERE ur.id.recipeId = ?1")
+    void deleteAllByRecipeId(UUID recipeId);
 }
