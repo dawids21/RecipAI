@@ -7,7 +7,7 @@
 - List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with Speed Dial FAB for
   importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
-  with Edit FAB and Delete button for recipe management
+  with Edit FAB, Share button, and role-based conditional Delete button for recipe management
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
   RecipeFormWidget
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
@@ -18,6 +18,8 @@
   with validation
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
+- Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Modal dialog for sharing recipes with other users, featuring
+  email input with validation, shared users list with roles, and unshare functionality with Material Design 3 styling
 
 ### Auth feature
 
@@ -30,9 +32,12 @@
 
 ### Extraction feature
 
-- URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with URL input field and loading states
-- Image Extraction Screen (`image_extraction_screen.dart`) - Screen for extracting recipes from images using camera or gallery selection with image preview and upload functionality
-- Extraction Dialog (`extraction_dialog.dart`) - Modal dialog for choosing between URL and image extraction methods with Material Design buttons
+- URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with
+  URL input field and loading states
+- Image Extraction Screen (`image_extraction_screen.dart`) - Screen for extracting recipes from images using camera or
+  gallery selection with image preview and upload functionality
+- Extraction Dialog (`extraction_dialog.dart`) - Modal dialog for choosing between URL and image extraction methods with
+  Material Design buttons
 - Web Recipe Extractor (`web_recipe_extractor.dart`) - Utility class for extracting HTML content from WebView
 
 ## Shared Widgets
@@ -64,7 +69,7 @@ login screen and authenticated users away from the login screen to the recipes l
 
 1. **App Launch** → Authentication check:
     - **If unauthenticated** → Login Screen (`/login`)
-   - **If authenticated** → Recipe List Screen (`/`)
+    - **If authenticated** → Recipe List Screen (`/`)
 2. **Login Screen → Google Sign-In Tap** → Authentication process → Recipe List Screen (`/`)
 3. **Recipe List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
 
@@ -74,8 +79,11 @@ login screen and authenticated users away from the login screen to the recipes l
 2. **Speed Dial → Extract Tap** → Extraction Screen (`/extraction`)
 3. **Speed Dial → Create Tap** → Create Recipe Screen (`/create`)
 4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/:id/edit` with recipe ID parameter)
+5. **Share Button Tap** (on Recipe Detail Screen) -> List of shared users -> Share recipe -> Back to Recipe Detail
+   Screen
 5. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
-6. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to Recipe
+6. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
+   Recipe
    List Screen
 7. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
 8. **Successful Edit** → Back to Recipe Detail Screen (with updated data)

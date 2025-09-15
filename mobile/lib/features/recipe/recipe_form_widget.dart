@@ -163,6 +163,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
         id: widget.initialRecipe?.id ?? '', // Keep existing ID for updates
         name: _nameController.text.trim(),
         data: recipeData,
+        role: widget.initialRecipe?.role ?? '',
       );
 
       final savedRecipe = await widget.onSave(recipe);

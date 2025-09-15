@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recipai_mobile/firebase_options.dart';
 
@@ -18,17 +19,26 @@ void main() async {
   await AppConfig.loadConfig();
   final authService = FirebaseAuthService();
   final apiService = ApiService(authService);
-  runApp(RecipAIApp(authService: authService, apiService: apiService));
+  final appRouter = createAppRouter(authService);
+  runApp(
+    RecipAIApp(
+      authService: authService,
+      apiService: apiService,
+      appRouter: appRouter,
+    ),
+  );
 }
 
 class RecipAIApp extends StatefulWidget {
   final AuthService authService;
   final ApiService apiService;
+  final GoRouter appRouter;
 
   const RecipAIApp({
     super.key,
     required this.authService,
     required this.apiService,
+    required this.appRouter,
   });
 
   @override
@@ -63,7 +73,7 @@ class _RecipAIAppState extends State<RecipAIApp> {
           child: MaterialApp.router(
             title: 'RecipAI',
             theme: AppTheme.theme,
-            routerConfig: createAppRouter(widget.authService),
+            routerConfig: widget.appRouter,
           ),
         ),
       ),

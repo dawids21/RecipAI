@@ -12,7 +12,9 @@
 ### Recipe module
 
 - Recipe (`recipe.dart`) - Basic recipe data model with id and name
-- Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information
+- Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including user role (
+  OWNER/EDITOR)
+- Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and role information
 
 ## Codebase Structure
 

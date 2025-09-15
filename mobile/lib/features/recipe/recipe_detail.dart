@@ -71,11 +71,13 @@ class RecipeDetail {
   final String id;
   final String name;
   final RecipeData data;
+  final String role;
 
   const RecipeDetail({
     required this.id,
     required this.name,
     required this.data,
+    required this.role,
   });
 
   factory RecipeDetail.fromJson(Map<String, dynamic> json) {
@@ -83,10 +85,11 @@ class RecipeDetail {
       id: json['id'] as String,
       name: json['name'] as String,
       data: RecipeData.fromJson(json['data'] as Map<String, dynamic>),
+      role: json['role'] as String,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'data': data.toJson()};
+    return {'id': id, 'name': name, 'data': data.toJson(), 'role': role};
   }
 }

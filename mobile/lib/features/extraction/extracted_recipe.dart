@@ -101,6 +101,7 @@ class ExtractedRecipe {
         ingredients: ingredients.map((e) => e.toIngredient()).toList(),
         instructions: instructions.map((e) => e.toInstruction()).toList(),
       ),
+      role: '',
     );
   }
 }

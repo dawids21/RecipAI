@@ -167,6 +167,11 @@ class RecipeService {
     public void unshareRecipe(String targetEmail, UUID recipeId, String requesterEmail) {
         log.debug("Unsharing recipe {} from {} for {}", recipeId, requesterEmail, targetEmail);
 
+        if (targetEmail.equals(requesterEmail)) {
+            log.warn("User {} cannot unshare themselves from recipe {}", requesterEmail, recipeId);
+            throw new IllegalArgumentException("Cannot unshare yourself from a recipe");
+        }
+
         // Validate recipe exists
         if (!recipeRepository.existsById(recipeId)) {
             throw new RecipeNotFoundException(recipeId);

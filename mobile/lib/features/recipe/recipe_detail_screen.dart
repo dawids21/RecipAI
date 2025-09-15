@@ -9,6 +9,7 @@ import '../../shared/loading_widget.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_model.dart';
+import 'recipe_sharing_dialog.dart';
 import 'step_number_badge.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -98,21 +99,72 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
+  Future<void> _showSharingDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => RecipeSharingDialog(recipeId: widget.recipeId),
+    );
+    // Potentially refresh recipe data if sharing affects it
+    setState(() {
+      futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Recipe Details'),
-        backgroundColor: theme.colorScheme.inversePrimary,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'delete') {
-                _showDeleteConfirmation();
-              }
-            },
-            itemBuilder: (BuildContext context) => [
+
+    return FutureBuilder<RecipeDetail>(
+      future: futureRecipeDetail,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Recipe Details'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+            ),
+            body: const LoadingWidget(),
+          );
+        } else if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Recipe Details'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+            ),
+            body: ApiErrorWidget(
+              errorMessage: 'Error: ${snapshot.error}',
+              onRetry: () {
+                setState(() {
+                  futureRecipeDetail = _apiService.fetchRecipeDetail(
+                    widget.recipeId,
+                  );
+                });
+              },
+            ),
+          );
+        } else if (snapshot.hasData) {
+          final recipeDetail = snapshot.data!;
+
+          // Build menu items based on user role
+          final menuItems = <PopupMenuItem<String>>[];
+
+          // Always show share option
+          menuItems.add(
+            PopupMenuItem<String>(
+              value: 'share',
+              child: Row(
+                children: [
+                  Icon(Icons.share),
+                  const SizedBox(width: AppSpacing.small),
+                  Text('Share Recipe'),
+                ],
+              ),
+            ),
+          );
+
+          // Only show delete for OWNER
+          if (recipeDetail.role == 'OWNER') {
+            menuItems.add(
               PopupMenuItem<String>(
                 value: 'delete',
                 child: Row(
@@ -123,33 +175,31 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToEdit,
-        child: const Icon(Icons.edit),
-      ),
-      body: FutureBuilder<RecipeDetail>(
-        future: futureRecipeDetail,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingWidget();
-          } else if (snapshot.hasError) {
-            return ApiErrorWidget(
-              errorMessage: 'Error: ${snapshot.error}',
-              onRetry: () {
-                setState(() {
-                  futureRecipeDetail = _apiService.fetchRecipeDetail(
-                    widget.recipeId,
-                  );
-                });
-              },
             );
-          } else if (snapshot.hasData) {
-            final recipeDetail = snapshot.data!;
-            return SingleChildScrollView(
+          }
+
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Recipe Details'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+              actions: [
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _showDeleteConfirmation();
+                    } else if (value == 'share') {
+                      _showSharingDialog();
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => menuItems,
+                ),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: _navigateToEdit,
+              child: const Icon(Icons.edit),
+            ),
+            body: SingleChildScrollView(
               padding: AppSpacing.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,12 +294,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                 ],
               ),
-            );
-          } else {
-            return const Center(child: Text('No data available'));
-          }
-        },
-      ),
+            ),
+          );
+        } else {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Recipe Details'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+            ),
+            body: const Center(child: Text('No data available')),
+          );
+        }
+      },
     );
   }
 }
