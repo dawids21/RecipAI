@@ -29,6 +29,7 @@ mobile/
 │   │   ├── routes.dart                 # Go router configuration with AppRoute enum
 │   │   ├── api_service.dart           # API service with InheritedApiService
 │   │   ├── app_config.dart            # Application configuration
+│   │   ├── feature_flags.dart         # Feature flags configuration using environment variables
 │   │   └── theme.dart                 # App theme and spacing constants
 │   ├── shared/                         # Shared/reusable widgets and utilities
 │   │   ├── loading_widget.dart        # Loading indicator widget
@@ -90,6 +91,33 @@ class _MyScreenState extends State<MyScreen> {
       _initData = true;
     }
     super.didChangeDependencies();
+  }
+}
+```
+
+### Using Feature Flags
+
+```dart
+import 'package:mobile/core/feature_flags.dart';
+
+class _MyScreenState extends State<MyScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          // Always visible content
+          Text('Main content'),
+
+          // Conditionally rendered based on feature flag
+          if (FeatureFlags.newFeatureEnabled)
+            Container(
+              padding: EdgeInsets.all(16),
+              child: Text('This is a new experimental feature!'),
+            ),
+        ],
+      ),
+    );
   }
 }
 ```
