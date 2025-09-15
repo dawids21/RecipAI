@@ -18,6 +18,7 @@ class EditRecipeScreen extends StatefulWidget {
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
   late ApiService _apiService;
   late Future<RecipeDetail> futureRecipeDetail;
+  bool _initRecipeDetail = false;
 
   @override
   void initState() {
@@ -27,7 +28,10 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   @override
   void didChangeDependencies() {
     _apiService = InheritedApiService.of(context);
-    futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
+    if (!_initRecipeDetail) {
+      futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
+      _initRecipeDetail = true;
+    }
     super.didChangeDependencies();
   }
 

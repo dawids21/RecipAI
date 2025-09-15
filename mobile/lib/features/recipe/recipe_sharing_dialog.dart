@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import '../auth/auth_service.dart';
 import 'shared_user.dart';
 
 class RecipeSharingDialog extends StatefulWidget {
@@ -22,12 +23,14 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
   bool _isSharing = false;
 
   late ApiService _apiService;
+  late AuthService _authService;
   late Future<List<SharedUser>> futureSharedUsers;
   bool _initSharedUsers = false;
 
   @override
   void didChangeDependencies() {
     _apiService = InheritedApiService.of(context);
+    _authService = InheritedAuthService.of(context);
     if (!_initSharedUsers) {
       futureSharedUsers = _apiService.fetchSharedUsers(widget.recipeId);
       _initSharedUsers = true;
@@ -164,6 +167,7 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
 
   Widget _buildSharedUsersList(List<SharedUser> sharedUsers) {
     final theme = Theme.of(context);
+    final currentUserEmail = _authService.email;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +178,8 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
           (user) => ListTile(
             title: Text(user.email),
             subtitle: Text(user.role.displayName),
-            trailing: user.role == UserRole.editor
+            trailing:
+                (user.role == UserRole.editor && user.email != currentUserEmail)
                 ? IconButton(
                     onPressed: () => _unshareRecipe(user.email),
                     icon: const Icon(Icons.remove_circle_outline),

@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 abstract class AuthService extends ChangeNotifier {
   bool get isAuthenticated;
 
+  String get email;
+
   Future<String?> get idToken;
 
   Future<void> signIn();
 
   Future<void> signOut();
+
   @override
   void dispose();
 }

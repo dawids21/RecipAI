@@ -22,6 +22,9 @@ class MockAuthService extends ChangeNotifier implements AuthService {
   bool get isAuthenticated => _isAuthenticated;
 
   @override
+  String get email => _isAuthenticated ? 'test@example.com' : '';
+
+  @override
   Future<String?> get idToken async {
     return _isAuthenticated ? 'mock-token' : null;
   }

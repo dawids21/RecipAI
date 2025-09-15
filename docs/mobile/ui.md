@@ -20,14 +20,14 @@
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 - Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Modal dialog for sharing recipes with other users, featuring
   email input with validation, shared users list with UserRole enum display, and unshare functionality with Material
-  Design 3 styling
+  Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current user
 
 ### Auth feature
 
 - Login Screen (`login_screen.dart`) - Welcome screen with Google Sign-In button, app branding (RecipAI logo and
   title), loading states during authentication, and error handling for sign-in failures
 - Auth Service (`auth_service.dart`) - Abstract service interface defining authentication contracts with
-  `isAuthenticated`, `idToken`, `signIn()`, and `signOut()` methods
+  `isAuthenticated`, `email`, `idToken`, `signIn()`, and `signOut()` methods
 - Firebase Auth Service (`firebase_auth_service.dart`) - Firebase implementation with Google Sign-In integration,
   user state management, and automatic token refresh
 

@@ -21,6 +21,9 @@ class FirebaseAuthService extends AuthService {
   bool get isAuthenticated => _currentUser != null;
 
   @override
+  String get email => _currentUser?.email ?? '';
+
+  @override
   Future<String?> get idToken async {
     return await _currentUser?.getIdToken();
   }
