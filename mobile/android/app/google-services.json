@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "934414686934-tro2lgljnk5m0g7aimeiuq4j06kmdfvo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "xyz.stasiak.recipai",
+            "certificate_hash": "17b4cc7d6a1e80a7b123c8d702d2895f0396b720"
+          }
+        },
+        {
           "client_id": "934414686934-i2o01ndv2rnm547pbv67bc3e9fltbtma.apps.googleusercontent.com",
           "client_type": 3
         }
