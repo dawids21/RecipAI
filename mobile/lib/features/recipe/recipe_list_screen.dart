@@ -90,6 +90,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    final recipeListModel = InheritedRecipeListModel.of(context);
+    recipeListModel.refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,41 +112,44 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Recipe>>(
-        future: recipeListModel.recipes,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingWidget();
-          } else if (snapshot.hasError) {
-            return ApiErrorWidget(
-              errorMessage: 'Error: ${snapshot.error}',
-              onRetry: () {
-                recipeListModel.refresh();
-              },
-            );
-          } else if (snapshot.hasData) {
-            final recipes = snapshot.data!;
-            if (recipes.isEmpty) {
-              return Center(
-                child: Text(
-                  'No recipes found',
-                  style: theme.textTheme.labelMedium,
-                ),
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        child: FutureBuilder<List<Recipe>>(
+          future: recipeListModel.recipes,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LoadingWidget();
+            } else if (snapshot.hasError) {
+              return ApiErrorWidget(
+                errorMessage: 'Error: ${snapshot.error}',
+                onRetry: () {
+                  recipeListModel.refresh();
+                },
               );
-            }
-            return ListView.builder(
-              itemCount: recipes.length,
-              itemBuilder: (context, index) {
-                return RecipeListItem(
-                  recipe: recipes[index],
-                  onTap: () => _onRecipeTap(context, recipes[index]),
+            } else if (snapshot.hasData) {
+              final recipes = snapshot.data!;
+              if (recipes.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No recipes found',
+                    style: theme.textTheme.labelMedium,
+                  ),
                 );
-              },
-            );
-          } else {
-            return const Center(child: Text('No data available'));
-          }
-        },
+              }
+              return ListView.builder(
+                itemCount: recipes.length,
+                itemBuilder: (context, index) {
+                  return RecipeListItem(
+                    recipe: recipes[index],
+                    onTap: () => _onRecipeTap(context, recipes[index]),
+                  );
+                },
+              );
+            } else {
+              return const Center(child: Text('No data available'));
+            }
+          },
+        ),
       ),
       floatingActionButton: SpeedDial(
         spaceBetweenChildren: AppSpacing.medium,
