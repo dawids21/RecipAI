@@ -12,9 +12,12 @@
 ### Recipe module
 
 - Recipe (`recipe.dart`) - Basic recipe data model with id and name
-- Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including user role (
-  OWNER/EDITOR)
-- Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and role information
+- Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including UserRole
+  enum (
+  owner/editor)
+- Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and UserRole enum
+- User Role (`user_role.dart`) - Enum defining user roles (owner, editor) with API conversion methods for
+  uppercase/lowercase handling
 
 ## Codebase Structure
 
@@ -31,7 +34,8 @@ mobile/
 │   │   ├── loading_widget.dart        # Loading indicator widget
 │   │   ├── api_error_widget.dart      # API error display widget
 │   │   ├── error_message_widget.dart  # General error message widget
-│   │   └── error_icon.dart           # Error icon widget
+│   │   ├── error_icon.dart           # Error icon widget
+│   │   └── user_role.dart            # UserRole enum with API conversion methods
 │   └── features/                       # Feature modules
 │       ├── auth/                       # "authentication" feature
 │       ├── recipe/                     # "recipe" feature

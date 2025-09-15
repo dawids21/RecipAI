@@ -1,3 +1,5 @@
+import 'package:recipai_mobile/shared/user_role.dart';
+
 class Ingredient {
   final String name;
   final String quantity;
@@ -71,7 +73,7 @@ class RecipeDetail {
   final String id;
   final String name;
   final RecipeData data;
-  final String role;
+  final UserRole role;
 
   const RecipeDetail({
     required this.id,
@@ -85,11 +87,16 @@ class RecipeDetail {
       id: json['id'] as String,
       name: json['name'] as String,
       data: RecipeData.fromJson(json['data'] as Map<String, dynamic>),
-      role: json['role'] as String,
+      role: UserRole.fromApiString(json['role'] as String),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'data': data.toJson(), 'role': role};
+    return {
+      'id': id,
+      'name': name,
+      'data': data.toJson(),
+      'role': role.toApiString(),
+    };
   }
 }

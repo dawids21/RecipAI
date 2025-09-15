@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recipai_mobile/core/api_service.dart';
+import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_service.dart';
 import 'package:recipai_mobile/main.dart';
 
@@ -15,7 +16,7 @@ class MockAuthService extends ChangeNotifier implements AuthService {
   bool _isAuthenticated;
 
   MockAuthService({bool isAuthenticated = false})
-      : _isAuthenticated = isAuthenticated;
+    : _isAuthenticated = isAuthenticated;
 
   @override
   bool get isAuthenticated => _isAuthenticated;
@@ -41,17 +42,22 @@ class MockAuthService extends ChangeNotifier implements AuthService {
     _isAuthenticated = value;
     notifyListeners();
   }
-
 }
 
 void main() {
   testWidgets('RecipAI app smoke test', (WidgetTester tester) async {
     final mockAuthService = MockAuthService(isAuthenticated: true);
     final mockApiService = ApiService(mockAuthService);
-    
+    final mockAppRouter = createAppRouter(mockAuthService);
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-        RecipAIApp(authService: mockAuthService, apiService: mockApiService));
+      RecipAIApp(
+        authService: mockAuthService,
+        apiService: mockApiService,
+        appRouter: mockAppRouter,
+      ),
+    );
 
     // Wait for the app to settle, including any pending timers
     await tester.pumpAndSettle();

@@ -4,6 +4,7 @@ import '../../core/api_service.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../../shared/user_role.dart';
 import 'shared_user.dart';
 
 class RecipeSharingDialog extends StatefulWidget {
@@ -172,8 +173,8 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
         ...(sharedUsers.map(
           (user) => ListTile(
             title: Text(user.email),
-            subtitle: Text(user.role),
-            trailing: user.role == 'EDITOR'
+            subtitle: Text(user.role.displayName),
+            trailing: user.role == UserRole.editor
                 ? IconButton(
                     onPressed: () => _unshareRecipe(user.email),
                     icon: const Icon(Icons.remove_circle_outline),

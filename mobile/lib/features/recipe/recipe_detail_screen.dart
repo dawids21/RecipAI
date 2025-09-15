@@ -6,6 +6,7 @@ import '../../core/api_service.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../../shared/user_role.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_model.dart';
@@ -163,7 +164,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           );
 
           // Only show delete for OWNER
-          if (recipeDetail.role == 'OWNER') {
+          if (recipeDetail.role == UserRole.owner) {
             menuItems.add(
               PopupMenuItem<String>(
                 value: 'delete',

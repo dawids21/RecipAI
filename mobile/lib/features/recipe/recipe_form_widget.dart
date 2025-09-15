@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../shared/error_message_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../../shared/user_role.dart';
 import 'ingredient_input_widget.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_model.dart';
@@ -163,7 +164,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
         id: widget.initialRecipe?.id ?? '', // Keep existing ID for updates
         name: _nameController.text.trim(),
         data: recipeData,
-        role: widget.initialRecipe?.role ?? '',
+        role: widget.initialRecipe?.role ?? UserRole.owner,
       );
 
       final savedRecipe = await widget.onSave(recipe);

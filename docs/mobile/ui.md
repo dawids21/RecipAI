@@ -19,7 +19,8 @@
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 - Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Modal dialog for sharing recipes with other users, featuring
-  email input with validation, shared users list with roles, and unshare functionality with Material Design 3 styling
+  email input with validation, shared users list with UserRole enum display, and unshare functionality with Material
+  Design 3 styling
 
 ### Auth feature
 
