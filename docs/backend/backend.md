@@ -71,3 +71,27 @@ Production deployments require the following environment variables:
 
 - The application uses Flyway for database migrations
 - All changes to the database schema should be implemented as migrations in `src/main/resources/db/migration/`
+
+## Building and Deploying the API
+
+### Docker Deployment
+
+The RecipAI backend API is containerized using Docker.
+The Dockerfile uses a multi-stage build process:
+
+1. **Build stage**: Uses `eclipse-temurin:24-jdk-alpine` with Maven to compile the application
+2. **Runtime stage**: Uses `eclipse-temurin:24-jre-alpine` for a smaller, production-ready image
+
+### GitHub Container Registry
+
+Docker images are automatically built and published to GitHub Container Registry (GHCR) via GitHub Actions. Repository:
+`ghcr.io/dawids21/recipai/api`
+
+### CI/CD Pipeline
+
+GitHub Actions automatically:
+
+1. Builds the Spring Boot application with Maven
+2. Creates Docker images on every push to `main` branch
+3. Publishes images to GitHub Container Registry
+4. Supports manual workflow triggers
