@@ -38,8 +38,14 @@ backend/
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/
-│   └── application.yml                  # Spring Boot configuration
+│   ├── application.yml                  # Spring Boot configuration
+│   └── db/migration/                    # Flyway database migrations
 └── src/test/java/xyz/stasiak/recipai/   # Integration and unit tests with Testcontainers setup
     ├── TestSecurityConfiguration.java  # Test JWT mocking configuration (multi-user support)
     └── TestcontainersConfiguration.java
 ```
+
+## Database
+
+- The application uses Flyway for database migrations
+- All changes to the database schema should be implemented as migrations in `src/main/resources/db/migration/`

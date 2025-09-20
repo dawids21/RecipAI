@@ -18,6 +18,7 @@
     - Spring Boot Configuration Processor 3.5.4
 - Lombok 1.18.38
 - PostgreSQL 17.5
+- Flyway
 
 ## Coding Practices
 
