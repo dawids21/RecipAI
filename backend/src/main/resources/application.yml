@@ -12,6 +12,9 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    default-schema: recipai
+  datasource:
+    schema: recipai
   ai:
     openai:
       api-key: ${SPRING_AI_API_KEY}
