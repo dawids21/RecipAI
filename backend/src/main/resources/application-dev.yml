@@ -1,0 +1,10 @@
+spring:
+  devtools:
+    restart:
+      enabled: false
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    xyz.stasiak: DEBUG

@@ -38,12 +38,34 @@ backend/
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/
-│   ├── application.yml                  # Spring Boot configuration
+│   ├── application.yml                  # Common Spring Boot configuration (shared across all profiles)
+│   ├── application-dev.yml              # Development profile configuration
+│   ├── application-prod.yml             # Production profile configuration
 │   └── db/migration/                    # Flyway database migrations
 └── src/test/java/xyz/stasiak/recipai/   # Integration and unit tests with Testcontainers setup
     ├── TestSecurityConfiguration.java  # Test JWT mocking configuration (multi-user support)
     └── TestcontainersConfiguration.java
 ```
+
+## Configuration Profiles
+
+The application uses Spring Boot profiles to support different deployment environments.
+By default, the application is configured to run in **production** mode.
+
+### Configuration Files
+
+- **`application.yml`** - Common configuration shared across all environments
+- **`application-dev.yml`** - Development profile configuration
+- **`application-prod.yml`** - Production profile configuration
+
+### Environment Variables for Production
+
+Production deployments require the following environment variables:
+
+- `SPRING_DATASOURCE_URL` - Database connection URL
+- `SPRING_DATASOURCE_USERNAME` - Database username
+- `SPRING_DATASOURCE_PASSWORD` - Database password
+- `SPRING_AI_API_KEY` - API key for Spring AI Gemini integration
 
 ## Database
 

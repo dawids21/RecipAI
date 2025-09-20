@@ -29,6 +29,7 @@
 - Most of the classes should have package-private visibility unless they need to be public
 
 ### Testing
+
 - Write unit tests for methods with complex logic
 - Write integration tests for methods that interact with external systems (e.g., database, external APIs)
 
@@ -51,7 +52,14 @@
 - Use SLF4J for logging instead of `System.out.println`
 - Prefer using lambdas and streams over imperative loops and conditionals where appropriate
 - Use `Optional` to avoid `NullPointerException`
-- Use `@SpringBootTest` for integration tests with `@Import(TestcontainersConfiguration.class)` when database is required
+- Use `@SpringBootTest` for integration tests with `@Import(TestcontainersConfiguration.class)` when database is
+  required
+
+### Configuration Profiles
+
+- When adding new configuration, consider if it should be shared across all environments (put in `application.yml`) or
+  environment-specific (put in `applcation-dev.yml` and `application-prod.yml`)
+- Use environment variables for sensitive production settings (database credentials, API keys)
 
 ### Lombok
 

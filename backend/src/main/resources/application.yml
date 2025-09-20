@@ -1,9 +1,8 @@
 spring:
+  profiles:
+    active: prod
   application:
     name: RecipAI
-  devtools:
-    restart:
-      enabled: false
   servlet:
     multipart:
       max-file-size: 10MB
@@ -11,7 +10,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
   flyway:
     enabled: true
   ai:
@@ -28,8 +26,3 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://securetoken.google.com/recipai-751ae
-logging:
-  level:
-    xyz.stasiak: DEBUG
-#    org.springframework.ai.chat.client.advisor: DEBUG
-#    web: DEBUG
