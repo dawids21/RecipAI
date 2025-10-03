@@ -24,12 +24,6 @@
 - All files related to a feature are placed directly in the single feature directory
 - Each module should have all required classes to provide a single feature
 
-## Architecture Patterns
-
-- **Dependency Injection**: Anything that communicates with outside world (e.g., ApiService, AuthService) should be
-  injected using InheritedWidget pattern
-- **Error Handling**: Try-catch blocks with user-friendly error messages
-
 ### Navigation
 
 - **Route Configuration**: All routes are defined in `core/routes.dart` using the AppRoute enum pattern

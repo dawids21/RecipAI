@@ -20,6 +20,7 @@
   codebase structure and usage patterns.
 - `docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app. Contains
   navigation flow, theme system and data models.
+- `docs/mobile/architecture.md` - **Mobile App Architecture** - Describes the architecture of the mobile app.
 
 ## AI Behavior
 
