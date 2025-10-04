@@ -21,6 +21,7 @@
 - `docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app. Contains
   navigation flow, theme system and data models.
 - `docs/mobile/architecture.md` - **Mobile App Architecture** - Describes the architecture of the mobile app.
+- `docs/mobile/upload_key.md` - **Upload Key Management** - Instructions for encrypting/decrypting the app upload key.
 
 ## AI Behavior
 
