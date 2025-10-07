@@ -241,7 +241,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                 const SizedBox(width: AppSpacing.small),
                                 Expanded(
                                   child: Text(
-                                    '${ingredient.quantity} ${ingredient.name}',
+                                    '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''} ${ingredient.name}',
                                     style: theme.textTheme.bodyLarge,
                                   ),
                                 ),
