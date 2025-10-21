@@ -6,7 +6,8 @@ This document outlines the requirements for the Shopping Lists Management featur
 feature will provide users with a dedicated interface to create, manage, and share shopping lists. A key component is
 the seamless integration with the existing Recipe Management system, allowing users to add ingredients from their saved
 recipes directly to a shopping list. The feature is designed to be collaborative, enabling multiple users to access and
-modify a shared list in real-time. It will also support robust offline functionality, allowing users to fully manage
+modify a shared list in near real-time (within 5-10 seconds). It will also support robust offline functionality,
+allowing users to fully manage
 their list items (add, edit, delete, check) even without an internet connection.
 
 ## 2. User Problem
@@ -44,7 +45,7 @@ shopping list solution.
         - OWNER: The creator of the list. Can edit the list, manage collaborators, and delete the list.
         - EDITOR: A user invited to the list. Can edit the list and manage other EDITORs, but cannot remove the OWNER.
     - 3.4.3. All changes made to a shared list (adding/editing/checking items) by one collaborator will be reflected in
-      real-time for all other collaborators.
+      near real-time (within 5-10 seconds) for all other collaborators.
     - 3.4.4. Conflict Resolution: In the event of simultaneous conflicting actions, a "first action wins" strategy will
       be implemented. The system will log the conflict, but the user whose action was rejected will receive no feedback.
     - 3.4.5. An EDITOR can choose to leave ("unfollow") a list they have been invited to.
@@ -61,7 +62,7 @@ shopping list solution.
     - Dedicated screen for managing all shopping lists.
     - Manual creation of lists and list items.
     - Adding ingredients from a single saved recipe at a time.
-    - Real-time collaboration for shared lists with OWNER/EDITOR roles.
+  - Near real-time collaboration (within 5-10 seconds) for shared lists with OWNER/EDITOR roles.
     - Basic conflict resolution ("first action wins").
     - Manual drag-and-drop reordering of list items.
     - Bulk actions: "Uncheck all" and "Delete all checked".
@@ -133,14 +134,15 @@ shopping list solution.
     - The invited user receives a notification and the shared list appears in their account with "EDITOR" permissions.
     - I can see a list of all users who have access to my list.
 
-### US-SL-007 - Collaborate on a shared list in real-time
+### US-SL-007 - Collaborate on a shared list in near real-time
 
-- Description: As a collaborator on a shared shopping list, I want to see updates from other users in real-time so we
+- Description: As a collaborator on a shared shopping list, I want to see updates from other users in near real-time (
+  within 5-10 seconds) so we
   are always working with the most current version.
 - Acceptance Criteria:
-    - When another collaborator adds an item, it appears on my list instantly.
-    - When another collaborator checks an item, its state updates on my list instantly.
-    - When another collaborator edits or deletes an item, the change is reflected on my list instantly.
+    - When another collaborator adds an item, it appears on my list within 5-10 seconds.
+    - When another collaborator checks an item, its state updates on my list within 5-10 seconds.
+    - When another collaborator edits or deletes an item, the change is reflected on my list within 5-10 seconds.
 
 ### US-SL-008 - Leave a shared shopping list
 
@@ -201,4 +203,5 @@ Indicators (KPIs), measured within the first three months post-launch:
 1. Recipe Integration: A minimum of 50% of all items added to shopping lists must be generated from saved recipes. This
    will indicate that the feature is successfully solving the core user problem of manual list creation.
 2. Collaboration Adoption: A minimum of 50% of all created shopping lists must have more than one collaborator (an OWNER
-   and at least one EDITOR). This will validate the utility of the sharing and real-time collaboration functionality.
+   and at least one EDITOR). This will validate the utility of the sharing and near real-time collaboration
+   functionality.
