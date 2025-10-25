@@ -37,13 +37,13 @@
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "300g",
-              "unit": null
+              "quantity": "300",
+              "unit": "g"
             },
             {
               "name": "tomato sauce",
-              "quantity": "200ml",
-              "unit": null
+              "quantity": "200",
+              "unit": "ml"
             }
           ],
           "instructions": [
@@ -73,13 +73,13 @@
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "300g",
-              "unit": null
+              "quantity": "300",
+              "unit": "g"
             },
             {
               "name": "tomato sauce",
-              "quantity": "200ml",
-              "unit": null
+              "quantity": "200",
+              "unit": "ml"
             }
           ],
           "instructions": [
@@ -102,13 +102,13 @@
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "300g",
-              "unit": null
+              "quantity": "300",
+              "unit": "g"
             },
             {
               "name": "tomato sauce",
-              "quantity": "200ml",
-              "unit": null
+              "quantity": "200",
+              "unit": "ml"
             }
           ],
           "instructions": [
@@ -136,13 +136,13 @@
             "ingredients": [
               {
                 "name": "flour",
-                "quantity": "400g",
-                "unit": null
+                "quantity": "400",
+                "unit": "g"
               },
               {
                 "name": "cheese",
-                "quantity": "200g",
-                "unit": null
+                "quantity": "200",
+                "unit": "g"
               }
             ],
             "instructions": [
@@ -165,13 +165,13 @@
             "ingredients": [
               {
                 "name": "flour",
-                "quantity": "400g",
-                "unit": null
+                "quantity": "400",
+                "unit": "g"
               },
               {
                 "name": "cheese",
-                "quantity": "200g",
-                "unit": null
+                "quantity": "200",
+                "unit": "g"
               }
             ],
             "instructions": [
@@ -235,13 +235,13 @@
       "ingredients": [
         {
           "name": "flour",
-          "quantity": "300g",
-          "unit": null
+          "quantity": "300",
+          "unit": "g"
         },
         {
           "name": "tomato sauce",
-          "quantity": "200ml",
-          "unit": null
+          "quantity": "200",
+          "unit": "ml"
         }
       ],
       "instructions": [
@@ -270,13 +270,13 @@
         "ingredients": [
           {
             "name": "black beans",
-            "quantity": "1 cup",
-            "unit": null
+            "quantity": "1",
+            "unit": "cup"
           },
           {
             "name": "breadcrumbs", 
-            "quantity": "1/2 cup",
-            "unit": null
+            "quantity": "1/2",
+            "unit": "cup"
           }
         ],
         "instructions": [
