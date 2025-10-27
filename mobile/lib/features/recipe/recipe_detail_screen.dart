@@ -1,39 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/routes.dart';
 
-import '../../core/api_service.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
+import 'recipe_detail_service.dart';
 import 'recipe_sharing_dialog.dart';
 import 'step_number_badge.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
+  final RecipeDetailService recipeDetailService;
 
-  const RecipeDetailScreen({super.key, required this.recipeId});
+  const RecipeDetailScreen({
+    super.key,
+    required this.recipeId,
+    required this.recipeDetailService,
+  });
 
   @override
   State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
 }
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
-  late ApiService _apiService;
-  late Future<RecipeDetail> futureRecipeDetail;
-  bool _initRecipeDetail = false;
+  @override
+  void initState() {
+    super.initState();
+    widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
+  }
 
   @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    if (!_initRecipeDetail) {
-      futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
-      _initRecipeDetail = true;
+  void dispose() {
+    if (getIt.isRegistered<RecipeDetailService>()) {
+      getIt.resetLazySingleton<RecipeDetailService>();
     }
-    super.didChangeDependencies();
+    super.dispose();
   }
 
   Future<void> _navigateToEdit() async {
@@ -43,9 +49,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
     if (result != null) {
       // Refresh recipe data if recipe was updated
-      setState(() {
-        futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
-      });
+      widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
     }
   }
 
@@ -80,11 +84,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   Future<void> _deleteRecipe() async {
     try {
-      await _apiService.deleteRecipe(widget.recipeId);
+      await widget.recipeDetailService.deleteRecipe(widget.recipeId);
 
       if (mounted) {
         _showSnackBar('Recipe deleted successfully!');
-        // TODO: Refresh recipe list using RecipeService when this screen is migrated to new architecture
         context.goNamed(AppRoute.recipes.name);
       }
     } catch (e) {
@@ -108,47 +111,38 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       builder: (context) => RecipeSharingDialog(recipeId: widget.recipeId),
     );
     // Potentially refresh recipe data if sharing affects it
-    setState(() {
-      futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
-    });
+    widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return FutureBuilder<RecipeDetail>(
-      future: futureRecipeDetail,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+    return ValueListenableBuilder(
+      valueListenable: widget.recipeDetailService.recipeDetail,
+      builder: (context, asyncValueRecipeDetail, child) {
+        return asyncValueRecipeDetail.when(
+          loading: () => Scaffold(
             appBar: AppBar(
               title: const Text('Recipe Details'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
             body: const LoadingWidget(),
-          );
-        } else if (snapshot.hasError) {
-          return Scaffold(
+          ),
+          error: (error) => Scaffold(
             appBar: AppBar(
               title: const Text('Recipe Details'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
             body: ApiErrorWidget(
-              errorMessage: 'Error: ${snapshot.error}',
+              errorMessage: 'Error: $error',
               onRetry: () {
-                setState(() {
-                  futureRecipeDetail = _apiService.fetchRecipeDetail(
-                    widget.recipeId,
-                  );
-                });
+                widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
               },
             ),
-          );
-        } else if (snapshot.hasData) {
-          final recipeDetail = snapshot.data!;
-
-          // Build menu items based on user role
+          ),
+          data: (recipeDetail) {
+            // Build menu items based on user role
           final menuItems = <PopupMenuItem<String>>[];
 
           // Always show share option
@@ -299,15 +293,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               ),
             ),
           );
-        } else {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Recipe Details'),
-              backgroundColor: theme.colorScheme.inversePrimary,
-            ),
-            body: const Center(child: Text('No data available')),
-          );
-        }
+          },
+        );
       },
     );
   }

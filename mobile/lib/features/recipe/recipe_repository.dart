@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/app_config.dart';
 import '../auth/auth_service.dart';
 import 'recipe.dart';
+import 'recipe_detail.dart';
 
 class RecipeRepository {
   final AuthService _authService;
@@ -39,6 +40,47 @@ class RecipeRepository {
       }
     } catch (e) {
       throw Exception('Network error while fetching recipes: $e');
+    }
+  }
+
+  Future<RecipeDetail> fetchRecipeDetail(String id) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await _client.get(
+        Uri.parse('$_baseUrl/recipes/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> json = jsonDecode(response.body);
+        return RecipeDetail.fromJson(json);
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to load recipe detail: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while fetching recipe detail: $e');
+    }
+  }
+
+  Future<void> deleteRecipe(String id) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await _client.delete(
+        Uri.parse('$_baseUrl/recipes/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 204) {
+        return;
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to delete recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while deleting recipe: $e');
     }
   }
 }

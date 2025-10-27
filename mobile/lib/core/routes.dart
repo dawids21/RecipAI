@@ -11,6 +11,7 @@ import '../features/extraction/url_extraction_screen.dart';
 import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
+import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_screen.dart';
 import '../features/recipe/recipe_list_service.dart';
 
@@ -128,7 +129,10 @@ GoRouter createAppRouter(AuthService authService) {
             name: AppRoute.recipeDetail.name,
             builder: (context, state) {
               final id = state.pathParameters['id']!;
-              return RecipeDetailScreen(recipeId: id);
+              return RecipeDetailScreen(
+                recipeId: id,
+                recipeDetailService: getIt<RecipeDetailService>(),
+              );
             },
             routes: [
               GoRoute(

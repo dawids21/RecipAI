@@ -8,7 +8,6 @@ import 'package:mime/mime.dart';
 
 import '../features/auth/auth_service.dart';
 import '../features/extraction/extracted_recipe.dart';
-import '../features/recipe/recipe.dart';
 import '../features/recipe/recipe_detail.dart';
 import '../features/recipe/shared_user.dart';
 import 'app_config.dart';
@@ -26,27 +25,6 @@ class ApiService {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
-  }
-
-  Future<List<Recipe>> fetchRecipes() async {
-    try {
-      final headers = await _getAuthHeaders();
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/recipes'),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList
-            .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw Exception('Failed to load recipes: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error while fetching recipes: $e');
-    }
   }
 
   Future<RecipeDetail> fetchRecipeDetail(String id) async {
@@ -168,26 +146,6 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Network error while updating recipe: $e');
-    }
-  }
-
-  Future<void> deleteRecipe(String id) async {
-    try {
-      final headers = await _getAuthHeaders();
-      final response = await _client.delete(
-        Uri.parse('$_baseUrl/recipes/$id'),
-        headers: headers,
-      );
-
-      if (response.statusCode == 204) {
-        return;
-      } else if (response.statusCode == 404) {
-        throw Exception('Recipe not found');
-      } else {
-        throw Exception('Failed to delete recipe: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error while deleting recipe: $e');
     }
   }
 
