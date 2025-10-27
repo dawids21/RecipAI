@@ -8,8 +8,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recipai_mobile/core/api_service.dart';
+import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_service.dart';
+import 'package:recipai_mobile/features/recipe/recipe_setup.dart';
 import 'package:recipai_mobile/main.dart';
 
 class MockAuthService extends ChangeNotifier implements AuthService {
@@ -52,6 +54,9 @@ void main() {
     final mockAuthService = MockAuthService(isAuthenticated: true);
     final mockApiService = ApiService(mockAuthService);
     final mockAppRouter = createAppRouter(mockAuthService);
+
+    getIt.registerSingleton<AuthService>(mockAuthService);
+    setupRecipe();
 
     // Build our app and trigger a frame.
     await tester.pumpWidget(

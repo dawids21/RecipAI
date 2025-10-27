@@ -7,7 +7,6 @@ import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import 'ingredient_input_widget.dart';
 import 'recipe_detail.dart';
-import 'recipe_list_model.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
@@ -178,9 +177,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
           context,
         ).showSnackBar(SnackBar(content: Text(successMessage)));
 
-        final recipeListModel = InheritedRecipeListModel.of(context);
-        recipeListModel.refresh();
-
+        // TODO: Refresh recipe list using RecipeService when this screen is migrated to new architecture
         context.pop(savedRecipe);
       }
     } catch (e) {

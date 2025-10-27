@@ -53,48 +53,6 @@ mobile/
 
 ## Usage Patterns
 
-### Accessing Services in Widgets
-
-```dart
-class _MyScreenState extends State<MyScreen> {
-  late ApiService _apiService;
-  late AuthService _authService;
-
-  @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    _authService = InheritedAuthService.of(context);
-    super.didChangeDependencies();
-  }
-
-  Future<void> _signIn() async {
-    await _authService.signIn();
-  }
-}
-```
-
-### Fetching Data on Screen Load
-
-```dart
-class _MyScreenState extends State<MyScreen> {
-  late ApiService _apiService;
-  late Future<List<Data>> futureData;
-  bool _initData = false; // Flag to prevent repeated data fetching
-
-  @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-
-    // Use flag to prevent repeated expensive operations
-    if (!_initData) {
-      futureRecipes = _apiService.fetchRecipes();
-      _initData = true;
-    }
-    super.didChangeDependencies();
-  }
-}
-```
-
 ### Using Feature Flags
 
 ```dart

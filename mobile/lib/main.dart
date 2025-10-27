@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/firebase_options.dart';
 
 import 'core/api_service.dart';
@@ -10,7 +11,7 @@ import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/firebase_auth_service.dart';
-import 'features/recipe/recipe_list_model.dart';
+import 'features/recipe/recipe_setup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,11 @@ void main() async {
   final authService = FirebaseAuthService();
   final apiService = ApiService(authService);
   final appRouter = createAppRouter(authService);
+
+  // DI
+  getIt.registerSingleton<AuthService>(authService);
+  setupRecipe();
+
   runApp(
     RecipAIApp(
       authService: authService,
@@ -46,17 +52,8 @@ class RecipAIApp extends StatefulWidget {
 }
 
 class _RecipAIAppState extends State<RecipAIApp> {
-  late final RecipeListModel _recipeListModel;
-
-  @override
-  void initState() {
-    super.initState();
-    _recipeListModel = RecipeListModel(widget.apiService);
-  }
-
   @override
   void dispose() {
-    _recipeListModel.dispose();
     widget.apiService.dispose();
     widget.authService.dispose();
     super.dispose();
@@ -68,13 +65,10 @@ class _RecipAIAppState extends State<RecipAIApp> {
       notifier: widget.authService,
       child: InheritedApiService(
         apiService: widget.apiService,
-        child: InheritedRecipeListModel(
-          notifier: _recipeListModel,
-          child: MaterialApp.router(
-            title: 'RecipAI',
-            theme: AppTheme.theme,
-            routerConfig: widget.appRouter,
-          ),
+        child: MaterialApp.router(
+          title: 'RecipAI',
+          theme: AppTheme.theme,
+          routerConfig: widget.appRouter,
         ),
       ),
     );

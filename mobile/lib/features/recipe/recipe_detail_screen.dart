@@ -9,7 +9,6 @@ import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
-import 'recipe_list_model.dart';
 import 'recipe_sharing_dialog.dart';
 import 'step_number_badge.dart';
 
@@ -85,8 +84,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
       if (mounted) {
         _showSnackBar('Recipe deleted successfully!');
-        final recipeListModel = InheritedRecipeListModel.of(context);
-        recipeListModel.refresh();
+        // TODO: Refresh recipe list using RecipeService when this screen is migrated to new architecture
         context.goNamed(AppRoute.recipes.name);
       }
     } catch (e) {

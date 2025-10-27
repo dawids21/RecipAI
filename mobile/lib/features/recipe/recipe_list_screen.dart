@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/theme.dart';
 
 import '../../core/routes.dart';
@@ -10,10 +11,15 @@ import '../auth/auth_service.dart';
 import '../extraction/extraction_dialog.dart';
 import 'recipe.dart';
 import 'recipe_list_item.dart';
-import 'recipe_list_model.dart';
+import 'recipe_list_service.dart';
 
 class RecipeListScreen extends StatefulWidget {
-  const RecipeListScreen({super.key});
+  final RecipeListService recipeListService;
+
+  const RecipeListScreen({
+    super.key,
+    required this.recipeListService,
+  });
 
   @override
   State<RecipeListScreen> createState() => _RecipeListScreenState();
@@ -23,9 +29,24 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   late AuthService _authService;
 
   @override
+  void initState() {
+    super.initState();
+    widget.recipeListService.loadRecipes();
+  }
+
+  @override
   void didChangeDependencies() {
     _authService = InheritedAuthService.of(context);
     super.didChangeDependencies();
+  }
+
+  @override
+  void dispose() {
+    // Only reset if the lazy singleton was actually instantiated
+    if (getIt.isRegistered<RecipeListService>()) {
+      getIt.resetLazySingleton<RecipeListService>();
+    }
+    super.dispose();
   }
 
   void _onRecipeTap(BuildContext context, Recipe recipe) {
@@ -91,14 +112,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   Future<void> _handleRefresh() async {
-    final recipeListModel = InheritedRecipeListModel.of(context);
-    recipeListModel.refresh();
+    await widget.recipeListService.loadRecipes();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final recipeListModel = InheritedRecipeListModel.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -114,40 +133,38 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
-        child: FutureBuilder<List<Recipe>>(
-          future: recipeListModel.recipes,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const LoadingWidget();
-            } else if (snapshot.hasError) {
-              return ApiErrorWidget(
-                errorMessage: 'Error: ${snapshot.error}',
-                onRetry: () {
-                  recipeListModel.refresh();
-                },
-              );
-            } else if (snapshot.hasData) {
-              final recipes = snapshot.data!;
-              if (recipes.isEmpty) {
-                return Center(
-                  child: Text(
-                    'No recipes found',
-                    style: theme.textTheme.labelMedium,
-                  ),
-                );
-              }
-              return ListView.builder(
-                itemCount: recipes.length,
-                itemBuilder: (context, index) {
-                  return RecipeListItem(
-                    recipe: recipes[index],
-                    onTap: () => _onRecipeTap(context, recipes[index]),
+        child: ValueListenableBuilder(
+          valueListenable: widget.recipeListService.recipes,
+          builder: (context, asyncValueRecipes, child) {
+            return asyncValueRecipes.when(
+              loading: () => const LoadingWidget(),
+              data: (recipes) {
+                if (recipes.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No recipes found',
+                      style: theme.textTheme.labelMedium,
+                    ),
                   );
-                },
-              );
-            } else {
-              return const Center(child: Text('No data available'));
-            }
+                }
+                return ListView.builder(
+                  itemCount: recipes.length,
+                  itemBuilder: (context, index) {
+                    return RecipeListItem(
+                      recipe: recipes[index],
+                      onTap: () => _onRecipeTap(context, recipes[index]),
+                    );
+                  },
+                );
+              },
+              error: (error) =>
+                  ApiErrorWidget(
+                    errorMessage: 'Error: $error',
+                    onRetry: () {
+                      widget.recipeListService.loadRecipes();
+                    },
+                  ),
+            );
           },
         ),
       ),

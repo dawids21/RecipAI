@@ -204,10 +204,16 @@ void setupProducts() {
 ```dart
 @override
 void dispose() {
-  getIt.resetLazySingleton(instance: widget.productsService);
+  if (getIt.isRegistered<ProductsService>()) {
+    getIt.resetLazySingleton<ProductsService>();
+  }
   super.dispose();
 }
 ```
+
+**Important**: Lazy singletons are only created when first accessed. If a screen is disposed before the service is
+used (e.g., in tests or quick navigation), attempting to reset an uninstantiated lazy singleton will throw an error.
+Always guard the reset call with `isRegistered()` check.
 
 ## Navigation & Routing
 

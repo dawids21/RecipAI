@@ -31,6 +31,10 @@
 - **Route Order Rule**: When defining nested routes, always define most specific routes first, followed by more generic
   routes. For example, define `/create` before `/:id`
 
+### Architecture
+
+- For new features follow architecture specification from ../docs/mobile/architecture.md
+
 ### Theming and Styling
 
 - **Hardcoded Values**: If some value is very specific to a widget and not used anywhere else, it can be hardcoded in a
