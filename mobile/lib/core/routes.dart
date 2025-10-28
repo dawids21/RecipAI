@@ -102,9 +102,7 @@ GoRouter createAppRouter(AuthService authService) {
         path: AppRoute.recipes.path,
         name: AppRoute.recipes.name,
         builder: (context, state) =>
-            RecipeListScreen(
-              recipeListService: getIt<RecipeListService>(),
-            ),
+            RecipeListScreen(recipeListService: getIt<RecipeListService>()),
         routes: [
           GoRoute(
             path: AppRoute.urlExtraction.path,
@@ -121,7 +119,10 @@ GoRouter createAppRouter(AuthService authService) {
             name: AppRoute.recipeCreate.name,
             builder: (context, state) {
               final recipeDetail = state.extra as RecipeDetail?;
-              return CreateRecipeScreen(prefilledRecipe: recipeDetail);
+              return CreateRecipeScreen(
+                prefilledRecipe: recipeDetail,
+                recipeListService: getIt<RecipeListService>(),
+              );
             },
           ),
           GoRoute(
@@ -140,7 +141,10 @@ GoRouter createAppRouter(AuthService authService) {
                 name: AppRoute.recipeEdit.name,
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return EditRecipeScreen(recipeId: id);
+                  return EditRecipeScreen(
+                    recipeId: id,
+                    recipeDetailService: getIt<RecipeDetailService>(),
+                  );
                 },
               ),
             ],

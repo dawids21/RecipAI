@@ -107,48 +107,6 @@ class ApiService {
     }
   }
 
-  Future<RecipeDetail> createRecipe(RecipeDetail recipe) async {
-    try {
-      final headers = await _getAuthHeaders();
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/recipes'),
-        headers: headers,
-        body: json.encode(recipe.toJson()),
-      );
-
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-        return RecipeDetail.fromJson(json);
-      } else {
-        throw Exception('Failed to create recipe: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error while creating recipe: $e');
-    }
-  }
-
-  Future<RecipeDetail> updateRecipe(String id, RecipeDetail recipe) async {
-    try {
-      final headers = await _getAuthHeaders();
-      final response = await _client.put(
-        Uri.parse('$_baseUrl/recipes/$id'),
-        headers: headers,
-        body: json.encode(recipe.toJson()),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-        return RecipeDetail.fromJson(json);
-      } else if (response.statusCode == 404) {
-        throw Exception('Recipe not found');
-      } else {
-        throw Exception('Failed to update recipe: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error while updating recipe: $e');
-    }
-  }
-
   Future<List<SharedUser>> fetchSharedUsers(String recipeId) async {
     try {
       final headers = await _getAuthHeaders();
@@ -165,9 +123,7 @@ class ApiService {
       } else if (response.statusCode == 404) {
         throw Exception('Recipe not found');
       } else {
-        throw Exception(
-          'Failed to load shared users: ${response.statusCode}',
-        );
+        throw Exception('Failed to load shared users: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Network error while fetching shared users: $e');

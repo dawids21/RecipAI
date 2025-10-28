@@ -10,7 +10,7 @@ import 'recipe_detail.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
-  final Future<RecipeDetail> Function(RecipeDetail recipe) onSave;
+  final Future<void> Function(RecipeDetail recipe) onSave;
 
   const RecipeFormWidget({super.key, this.initialRecipe, required this.onSave});
 
@@ -166,7 +166,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
         role: widget.initialRecipe?.role ?? UserRole.owner,
       );
 
-      final savedRecipe = await widget.onSave(recipe);
+      await widget.onSave(recipe);
 
       if (mounted) {
         // Show success message
@@ -177,8 +177,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
           context,
         ).showSnackBar(SnackBar(content: Text(successMessage)));
 
-        // TODO: Refresh recipe list using RecipeService when this screen is migrated to new architecture
-        context.pop(savedRecipe);
+        context.pop();
       }
     } catch (e) {
       if (mounted) {

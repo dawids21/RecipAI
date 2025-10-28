@@ -16,10 +16,7 @@ import 'recipe_list_service.dart';
 class RecipeListScreen extends StatefulWidget {
   final RecipeListService recipeListService;
 
-  const RecipeListScreen({
-    super.key,
-    required this.recipeListService,
-  });
+  const RecipeListScreen({super.key, required this.recipeListService});
 
   @override
   State<RecipeListScreen> createState() => _RecipeListScreenState();
@@ -157,13 +154,12 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   },
                 );
               },
-              error: (error) =>
-                  ApiErrorWidget(
-                    errorMessage: 'Error: $error',
-                    onRetry: () {
-                      widget.recipeListService.loadRecipes();
-                    },
-                  ),
+              error: (error) => ApiErrorWidget(
+                errorMessage: 'Error: $error',
+                onRetry: () {
+                  widget.recipeListService.loadRecipes();
+                },
+              ),
             );
           },
         ),

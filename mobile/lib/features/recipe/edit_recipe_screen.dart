@@ -1,80 +1,75 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'recipe_detail.dart';
+import 'recipe_detail_service.dart';
 import 'recipe_form_widget.dart';
 
 class EditRecipeScreen extends StatefulWidget {
   final String recipeId;
+  final RecipeDetailService recipeDetailService;
 
-  const EditRecipeScreen({super.key, required this.recipeId});
+  const EditRecipeScreen({
+    super.key,
+    required this.recipeId,
+    required this.recipeDetailService,
+  });
 
   @override
   State<EditRecipeScreen> createState() => _EditRecipeScreenState();
 }
 
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
-  late ApiService _apiService;
-  late Future<RecipeDetail> futureRecipeDetail;
-  bool _initRecipeDetail = false;
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    if (!_initRecipeDetail) {
-      futureRecipeDetail = _apiService.fetchRecipeDetail(widget.recipeId);
-      _initRecipeDetail = true;
-    }
-    super.didChangeDependencies();
-  }
-
-  Future<RecipeDetail> _updateRecipe(RecipeDetail recipe) async {
-    return await _apiService.updateRecipe(widget.recipeId, recipe);
+  Future<void> _updateRecipe(RecipeDetail recipe) async {
+    await widget.recipeDetailService.updateRecipe(
+      widget.recipeId,
+      recipe,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Recipe'),
-        backgroundColor: theme.colorScheme.inversePrimary,
-      ),
-      body: FutureBuilder<RecipeDetail>(
-        future: futureRecipeDetail,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const LoadingWidget();
-          } else if (snapshot.hasError) {
-            return ApiErrorWidget(
-              errorMessage: 'Error: ${snapshot.error}',
+    return ValueListenableBuilder(
+      valueListenable: widget.recipeDetailService.recipeDetail,
+      builder: (context, asyncValueRecipeDetail, child) {
+        return asyncValueRecipeDetail.when(
+          loading: () =>
+              Scaffold(
+                appBar: AppBar(
+                  title: const Text('Edit Recipe'),
+                  backgroundColor: theme.colorScheme.inversePrimary,
+                ),
+                body: const LoadingWidget(),
+              ),
+          error: (error) =>
+              Scaffold(
+                appBar: AppBar(
+                  title: const Text('Edit Recipe'),
+                  backgroundColor: theme.colorScheme.inversePrimary,
+                ),
+                body: ApiErrorWidget(
+                  errorMessage: 'Error: $error',
               onRetry: () {
-                setState(() {
-                  futureRecipeDetail = InheritedApiService.of(
-                    context,
-                  ).fetchRecipeDetail(widget.recipeId);
-                });
+                widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
               },
-            );
-          } else if (snapshot.hasData) {
-            final recipeDetail = snapshot.data!;
-            return RecipeFormWidget(
+                ),
+              ),
+          data: (recipeDetail) =>
+              Scaffold(
+                appBar: AppBar(
+                  title: const Text('Edit Recipe'),
+                  backgroundColor: theme.colorScheme.inversePrimary,
+                ),
+                body: RecipeFormWidget(
               initialRecipe: recipeDetail,
               onSave: _updateRecipe,
-            );
-          } else {
-            return const Center(child: Text('No data available'));
-          }
-        },
-      ),
+                ),
+              ),
+        );
+      },
     );
   }
 }

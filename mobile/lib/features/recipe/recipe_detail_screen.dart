@@ -43,14 +43,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Future<void> _navigateToEdit() async {
-    final result = await context.pushNamed(
+    context.goNamed(
       AppRoute.recipeEdit.name,
       pathParameters: {'id': widget.recipeId},
     );
-    if (result != null) {
-      // Refresh recipe data if recipe was updated
-      widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
-    }
   }
 
   Future<void> _showDeleteConfirmation() async {
@@ -143,156 +139,157 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
           data: (recipeDetail) {
             // Build menu items based on user role
-          final menuItems = <PopupMenuItem<String>>[];
+            final menuItems = <PopupMenuItem<String>>[];
 
-          // Always show share option
-          menuItems.add(
-            PopupMenuItem<String>(
-              value: 'share',
-              child: Row(
-                children: [
-                  Icon(Icons.share),
-                  const SizedBox(width: AppSpacing.small),
-                  Text('Share Recipe'),
-                ],
-              ),
-            ),
-          );
-
-          // Only show delete for OWNER
-          if (recipeDetail.role == UserRole.owner) {
+            // Always show share option
             menuItems.add(
               PopupMenuItem<String>(
-                value: 'delete',
+                value: 'share',
                 child: Row(
                   children: [
-                    Icon(Icons.delete),
+                    Icon(Icons.share),
                     const SizedBox(width: AppSpacing.small),
-                    Text('Delete Recipe'),
+                    Text('Share Recipe'),
                   ],
                 ),
               ),
             );
-          }
 
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Recipe Details'),
-              backgroundColor: theme.colorScheme.inversePrimary,
-              actions: [
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      _showDeleteConfirmation();
-                    } else if (value == 'share') {
-                      _showSharingDialog();
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => menuItems,
+            // Only show delete for OWNER
+            if (recipeDetail.role == UserRole.owner) {
+              menuItems.add(
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete),
+                      const SizedBox(width: AppSpacing.small),
+                      Text('Delete Recipe'),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: _navigateToEdit,
-              child: const Icon(Icons.edit),
-            ),
-            body: SingleChildScrollView(
-              padding: AppSpacing.screenPadding,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Recipe Name
-                  Text(
-                    recipeDetail.name,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.large),
+              );
+            }
 
-                  // Ingredients Section
-                  Text(
-                    'Ingredients',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.small),
-                  Card(
-                    child: Padding(
-                      padding: AppSpacing.cardMargin,
-                      child: Column(
-                        children: recipeDetail.data.ingredients.map((
-                          ingredient,
-                        ) {
-                          return Padding(
-                            padding: AppSpacing.smallVertical,
-                            child: Row(
-                              children: [
-                                const IngredientBullet(),
-                                const SizedBox(width: AppSpacing.small),
-                                Expanded(
-                                  child: Text(
-                                    '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''} ${ingredient.name}',
-                                    style: theme.textTheme.bodyLarge,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.large),
-
-                  // Instructions Section
-                  Text(
-                    'Instructions',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.small),
-                  Card(
-                    child: Padding(
-                      padding: AppSpacing.screenPadding,
-                      child: Column(
-                        children: recipeDetail.data.instructions
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                              int index = entry.key;
-                              Instruction instruction = entry.value;
-                              return Padding(
-                                padding: AppSpacing.mediumVertical,
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    StepNumberBadge(stepNumber: index + 1),
-                                    const SizedBox(
-                                      width:
-                                          AppSpacing.small +
-                                          AppSpacing.extraSmall,
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        instruction.step,
-                                        style: theme.textTheme.bodyLarge,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            })
-                            .toList(),
-                      ),
-                    ),
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Recipe Details'),
+                backgroundColor: theme.colorScheme.inversePrimary,
+                actions: [
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'delete') {
+                        _showDeleteConfirmation();
+                      } else if (value == 'share') {
+                        _showSharingDialog();
+                      }
+                    },
+                    itemBuilder: (BuildContext context) => menuItems,
                   ),
                 ],
               ),
-            ),
-          );
+              floatingActionButton: FloatingActionButton(
+                onPressed: _navigateToEdit,
+                child: const Icon(Icons.edit),
+              ),
+              body: SingleChildScrollView(
+                padding: AppSpacing.screenPadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Recipe Name
+                    Text(
+                      recipeDetail.name,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.large),
+
+                    // Ingredients Section
+                    Text(
+                      'Ingredients',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    Card(
+                      child: Padding(
+                        padding: AppSpacing.cardMargin,
+                        child: Column(
+                          children: recipeDetail.data.ingredients.map((
+                            ingredient,
+                          ) {
+                            return Padding(
+                              padding: AppSpacing.smallVertical,
+                              child: Row(
+                                children: [
+                                  const IngredientBullet(),
+                                  const SizedBox(width: AppSpacing.small),
+                                  Expanded(
+                                    child: Text(
+                                      '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''} ${ingredient.name}',
+                                      style: theme.textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.large),
+
+                    // Instructions Section
+                    Text(
+                      'Instructions',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    Card(
+                      child: Padding(
+                        padding: AppSpacing.screenPadding,
+                        child: Column(
+                          children: recipeDetail.data.instructions
+                              .asMap()
+                              .entries
+                              .map((entry) {
+                                int index = entry.key;
+                                Instruction instruction = entry.value;
+                                return Padding(
+                                  padding: AppSpacing.mediumVertical,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      StepNumberBadge(stepNumber: index + 1),
+                                      const SizedBox(
+                                        width:
+                                            AppSpacing.small +
+                                            AppSpacing.extraSmall,
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          instruction.step,
+                                          style: theme.textTheme.bodyLarge,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              })
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
           },
         );
       },

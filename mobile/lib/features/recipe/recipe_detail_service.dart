@@ -23,6 +23,7 @@ class RecipeDetailService {
 
   bool _isLoadRecipeDetailRunning = false;
   bool _isDeleteRecipeRunning = false;
+  bool _isUpdateRecipeRunning = false;
 
   Future<void> loadRecipeDetail(String id) async {
     if (_isLoadRecipeDetailRunning) return;
@@ -32,6 +33,26 @@ class RecipeDetailService {
       return _recipeRepository.fetchRecipeDetail(id);
     });
     _isLoadRecipeDetailRunning = false;
+  }
+
+  Future<void> updateRecipe(String id, RecipeDetail recipe) async {
+    if (_isUpdateRecipeRunning) return;
+    _isUpdateRecipeRunning = true;
+
+    final result = await AsyncValue.guardAsync(() async {
+      return _recipeRepository.updateRecipe(id, recipe);
+    });
+
+    if (result is AsyncData) {
+      _recipeDetail.value = result;
+      await _recipeListService.loadRecipes();
+    }
+
+    _isUpdateRecipeRunning = false;
+
+    if (result is AsyncError<RecipeDetail>) {
+      throw result.error;
+    }
   }
 
   Future<void> deleteRecipe(String id) async {

@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
 import 'recipe_detail.dart';
 import 'recipe_form_widget.dart';
+import 'recipe_list_service.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   final RecipeDetail? prefilledRecipe;
+  final RecipeListService recipeListService;
 
-  const CreateRecipeScreen({super.key, this.prefilledRecipe});
+  const CreateRecipeScreen({
+    super.key,
+    this.prefilledRecipe,
+    required this.recipeListService,
+  });
 
   @override
   State<CreateRecipeScreen> createState() => _CreateRecipeScreenState();
 }
 
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
-  late ApiService _apiService;
-
-  @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    super.didChangeDependencies();
-  }
-
-  Future<RecipeDetail> _createRecipe(RecipeDetail recipe) async {
-    return _apiService.createRecipe(recipe);
+  Future<void> _createRecipe(RecipeDetail recipe) async {
+    return widget.recipeListService.createRecipe(recipe);
   }
 
   @override
