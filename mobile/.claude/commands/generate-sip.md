@@ -12,6 +12,8 @@ in the SIP. The Agent has Websearch capabilities, so pass urls to documentation 
 
 ## Research Process
 
+**Use Plan subagent**
+
 1. **Codebase Analysis**
     - Search for similar features/patterns in the codebase
     - Identify files to reference in SIP
