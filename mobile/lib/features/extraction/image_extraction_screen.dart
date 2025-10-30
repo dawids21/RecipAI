@@ -4,28 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/api_service.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import 'extraction_service.dart';
 
 class ImageExtractionScreen extends StatefulWidget {
-  const ImageExtractionScreen({super.key});
+  final ExtractionService extractionService;
+
+  const ImageExtractionScreen({super.key, required this.extractionService});
 
   @override
   State<ImageExtractionScreen> createState() => _ImageExtractionScreenState();
 }
 
 class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
-  late ApiService _apiService;
   final ImagePicker _imagePicker = ImagePicker();
   XFile? _selectedImage;
   bool _isUploading = false;
-
-  @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    super.didChangeDependencies();
-  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -55,7 +50,7 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
     });
 
     try {
-      final extractedRecipe = await _apiService.extractRecipeFromImage(
+      final extractedRecipe = await widget.extractionService.extractFromImage(
         _selectedImage!,
       );
 

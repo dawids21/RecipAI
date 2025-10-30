@@ -6,6 +6,7 @@ import 'package:recipai_mobile/features/recipe/recipe_detail.dart';
 
 import '../features/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
+import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
 import '../features/extraction/url_extraction_screen.dart';
 import '../features/recipe/create_recipe_screen.dart';
@@ -112,12 +113,16 @@ GoRouter createAppRouter() {
           GoRoute(
             path: AppRoute.urlExtraction.path,
             name: AppRoute.urlExtraction.name,
-            builder: (context, state) => const UrlExtractionScreen(),
+            builder: (context, state) => UrlExtractionScreen(
+              extractionService: getIt<ExtractionService>(),
+            ),
           ),
           GoRoute(
             path: AppRoute.imageExtraction.path,
             name: AppRoute.imageExtraction.name,
-            builder: (context, state) => const ImageExtractionScreen(),
+            builder: (context, state) => ImageExtractionScreen(
+              extractionService: getIt<ExtractionService>(),
+            ),
           ),
           GoRoute(
             path: AppRoute.recipeCreate.path,

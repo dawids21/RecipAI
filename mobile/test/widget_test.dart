@@ -9,12 +9,10 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:recipai_mobile/core/api_service.dart';
-import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_repository.dart';
-import 'package:recipai_mobile/features/auth/auth_service.dart';
 import 'package:recipai_mobile/features/auth/auth_setup.dart';
+import 'package:recipai_mobile/features/extraction/extraction_setup.dart';
 import 'package:recipai_mobile/features/recipe/recipe_setup.dart';
 import 'package:recipai_mobile/main.dart';
 
@@ -78,15 +76,12 @@ void main() {
   testWidgets('RecipAI app smoke test', (WidgetTester tester) async {
     setupAuth(MockAuthRepository(isAuthenticated: true));
     setupRecipe();
+    setupExtraction();
 
-    final authService = getIt<AuthService>();
-    final mockApiService = ApiService(authService);
     final mockAppRouter = createAppRouter();
 
     // Build our app and trigger a frame.
-    await tester.pumpWidget(
-      RecipAIApp(apiService: mockApiService, appRouter: mockAppRouter),
-    );
+    await tester.pumpWidget(RecipAIApp(appRouter: mockAppRouter));
 
     // Wait for the app to settle, including any pending timers
     await tester.pumpAndSettle();

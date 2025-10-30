@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../core/api_service.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../shared/loading_widget.dart';
+import 'extraction_service.dart';
 import 'web_recipe_extractor.dart';
 
 class UrlExtractionScreen extends StatefulWidget {
-  const UrlExtractionScreen({super.key});
+  final ExtractionService extractionService;
+
+  const UrlExtractionScreen({super.key, required this.extractionService});
 
   @override
   State<UrlExtractionScreen> createState() => _UrlExtractionScreenState();
@@ -17,7 +19,6 @@ class UrlExtractionScreen extends StatefulWidget {
 
 class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
   late final WebViewController _controller;
-  late ApiService _apiService;
   final TextEditingController _urlController = TextEditingController();
   bool _isLoading = false;
   bool _isExtracting = false;
@@ -60,12 +61,6 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
       );
   }
 
-  @override
-  void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    super.didChangeDependencies();
-  }
-
   void _loadUrl() {
     final url = _urlController.text.trim();
     if (url.isEmpty) {
@@ -106,7 +101,7 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
       }
 
       // Extract recipe using API
-      final extractedRecipe = await _apiService.extractRecipeFromText(
+      final extractedRecipe = await widget.extractionService.extractFromText(
         htmlContent,
       );
 

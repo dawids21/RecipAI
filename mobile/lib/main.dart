@@ -6,12 +6,12 @@ import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/features/auth/auth_repository.dart';
 import 'package:recipai_mobile/firebase_options.dart';
 
-import 'core/api_service.dart';
 import 'core/app_config.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/auth_setup.dart';
+import 'features/extraction/extraction_setup.dart';
 import 'features/recipe/recipe_setup.dart';
 
 void main() async {
@@ -23,23 +23,17 @@ void main() async {
   // DI
   setupAuth(FirebaseAuthRepository());
   setupRecipe();
+  setupExtraction();
 
-  final authService = getIt<AuthService>();
-  final apiService = ApiService(authService);
   final appRouter = createAppRouter();
 
-  runApp(RecipAIApp(apiService: apiService, appRouter: appRouter));
+  runApp(RecipAIApp(appRouter: appRouter));
 }
 
 class RecipAIApp extends StatefulWidget {
-  final ApiService apiService;
   final GoRouter appRouter;
 
-  const RecipAIApp({
-    super.key,
-    required this.apiService,
-    required this.appRouter,
-  });
+  const RecipAIApp({super.key, required this.appRouter});
 
   @override
   State<RecipAIApp> createState() => _RecipAIAppState();
@@ -48,20 +42,16 @@ class RecipAIApp extends StatefulWidget {
 class _RecipAIAppState extends State<RecipAIApp> {
   @override
   void dispose() {
-    widget.apiService.dispose();
     getIt<AuthService>().dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return InheritedApiService(
-      apiService: widget.apiService,
-      child: MaterialApp.router(
-        title: 'RecipAI',
-        theme: AppTheme.theme,
-        routerConfig: widget.appRouter,
-      ),
+    return MaterialApp.router(
+      title: 'RecipAI',
+      theme: AppTheme.theme,
+      routerConfig: widget.appRouter,
     );
   }
 }

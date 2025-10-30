@@ -4,7 +4,7 @@
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
 - `extraction` - Recipe extraction functionality supporting both URL extraction via WebView and image extraction via
-  camera/gallery
+  camera/gallery. Uses Repository-Service-View architecture with ExtractionRepository and ExtractionService
 - `auth` - User authentication using Firebase Authentication with Google Sign-In
 
 ## Data Models
@@ -27,8 +27,9 @@ mobile/
 │   ├── main.dart                       # RecipAI app entry point with DI setup
 │   ├── core/                           # Core services and configuration
 │   │   ├── routes.dart                 # Go router configuration with AppRoute enum
-│   │   ├── api_service.dart           # API service with InheritedApiService
 │   │   ├── app_config.dart            # Application configuration
+│   │   ├── async_value.dart           # AsyncValue sealed class (Loading/Data/Error)
+│   │   ├── get_it.dart                # Global GetIt instance
 │   │   ├── feature_flags.dart         # Feature flags configuration using environment variables
 │   │   └── theme.dart                 # App theme and spacing constants
 │   ├── shared/                         # Shared/reusable widgets and utilities
@@ -50,6 +51,14 @@ mobile/
 │       │   ├── recipe_setup.dart       # Dependency injection setup for recipe module
 │       │   └── ...                     # Screens, models, and widgets
 │       └── extraction/                 # "extraction" feature
+│           ├── extraction_repository.dart # API communication layer for extraction endpoints
+│           ├── extraction_service.dart # Business logic layer for extraction operations
+│           ├── extraction_setup.dart   # Dependency injection setup for extraction module
+│           ├── extracted_recipe.dart   # Data models (ExtractedRecipe, ExtractedIngredient, ExtractedInstruction)
+│           ├── url_extraction_screen.dart # WebView-based URL extraction UI
+│           ├── image_extraction_screen.dart # Camera/Gallery image extraction UI
+│           ├── extraction_dialog.dart  # Simple dialog widget
+│           └── web_recipe_extractor.dart # Utility for HTML extraction
 ├── assets/
 │   └── config/
 │       └── app_config.json            # App configuration file
