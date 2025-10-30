@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recipai_mobile/core/get_it.dart';
-import 'package:recipai_mobile/features/auth/auth_repository.dart';
 import 'package:recipai_mobile/firebase_options.dart';
 
 import 'core/app_config.dart';
@@ -21,7 +20,7 @@ void main() async {
   await AppConfig.loadConfig();
 
   // DI
-  setupAuth(FirebaseAuthRepository());
+  setupAuth();
   setupRecipe();
   setupExtraction();
 

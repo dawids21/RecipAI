@@ -74,7 +74,7 @@ class MockUser implements User {
 
 void main() {
   testWidgets('RecipAI app smoke test', (WidgetTester tester) async {
-    setupAuth(MockAuthRepository(isAuthenticated: true));
+    setupAuth(authRepository: MockAuthRepository(isAuthenticated: true));
     setupRecipe();
     setupExtraction();
 
