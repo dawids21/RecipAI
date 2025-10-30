@@ -7,7 +7,6 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
-import '../auth/auth_service.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
 import 'recipe_detail_service.dart';
@@ -105,10 +104,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
-      builder: (context) => RecipeSharingDialog(
-        recipeDetailService: widget.recipeDetailService,
-        authService: getIt<AuthService>(),
-      ),
+      builder: (context) =>
+          RecipeSharingDialog(recipeDetailService: widget.recipeDetailService),
     );
   }
 

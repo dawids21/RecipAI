@@ -14,6 +14,7 @@ void setupRecipe() {
     () => RecipeDetailService(
       recipeRepository: getIt<RecipeRepository>(),
       recipeListService: getIt<RecipeListService>(),
+      authService: getIt<AuthService>(),
     ),
   );
 }

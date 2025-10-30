@@ -1,20 +1,24 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
+import '../auth/auth_service.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_service.dart';
 import 'recipe_repository.dart';
-import 'shared_user.dart';
+import 'recipe_shared_user.dart';
 
 class RecipeDetailService {
   final RecipeRepository _recipeRepository;
   final RecipeListService _recipeListService;
+  final AuthService _authService;
 
   RecipeDetailService({
     required RecipeRepository recipeRepository,
     required RecipeListService recipeListService,
+    required AuthService authService,
   }) : _recipeRepository = recipeRepository,
-       _recipeListService = recipeListService;
+       _recipeListService = recipeListService,
+       _authService = authService;
 
   final ValueNotifier<AsyncValue<RecipeDetail>> _recipeDetail = ValueNotifier(
     const AsyncValue.loading(),
@@ -22,10 +26,11 @@ class RecipeDetailService {
 
   ValueListenable<AsyncValue<RecipeDetail>> get recipeDetail => _recipeDetail;
 
-  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<RecipeSharedUser>>> _sharedUsers =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+  ValueListenable<AsyncValue<List<RecipeSharedUser>>> get sharedUsers =>
+      _sharedUsers;
 
   bool _isLoadRecipeDetailRunning = false;
   bool _isDeleteRecipeRunning = false;
@@ -98,7 +103,14 @@ class RecipeDetailService {
     final recipeId = recipeDetail.value.id;
 
     _sharedUsers.value = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.fetchSharedUsers(recipeId);
+      final sharedUsers = await _recipeRepository.fetchSharedUsers(recipeId);
+      final currentUserEmail = _authService.email;
+      return sharedUsers.map((sharedUser) {
+        return RecipeSharedUser(
+          sharedUser: sharedUser,
+          isCurrentUser: sharedUser.email == currentUserEmail,
+        );
+      }).toList();
     });
 
     _isLoadSharedUsersRunning = false;

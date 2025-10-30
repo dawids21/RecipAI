@@ -4,19 +4,13 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
-import '../auth/auth_service.dart';
 import 'recipe_detail_service.dart';
-import 'shared_user.dart';
+import 'recipe_shared_user.dart';
 
 class RecipeSharingDialog extends StatefulWidget {
   final RecipeDetailService recipeDetailService;
-  final AuthService authService;
 
-  const RecipeSharingDialog({
-    super.key,
-    required this.recipeDetailService,
-    required this.authService,
-  });
+  const RecipeSharingDialog({super.key, required this.recipeDetailService});
 
   @override
   State<RecipeSharingDialog> createState() => _RecipeSharingDialogState();
@@ -154,9 +148,8 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
     );
   }
 
-  Widget _buildSharedUsersList(List<SharedUser> sharedUsers) {
+  Widget _buildSharedUsersList(List<RecipeSharedUser> sharedUsers) {
     final theme = Theme.of(context);
-    final currentUserEmail = widget.authService.email;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,8 +160,7 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
           (user) => ListTile(
             title: Text(user.email),
             subtitle: Text(user.role.displayName),
-            trailing:
-                (user.role == UserRole.editor && user.email != currentUserEmail)
+            trailing: (user.role == UserRole.editor && !user.isCurrentUser)
                 ? IconButton(
                     onPressed: () => _unshareRecipe(user.email),
                     icon: const Icon(Icons.remove_circle_outline),
