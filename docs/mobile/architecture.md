@@ -170,32 +170,47 @@ management. Dependencies are retrieved via `getIt<Type>()`.
 **Dependency registration strategy**: Each feature has a setup function that registers its dependencies. Setup functions
 are called in main() before app initialization.
 
+**External dependencies**: Dependencies connected with the external world (APIs, Firebase, databases, local storage)
+should be passed as named parameters to setup functions. By default, production implementations are used. In tests,
+mock implementations can be passed. This enables easy testing without affecting production code.
+
 ```dart
 // main.dart
 final getIt = GetIt.instance;
 
 void main() {
-  setupAuth();
+  setupAuth(); // Uses prod FirebaseAuthRepository by default
   setupProducts();
   runApp(MyApp());
 }
 
 // auth_setup.dart
-void setupAuth() {
-  getIt.registerSingleton(AuthRepository());
+void setupAuth({AuthRepository? authRepository}) {
+  final repository = authRepository ?? FirebaseAuthRepository();
+  getIt.registerSingleton<AuthRepository>(repository);
   getIt.registerSingleton(AuthService(
       authRepository: getIt<AuthRepository>()
   ));
 }
 
 // products_setup.dart
-void setupProducts() {
-  getIt.registerSingleton(ProductsRepository());
+void setupProducts({ProductsRepository? productsRepository}) {
+  final repository = productsRepository ?? ApiProductsRepository();
+  getIt.registerSingleton<ProductsRepository>(repository);
   getIt.registerLazySingleton(() =>
       ProductsService(
         productsRepository: getIt<ProductsRepository>(),
         authRepository: getIt<AuthRepository>(),
       ));
+}
+
+// test/widget_test.dart
+void main() {
+  testWidgets('Test with mocks', (WidgetTester tester) async {
+    setupAuth(authRepository: MockAuthRepository());
+    setupProducts(productsRepository: MockProductsRepository());
+    // ... test code
+  });
 }
 ```
 
