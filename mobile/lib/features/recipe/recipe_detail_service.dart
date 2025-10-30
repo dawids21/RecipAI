@@ -44,7 +44,8 @@ class RecipeDetailService {
     _isLoadRecipeDetailRunning = true;
     _recipeDetail.value = const AsyncValue.loading();
     _recipeDetail.value = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.fetchRecipeDetail(id);
+      final token = await _authService.idToken;
+      return _recipeRepository.fetchRecipeDetail(id, token);
     });
     _isLoadRecipeDetailRunning = false;
   }
@@ -54,7 +55,8 @@ class RecipeDetailService {
     _isUpdateRecipeRunning = true;
 
     final result = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.updateRecipe(id, recipe);
+      final token = await _authService.idToken;
+      return _recipeRepository.updateRecipe(id, recipe, token);
     });
 
     if (result is AsyncData) {
@@ -74,7 +76,8 @@ class RecipeDetailService {
     _isDeleteRecipeRunning = true;
 
     final result = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.deleteRecipe(id);
+      final token = await _authService.idToken;
+      return _recipeRepository.deleteRecipe(id, token);
     });
 
     if (result is AsyncData) {
@@ -103,7 +106,11 @@ class RecipeDetailService {
     final recipeId = recipeDetail.value.id;
 
     _sharedUsers.value = await AsyncValue.guardAsync(() async {
-      final sharedUsers = await _recipeRepository.fetchSharedUsers(recipeId);
+      final token = await _authService.idToken;
+      final sharedUsers = await _recipeRepository.fetchSharedUsers(
+        recipeId,
+        token,
+      );
       final currentUserEmail = _authService.email;
       return sharedUsers.map((sharedUser) {
         return RecipeSharedUser(
@@ -129,7 +136,8 @@ class RecipeDetailService {
     final recipeId = recipeDetail.value.id;
 
     final result = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.shareRecipe(recipeId, email);
+      final token = await _authService.idToken;
+      return _recipeRepository.shareRecipe(recipeId, email, token);
     });
 
     if (result is AsyncData) {
@@ -156,7 +164,8 @@ class RecipeDetailService {
     final recipeId = recipeDetail.value.id;
 
     final result = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.unshareRecipe(recipeId, email);
+      final token = await _authService.idToken;
+      return _recipeRepository.unshareRecipe(recipeId, email, token);
     });
 
     if (result is AsyncData) {

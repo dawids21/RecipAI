@@ -3,29 +3,26 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/app_config.dart';
-import '../auth/auth_service.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'shared_user.dart';
 
 class RecipeRepository {
-  final AuthService _authService;
   final http.Client _client = http.Client();
   final String _baseUrl = AppConfig.apiBaseUrl;
 
-  RecipeRepository(this._authService);
+  RecipeRepository();
 
-  Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await _authService.idToken;
+  Map<String, String> _getAuthHeaders(String? idToken) {
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
     };
   }
 
-  Future<List<Recipe>> fetchRecipes() async {
+  Future<List<Recipe>> fetchRecipes(String? idToken) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes'),
         headers: headers,
@@ -44,9 +41,9 @@ class RecipeRepository {
     }
   }
 
-  Future<RecipeDetail> fetchRecipeDetail(String id) async {
+  Future<RecipeDetail> fetchRecipeDetail(String id, String? idToken) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes/$id'),
         headers: headers,
@@ -65,9 +62,12 @@ class RecipeRepository {
     }
   }
 
-  Future<RecipeDetail> createRecipe(RecipeDetail recipe) async {
+  Future<RecipeDetail> createRecipe(
+    RecipeDetail recipe,
+    String? idToken,
+  ) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.post(
         Uri.parse('$_baseUrl/recipes'),
         headers: headers,
@@ -85,9 +85,13 @@ class RecipeRepository {
     }
   }
 
-  Future<RecipeDetail> updateRecipe(String id, RecipeDetail recipe) async {
+  Future<RecipeDetail> updateRecipe(
+    String id,
+    RecipeDetail recipe,
+    String? idToken,
+  ) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.put(
         Uri.parse('$_baseUrl/recipes/$id'),
         headers: headers,
@@ -107,9 +111,9 @@ class RecipeRepository {
     }
   }
 
-  Future<void> deleteRecipe(String id) async {
+  Future<void> deleteRecipe(String id, String? idToken) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.delete(
         Uri.parse('$_baseUrl/recipes/$id'),
         headers: headers,
@@ -127,9 +131,12 @@ class RecipeRepository {
     }
   }
 
-  Future<List<SharedUser>> fetchSharedUsers(String recipeId) async {
+  Future<List<SharedUser>> fetchSharedUsers(
+    String recipeId,
+    String? idToken,
+  ) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.get(
         Uri.parse('$_baseUrl/recipes/$recipeId/shared_users'),
         headers: headers,
@@ -150,9 +157,13 @@ class RecipeRepository {
     }
   }
 
-  Future<void> shareRecipe(String recipeId, String email) async {
+  Future<void> shareRecipe(
+    String recipeId,
+    String email,
+    String? idToken,
+  ) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.post(
         Uri.parse('$_baseUrl/recipes/$recipeId/share'),
         headers: headers,
@@ -171,9 +182,13 @@ class RecipeRepository {
     }
   }
 
-  Future<void> unshareRecipe(String recipeId, String email) async {
+  Future<void> unshareRecipe(
+    String recipeId,
+    String email,
+    String? idToken,
+  ) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.post(
         Uri.parse('$_baseUrl/recipes/$recipeId/unshare'),
         headers: headers,

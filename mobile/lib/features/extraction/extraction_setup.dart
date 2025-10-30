@@ -4,9 +4,11 @@ import 'extraction_repository.dart';
 import 'extraction_service.dart';
 
 void setupExtraction() {
-  getIt.registerSingleton(ExtractionRepository(getIt<AuthService>()));
+  getIt.registerSingleton(ExtractionRepository());
   getIt.registerLazySingleton(
-    () =>
-        ExtractionService(extractionRepository: getIt<ExtractionRepository>()),
+    () => ExtractionService(
+      extractionRepository: getIt<ExtractionRepository>(),
+      authService: getIt<AuthService>(),
+    ),
   );
 }

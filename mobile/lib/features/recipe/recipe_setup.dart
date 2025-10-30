@@ -6,9 +6,12 @@ import 'recipe_list_service.dart';
 import 'recipe_repository.dart';
 
 void setupRecipe() {
-  getIt.registerSingleton(RecipeRepository(getIt<AuthService>()));
+  getIt.registerSingleton(RecipeRepository());
   getIt.registerLazySingleton(
-    () => RecipeListService(recipeRepository: getIt<RecipeRepository>()),
+    () => RecipeListService(
+      recipeRepository: getIt<RecipeRepository>(),
+      authService: getIt<AuthService>(),
+    ),
   );
   getIt.registerLazySingleton(
     () => RecipeDetailService(

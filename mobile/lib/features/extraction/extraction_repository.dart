@@ -6,27 +6,27 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 
 import '../../core/app_config.dart';
-import '../auth/auth_service.dart';
 import 'extracted_recipe.dart';
 
 class ExtractionRepository {
-  final AuthService _authService;
   final http.Client _client = http.Client();
   final String _baseUrl = AppConfig.apiBaseUrl;
 
-  ExtractionRepository(this._authService);
+  ExtractionRepository();
 
-  Future<Map<String, String>> _getAuthHeaders() async {
-    final token = await _authService.idToken;
+  Map<String, String> _getAuthHeaders(String? idToken) {
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
     };
   }
 
-  Future<ExtractedRecipe> extractRecipeFromText(String htmlContent) async {
+  Future<ExtractedRecipe> extractRecipeFromText(
+    String htmlContent,
+    String? idToken,
+  ) async {
     try {
-      final headers = await _getAuthHeaders();
+      final headers = _getAuthHeaders(idToken);
       final response = await _client.post(
         Uri.parse('$_baseUrl/extract/text'),
         headers: headers,
@@ -46,7 +46,10 @@ class ExtractionRepository {
     }
   }
 
-  Future<ExtractedRecipe> extractRecipeFromImage(XFile imageFile) async {
+  Future<ExtractedRecipe> extractRecipeFromImage(
+    XFile imageFile,
+    String? idToken,
+  ) async {
     try {
       final request = http.MultipartRequest(
         'POST',
@@ -54,9 +57,8 @@ class ExtractionRepository {
       );
 
       // Add auth header
-      final token = await _authService.idToken;
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
+      if (idToken != null) {
+        request.headers['Authorization'] = 'Bearer $idToken';
       }
 
       // Add file with MIME type

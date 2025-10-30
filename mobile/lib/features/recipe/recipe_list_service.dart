@@ -1,15 +1,20 @@
 import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
+import '../auth/auth_service.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'recipe_repository.dart';
 
 class RecipeListService {
   final RecipeRepository _recipeRepository;
+  final AuthService _authService;
 
-  RecipeListService({required RecipeRepository recipeRepository})
-    : _recipeRepository = recipeRepository;
+  RecipeListService({
+    required RecipeRepository recipeRepository,
+    required AuthService authService,
+  }) : _recipeRepository = recipeRepository,
+       _authService = authService;
 
   final ValueNotifier<AsyncValue<List<Recipe>>> _recipes = ValueNotifier(
     const AsyncValue.loading(),
@@ -25,7 +30,8 @@ class RecipeListService {
     _isLoadRecipesRunning = true;
     _recipes.value = const AsyncValue.loading();
     _recipes.value = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.fetchRecipes();
+      final token = await _authService.idToken;
+      return _recipeRepository.fetchRecipes(token);
     });
     _isLoadRecipesRunning = false;
   }
@@ -35,7 +41,8 @@ class RecipeListService {
     _isCreateRecipeRunning = true;
 
     final result = await AsyncValue.guardAsync(() async {
-      return _recipeRepository.createRecipe(recipe);
+      final token = await _authService.idToken;
+      return _recipeRepository.createRecipe(recipe, token);
     });
 
     if (result is AsyncData) {
