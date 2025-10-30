@@ -39,6 +39,10 @@ mobile/
 │   │   └── user_role.dart            # UserRole enum with API conversion methods
 │   └── features/                       # Feature modules
 │       ├── auth/                       # "authentication" feature
+│       │   ├── auth_repository.dart    # Abstract auth repository interface with FirebaseAuthRepository implementation
+│       │   ├── auth_service.dart       # Auth business logic with ValueNotifier for state management
+│       │   ├── auth_setup.dart         # Dependency injection setup for auth module
+│       │   └── login_screen.dart       # Login UI with constructor injection
 │       ├── recipe/                     # "recipe" feature
 │       │   ├── recipe_repository.dart  # Recipe data access layer with sharing operations
 │       │   ├── recipe_list_service.dart # Recipe list business logic with ValueNotifier

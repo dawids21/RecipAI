@@ -10,8 +10,13 @@ import 'shared_user.dart';
 
 class RecipeSharingDialog extends StatefulWidget {
   final RecipeDetailService recipeDetailService;
+  final AuthService authService;
 
-  const RecipeSharingDialog({super.key, required this.recipeDetailService});
+  const RecipeSharingDialog({
+    super.key,
+    required this.recipeDetailService,
+    required this.authService,
+  });
 
   @override
   State<RecipeSharingDialog> createState() => _RecipeSharingDialogState();
@@ -22,18 +27,10 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
   final _emailController = TextEditingController();
   bool _isSharing = false;
 
-  late AuthService _authService;
-
   @override
   void initState() {
     super.initState();
     widget.recipeDetailService.loadSharedUsers();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _authService = InheritedAuthService.of(context);
   }
 
   @override
@@ -159,7 +156,7 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
 
   Widget _buildSharedUsersList(List<SharedUser> sharedUsers) {
     final theme = Theme.of(context);
-    final currentUserEmail = _authService.email;
+    final currentUserEmail = widget.authService.email;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

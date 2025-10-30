@@ -70,12 +70,14 @@ class ErrorPage extends StatelessWidget {
 }
 
 /// Main router configuration for the application
-GoRouter createAppRouter(AuthService authService) {
+GoRouter createAppRouter() {
+  final authService = getIt<AuthService>();
+
   return GoRouter(
     initialLocation: AppRoute.recipes.path,
-    refreshListenable: authService,
+    refreshListenable: authService.isAuthenticated,
     redirect: (context, state) {
-      final isAuthenticated = authService.isAuthenticated;
+      final isAuthenticated = authService.isAuthenticated.value;
       final isLoginRoute = state.matchedLocation == AppRoute.login.path;
 
       // If not authenticated and not on login route, redirect to login
@@ -96,13 +98,16 @@ GoRouter createAppRouter(AuthService authService) {
       GoRoute(
         path: AppRoute.login.path,
         name: AppRoute.login.name,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) =>
+            LoginScreen(authService: getIt<AuthService>()),
       ),
       GoRoute(
         path: AppRoute.recipes.path,
         name: AppRoute.recipes.name,
-        builder: (context, state) =>
-            RecipeListScreen(recipeListService: getIt<RecipeListService>()),
+        builder: (context, state) => RecipeListScreen(
+          recipeListService: getIt<RecipeListService>(),
+          authService: getIt<AuthService>(),
+        ),
         routes: [
           GoRoute(
             path: AppRoute.urlExtraction.path,

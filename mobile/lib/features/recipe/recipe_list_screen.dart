@@ -15,26 +15,23 @@ import 'recipe_list_service.dart';
 
 class RecipeListScreen extends StatefulWidget {
   final RecipeListService recipeListService;
+  final AuthService authService;
 
-  const RecipeListScreen({super.key, required this.recipeListService});
+  const RecipeListScreen({
+    super.key,
+    required this.recipeListService,
+    required this.authService,
+  });
 
   @override
   State<RecipeListScreen> createState() => _RecipeListScreenState();
 }
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
-  late AuthService _authService;
-
   @override
   void initState() {
     super.initState();
     widget.recipeListService.loadRecipes();
-  }
-
-  @override
-  void didChangeDependencies() {
-    _authService = InheritedAuthService.of(context);
-    super.didChangeDependencies();
   }
 
   @override
@@ -97,7 +94,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
 
     if (shouldLogout == true) {
       try {
-        await _authService.signOut();
+        await widget.authService.signOut();
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(
