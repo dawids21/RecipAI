@@ -15,6 +15,11 @@
 - role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
 - PRIMARY KEY (email, recipe_id)
 
+### shopping_lists
+
+- id: UUID PRIMARY KEY
+- name: VARCHAR(255) NOT NULL
+
 ## Relationships
 
 - **user_recipes** ↔ **recipes**: Many-to-Many relationship through `user_recipes` join table with role-based access

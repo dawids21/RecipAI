@@ -3,6 +3,7 @@
 ## Resources
 
 - Recipes: Maps the `recipes` DB table with user-scoped access.
+- Shopping Lists: Maps the `shopping_lists` DB table for managing shopping lists.
 
 ## Endpoints
 
@@ -318,3 +319,42 @@
     - Errors: 403 Forbidden (if user has no access to the recipe or EDITOR tries to unshare from OWNER), 404 Not Found,
       400 Bad request
     - Note: Removes EDITOR access from target user.
+
+### Shopping Lists
+
+- GET /shopping-lists
+    - Description: Get all shopping lists
+    - Authenticated: true
+    - Example response:
+      ```json
+      [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Groceries"
+        },
+        {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "Hardware"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 401 Unauthorized
+- POST /shopping-lists
+    - Description: Create a new shopping list
+    - Authenticated: true
+    - Request body:
+      ```json
+      {
+        "name": "My Shopping List"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "My Shopping List"
+      }
+      ```
+    - Success: 201 Created
+    - Errors: 400 Bad Request (validation error), 401 Unauthorized
