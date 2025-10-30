@@ -22,10 +22,7 @@ class EditRecipeScreen extends StatefulWidget {
 
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
   Future<void> _updateRecipe(RecipeDetail recipe) async {
-    await widget.recipeDetailService.updateRecipe(
-      widget.recipeId,
-      recipe,
-    );
+    await widget.recipeDetailService.updateRecipe(widget.recipeId, recipe);
   }
 
   @override
@@ -36,38 +33,35 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
       valueListenable: widget.recipeDetailService.recipeDetail,
       builder: (context, asyncValueRecipeDetail, child) {
         return asyncValueRecipeDetail.when(
-          loading: () =>
-              Scaffold(
-                appBar: AppBar(
-                  title: const Text('Edit Recipe'),
-                  backgroundColor: theme.colorScheme.inversePrimary,
-                ),
-                body: const LoadingWidget(),
-              ),
-          error: (error) =>
-              Scaffold(
-                appBar: AppBar(
-                  title: const Text('Edit Recipe'),
-                  backgroundColor: theme.colorScheme.inversePrimary,
-                ),
-                body: ApiErrorWidget(
-                  errorMessage: 'Error: $error',
+          loading: () => Scaffold(
+            appBar: AppBar(
+              title: const Text('Edit Recipe'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+            ),
+            body: const LoadingWidget(),
+          ),
+          error: (error) => Scaffold(
+            appBar: AppBar(
+              title: const Text('Edit Recipe'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+            ),
+            body: ApiErrorWidget(
+              errorMessage: 'Error: $error',
               onRetry: () {
                 widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
               },
-                ),
-              ),
-          data: (recipeDetail) =>
-              Scaffold(
-                appBar: AppBar(
-                  title: const Text('Edit Recipe'),
-                  backgroundColor: theme.colorScheme.inversePrimary,
-                ),
-                body: RecipeFormWidget(
+            ),
+          ),
+          data: (recipeDetail) => Scaffold(
+            appBar: AppBar(
+              title: const Text('Edit Recipe'),
+              backgroundColor: theme.colorScheme.inversePrimary,
+            ),
+            body: RecipeFormWidget(
               initialRecipe: recipeDetail,
               onSave: _updateRecipe,
-                ),
-              ),
+            ),
+          ),
         );
       },
     );
