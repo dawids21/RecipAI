@@ -104,10 +104,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
-      builder: (context) => RecipeSharingDialog(recipeId: widget.recipeId),
+      builder: (context) =>
+          RecipeSharingDialog(recipeDetailService: widget.recipeDetailService),
     );
-    // Potentially refresh recipe data if sharing affects it
-    widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
   }
 
   @override

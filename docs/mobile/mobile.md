@@ -40,9 +40,9 @@ mobile/
 │   └── features/                       # Feature modules
 │       ├── auth/                       # "authentication" feature
 │       ├── recipe/                     # "recipe" feature
-│       │   ├── recipe_repository.dart  # Recipe data access layer
+│       │   ├── recipe_repository.dart  # Recipe data access layer with sharing operations
 │       │   ├── recipe_list_service.dart # Recipe list business logic with ValueNotifier
-│       │   ├── recipe_detail_service.dart # Recipe detail business logic with ValueNotifier
+│       │   ├── recipe_detail_service.dart # Recipe detail and sharing business logic with ValueNotifier
 │       │   ├── recipe_setup.dart       # Dependency injection setup for recipe module
 │       │   └── ...                     # Screens, models, and widgets
 │       └── extraction/                 # "extraction" feature

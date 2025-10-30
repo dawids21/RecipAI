@@ -6,6 +6,7 @@ import '../../core/app_config.dart';
 import '../auth/auth_service.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
+import 'shared_user.dart';
 
 class RecipeRepository {
   final AuthService _authService;
@@ -123,6 +124,71 @@ class RecipeRepository {
       }
     } catch (e) {
       throw Exception('Network error while deleting recipe: $e');
+    }
+  }
+
+  Future<List<SharedUser>> fetchSharedUsers(String recipeId) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await _client.get(
+        Uri.parse('$_baseUrl/recipes/$recipeId/shared_users'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList = json.decode(response.body);
+        return jsonList
+            .map((json) => SharedUser.fromJson(json as Map<String, dynamic>))
+            .toList();
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to load shared users: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while fetching shared users: $e');
+    }
+  }
+
+  Future<void> shareRecipe(String recipeId, String email) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/recipes/$recipeId/share'),
+        headers: headers,
+        body: json.encode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        return;
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to share recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while sharing recipe: $e');
+    }
+  }
+
+  Future<void> unshareRecipe(String recipeId, String email) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/recipes/$recipeId/unshare'),
+        headers: headers,
+        body: json.encode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        return;
+      } else if (response.statusCode == 404) {
+        throw Exception('Recipe not found');
+      } else {
+        throw Exception('Failed to unshare recipe: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error while unsharing recipe: $e');
     }
   }
 }

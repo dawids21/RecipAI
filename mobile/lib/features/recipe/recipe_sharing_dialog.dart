@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../core/api_service.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import '../auth/auth_service.dart';
+import 'recipe_detail_service.dart';
 import 'shared_user.dart';
 
 class RecipeSharingDialog extends StatefulWidget {
-  final String recipeId;
+  final RecipeDetailService recipeDetailService;
 
-  const RecipeSharingDialog({super.key, required this.recipeId});
+  const RecipeSharingDialog({super.key, required this.recipeDetailService});
 
   @override
   State<RecipeSharingDialog> createState() => _RecipeSharingDialogState();
@@ -22,20 +22,18 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
   final _emailController = TextEditingController();
   bool _isSharing = false;
 
-  late ApiService _apiService;
   late AuthService _authService;
-  late Future<List<SharedUser>> futureSharedUsers;
-  bool _initSharedUsers = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.recipeDetailService.loadSharedUsers();
+  }
 
   @override
   void didChangeDependencies() {
-    _apiService = InheritedApiService.of(context);
-    _authService = InheritedAuthService.of(context);
-    if (!_initSharedUsers) {
-      futureSharedUsers = _apiService.fetchSharedUsers(widget.recipeId);
-      _initSharedUsers = true;
-    }
     super.didChangeDependencies();
+    _authService = InheritedAuthService.of(context);
   }
 
   @override
@@ -50,11 +48,8 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
     setState(() => _isSharing = true);
 
     try {
-      await _apiService.shareRecipe(widget.recipeId, _emailController.text);
+      await widget.recipeDetailService.shareRecipe(_emailController.text);
       _emailController.clear();
-      setState(() {
-        futureSharedUsers = _apiService.fetchSharedUsers(widget.recipeId);
-      });
       if (mounted) {
         _showSnackBar('Recipe shared successfully!');
       }
@@ -94,10 +89,7 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
     if (shouldUnshare != true) return;
 
     try {
-      await _apiService.unshareRecipe(widget.recipeId, email);
-      setState(() {
-        futureSharedUsers = _apiService.fetchSharedUsers(widget.recipeId);
-      });
+      await widget.recipeDetailService.unshareRecipe(email);
       if (mounted) {
         _showSnackBar('Recipe unshared successfully!');
       }
@@ -205,30 +197,22 @@ class _RecipeSharingDialogState extends State<RecipeSharingDialog> {
             const SizedBox(height: AppSpacing.medium),
             Flexible(
               child: SingleChildScrollView(
-                child: FutureBuilder<List<SharedUser>>(
-                  future: futureSharedUsers,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(
+                child: ValueListenableBuilder(
+                  valueListenable: widget.recipeDetailService.sharedUsers,
+                  builder: (context, asyncValueSharedUsers, child) {
+                    return asyncValueSharedUsers.when(
+                      loading: () => const SizedBox(
                         height: 100,
                         child: Center(child: LoadingWidget()),
-                      );
-                    } else if (snapshot.hasError) {
-                      return ApiErrorWidget(
-                        errorMessage: 'Error: ${snapshot.error}',
+                      ),
+                      data: (sharedUsers) => _buildSharedUsersList(sharedUsers),
+                      error: (error) => ApiErrorWidget(
+                        errorMessage: 'Error: $error',
                         onRetry: () {
-                          setState(() {
-                            futureSharedUsers = _apiService.fetchSharedUsers(
-                              widget.recipeId,
-                            );
-                          });
+                          widget.recipeDetailService.loadSharedUsers();
                         },
-                      );
-                    } else if (snapshot.hasData) {
-                      return _buildSharedUsersList(snapshot.data!);
-                    } else {
-                      return const Text('No data available');
-                    }
+                      ),
+                    );
                   },
                 ),
               ),

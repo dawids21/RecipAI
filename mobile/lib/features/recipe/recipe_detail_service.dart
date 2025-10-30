@@ -4,6 +4,7 @@ import '../../core/async_value.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_service.dart';
 import 'recipe_repository.dart';
+import 'shared_user.dart';
 
 class RecipeDetailService {
   final RecipeRepository _recipeRepository;
@@ -21,9 +22,17 @@ class RecipeDetailService {
 
   ValueListenable<AsyncValue<RecipeDetail>> get recipeDetail => _recipeDetail;
 
+  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
+      ValueNotifier(const AsyncValue.loading());
+
+  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+
   bool _isLoadRecipeDetailRunning = false;
   bool _isDeleteRecipeRunning = false;
   bool _isUpdateRecipeRunning = false;
+  bool _isLoadSharedUsersRunning = false;
+  bool _isShareRecipeRunning = false;
+  bool _isUnshareRecipeRunning = false;
 
   Future<void> loadRecipeDetail(String id) async {
     if (_isLoadRecipeDetailRunning) return;
@@ -68,6 +77,81 @@ class RecipeDetailService {
     }
 
     _isDeleteRecipeRunning = false;
+
+    if (result is AsyncError) {
+      throw result.error;
+    }
+  }
+
+  Future<void> loadSharedUsers() async {
+    if (_isLoadSharedUsersRunning) return;
+    _isLoadSharedUsersRunning = true;
+
+    _sharedUsers.value = const AsyncValue.loading();
+
+    // Get recipeId from current state
+    final recipeDetail = _recipeDetail.value;
+    if (recipeDetail is! AsyncData<RecipeDetail>) {
+      _isLoadSharedUsersRunning = false;
+      return;
+    }
+    final recipeId = recipeDetail.value.id;
+
+    _sharedUsers.value = await AsyncValue.guardAsync(() async {
+      return _recipeRepository.fetchSharedUsers(recipeId);
+    });
+
+    _isLoadSharedUsersRunning = false;
+  }
+
+  Future<void> shareRecipe(String email) async {
+    if (_isShareRecipeRunning) return;
+    _isShareRecipeRunning = true;
+
+    // Get recipeId from current state
+    final recipeDetail = _recipeDetail.value;
+    if (recipeDetail is! AsyncData<RecipeDetail>) {
+      _isShareRecipeRunning = false;
+      throw Exception('Recipe not loaded');
+    }
+    final recipeId = recipeDetail.value.id;
+
+    final result = await AsyncValue.guardAsync(() async {
+      return _recipeRepository.shareRecipe(recipeId, email);
+    });
+
+    if (result is AsyncData) {
+      await loadSharedUsers(); // Refresh list on success
+    }
+
+    _isShareRecipeRunning = false;
+
+    if (result is AsyncError) {
+      throw result.error;
+    }
+  }
+
+  Future<void> unshareRecipe(String email) async {
+    if (_isUnshareRecipeRunning) return;
+    _isUnshareRecipeRunning = true;
+
+    // Get recipeId from current state
+    final recipeDetail = _recipeDetail.value;
+    if (recipeDetail is! AsyncData<RecipeDetail>) {
+      _isUnshareRecipeRunning = false;
+      throw Exception('Recipe not loaded');
+    }
+    final recipeId = recipeDetail.value.id;
+
+    final result = await AsyncValue.guardAsync(() async {
+      return _recipeRepository.unshareRecipe(recipeId, email);
+    });
+
+    if (result is AsyncData) {
+      await loadSharedUsers(); // Refresh list on success
+    }
+
+    _isUnshareRecipeRunning = false;
 
     if (result is AsyncError) {
       throw result.error;
