@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/shopping-lists")
@@ -21,6 +22,12 @@ class ShoppingListController {
     List<ShoppingListListDto> getAllShoppingLists() {
         log.debug("Getting all shopping lists");
         return shoppingListService.findAll();
+    }
+
+    @GetMapping("/{id}")
+    ShoppingListDto getShoppingListById(@PathVariable UUID id) {
+        log.debug("Getting shopping list by id: {}", id);
+        return shoppingListService.findById(id);
     }
 
     @PostMapping

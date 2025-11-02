@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice
-class GlobalExceptionHandler {
+class RecipesExceptionHandler {
 
     @ExceptionHandler(RecipeNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRecipeNotFound(RecipeNotFoundException ex) {

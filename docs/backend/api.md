@@ -340,6 +340,41 @@
       ```
     - Success: 200 OK
     - Errors: 401 Unauthorized
+- GET /shopping-lists/{id}
+    - Description: Get a shopping list by ID with all its items
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Shopping list ID
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Weekly Groceries",
+        "items": [
+          {
+            "id": "770e8400-e29b-41d4-a716-446655440010",
+            "name": "Milk",
+            "quantity": 2.0,
+            "unit": "liters",
+            "checked": false,
+            "position": 1,
+            "version": 0
+          },
+          {
+            "id": "880e8400-e29b-41d4-a716-446655440011",
+            "name": "Bread",
+            "quantity": null,
+            "unit": null,
+            "checked": true,
+            "position": 2,
+            "version": 0
+          }
+        ]
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 404 Not Found (ProblemDetail format with title "Shopping List Not Found"), 401 Unauthorized
+    - Note: Items are ordered by `position` in ascending order. Quantity and unit can be null.
 - POST /shopping-lists
     - Description: Create a new shopping list
     - Authenticated: true

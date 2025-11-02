@@ -34,17 +34,21 @@ backend/
 │   │   ├── RecipeNotFoundException.java # Recipe not found exception
 │   │   ├── RecipeAccessDeniedException.java # Access denied exception
 │   │   ├── ErrorResponse.java           # Error response DTO
-│   │   └── GlobalExceptionHandler.java  # Exception handling
+│   │   └── RecipesExceptionHandler.java # Exception handling
 │   ├── extraction/                      # "extraction" module
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
+│   │   ├── ShoppingListItem.java        # Shopping list item entity
 │   │   ├── ShoppingListRepository.java  # Shopping list data access
+│   │   ├── ShoppingListItemRepository.java # Shopping list item data access
 │   │   ├── ShoppingListService.java     # Shopping list business logic
 │   │   ├── ShoppingListController.java  # Shopping list REST endpoints
-│   │   ├── ShoppingListListDto.java     # Shopping list response DTO
+│   │   ├── ShoppingListListDto.java     # Shopping list list response DTO
+│   │   ├── ShoppingListDto.java         # Shopping list detail response DTO with items
+│   │   ├── ShoppingListItemDto.java     # Shopping list item DTO
 │   │   ├── CreateShoppingListRequest.java # Create shopping list request DTO
 │   │   ├── ShoppingListNotFoundException.java # Shopping list not found exception
-│   │   └── ShoppingListExceptionHandler.java # Exception handling with ProblemDetail
+│   │   └── ShoppingListsExceptionHandler.java # Exception handling with ProblemDetail
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/
