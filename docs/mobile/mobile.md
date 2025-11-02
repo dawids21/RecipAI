@@ -89,6 +89,13 @@ mobile/
 
 ### Using Feature Flags
 
+Feature flags are defined in `core/feature_flags.dart` using `bool.fromEnvironment` to allow runtime configuration.
+
+Available feature flags:
+
+- `shoppingListsEnabled` - Controls visibility of shopping lists feature in the app (environment variable:
+  `SHOPPING_LISTS`, default: `false`)
+
 ```dart
 import 'package:mobile/core/feature_flags.dart';
 
@@ -102,10 +109,10 @@ class _MyScreenState extends State<MyScreen> {
           Text('Main content'),
 
           // Conditionally rendered based on feature flag
-          if (FeatureFlags.newFeatureEnabled)
+          if (FeatureFlags.shoppingListsEnabled)
             Container(
               padding: EdgeInsets.all(16),
-              child: Text('This is a new experimental feature!'),
+              child: Text('Shopping lists feature is enabled!'),
             ),
         ],
       ),

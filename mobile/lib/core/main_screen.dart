@@ -7,6 +7,7 @@ import '../features/recipe/recipe_list_service.dart';
 import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
+import 'feature_flags.dart';
 import 'get_it.dart';
 
 class MainScreen extends StatefulWidget {
@@ -32,7 +33,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     widget.recipeListService.loadRecipes();
-    widget.shoppingListListService.loadShoppingLists();
+    if (FeatureFlags.shoppingListsEnabled) {
+      widget.shoppingListListService.loadShoppingLists();
+    }
   }
 
   @override
@@ -107,31 +110,36 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: [
           RecipeList(recipeListService: widget.recipeListService),
-          ShoppingListList(
-            shoppingListListService: widget.shoppingListListService,
-          ),
+          if (FeatureFlags.shoppingListsEnabled)
+            ShoppingListList(
+              shoppingListListService: widget.shoppingListListService,
+            ),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
           ? RecipeListFab(recipeListService: widget.recipeListService)
-          : ShoppingListListFab(
+          : FeatureFlags.shoppingListsEnabled
+          ? ShoppingListListFab(
               shoppingListListService: widget.shoppingListListService,
-            ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onBottomNavTap,
-        selectedItemColor: theme.colorScheme.primary,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Recipes',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Shopping',
-          ),
-        ],
-      ),
+            )
+          : null,
+      bottomNavigationBar: FeatureFlags.shoppingListsEnabled
+          ? BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: _onBottomNavTap,
+              selectedItemColor: theme.colorScheme.primary,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.restaurant_menu),
+                  label: 'Recipes',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.shopping_cart),
+                  label: 'Shopping',
+                ),
+              ],
+            )
+          : null,
     );
   }
 }

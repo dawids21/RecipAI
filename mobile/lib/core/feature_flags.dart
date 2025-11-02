@@ -1,6 +1,6 @@
 class FeatureFlags {
-  static const bool newFeatureEnabled = bool.fromEnvironment(
-    'NEW_FEATURE',
+  static const bool shoppingListsEnabled = bool.fromEnvironment(
+    'SHOPPING_LISTS',
     defaultValue: false,
   );
 }
