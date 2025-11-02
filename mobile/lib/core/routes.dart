@@ -15,16 +15,20 @@ import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_screen.dart';
 import '../features/recipe/recipe_list_service.dart';
+import '../features/shopping_list/shopping_list_list_screen.dart';
+import '../features/shopping_list/shopping_list_list_service.dart';
+import 'bottom_navigation_scaffold.dart';
 
 /// Route definitions with enum for type-safe navigation
 enum AppRoute {
   login('/login'),
   recipes('/'),
-  urlExtraction('url-extraction'), // '/url-extraction'
-  imageExtraction('image-extraction'), // '/image-extraction'
-  recipeCreate('create'), // '/create'
-  recipeDetail(':id'), // '/:id'
-  recipeEdit('edit'); // '/:id/edit');
+  shoppingLists('/shopping-lists'),
+  urlExtraction('recipes/url-extraction'), // '/recipes/url-extraction'
+  imageExtraction('recipes/image-extraction'), // '/recipes/image-extraction'
+  recipeCreate('recipes/create'), // '/recipes/create'
+  recipeDetail('recipes/:id'), // '/recipes/:id'
+  recipeEdit('edit'); // '/recipes/:id/edit');
 
   const AppRoute(this.path);
 
@@ -70,6 +74,12 @@ class ErrorPage extends StatelessWidget {
   }
 }
 
+/// Navigator keys for each shell branch
+final GlobalKey<NavigatorState> _recipesNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'recipes');
+final GlobalKey<NavigatorState> _shoppingNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shopping');
+
 /// Main router configuration for the application
 GoRouter createAppRouter() {
   final authService = getIt<AuthService>();
@@ -102,60 +112,87 @@ GoRouter createAppRouter() {
         builder: (context, state) =>
             LoginScreen(authService: getIt<AuthService>()),
       ),
-      GoRoute(
-        path: AppRoute.recipes.path,
-        name: AppRoute.recipes.name,
-        builder: (context, state) => RecipeListScreen(
-          recipeListService: getIt<RecipeListService>(),
-          authService: getIt<AuthService>(),
-        ),
-        routes: [
-          GoRoute(
-            path: AppRoute.urlExtraction.path,
-            name: AppRoute.urlExtraction.name,
-            builder: (context, state) => UrlExtractionScreen(
-              extractionService: getIt<ExtractionService>(),
-            ),
-          ),
-          GoRoute(
-            path: AppRoute.imageExtraction.path,
-            name: AppRoute.imageExtraction.name,
-            builder: (context, state) => ImageExtractionScreen(
-              extractionService: getIt<ExtractionService>(),
-            ),
-          ),
-          GoRoute(
-            path: AppRoute.recipeCreate.path,
-            name: AppRoute.recipeCreate.name,
-            builder: (context, state) {
-              final recipeDetail = state.extra as RecipeDetail?;
-              return CreateRecipeScreen(
-                prefilledRecipe: recipeDetail,
-                recipeListService: getIt<RecipeListService>(),
-              );
-            },
-          ),
-          GoRoute(
-            path: AppRoute.recipeDetail.path,
-            name: AppRoute.recipeDetail.name,
-            builder: (context, state) {
-              final id = state.pathParameters['id']!;
-              return RecipeDetailScreen(
-                recipeId: id,
-                recipeDetailService: getIt<RecipeDetailService>(),
-              );
-            },
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return BottomNavigationScaffold(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 1: Recipes
+          StatefulShellBranch(
+            navigatorKey: _recipesNavigatorKey,
             routes: [
               GoRoute(
-                path: AppRoute.recipeEdit.path,
-                name: AppRoute.recipeEdit.name,
-                builder: (context, state) {
-                  final id = state.pathParameters['id']!;
-                  return EditRecipeScreen(
-                    recipeId: id,
-                    recipeDetailService: getIt<RecipeDetailService>(),
-                  );
-                },
+                path: AppRoute.recipes.path,
+                name: AppRoute.recipes.name,
+                builder: (context, state) => RecipeListScreen(
+                  recipeListService: getIt<RecipeListService>(),
+                  authService: getIt<AuthService>(),
+                ),
+                routes: [
+                  GoRoute(
+                    path: AppRoute.urlExtraction.path,
+                    name: AppRoute.urlExtraction.name,
+                    builder: (context, state) => UrlExtractionScreen(
+                      extractionService: getIt<ExtractionService>(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: AppRoute.imageExtraction.path,
+                    name: AppRoute.imageExtraction.name,
+                    builder: (context, state) => ImageExtractionScreen(
+                      extractionService: getIt<ExtractionService>(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: AppRoute.recipeCreate.path,
+                    name: AppRoute.recipeCreate.name,
+                    builder: (context, state) {
+                      final recipeDetail = state.extra as RecipeDetail?;
+                      return CreateRecipeScreen(
+                        prefilledRecipe: recipeDetail,
+                        recipeListService: getIt<RecipeListService>(),
+                      );
+                    },
+                  ),
+                  GoRoute(
+                    path: AppRoute.recipeDetail.path,
+                    name: AppRoute.recipeDetail.name,
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return RecipeDetailScreen(
+                        recipeId: id,
+                        recipeDetailService: getIt<RecipeDetailService>(),
+                      );
+                    },
+                    routes: [
+                      GoRoute(
+                        path: AppRoute.recipeEdit.path,
+                        name: AppRoute.recipeEdit.name,
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return EditRecipeScreen(
+                            recipeId: id,
+                            recipeDetailService: getIt<RecipeDetailService>(),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Branch 2: Shopping Lists
+          StatefulShellBranch(
+            navigatorKey: _shoppingNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoute.shoppingLists.path,
+                name: AppRoute.shoppingLists.name,
+                builder: (context, state) => ShoppingListListScreen(
+                  shoppingListListService: getIt<ShoppingListListService>(),
+                  authService: getIt<AuthService>(),
+                ),
               ),
             ],
           ),

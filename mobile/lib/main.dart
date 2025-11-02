@@ -12,6 +12,7 @@ import 'features/auth/auth_service.dart';
 import 'features/auth/auth_setup.dart';
 import 'features/extraction/extraction_setup.dart';
 import 'features/recipe/recipe_setup.dart';
+import 'features/shopping_list/shopping_list_setup.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,7 @@ void main() async {
   // DI
   setupAuth();
   setupRecipe();
+  setupShoppingList();
   setupExtraction();
 
   final appRouter = createAppRouter();

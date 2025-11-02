@@ -31,6 +31,15 @@
 - Firebase Auth Service (`firebase_auth_service.dart`) - Firebase implementation with Google Sign-In integration,
   user state management, and automatic token refresh
 
+### Shopping List feature
+
+- Shopping List Screen (`shopping_list_list_screen.dart`) - Screen displaying all shopping lists owned by or shared
+  with the user, with FAB for creating new lists, pull-to-refresh, and logout functionality
+- Shopping List Model (`shopping_list.dart`) - Simple data model with id and name fields
+- Shopping List Repository (`shopping_list_repository.dart`) - Data access layer for shopping list API endpoints
+- Shopping List List Service (`shopping_list_list_service.dart`) - State management for shopping lists using
+  ValueNotifier and AsyncValue pattern
+
 ### Extraction feature
 
 - URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with
@@ -51,18 +60,37 @@
 
 ### Route Structure
 
-- `/` - Main recipe list screen with logout functionality (requires authentication)
+The app uses a StatefulShellRoute with bottom navigation to provide two main sections:
+
+#### Authentication Routes
 - `/login` - Authentication screen with Google Sign-In (only accessible when unauthenticated)
-- `/extraction` - Recipe extraction screen with WebView (nested under recipes, requires authentication)
-- `/create` - Recipe creation screen (supports both manual creation and creation from extracted data, requires
-  authentication)
-- `/:id` - Recipe detail screen with dynamic ID parameter (requires authentication)
-- `/:id/edit` - Recipe edit screen with dynamic ID parameter (requires authentication)
+
+#### Main App Shell (Bottom Navigation)
+
+- `/` - Recipe list screen (Tab 1: "Recipes")
+    - `/recipes/url-extraction` - URL extraction screen (nested under recipes)
+    - `/recipes/image-extraction` - Image extraction screen (nested under recipes)
+    - `/recipes/create` - Recipe creation screen (nested under recipes)
+    - `/recipes/:id` - Recipe detail screen with dynamic ID parameter
+    - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter
+- `/shopping-lists` - Shopping lists screen (Tab 2: "Shopping")
+
+### Bottom Navigation Bar
+
+The app features a persistent bottom navigation bar with two tabs:
+
+- **Recipes** (restaurant_menu icon) - Access recipe management features
+- **Shopping** (shopping_cart icon) - Access shopping list features
+
+Each tab maintains its own navigation stack, preserving scroll position and navigation state when switching between
+tabs.
 
 ### Authentication & Route Protection
 
-All routes except `/login` require user authentication. The app automatically redirects unauthenticated users to the
-login screen and authenticated users away from the login screen to the recipes list.
+All routes except `/login` require user authentication. The app automatically redirects:
+
+- Unauthenticated users → `/login`
+- Authenticated users on `/login` → `/` (recipe list screen)
 
 ### Flow
 
@@ -73,21 +101,28 @@ login screen and authenticated users away from the login screen to the recipes l
     - **If authenticated** → Recipe List Screen (`/`)
 2. **Login Screen → Google Sign-In Tap** → Authentication process → Recipe List Screen (`/`)
 3. **Recipe List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
+4. **Shopping List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
 
 #### Recipe Management Flow
 
-1. **Recipe Tap** → Recipe Detail Screen (`/:id` with recipe ID parameter)
-2. **Speed Dial → Extract Tap** → Extraction Screen (`/extraction`)
-3. **Speed Dial → Create Tap** → Create Recipe Screen (`/create`)
-4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/:id/edit` with recipe ID parameter)
-5. **Share Button Tap** (on Recipe Detail Screen) -> List of shared users -> Share recipe -> Back to Recipe Detail
-   Screen
-5. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
-6. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
-   Recipe
-   List Screen
-7. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
-8. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+1. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
+2. **Speed Dial → Extract Tap** → Extraction Dialog → URL/Image Extraction Screen (`/recipes/url-extraction` or
+   `/recipes/image-extraction`)
+3. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
+4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
+5. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
+6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
+7. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
+   Recipe List Screen
+8. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
+9. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+
+#### Shopping List Management Flow
+
+1. **Bottom Navigation → Shopping Tab** → Shopping List Screen (`/shopping-lists`)
+2. **FAB Tap** (on Shopping List Screen) → Create dialog with name input → Shopping list created → List refreshed
+3. **Pull to Refresh** → Shopping lists reloaded from API
+4. **Shopping List Tap** → TODO: Navigate to detail screen (not yet implemented)
 
 ## Theme System
 
