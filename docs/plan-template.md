@@ -1,4 +1,4 @@
-# SIP Template
+# Plan Template
 
 ## Goal
 - [What needs to be built - be specific about the end state and desired outcomes]
@@ -28,7 +28,8 @@
 ## Implementation Plan
 
 ### Tasks
-[List of tasks to be completed to fulfill the SIP in the order they should be completed]
+
+[List of tasks to be completed to fulfill the plan in the order they should be completed]
 
 ```
 Task 1: [Brief description]
