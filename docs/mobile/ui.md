@@ -2,10 +2,16 @@
 
 ## Screens
 
+### Core feature
+
+- Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing both recipe and
+  shopping list tabs. Displays RecipeList or ShoppingListList widgets based on selected tab, with corresponding FABs (
+  RecipeListFab or ShoppingListListFab)
+
 ### Recipe feature
 
-- List Screen (`recipe_list_screen.dart`) - Main screen displaying all available recipes with Speed Dial FAB for
-  importing and creating recipes
+- Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with pull-to-refresh
+- Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
   with Edit FAB, Share button, and role-based conditional Delete button for recipe management
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
@@ -33,8 +39,10 @@
 
 ### Shopping List feature
 
-- Shopping List Screen (`shopping_list_list_screen.dart`) - Screen displaying all shopping lists owned by or shared
-  with the user, with FAB for creating new lists, pull-to-refresh, and logout functionality
+- Shopping List List Widget (`shopping_list_list.dart`) - Reusable body widget displaying all shopping lists with
+  pull-to-refresh
+- Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
+  with dialog
 - Shopping List Model (`shopping_list.dart`) - Simple data model with id and name fields
 - Shopping List Repository (`shopping_list_repository.dart`) - Data access layer for shopping list API endpoints
 - Shopping List List Service (`shopping_list_list_service.dart`) - State management for shopping lists using
@@ -60,37 +68,38 @@
 
 ### Route Structure
 
-The app uses a StatefulShellRoute with bottom navigation to provide two main sections:
+The app uses a simple GoRoute structure with embedded bottom navigation in MainScreen:
 
 #### Authentication Routes
 - `/login` - Authentication screen with Google Sign-In (only accessible when unauthenticated)
 
-#### Main App Shell (Bottom Navigation)
+#### Main App Routes
 
-- `/` - Recipe list screen (Tab 1: "Recipes")
-    - `/recipes/url-extraction` - URL extraction screen (nested under recipes)
-    - `/recipes/image-extraction` - Image extraction screen (nested under recipes)
-    - `/recipes/create` - Recipe creation screen (nested under recipes)
-    - `/recipes/:id` - Recipe detail screen with dynamic ID parameter
-    - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter
-- `/shopping-lists` - Shopping lists screen (Tab 2: "Shopping")
+- `/` - Main screen with embedded bottom navigation (AppRoute.main)
+    - Tab 1: Recipes (default) - Displays RecipeList widget
+    - Tab 2: Shopping - Displays ShoppingListList widget
+    - `/recipes/url-extraction` - URL extraction screen (nested route)
+    - `/recipes/image-extraction` - Image extraction screen (nested route)
+    - `/recipes/create` - Recipe creation screen (nested route)
+    - `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
+    - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
 
 ### Bottom Navigation Bar
 
-The app features a persistent bottom navigation bar with two tabs:
+The app features an embedded bottom navigation bar (part of MainScreen) with two tabs:
 
 - **Recipes** (restaurant_menu icon) - Access recipe management features
 - **Shopping** (shopping_cart icon) - Access shopping list features
 
-Each tab maintains its own navigation stack, preserving scroll position and navigation state when switching between
-tabs.
+Tab state is ephemeral and not preserved across app restarts. Navigation to sub-routes (like recipe detail) pushes a new
+screen on top of MainScreen.
 
 ### Authentication & Route Protection
 
 All routes except `/login` require user authentication. The app automatically redirects:
 
 - Unauthenticated users → `/login`
-- Authenticated users on `/login` → `/` (recipe list screen)
+- Authenticated users on `/login` → `/` (main screen)
 
 ### Flow
 
@@ -98,30 +107,29 @@ All routes except `/login` require user authentication. The app automatically re
 
 1. **App Launch** → Authentication check:
     - **If unauthenticated** → Login Screen (`/login`)
-    - **If authenticated** → Recipe List Screen (`/`)
-2. **Login Screen → Google Sign-In Tap** → Authentication process → Recipe List Screen (`/`)
-3. **Recipe List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
-4. **Shopping List Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
+   - **If authenticated** → Main Screen (`/`) showing Recipes tab
+2. **Login Screen → Google Sign-In Tap** → Authentication process → Main Screen (`/`)
+3. **Main Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
 
 #### Recipe Management Flow
 
-1. **Recipe Tap** → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
-2. **Speed Dial → Extract Tap** → Extraction Dialog → URL/Image Extraction Screen (`/recipes/url-extraction` or
-   `/recipes/image-extraction`)
-3. **Speed Dial → Create Tap** → Create Recipe Screen (`/recipes/create`)
+1. **Recipe Tap** (on Recipes tab) → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
+2. **Speed Dial FAB → Extract Tap** (on Recipes tab) → Extraction Dialog → URL/Image Extraction Screen (
+   `/recipes/url-extraction` or `/recipes/image-extraction`)
+3. **Speed Dial FAB → Create Tap** (on Recipes tab) → Create Recipe Screen (`/recipes/create`)
 4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
 5. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
-6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Recipe List Screen
+6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
 7. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
-   Recipe List Screen
-8. **Successful Manual Creation** → Back to Recipe List Screen (with recipe added)
+   Main Screen
+8. **Successful Manual Creation** → Back to Main Screen (with recipe added)
 9. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 #### Shopping List Management Flow
 
-1. **Bottom Navigation → Shopping Tab** → Shopping List Screen (`/shopping-lists`)
-2. **FAB Tap** (on Shopping List Screen) → Create dialog with name input → Shopping list created → List refreshed
-3. **Pull to Refresh** → Shopping lists reloaded from API
+1. **Bottom Navigation → Shopping Tab** → MainScreen switches to Shopping tab view
+2. **FAB Tap** (on Shopping tab) → Create dialog with name input → Shopping list created → List refreshed
+3. **Pull to Refresh** (on Shopping tab) → Shopping lists reloaded from API
 4. **Shopping List Tap** → TODO: Navigate to detail screen (not yet implemented)
 
 ## Theme System

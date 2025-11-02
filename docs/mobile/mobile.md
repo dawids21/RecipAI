@@ -32,8 +32,8 @@ mobile/
 ├── lib/
 │   ├── main.dart                       # RecipAI app entry point with DI setup
 │   ├── core/                           # Core services and configuration
-│   │   ├── routes.dart                 # Go router configuration with AppRoute enum and StatefulShellRoute
-│   │   ├── bottom_navigation_scaffold.dart # Bottom navigation bar scaffold
+│   │   ├── routes.dart                 # Go router configuration with AppRoute enum and simple GoRoute structure
+│   │   ├── main_screen.dart            # Main screen with embedded bottom navigation
 │   │   ├── app_config.dart            # Application configuration
 │   │   ├── async_value.dart           # AsyncValue sealed class (Loading/Data/Error)
 │   │   ├── get_it.dart                # Global GetIt instance
@@ -56,13 +56,16 @@ mobile/
 │       │   ├── recipe_list_service.dart # Recipe list business logic with ValueNotifier
 │       │   ├── recipe_detail_service.dart # Recipe detail and sharing business logic with ValueNotifier
 │       │   ├── recipe_setup.dart       # Dependency injection setup for recipe module
-│       │   └── ...                     # Screens, models, and widgets
+│       │   ├── recipe_list.dart        # Reusable recipe list body widget
+│       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
+│       │   └── ...                     # Other screens, models, and widgets
 │       ├── shopping_list/              # "shopping list" feature
 │       │   ├── shopping_list.dart      # Shopping list data model
 │       │   ├── shopping_list_repository.dart # Shopping list data access layer
 │       │   ├── shopping_list_list_service.dart # Shopping list business logic with ValueNotifier
 │       │   ├── shopping_list_setup.dart # Dependency injection setup for shopping list module
-│       │   └── shopping_list_list_screen.dart # Shopping list list UI
+│       │   ├── shopping_list_list.dart # Reusable shopping list body widget
+│       │   └── shopping_list_list_fab.dart # Reusable shopping list FAB widget
 │       └── extraction/                 # "extraction" feature
 │           ├── extraction_repository.dart # API communication layer for extraction endpoints
 │           ├── extraction_service.dart # Business logic layer for extraction operations

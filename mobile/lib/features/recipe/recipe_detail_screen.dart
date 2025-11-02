@@ -84,7 +84,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
       if (mounted) {
         _showSnackBar('Recipe deleted successfully!');
-        context.goNamed(AppRoute.recipes.name);
+        context.goNamed(AppRoute.main.name);
       }
     } catch (e) {
       if (mounted) {

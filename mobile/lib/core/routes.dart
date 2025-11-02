@@ -13,17 +13,14 @@ import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_detail_service.dart';
-import '../features/recipe/recipe_list_screen.dart';
 import '../features/recipe/recipe_list_service.dart';
-import '../features/shopping_list/shopping_list_list_screen.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
-import 'bottom_navigation_scaffold.dart';
+import 'main_screen.dart';
 
 /// Route definitions with enum for type-safe navigation
 enum AppRoute {
   login('/login'),
-  recipes('/'),
-  shoppingLists('/shopping-lists'),
+  main('/'),
   urlExtraction('recipes/url-extraction'), // '/recipes/url-extraction'
   imageExtraction('recipes/image-extraction'), // '/recipes/image-extraction'
   recipeCreate('recipes/create'), // '/recipes/create'
@@ -64,7 +61,7 @@ class ErrorPage extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.large),
             ElevatedButton(
-              onPressed: () => context.goNamed(AppRoute.recipes.name),
+              onPressed: () => context.goNamed(AppRoute.main.name),
               child: const Text('Go to home'),
             ),
           ],
@@ -74,18 +71,12 @@ class ErrorPage extends StatelessWidget {
   }
 }
 
-/// Navigator keys for each shell branch
-final GlobalKey<NavigatorState> _recipesNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'recipes');
-final GlobalKey<NavigatorState> _shoppingNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'shopping');
-
 /// Main router configuration for the application
 GoRouter createAppRouter() {
   final authService = getIt<AuthService>();
 
   return GoRouter(
-    initialLocation: AppRoute.recipes.path,
+    initialLocation: AppRoute.main.path,
     refreshListenable: authService.isAuthenticated,
     redirect: (context, state) {
       final isAuthenticated = authService.isAuthenticated.value;
@@ -96,9 +87,9 @@ GoRouter createAppRouter() {
         return AppRoute.login.path;
       }
 
-      // If authenticated and on login route, redirect to recipes
+      // If authenticated and on login route, redirect to main
       if (isAuthenticated && isLoginRoute) {
-        return AppRoute.recipes.path;
+        return AppRoute.main.path;
       }
 
       // No redirect needed
@@ -112,87 +103,61 @@ GoRouter createAppRouter() {
         builder: (context, state) =>
             LoginScreen(authService: getIt<AuthService>()),
       ),
-      StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return BottomNavigationScaffold(navigationShell: navigationShell);
-        },
-        branches: [
-          // Branch 1: Recipes
-          StatefulShellBranch(
-            navigatorKey: _recipesNavigatorKey,
-            routes: [
-              GoRoute(
-                path: AppRoute.recipes.path,
-                name: AppRoute.recipes.name,
-                builder: (context, state) => RecipeListScreen(
-                  recipeListService: getIt<RecipeListService>(),
-                  authService: getIt<AuthService>(),
-                ),
-                routes: [
-                  GoRoute(
-                    path: AppRoute.urlExtraction.path,
-                    name: AppRoute.urlExtraction.name,
-                    builder: (context, state) => UrlExtractionScreen(
-                      extractionService: getIt<ExtractionService>(),
-                    ),
-                  ),
-                  GoRoute(
-                    path: AppRoute.imageExtraction.path,
-                    name: AppRoute.imageExtraction.name,
-                    builder: (context, state) => ImageExtractionScreen(
-                      extractionService: getIt<ExtractionService>(),
-                    ),
-                  ),
-                  GoRoute(
-                    path: AppRoute.recipeCreate.path,
-                    name: AppRoute.recipeCreate.name,
-                    builder: (context, state) {
-                      final recipeDetail = state.extra as RecipeDetail?;
-                      return CreateRecipeScreen(
-                        prefilledRecipe: recipeDetail,
-                        recipeListService: getIt<RecipeListService>(),
-                      );
-                    },
-                  ),
-                  GoRoute(
-                    path: AppRoute.recipeDetail.path,
-                    name: AppRoute.recipeDetail.name,
-                    builder: (context, state) {
-                      final id = state.pathParameters['id']!;
-                      return RecipeDetailScreen(
-                        recipeId: id,
-                        recipeDetailService: getIt<RecipeDetailService>(),
-                      );
-                    },
-                    routes: [
-                      GoRoute(
-                        path: AppRoute.recipeEdit.path,
-                        name: AppRoute.recipeEdit.name,
-                        builder: (context, state) {
-                          final id = state.pathParameters['id']!;
-                          return EditRecipeScreen(
-                            recipeId: id,
-                            recipeDetailService: getIt<RecipeDetailService>(),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+      GoRoute(
+        path: AppRoute.main.path,
+        name: AppRoute.main.name,
+        builder: (context, state) => MainScreen(
+          recipeListService: getIt<RecipeListService>(),
+          shoppingListListService: getIt<ShoppingListListService>(),
+          authService: getIt<AuthService>(),
+        ),
+        routes: [
+          GoRoute(
+            path: AppRoute.urlExtraction.path,
+            name: AppRoute.urlExtraction.name,
+            builder: (context, state) => UrlExtractionScreen(
+              extractionService: getIt<ExtractionService>(),
+            ),
           ),
-          // Branch 2: Shopping Lists
-          StatefulShellBranch(
-            navigatorKey: _shoppingNavigatorKey,
+          GoRoute(
+            path: AppRoute.imageExtraction.path,
+            name: AppRoute.imageExtraction.name,
+            builder: (context, state) => ImageExtractionScreen(
+              extractionService: getIt<ExtractionService>(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoute.recipeCreate.path,
+            name: AppRoute.recipeCreate.name,
+            builder: (context, state) {
+              final recipeDetail = state.extra as RecipeDetail?;
+              return CreateRecipeScreen(
+                prefilledRecipe: recipeDetail,
+                recipeListService: getIt<RecipeListService>(),
+              );
+            },
+          ),
+          GoRoute(
+            path: AppRoute.recipeDetail.path,
+            name: AppRoute.recipeDetail.name,
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return RecipeDetailScreen(
+                recipeId: id,
+                recipeDetailService: getIt<RecipeDetailService>(),
+              );
+            },
             routes: [
               GoRoute(
-                path: AppRoute.shoppingLists.path,
-                name: AppRoute.shoppingLists.name,
-                builder: (context, state) => ShoppingListListScreen(
-                  shoppingListListService: getIt<ShoppingListListService>(),
-                  authService: getIt<AuthService>(),
-                ),
+                path: AppRoute.recipeEdit.path,
+                name: AppRoute.recipeEdit.name,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return EditRecipeScreen(
+                    recipeId: id,
+                    recipeDetailService: getIt<RecipeDetailService>(),
+                  );
+                },
               ),
             ],
           ),
