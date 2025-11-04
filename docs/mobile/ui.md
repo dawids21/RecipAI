@@ -40,13 +40,11 @@
 ### Shopping List feature
 
 - Shopping List List Widget (`shopping_list_list.dart`) - Reusable body widget displaying all shopping lists with
-  pull-to-refresh
+  pull-to-refresh and navigation to detail screen on tap
 - Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
   with dialog
-- Shopping List Model (`shopping_list.dart`) - Simple data model with id and name fields
-- Shopping List Repository (`shopping_list_repository.dart`) - Data access layer for shopping list API endpoints
-- Shopping List List Service (`shopping_list_list_service.dart`) - State management for shopping lists using
-  ValueNotifier and AsyncValue pattern
+- Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with all items,
+  showing item name, quantity, unit, and checked status.
 
 ### Extraction feature
 
@@ -83,6 +81,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
     - `/recipes/create` - Recipe creation screen (nested route)
     - `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
     - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
+  - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 
 ### Bottom Navigation Bar
 
@@ -130,7 +129,8 @@ All routes except `/login` require user authentication. The app automatically re
 1. **Bottom Navigation → Shopping Tab** → MainScreen switches to Shopping tab view
 2. **FAB Tap** (on Shopping tab) → Create dialog with name input → Shopping list created → List refreshed
 3. **Pull to Refresh** (on Shopping tab) → Shopping lists reloaded from API
-4. **Shopping List Tap** → TODO: Navigate to detail screen (not yet implemented)
+4. **Shopping List Tap** → Shopping List Detail Screen (`/shopping-lists/:id` with shopping list ID parameter)
+5. **Back Button** (on Shopping List Detail Screen) → Back to Shopping tab on Main Screen
 
 ## Theme System
 

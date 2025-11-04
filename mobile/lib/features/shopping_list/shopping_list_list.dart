@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'shopping_list.dart';
@@ -19,7 +21,12 @@ class _ShoppingListListState extends State<ShoppingListList> {
     await widget.shoppingListListService.loadShoppingLists();
   }
 
-  void _onShoppingListTap(BuildContext context, ShoppingList shoppingList) {}
+  void _onShoppingListTap(BuildContext context, ShoppingList shoppingList) {
+    context.goNamed(
+      AppRoute.shoppingListDetail.name,
+      pathParameters: {'id': shoppingList.id},
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

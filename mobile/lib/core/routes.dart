@@ -14,6 +14,8 @@ import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_service.dart';
+import '../features/shopping_list/shopping_list_detail_screen.dart';
+import '../features/shopping_list/shopping_list_detail_service.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import 'main_screen.dart';
 
@@ -25,7 +27,8 @@ enum AppRoute {
   imageExtraction('recipes/image-extraction'), // '/recipes/image-extraction'
   recipeCreate('recipes/create'), // '/recipes/create'
   recipeDetail('recipes/:id'), // '/recipes/:id'
-  recipeEdit('edit'); // '/recipes/:id/edit');
+  recipeEdit('edit'), // '/recipes/:id/edit');
+  shoppingListDetail('shopping-lists/:id'); // '/shopping-lists/:id'
 
   const AppRoute(this.path);
 
@@ -160,6 +163,17 @@ GoRouter createAppRouter() {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: AppRoute.shoppingListDetail.path,
+            name: AppRoute.shoppingListDetail.name,
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return ShoppingListDetailScreen(
+                shoppingListId: id,
+                shoppingListDetailService: getIt<ShoppingListDetailService>(),
+              );
+            },
           ),
         ],
       ),

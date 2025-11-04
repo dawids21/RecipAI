@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/app_config.dart';
 import 'shopping_list.dart';
+import 'shopping_list_detail.dart';
 
 class ShoppingListRepository {
   final http.Client _client = http.Client();
@@ -60,6 +61,32 @@ class ShoppingListRepository {
       }
     } catch (e) {
       throw Exception('Network error while creating shopping list: $e');
+    }
+  }
+
+  Future<ShoppingListDetail> fetchShoppingListDetail(
+    String id,
+    String? idToken,
+  ) async {
+    try {
+      final headers = _getAuthHeaders(idToken);
+      final response = await _client.get(
+        Uri.parse('$_baseUrl/shopping-lists/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonMap = json.decode(response.body);
+        return ShoppingListDetail.fromJson(jsonMap);
+      } else if (response.statusCode == 404) {
+        throw Exception('Shopping list not found');
+      } else {
+        throw Exception(
+          'Failed to load shopping list detail: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error while fetching shopping list detail: $e');
     }
   }
 }
