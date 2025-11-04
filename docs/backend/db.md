@@ -20,6 +20,13 @@
 - id: UUID PRIMARY KEY
 - name: VARCHAR(255) NOT NULL
 
+### shopping_list_permission
+
+- email: VARCHAR(255) NOT NULL
+- shopping_list_id: UUID NOT NULL (FK -> shopping_lists.id)
+- role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
+- PRIMARY KEY (email, shopping_list_id)
+
 ### shopping_list_items
 
 - id: UUID PRIMARY KEY
@@ -39,6 +46,11 @@
     - **OWNER**: Can view, edit, delete, share, and unshare recipes
     - **EDITOR**: Can view, edit, share, unshare recipes (granted through sharing)
 - **user_recipes.recipe_id** → **recipes.id**: Foreign key relationship
+- **shopping_list_permission** ↔ **shopping_lists**: Many-to-Many relationship through `shopping_list_permission` join
+  table with role-based access
+    - One user (identified by email) can have many shopping lists with different roles
+    - One shopping list can belong to multiple users with different access levels
+- **shopping_list_permission.shopping_list_id** → **shopping_lists.id**: Foreign key relationship
 - **shopping_list_items** → **shopping_lists**: One-to-Many relationship
     - One shopping list can have many items
     - Items are ordered by the `position` field
@@ -49,3 +61,4 @@
 
 - Primary key indexes on all tables
 - Composite primary key index on `user_recipes(email, recipe_id)`
+- Composite primary key index on `shopping_list_permission(email, shopping_list_id)`

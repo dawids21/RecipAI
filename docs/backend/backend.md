@@ -38,11 +38,15 @@ backend/
 │   ├── extraction/                      # "extraction" module
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
+│   │   ├── ShoppingListPermission.java  # Shopping list permission association entity
+│   │   ├── ShoppingListPermissionId.java # Composite key for shopping list permissions
+│   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
 │   │   ├── ShoppingListItem.java        # Shopping list item entity
 │   │   ├── ShoppingListRepository.java  # Shopping list data access
+│   │   ├── ShoppingListPermissionRepository.java # Permission queries repository
 │   │   ├── ShoppingListItemRepository.java # Shopping list item data access
-│   │   ├── ShoppingListService.java     # Shopping list business logic
-│   │   ├── ShoppingListController.java  # Shopping list REST endpoints
+│   │   ├── ShoppingListService.java     # Shopping list business logic with permission checks
+│   │   ├── ShoppingListController.java  # Shopping list REST endpoints with JWT authentication
 │   │   ├── ShoppingListListDto.java     # Shopping list list response DTO
 │   │   ├── ShoppingListDto.java         # Shopping list detail response DTO with items
 │   │   ├── ShoppingListItemDto.java     # Shopping list item DTO

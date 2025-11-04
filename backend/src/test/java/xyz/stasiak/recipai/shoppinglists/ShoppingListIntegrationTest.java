@@ -24,9 +24,13 @@ class ShoppingListIntegrationTest {
     private int port;
 
     private RestClient restClient() {
+        return restClient(TestSecurityConfiguration.AUTH_TOKEN);
+    }
+
+    private RestClient restClient(String authToken) {
         return RestClient.builder()
                 .baseUrl("http://localhost:" + port)
-                .defaultHeader("Authorization", "Bearer " + TestSecurityConfiguration.AUTH_TOKEN)
+                .defaultHeader("Authorization", "Bearer " + authToken)
                 .build();
     }
 
@@ -117,6 +121,7 @@ class ShoppingListIntegrationTest {
         assertThat(response.name()).isEqualTo("Weekly Groceries");
         assertThat(response.items()).isNotNull();
         assertThat(response.items()).isEmpty();
+        assertThat(response.role()).isEqualTo(UserRole.OWNER);
     }
 
     @Test
@@ -135,6 +140,89 @@ class ShoppingListIntegrationTest {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
             String responseBody = ex.getResponseBodyAsString();
             assertThat(responseBody).contains("Shopping list not found with id: " + nonExistentId);
+            assertThat(responseBody).contains("Shopping List Not Found");
+        }
+    }
+
+    @Test
+    void shouldIsolateShoppingListsBetweenUsers() {
+        // User 1 creates a shopping list
+        CreateShoppingListRequest request1 = new CreateShoppingListRequest("User 1 List");
+        ShoppingListListDto user1List = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/shopping-lists")
+                .body(request1)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(user1List).isNotNull();
+        assertThat(user1List.name()).isEqualTo("User 1 List");
+
+        // User 2 creates a shopping list
+        CreateShoppingListRequest request2 = new CreateShoppingListRequest("User 2 List");
+        ShoppingListListDto user2List = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .post()
+                .uri("/shopping-lists")
+                .body(request2)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(user2List).isNotNull();
+        assertThat(user2List.name()).isEqualTo("User 2 List");
+
+        // User 1 should only see their own list
+        List<ShoppingListListDto> user1Lists = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .get()
+                .uri("/shopping-lists")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+
+        assertThat(user1Lists)
+                .extracting(ShoppingListListDto::id)
+                .contains(user1List.id())
+                .doesNotContain(user2List.id());
+
+        // User 2 should only see their own list
+        List<ShoppingListListDto> user2Lists = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                .get()
+                .uri("/shopping-lists")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+
+        assertThat(user2Lists)
+                .extracting(ShoppingListListDto::id)
+                .contains(user2List.id())
+                .doesNotContain(user1List.id());
+    }
+
+    @Test
+    void shouldPreventCrossUserAccess() {
+        // User 1 creates a shopping list
+        CreateShoppingListRequest request = new CreateShoppingListRequest("User 1 Private List");
+        ShoppingListListDto user1List = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/shopping-lists")
+                .body(request)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(user1List).isNotNull();
+
+        // User 2 tries to access User 1's list - should get 404 (masked as not found)
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .get()
+                    .uri("/shopping-lists/" + user1List.id())
+                    .retrieve()
+                    .body(ShoppingListDto.class);
+            //noinspection ResultOfMethodCallIgnored
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            String responseBody = ex.getResponseBodyAsString();
+            assertThat(responseBody).contains("Shopping list not found with id: " + user1List.id());
             assertThat(responseBody).contains("Shopping List Not Found");
         }
     }

@@ -369,15 +369,17 @@
             "position": 2,
             "version": 0
           }
-        ]
+        ],
+        "role": "OWNER"
       }
       ```
     - Success: 200 OK
-    - Errors: 404 Not Found (ProblemDetail format with title "Shopping List Not Found"), 401 Unauthorized
+  - Errors: 404 Not Found (returned when list doesn't exist OR user lacks permission), 401 Unauthorized
     - Note: Items are ordered by `position` in ascending order. Quantity and unit can be null.
 - POST /shopping-lists
-    - Description: Create a new shopping list
+    - Description: Create a new shopping list and grant OWNER permission to the authenticated user
     - Authenticated: true
+    - Note: Automatically creates a permission record with OWNER role for the authenticated user
     - Request body:
       ```json
       {
