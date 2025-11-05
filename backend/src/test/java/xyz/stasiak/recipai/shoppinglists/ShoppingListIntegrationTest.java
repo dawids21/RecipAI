@@ -16,6 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 @Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ShoppingListIntegrationTest {
@@ -134,7 +135,6 @@ class ShoppingListIntegrationTest {
                     .uri("/shopping-lists/" + nonExistentId)
                     .retrieve()
                     .body(ShoppingListDto.class);
-            //noinspection ResultOfMethodCallIgnored
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -210,20 +210,155 @@ class ShoppingListIntegrationTest {
 
         assertThat(user1List).isNotNull();
 
-        // User 2 tries to access User 1's list - should get 404 (masked as not found)
+        // User 2 tries to access User 1's list - should get 403 Forbidden
         try {
             restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
                     .get()
                     .uri("/shopping-lists/" + user1List.id())
                     .retrieve()
                     .body(ShoppingListDto.class);
-            //noinspection ResultOfMethodCallIgnored
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
             String responseBody = ex.getResponseBodyAsString();
-            assertThat(responseBody).contains("Shopping list not found with id: " + user1List.id());
-            assertThat(responseBody).contains("Shopping List Not Found");
+            assertThat(responseBody).contains("Access denied to shopping list with id: " + user1List.id());
+            assertThat(responseBody).contains("Shopping List Access Denied");
+        }
+    }
+
+    @Test
+    void shouldUpdateAndDeleteShoppingList() {
+        // CREATE shopping list
+        CreateShoppingListRequest createRequest = new CreateShoppingListRequest("My Shopping List");
+        ShoppingListListDto created = restClient()
+                .post()
+                .uri("/shopping-lists")
+                .body(createRequest)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(created).isNotNull();
+        assertThat(created.id()).isNotNull();
+        assertThat(created.name()).isEqualTo("My Shopping List");
+
+        // UPDATE shopping list
+        UpdateShoppingListRequest updateRequest = new UpdateShoppingListRequest("Updated List Name");
+        ShoppingListListDto updated = restClient()
+                .put()
+                .uri("/shopping-lists/" + created.id())
+                .body(updateRequest)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(updated).isNotNull();
+        assertThat(updated.id()).isEqualTo(created.id());
+        assertThat(updated.name()).isEqualTo("Updated List Name");
+
+        // DELETE shopping list
+        restClient()
+                .delete()
+                .uri("/shopping-lists/" + created.id())
+                .retrieve()
+                .toBodilessEntity();
+
+        // VERIFY deleted (should return 404)
+        try {
+            restClient()
+                    .get()
+                    .uri("/shopping-lists/" + created.id())
+                    .retrieve()
+                    .body(ShoppingListDto.class);
+            fail("Should have thrown 404");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn404WhenUpdatingNonExistentShoppingList() {
+        UUID nonExistentId = UUID.randomUUID();
+
+        UpdateShoppingListRequest updateRequest = new UpdateShoppingListRequest("Updated Name");
+        try {
+            restClient()
+                    .put()
+                    .uri("/shopping-lists/" + nonExistentId)
+                    .body(updateRequest)
+                    .retrieve()
+                    .body(ShoppingListListDto.class);
+            fail("Should have thrown 404");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn404WhenDeletingNonExistentShoppingList() {
+        UUID nonExistentId = UUID.randomUUID();
+
+        try {
+            restClient()
+                    .delete()
+                    .uri("/shopping-lists/" + nonExistentId)
+                    .retrieve()
+                    .toBodilessEntity();
+            fail("Should have thrown 404");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenUnauthorizedUserTriesToUpdate() {
+        // User 1 creates list (becomes OWNER)
+        CreateShoppingListRequest createRequest = new CreateShoppingListRequest("User 1 List");
+        ShoppingListListDto list = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/shopping-lists")
+                .body(createRequest)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(list).isNotNull();
+
+        // User 2 tries to update (no permission) - should get 403
+        UpdateShoppingListRequest updateRequest = new UpdateShoppingListRequest("Hacked Name");
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .put()
+                    .uri("/shopping-lists/" + list.id())
+                    .body(updateRequest)
+                    .retrieve()
+                    .body(ShoppingListListDto.class);
+            fail("Should have thrown 403");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenUnauthorizedUserTriesToDelete() {
+        // User 1 creates list (becomes OWNER)
+        CreateShoppingListRequest createRequest = new CreateShoppingListRequest("User 1 List");
+        ShoppingListListDto list = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+                .post()
+                .uri("/shopping-lists")
+                .body(createRequest)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(list).isNotNull();
+
+        // User 2 tries to delete (no permission) - should get 403
+        try {
+            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+                    .delete()
+                    .uri("/shopping-lists/" + list.id())
+                    .retrieve()
+                    .toBodilessEntity();
+            fail("Should have thrown 403");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
     }
 }

@@ -17,4 +17,14 @@ class ShoppingListsExceptionHandler {
         problemDetail.setTitle("Shopping List Not Found");
         return problemDetail;
     }
+
+    @ExceptionHandler(ShoppingListAccessDeniedException.class)
+    public ProblemDetail handleShoppingListAccessDenied(ShoppingListAccessDeniedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN,
+                ex.getMessage()
+        );
+        problemDetail.setTitle("Shopping List Access Denied");
+        return problemDetail;
+    }
 }

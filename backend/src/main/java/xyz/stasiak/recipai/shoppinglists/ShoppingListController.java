@@ -41,4 +41,23 @@ class ShoppingListController {
         ShoppingListListDto dto = shoppingListService.create(request, userEmail);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
+
+    @DeleteMapping("/{id}")
+    ResponseEntity<Void> deleteShoppingList(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Deleting shopping list with id: {} for user: {}", id, userEmail);
+        shoppingListService.deleteById(id, userEmail);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    ResponseEntity<ShoppingListListDto> updateShoppingList(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateShoppingListRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Updating shopping list with id: {} for user: {}", id, userEmail);
+        ShoppingListListDto updatedList = shoppingListService.updateById(id, request, userEmail);
+        return ResponseEntity.ok(updatedList);
+    }
 }

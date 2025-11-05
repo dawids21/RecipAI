@@ -374,8 +374,9 @@
       }
       ```
     - Success: 200 OK
-  - Errors: 404 Not Found (returned when list doesn't exist OR user lacks permission), 401 Unauthorized
-    - Note: Items are ordered by `position` in ascending order. Quantity and unit can be null.
+  - Errors: 403 Forbidden (user lacks permission), 404 Not Found, 401 Unauthorized
+  - Note: Items are ordered by `position` in ascending order. Quantity and unit can be null. Returns explicit 403 when
+    user has no access to the shopping list.
 - POST /shopping-lists
     - Description: Create a new shopping list and grant OWNER permission to the authenticated user
     - Authenticated: true
@@ -395,3 +396,36 @@
       ```
     - Success: 201 Created
     - Errors: 400 Bad Request (validation error), 401 Unauthorized
+- PUT /shopping-lists/{id}
+    - Description: Update the name of an existing shopping list
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Shopping list ID
+    - Roles: OWNER and EDITOR can update
+    - Request body:
+      ```json
+      {
+        "name": "Updated Shopping List Name"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Updated Shopping List Name"
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 400 Bad Request (validation error), 401 Unauthorized, 403 Forbidden (user lacks permission), 404 Not Found
+    - Note: Both OWNER and EDITOR roles can update the shopping list name
+- DELETE /shopping-lists/{id}
+    - Description: Delete a shopping list and all associated items and permissions
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Shopping list ID
+    - Roles: Only OWNER can delete
+    - Example response: No content
+    - Success: 204 No Content
+    - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
+    - Note: Deletes the shopping list, all items (via database CASCADE), and all permissions. Only OWNER role can
+      delete.
