@@ -1,14 +1,17 @@
+import '../../shared/user_role.dart';
 import 'shopping_list_item.dart';
 
 class ShoppingListDetail {
   final String id;
   final String name;
   final List<ShoppingListItem> items;
+  final UserRole role;
 
   const ShoppingListDetail({
     required this.id,
     required this.name,
     required this.items,
+    required this.role,
   });
 
   factory ShoppingListDetail.fromJson(Map<String, dynamic> json) {
@@ -24,6 +27,7 @@ class ShoppingListDetail {
       id: json['id'] as String,
       name: json['name'] as String,
       items: items,
+      role: UserRole.fromApiString(json['role'] as String),
     );
   }
 
@@ -32,6 +36,7 @@ class ShoppingListDetail {
       'id': id,
       'name': name,
       'items': items.map((item) => item.toJson()).toList(),
+      'role': role.toApiString(),
     };
   }
 }

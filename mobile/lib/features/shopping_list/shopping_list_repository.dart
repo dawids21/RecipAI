@@ -89,4 +89,58 @@ class ShoppingListRepository {
       throw Exception('Network error while fetching shopping list detail: $e');
     }
   }
+
+  Future<ShoppingList> updateShoppingList(
+    String id,
+    String name,
+    String? idToken,
+  ) async {
+    try {
+      final headers = _getAuthHeaders(idToken);
+      final response = await _client.put(
+        Uri.parse('$_baseUrl/shopping-lists/$id'),
+        headers: headers,
+        body: json.encode({'name': name}),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonMap = json.decode(response.body);
+        return ShoppingList.fromJson(jsonMap);
+      } else if (response.statusCode == 403) {
+        throw Exception('You do not have permission to rename this list');
+      } else if (response.statusCode == 404) {
+        throw Exception('Shopping list not found');
+      } else {
+        throw Exception(
+          'Failed to update shopping list: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<void> deleteShoppingList(String id, String? idToken) async {
+    try {
+      final headers = _getAuthHeaders(idToken);
+      final response = await _client.delete(
+        Uri.parse('$_baseUrl/shopping-lists/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 204) {
+        return;
+      } else if (response.statusCode == 403) {
+        throw Exception('You do not have permission to delete this list');
+      } else if (response.statusCode == 404) {
+        throw Exception('Shopping list not found');
+      } else {
+        throw Exception(
+          'Failed to delete shopping list: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
 }

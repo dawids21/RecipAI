@@ -44,7 +44,10 @@
 - Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
   with dialog
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with all items,
-  showing item name, quantity, unit, and checked status.
+  showing item name, quantity, unit, and checked status. Features PopupMenuButton with role-based actions: "Rename List"
+  available to all users, "Delete List" only visible to OWNER role users
+- Shopping List Rename Dialog (`shopping_list_rename_dialog.dart`) - Stateful dialog widget for renaming shopping lists
+  with TextField input, proper TextEditingController lifecycle management, and validation to prevent empty names
 
 ### Extraction feature
 

@@ -18,6 +18,7 @@ void setupShoppingList({ShoppingListRepository? shoppingListRepository}) {
     () => ShoppingListDetailService(
       shoppingListRepository: getIt<ShoppingListRepository>(),
       authService: getIt<AuthService>(),
+      shoppingListListService: getIt<ShoppingListListService>(),
     ),
   );
 }
