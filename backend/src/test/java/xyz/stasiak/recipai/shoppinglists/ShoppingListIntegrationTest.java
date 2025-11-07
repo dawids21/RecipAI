@@ -37,9 +37,11 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldCreateAndListShoppingLists() {
+        RestClient client = restClient();
+
         // Create first shopping list
         CreateShoppingListRequest request1 = new CreateShoppingListRequest("Groceries");
-        ShoppingListListDto response1 = restClient()
+        ShoppingListListDto response1 = client
                 .post()
                 .uri("/shopping-lists")
                 .body(request1)
@@ -49,10 +51,11 @@ class ShoppingListIntegrationTest {
         assertThat(response1).isNotNull();
         assertThat(response1.id()).isNotNull();
         assertThat(response1.name()).isEqualTo("Groceries");
+        assertThat(response1.version()).isNotNull();
 
         // Create second shopping list
         CreateShoppingListRequest request2 = new CreateShoppingListRequest("Hardware");
-        ShoppingListListDto response2 = restClient()
+        ShoppingListListDto response2 = client
                 .post()
                 .uri("/shopping-lists")
                 .body(request2)
@@ -62,9 +65,10 @@ class ShoppingListIntegrationTest {
         assertThat(response2).isNotNull();
         assertThat(response2.id()).isNotNull();
         assertThat(response2.name()).isEqualTo("Hardware");
+        assertThat(response2.version()).isNotNull();
 
         // List all shopping lists
-        List<ShoppingListListDto> listResponse = restClient()
+        List<ShoppingListListDto> listResponse = client
                 .get()
                 .uri("/shopping-lists")
                 .retrieve()
@@ -80,10 +84,11 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldValidateCreateShoppingListRequest() {
+        RestClient client = restClient();
         CreateShoppingListRequest request = new CreateShoppingListRequest("");
 
         try {
-            restClient()
+            client
                     .post()
                     .uri("/shopping-lists")
                     .body(request)
@@ -98,9 +103,11 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldGetShoppingListById() {
+        RestClient client = restClient();
+
         // Create a shopping list
         CreateShoppingListRequest request = new CreateShoppingListRequest("Weekly Groceries");
-        ShoppingListListDto createdList = restClient()
+        ShoppingListListDto createdList = client
                 .post()
                 .uri("/shopping-lists")
                 .body(request)
@@ -111,7 +118,7 @@ class ShoppingListIntegrationTest {
         assertThat(createdList.id()).isNotNull();
 
         // Get the shopping list by ID
-        ShoppingListDto response = restClient()
+        ShoppingListDto response = client
                 .get()
                 .uri("/shopping-lists/" + createdList.id())
                 .retrieve()
@@ -120,6 +127,7 @@ class ShoppingListIntegrationTest {
         assertThat(response).isNotNull();
         assertThat(response.id()).isEqualTo(createdList.id());
         assertThat(response.name()).isEqualTo("Weekly Groceries");
+        assertThat(response.version()).isNotNull();
         assertThat(response.items()).isNotNull();
         assertThat(response.items()).isEmpty();
         assertThat(response.role()).isEqualTo(UserRole.OWNER);
@@ -127,10 +135,11 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn404WhenShoppingListNotFound() {
+        RestClient client = restClient();
         UUID nonExistentId = UUID.randomUUID();
 
         try {
-            restClient()
+            client
                     .get()
                     .uri("/shopping-lists/" + nonExistentId)
                     .retrieve()
@@ -146,9 +155,12 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldIsolateShoppingListsBetweenUsers() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a shopping list
         CreateShoppingListRequest request1 = new CreateShoppingListRequest("User 1 List");
-        ShoppingListListDto user1List = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        ShoppingListListDto user1List = user1Client
                 .post()
                 .uri("/shopping-lists")
                 .body(request1)
@@ -160,7 +172,7 @@ class ShoppingListIntegrationTest {
 
         // User 2 creates a shopping list
         CreateShoppingListRequest request2 = new CreateShoppingListRequest("User 2 List");
-        ShoppingListListDto user2List = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        ShoppingListListDto user2List = user2Client
                 .post()
                 .uri("/shopping-lists")
                 .body(request2)
@@ -171,7 +183,7 @@ class ShoppingListIntegrationTest {
         assertThat(user2List.name()).isEqualTo("User 2 List");
 
         // User 1 should only see their own list
-        List<ShoppingListListDto> user1Lists = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        List<ShoppingListListDto> user1Lists = user1Client
                 .get()
                 .uri("/shopping-lists")
                 .retrieve()
@@ -184,7 +196,7 @@ class ShoppingListIntegrationTest {
                 .doesNotContain(user2List.id());
 
         // User 2 should only see their own list
-        List<ShoppingListListDto> user2Lists = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        List<ShoppingListListDto> user2Lists = user2Client
                 .get()
                 .uri("/shopping-lists")
                 .retrieve()
@@ -199,9 +211,12 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldPreventCrossUserAccess() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a shopping list
         CreateShoppingListRequest request = new CreateShoppingListRequest("User 1 Private List");
-        ShoppingListListDto user1List = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        ShoppingListListDto user1List = user1Client
                 .post()
                 .uri("/shopping-lists")
                 .body(request)
@@ -212,7 +227,7 @@ class ShoppingListIntegrationTest {
 
         // User 2 tries to access User 1's list - should get 403 Forbidden
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .get()
                     .uri("/shopping-lists/" + user1List.id())
                     .retrieve()
@@ -228,9 +243,11 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldUpdateAndDeleteShoppingList() {
+        RestClient client = restClient();
+
         // CREATE shopping list
         CreateShoppingListRequest createRequest = new CreateShoppingListRequest("My Shopping List");
-        ShoppingListListDto created = restClient()
+        ShoppingListListDto created = client
                 .post()
                 .uri("/shopping-lists")
                 .body(createRequest)
@@ -240,12 +257,14 @@ class ShoppingListIntegrationTest {
         assertThat(created).isNotNull();
         assertThat(created.id()).isNotNull();
         assertThat(created.name()).isEqualTo("My Shopping List");
+        assertThat(created.version()).isNotNull();
 
         // UPDATE shopping list
         UpdateShoppingListRequest updateRequest = new UpdateShoppingListRequest("Updated List Name");
-        ShoppingListListDto updated = restClient()
+        ShoppingListListDto updated = client
                 .put()
                 .uri("/shopping-lists/" + created.id())
+                .header("If-Match", "\"" + created.version() + "\"")
                 .body(updateRequest)
                 .retrieve()
                 .body(ShoppingListListDto.class);
@@ -253,17 +272,19 @@ class ShoppingListIntegrationTest {
         assertThat(updated).isNotNull();
         assertThat(updated.id()).isEqualTo(created.id());
         assertThat(updated.name()).isEqualTo("Updated List Name");
+        assertThat(updated.version()).isNotNull();
 
         // DELETE shopping list
-        restClient()
+        client
                 .delete()
                 .uri("/shopping-lists/" + created.id())
+                .header("If-Match", "\"" + updated.version() + "\"")
                 .retrieve()
                 .toBodilessEntity();
 
         // VERIFY deleted (should return 404)
         try {
-            restClient()
+            client
                     .get()
                     .uri("/shopping-lists/" + created.id())
                     .retrieve()
@@ -276,13 +297,15 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn404WhenUpdatingNonExistentShoppingList() {
+        RestClient client = restClient();
         UUID nonExistentId = UUID.randomUUID();
 
         UpdateShoppingListRequest updateRequest = new UpdateShoppingListRequest("Updated Name");
         try {
-            restClient()
+            client
                     .put()
                     .uri("/shopping-lists/" + nonExistentId)
+                    .header("If-Match", "\"0\"")
                     .body(updateRequest)
                     .retrieve()
                     .body(ShoppingListListDto.class);
@@ -294,12 +317,14 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn404WhenDeletingNonExistentShoppingList() {
+        RestClient client = restClient();
         UUID nonExistentId = UUID.randomUUID();
 
         try {
-            restClient()
+            client
                     .delete()
                     .uri("/shopping-lists/" + nonExistentId)
+                    .header("If-Match", "\"0\"")
                     .retrieve()
                     .toBodilessEntity();
             fail("Should have thrown 404");
@@ -310,9 +335,12 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenUnauthorizedUserTriesToUpdate() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates list (becomes OWNER)
         CreateShoppingListRequest createRequest = new CreateShoppingListRequest("User 1 List");
-        ShoppingListListDto list = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        ShoppingListListDto list = user1Client
                 .post()
                 .uri("/shopping-lists")
                 .body(createRequest)
@@ -324,9 +352,10 @@ class ShoppingListIntegrationTest {
         // User 2 tries to update (no permission) - should get 403
         UpdateShoppingListRequest updateRequest = new UpdateShoppingListRequest("Hacked Name");
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .put()
                     .uri("/shopping-lists/" + list.id())
+                    .header("If-Match", "\"" + list.version() + "\"")
                     .body(updateRequest)
                     .retrieve()
                     .body(ShoppingListListDto.class);
@@ -338,9 +367,12 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenUnauthorizedUserTriesToDelete() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates list (becomes OWNER)
         CreateShoppingListRequest createRequest = new CreateShoppingListRequest("User 1 List");
-        ShoppingListListDto list = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        ShoppingListListDto list = user1Client
                 .post()
                 .uri("/shopping-lists")
                 .body(createRequest)
@@ -351,14 +383,63 @@ class ShoppingListIntegrationTest {
 
         // User 2 tries to delete (no permission) - should get 403
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .delete()
                     .uri("/shopping-lists/" + list.id())
+                    .header("If-Match", "\"" + list.version() + "\"")
                     .retrieve()
                     .toBodilessEntity();
             fail("Should have thrown 403");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldReturn412OnConcurrentUpdate() {
+        RestClient client = restClient();
+
+        // CREATE shopping list
+        CreateShoppingListRequest createRequest = new CreateShoppingListRequest("Concurrent Test List");
+        ShoppingListListDto created = client
+                .post()
+                .uri("/shopping-lists")
+                .body(createRequest)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(created).isNotNull();
+        Long originalVersion = created.version();
+
+        // First UPDATE (should succeed)
+        UpdateShoppingListRequest updateRequest1 = new UpdateShoppingListRequest("First Update");
+        ShoppingListListDto firstUpdate = client
+                .put()
+                .uri("/shopping-lists/" + created.id())
+                .header("If-Match", "\"" + originalVersion + "\"")
+                .body(updateRequest1)
+                .retrieve()
+                .body(ShoppingListListDto.class);
+
+        assertThat(firstUpdate).isNotNull();
+        assertThat(firstUpdate.name()).isEqualTo("First Update");
+
+        // Second UPDATE with stale version (should fail with 412)
+        UpdateShoppingListRequest updateRequest2 = new UpdateShoppingListRequest("Second Update");
+        try {
+            client
+                    .put()
+                    .uri("/shopping-lists/" + created.id())
+                    .header("If-Match", "\"" + originalVersion + "\"")  // Using stale version
+                    .body(updateRequest2)
+                    .retrieve()
+                    .body(ShoppingListListDto.class);
+            fail("Should have thrown 412 Precondition Failed");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+            String responseBody = ex.getResponseBodyAsString();
+            assertThat(responseBody).contains("has been modified");
+            assertThat(responseBody).contains("Shopping List Precondition Failed");
         }
     }
 }

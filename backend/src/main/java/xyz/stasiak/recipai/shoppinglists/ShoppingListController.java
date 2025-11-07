@@ -43,10 +43,15 @@ class ShoppingListController {
     }
 
     @DeleteMapping("/{id}")
-    ResponseEntity<Void> deleteShoppingList(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<Void> deleteShoppingList(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader("If-Match") String ifMatchHeader
+    ) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Deleting shopping list with id: {} for user: {}", id, userEmail);
-        shoppingListService.deleteById(id, userEmail);
+        Long expectedVersion = extractVersionFromETag(ifMatchHeader);
+        shoppingListService.deleteById(id, userEmail, expectedVersion);
         return ResponseEntity.noContent().build();
     }
 
@@ -54,10 +59,18 @@ class ShoppingListController {
     ResponseEntity<ShoppingListListDto> updateShoppingList(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateShoppingListRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader("If-Match") String ifMatchHeader
+    ) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Updating shopping list with id: {} for user: {}", id, userEmail);
-        ShoppingListListDto updatedList = shoppingListService.updateById(id, request, userEmail);
+        Long expectedVersion = extractVersionFromETag(ifMatchHeader);
+        ShoppingListListDto updatedList = shoppingListService.updateById(id, request, userEmail, expectedVersion);
         return ResponseEntity.ok(updatedList);
+    }
+
+    private Long extractVersionFromETag(String etag) {
+        String versionStr = etag.replaceAll("^\"|\"$", "");
+        return Long.parseLong(versionStr);
     }
 }

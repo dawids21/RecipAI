@@ -330,16 +330,19 @@
       [
         {
           "id": "550e8400-e29b-41d4-a716-446655440000",
-          "name": "Groceries"
+          "name": "Groceries",
+          "version": 0
         },
         {
           "id": "660e8400-e29b-41d4-a716-446655440001",
-          "name": "Hardware"
+          "name": "Hardware",
+          "version": 2
         }
       ]
       ```
     - Success: 200 OK
     - Errors: 401 Unauthorized
+  - Note: The `version` field is used for optimistic locking
 - GET /shopping-lists/{id}
     - Description: Get a shopping list by ID with all its items
     - Authenticated: true
@@ -350,6 +353,7 @@
       {
         "id": "550e8400-e29b-41d4-a716-446655440000",
         "name": "Weekly Groceries",
+        "version": 0,
         "items": [
           {
             "id": "770e8400-e29b-41d4-a716-446655440010",
@@ -357,8 +361,7 @@
             "quantity": 2.0,
             "unit": "liters",
             "checked": false,
-            "position": 1,
-            "version": 0
+            "position": 1
           },
           {
             "id": "880e8400-e29b-41d4-a716-446655440011",
@@ -366,8 +369,7 @@
             "quantity": null,
             "unit": null,
             "checked": true,
-            "position": 2,
-            "version": 0
+            "position": 2
           }
         ],
         "role": "OWNER"
@@ -375,8 +377,9 @@
       ```
     - Success: 200 OK
   - Errors: 403 Forbidden (user lacks permission), 404 Not Found, 401 Unauthorized
-  - Note: Items are ordered by `position` in ascending order. Quantity and unit can be null. Returns explicit 403 when
-    user has no access to the shopping list.
+  - Note: Items are ordered by `position` in ascending order. Quantity and unit can be null. The `version` field on the
+    shopping list is used for optimistic locking.
+    Returns explicit 403 when user has no access to the shopping list.
 - POST /shopping-lists
     - Description: Create a new shopping list and grant OWNER permission to the authenticated user
     - Authenticated: true
@@ -391,7 +394,8 @@
       ```json
       {
         "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "My Shopping List"
+        "name": "My Shopping List",
+        "version": 0
       }
       ```
     - Success: 201 Created
@@ -401,6 +405,8 @@
     - Authenticated: true
     - Path parameters:
         - `id` (UUID): Shopping list ID
+  - Headers:
+      - `If-Match` (required): ETag header containing the version number, e.g., `"0"` or `"3"`
     - Roles: OWNER and EDITOR can update
     - Request body:
       ```json
@@ -412,20 +418,35 @@
       ```json
       {
         "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Updated Shopping List Name"
+        "name": "Updated Shopping List Name",
+        "version": 1
       }
       ```
     - Success: 200 OK
-    - Errors: 400 Bad Request (validation error), 401 Unauthorized, 403 Forbidden (user lacks permission), 404 Not Found
-    - Note: Both OWNER and EDITOR roles can update the shopping list name
+  - Errors:
+      - 400 Bad Request (validation error)
+      - 401 Unauthorized
+      - 403 Forbidden (user lacks permission)
+      - 404 Not Found
+      - 412 Precondition Failed (version mismatch - shopping list was modified by another user)
+  - Note: Both OWNER and EDITOR roles can update the shopping list name. The `If-Match` header is required for
+    optimistic locking to prevent concurrent modifications. The version is automatically incremented on successful
+    update.
 - DELETE /shopping-lists/{id}
     - Description: Delete a shopping list and all associated items and permissions
     - Authenticated: true
     - Path parameters:
         - `id` (UUID): Shopping list ID
+  - Headers:
+      - `If-Match` (required): ETag header containing the version number, e.g., `"0"` or `"3"`
     - Roles: Only OWNER can delete
     - Example response: No content
     - Success: 204 No Content
-    - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-    - Note: Deletes the shopping list, all items (via database CASCADE), and all permissions. Only OWNER role can
-      delete.
+  - Errors:
+      - 401 Unauthorized
+      - 403 Forbidden (user is not OWNER)
+      - 404 Not Found
+      - 412 Precondition Failed (version mismatch - shopping list was modified by another user)
+  - Note: Deletes the shopping list, all items (via database CASCADE), checkboxes, and all permissions. Only OWNER role
+    can delete.
+    The `If-Match` header is required for optimistic locking to prevent concurrent modifications.

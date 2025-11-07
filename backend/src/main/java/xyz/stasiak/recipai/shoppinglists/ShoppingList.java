@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,6 +25,16 @@ class ShoppingList {
 
     @Column(nullable = false)
     private String name;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "list_id")
+    @OrderBy("position ASC")
+    @ToString.Exclude
+    private List<ShoppingListItem> items = new ArrayList<>();
 
     @Override
     public boolean equals(Object o) {

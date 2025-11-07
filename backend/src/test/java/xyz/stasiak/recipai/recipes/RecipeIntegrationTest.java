@@ -35,6 +35,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldCreateReadUpdateDeleteRecipes() {
+        RestClient client = restClient();
+
         // CREATE: Create first recipe
         RecipeData pizzaData = new RecipeData(
                 List.of(
@@ -50,7 +52,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest pizzaRequest = new CreateRecipeRequest("Pizza Margherita", pizzaData);
 
-        RecipeDto pizzaResponse = restClient()
+        RecipeDto pizzaResponse = client
                 .post()
                 .uri("/recipes")
                 .body(pizzaRequest)
@@ -74,7 +76,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest pastaRequest = new CreateRecipeRequest("Spaghetti Carbonara", pastaData);
 
-        RecipeDto pastaResponse = restClient()
+        RecipeDto pastaResponse = client
                 .post()
                 .uri("/recipes")
                 .body(pastaRequest)
@@ -84,7 +86,7 @@ class RecipeIntegrationTest {
         assertThat(pastaResponse.name()).isEqualTo("Spaghetti Carbonara");
 
         // READ: List all recipes - check that our created recipes are present
-        List<RecipeListDto> listResponse = restClient()
+        List<RecipeListDto> listResponse = client
                 .get()
                 .uri("/recipes")
                 .retrieve()
@@ -100,7 +102,7 @@ class RecipeIntegrationTest {
                 .contains("Pizza Margherita", "Spaghetti Carbonara");
 
         // READ: Get detailed recipe
-        RecipeDto detailedRecipe = restClient()
+        RecipeDto detailedRecipe = client
                 .get()
                 .uri("/recipes/" + pizzaResponse.id())
                 .retrieve()
@@ -128,7 +130,7 @@ class RecipeIntegrationTest {
         );
         UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Updated Pizza Margherita", updatedPizzaData);
 
-        RecipeDto updatedRecipe = restClient()
+        RecipeDto updatedRecipe = client
                 .put()
                 .uri("/recipes/" + pizzaResponse.id())
                 .body(updateRequest)
@@ -143,7 +145,7 @@ class RecipeIntegrationTest {
         assertThat(updatedRecipe.data().ingredients().getFirst().quantity()).isEqualTo("400g");
 
         // READ: Verify GET shows updated data
-        RecipeDto fetchedUpdatedRecipe = restClient()
+        RecipeDto fetchedUpdatedRecipe = client
                 .get()
                 .uri("/recipes/" + pizzaResponse.id())
                 .retrieve()
@@ -153,7 +155,7 @@ class RecipeIntegrationTest {
         assertThat(fetchedUpdatedRecipe.data().ingredients()).hasSize(3);
 
         // DELETE: Delete the pasta recipe
-        restClient()
+        client
                 .delete()
                 .uri("/recipes/" + pastaResponse.id())
                 .retrieve()
@@ -161,7 +163,7 @@ class RecipeIntegrationTest {
 
         // READ: Verify deleted recipe returns 404
         try {
-            restClient()
+            client
                     .get()
                     .uri("/recipes/" + pastaResponse.id())
                     .retrieve()
@@ -173,7 +175,7 @@ class RecipeIntegrationTest {
         }
 
         // READ: Verify updated recipe still exists in list
-        List<RecipeListDto> finalListResponse = restClient()
+        List<RecipeListDto> finalListResponse = client
                 .get()
                 .uri("/recipes")
                 .retrieve()
@@ -192,6 +194,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturn404WhenUpdatingNonExistentRecipe() {
+        RestClient client = restClient();
         RecipeData data = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
                 List.of(new Instruction("Make dough"))
@@ -200,7 +203,7 @@ class RecipeIntegrationTest {
         UUID randomId = UUID.randomUUID();
 
         try {
-            restClient()
+            client
                     .put()
                     .uri("/recipes/" + randomId)
                     .body(updateRequest)
@@ -215,10 +218,11 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturn404WhenDeletingNonExistentRecipe() {
+        RestClient client = restClient();
         UUID randomId = UUID.randomUUID();
 
         try {
-            restClient()
+            client
                     .delete()
                     .uri("/recipes/" + randomId)
                     .retrieve()
@@ -232,6 +236,9 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldIsolateRecipesBetweenUsers() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData user1RecipeData = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
@@ -239,7 +246,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest user1Request = new CreateRecipeRequest("User 1 Recipe", user1RecipeData);
 
-        RecipeDto user1Recipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        RecipeDto user1Recipe = user1Client
                 .post()
                 .uri("/recipes")
                 .body(user1Request)
@@ -255,7 +262,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest user2Request = new CreateRecipeRequest("User 2 Recipe", user2RecipeData);
 
-        RecipeDto user2Recipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        RecipeDto user2Recipe = user2Client
                 .post()
                 .uri("/recipes")
                 .body(user2Request)
@@ -265,7 +272,7 @@ class RecipeIntegrationTest {
         assertThat(user2Recipe.name()).isEqualTo("User 2 Recipe");
 
         // User 1 should see their own recipes (including those created in other tests)
-        List<RecipeListDto> user1Recipes = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        List<RecipeListDto> user1Recipes = user1Client
                 .get()
                 .uri("/recipes")
                 .retrieve()
@@ -280,7 +287,7 @@ class RecipeIntegrationTest {
                 .contains("User 1 Recipe");
 
         // User 2 should only see their own recipes
-        List<RecipeListDto> user2Recipes = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        List<RecipeListDto> user2Recipes = user2Client
                 .get()
                 .uri("/recipes")
                 .retrieve()
@@ -299,6 +306,9 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldPreventCrossUserAccess() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
@@ -306,7 +316,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest request = new CreateRecipeRequest("Secret Recipe", recipeData);
 
-        RecipeDto user1Recipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        RecipeDto user1Recipe = user1Client
                 .post()
                 .uri("/recipes")
                 .body(request)
@@ -316,7 +326,7 @@ class RecipeIntegrationTest {
 
         // User 2 should not be able to access user 1's recipe
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .get()
                     .uri("/recipes/" + user1Recipe.id())
                     .retrieve()
@@ -330,7 +340,7 @@ class RecipeIntegrationTest {
         // User 2 should not be able to update user 1's recipe
         UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Hacked Recipe", recipeData);
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .put()
                     .uri("/recipes/" + user1Recipe.id())
                     .body(updateRequest)
@@ -344,7 +354,7 @@ class RecipeIntegrationTest {
 
         // User 2 should not be able to delete user 1's recipe
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .delete()
                     .uri("/recipes/" + user1Recipe.id())
                     .retrieve()
@@ -358,6 +368,9 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldShareAndUnshareRecipes() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
@@ -365,7 +378,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest request = new CreateRecipeRequest("Shared Recipe", recipeData);
 
-        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        RecipeDto ownerRecipe = user1Client
                 .post()
                 .uri("/recipes")
                 .body(request)
@@ -376,7 +389,7 @@ class RecipeIntegrationTest {
 
         // User 2 should not have access initially
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .get()
                     .uri("/recipes/" + ownerRecipe.id())
                     .retrieve()
@@ -388,7 +401,7 @@ class RecipeIntegrationTest {
 
         // User 1 shares recipe with User 2
         ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        user1Client
                 .post()
                 .uri("/recipes/" + ownerRecipe.id() + "/share")
                 .body(shareRequest)
@@ -396,7 +409,7 @@ class RecipeIntegrationTest {
                 .toBodilessEntity();
 
         // User 2 should now have EDITOR access
-        RecipeDto sharedRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        RecipeDto sharedRecipe = user2Client
                 .get()
                 .uri("/recipes/" + ownerRecipe.id())
                 .retrieve()
@@ -406,7 +419,7 @@ class RecipeIntegrationTest {
         assertThat(sharedRecipe.name()).isEqualTo("Shared Recipe");
 
         // Test shared users endpoint after sharing - should show OWNER first, then EDITOR
-        List<SharedUserDto> sharedUsersAfterSharing = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        List<SharedUserDto> sharedUsersAfterSharing = user1Client
                 .get()
                 .uri("/recipes/" + ownerRecipe.id() + "/shared_users")
                 .retrieve()
@@ -426,7 +439,7 @@ class RecipeIntegrationTest {
         );
         UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Updated Shared Recipe", updatedData);
 
-        RecipeDto updatedRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        RecipeDto updatedRecipe = user2Client
                 .put()
                 .uri("/recipes/" + ownerRecipe.id())
                 .body(updateRequest)
@@ -438,7 +451,7 @@ class RecipeIntegrationTest {
 
         // User 2 (EDITOR) should NOT be able to delete the recipe
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .delete()
                     .uri("/recipes/" + ownerRecipe.id())
                     .retrieve()
@@ -450,7 +463,7 @@ class RecipeIntegrationTest {
 
         // User 1 unshares the recipe from User 2
         UnshareRecipeRequest unshareRequest = new UnshareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        user1Client
                 .post()
                 .uri("/recipes/" + ownerRecipe.id() + "/unshare")
                 .body(unshareRequest)
@@ -459,7 +472,7 @@ class RecipeIntegrationTest {
 
         // User 2 should no longer have access
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .get()
                     .uri("/recipes/" + ownerRecipe.id())
                     .retrieve()
@@ -470,7 +483,7 @@ class RecipeIntegrationTest {
         }
 
         // Test shared users endpoint after unsharing - should show only OWNER
-        List<SharedUserDto> sharedUsersAfterUnsharing = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        List<SharedUserDto> sharedUsersAfterUnsharing = user1Client
                 .get()
                 .uri("/recipes/" + ownerRecipe.id() + "/shared_users")
                 .retrieve()
@@ -482,7 +495,7 @@ class RecipeIntegrationTest {
         assertThat(sharedUsersAfterUnsharing.getFirst().role()).isEqualTo(UserRole.OWNER);
 
         // User 1 (OWNER) should still be able to delete the recipe
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        user1Client
                 .delete()
                 .uri("/recipes/" + ownerRecipe.id())
                 .retrieve()
@@ -491,6 +504,10 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldAllowEditorsToShareAndUnshareButPreventUnsharingOwner() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient defaultClient = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
@@ -498,7 +515,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest request = new CreateRecipeRequest("Editor Sharing Test Recipe", recipeData);
 
-        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        RecipeDto ownerRecipe = user1Client
                 .post()
                 .uri("/recipes")
                 .body(request)
@@ -508,7 +525,7 @@ class RecipeIntegrationTest {
 
         // User 1 shares recipe with User 2 (making User 2 an EDITOR)
         ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        user1Client
                 .post()
                 .uri("/recipes/" + ownerRecipe.id() + "/share")
                 .body(shareRequest)
@@ -517,7 +534,7 @@ class RecipeIntegrationTest {
 
         // User 2 (EDITOR) should be able to share the recipe with a third user
         ShareRecipeRequest editorShareRequest = new ShareRecipeRequest("user@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        user2Client
                 .post()
                 .uri("/recipes/" + ownerRecipe.id() + "/share")
                 .body(editorShareRequest)
@@ -525,7 +542,7 @@ class RecipeIntegrationTest {
                 .toBodilessEntity();
 
         // Verify the third user now has access
-        RecipeDto thirdUserRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN)
+        RecipeDto thirdUserRecipe = defaultClient
                 .get()
                 .uri("/recipes/" + ownerRecipe.id())
                 .retrieve()
@@ -535,7 +552,7 @@ class RecipeIntegrationTest {
 
         // User 2 (EDITOR) should be able to unshare the recipe from the third user
         UnshareRecipeRequest editorUnshareRequest = new UnshareRecipeRequest("user@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        user2Client
                 .post()
                 .uri("/recipes/" + ownerRecipe.id() + "/unshare")
                 .body(editorUnshareRequest)
@@ -544,7 +561,7 @@ class RecipeIntegrationTest {
 
         // Verify third user no longer has access
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN)
+            defaultClient
                     .get()
                     .uri("/recipes/" + ownerRecipe.id())
                     .retrieve()
@@ -557,7 +574,7 @@ class RecipeIntegrationTest {
         // User 2 (EDITOR) should NOT be able to unshare the OWNER (User 1)
         UnshareRecipeRequest unshareOwnerRequest = new UnshareRecipeRequest("user1@example.com");
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+            user2Client
                     .post()
                     .uri("/recipes/" + ownerRecipe.id() + "/unshare")
                     .body(unshareOwnerRequest)
@@ -569,7 +586,7 @@ class RecipeIntegrationTest {
         }
 
         // Verify User 1 (OWNER) still has access
-        RecipeDto ownerStillHasAccess = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        RecipeDto ownerStillHasAccess = user1Client
                 .get()
                 .uri("/recipes/" + ownerRecipe.id())
                 .retrieve()
@@ -580,6 +597,9 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldHandleSharedRecipesInUserRecipeList() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
@@ -587,7 +607,7 @@ class RecipeIntegrationTest {
         );
         CreateRecipeRequest request = new CreateRecipeRequest("Recipe To Be Shared", recipeData);
 
-        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        RecipeDto ownerRecipe = user1Client
                 .post()
                 .uri("/recipes")
                 .body(request)
@@ -596,7 +616,7 @@ class RecipeIntegrationTest {
         assertThat(ownerRecipe).isNotNull();
 
         // User 2 should not see the recipe in their list initially
-        List<RecipeListDto> user2RecipesBefore = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        List<RecipeListDto> user2RecipesBefore = user2Client
                 .get()
                 .uri("/recipes")
                 .retrieve()
@@ -609,7 +629,7 @@ class RecipeIntegrationTest {
 
         // User 1 shares recipe with User 2
         ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
+        user1Client
                 .post()
                 .uri("/recipes/" + ownerRecipe.id() + "/share")
                 .body(shareRequest)
@@ -617,7 +637,7 @@ class RecipeIntegrationTest {
                 .toBodilessEntity();
 
         // User 2 should now see the recipe in their list
-        List<RecipeListDto> user2RecipesAfter = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
+        List<RecipeListDto> user2RecipesAfter = user2Client
                 .get()
                 .uri("/recipes")
                 .retrieve()

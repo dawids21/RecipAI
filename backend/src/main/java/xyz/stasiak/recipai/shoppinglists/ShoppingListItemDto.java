@@ -13,7 +13,6 @@ public record ShoppingListItemDto(
         BigDecimal quantity,
         @Size(max = 64) String unit,
         @NotNull Boolean checked,
-        @NotNull Integer position,
-        @NotNull Long version
+        @NotNull Integer position
 ) {
 }
