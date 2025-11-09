@@ -55,7 +55,7 @@ class ExtractionIntegrationTest {
     }
 
     @Test
-    void shouldExtractRecipeFromImage() throws Exception {
+    void shouldExtractRecipeFromImage() {
         RestClient client = restClient();
         ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
 

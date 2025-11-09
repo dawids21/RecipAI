@@ -34,6 +34,10 @@ class ShoppingListItem {
     @Column(nullable = false)
     private Integer position;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private ShoppingList shoppingList;
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

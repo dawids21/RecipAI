@@ -26,7 +26,7 @@ interface ShoppingListRepository extends JpaRepository<ShoppingList, UUID> {
                 sli.position as item_position,
                 COALESCE(slic.checked, false) as item_checked
             FROM recipai.shopping_lists sl
-            LEFT JOIN recipai.shopping_list_items sli ON sli.list_id = sl.id
+            LEFT JOIN recipai.shopping_list_items sli ON sli.shopping_list_id = sl.id
             LEFT JOIN recipai.shopping_list_item_checkbox slic ON slic.shopping_list_item_id = sli.id
             WHERE sl.id = :id
             ORDER BY sli.position ASC

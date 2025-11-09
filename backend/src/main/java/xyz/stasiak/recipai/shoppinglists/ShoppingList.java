@@ -30,8 +30,7 @@ class ShoppingList {
     @Column(nullable = false)
     private Long version;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "list_id")
+    @OneToMany(mappedBy = "shoppingList", cascade = CascadeType.PERSIST, orphanRemoval = true)
     @OrderBy("position ASC")
     @ToString.Exclude
     private List<ShoppingListItem> items = new ArrayList<>();
