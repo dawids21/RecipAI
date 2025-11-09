@@ -93,10 +93,12 @@ class ShoppingListRepository {
   Future<ShoppingList> updateShoppingList(
     String id,
     String name,
+    int version,
     String? idToken,
   ) async {
     try {
       final headers = _getAuthHeaders(idToken);
+      headers['If-Match'] = '"$version"';
       final response = await _client.put(
         Uri.parse('$_baseUrl/shopping-lists/$id'),
         headers: headers,
@@ -110,6 +112,10 @@ class ShoppingListRepository {
         throw Exception('You do not have permission to rename this list');
       } else if (response.statusCode == 404) {
         throw Exception('Shopping list not found');
+      } else if (response.statusCode == 412) {
+        throw Exception(
+          'This list was modified by someone else. Please refresh and try again',
+        );
       } else {
         throw Exception(
           'Failed to update shopping list: ${response.statusCode}',
@@ -120,9 +126,14 @@ class ShoppingListRepository {
     }
   }
 
-  Future<void> deleteShoppingList(String id, String? idToken) async {
+  Future<void> deleteShoppingList(
+    String id,
+    int version,
+    String? idToken,
+  ) async {
     try {
       final headers = _getAuthHeaders(idToken);
+      headers['If-Match'] = '"$version"';
       final response = await _client.delete(
         Uri.parse('$_baseUrl/shopping-lists/$id'),
         headers: headers,
@@ -134,6 +145,10 @@ class ShoppingListRepository {
         throw Exception('You do not have permission to delete this list');
       } else if (response.statusCode == 404) {
         throw Exception('Shopping list not found');
+      } else if (response.statusCode == 412) {
+        throw Exception(
+          'This list was modified by someone else. Please refresh and try again',
+        );
       } else {
         throw Exception(
           'Failed to delete shopping list: ${response.statusCode}',
