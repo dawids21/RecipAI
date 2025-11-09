@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/app_config.dart';
+import 'optimistic_lock_exception.dart';
 import 'shopping_list.dart';
 import 'shopping_list_detail.dart';
 
@@ -20,47 +21,35 @@ class ShoppingListRepository {
   }
 
   Future<List<ShoppingList>> fetchShoppingLists(String? idToken) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/shopping-lists'),
-        headers: headers,
-      );
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/shopping-lists'),
+      headers: headers,
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList
-            .map((json) => ShoppingList.fromJson(json as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw Exception(
-          'Failed to load shopping lists: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error while fetching shopping lists: $e');
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList
+          .map((json) => ShoppingList.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception('Failed to load shopping lists: ${response.statusCode}');
     }
   }
 
   Future<ShoppingList> createShoppingList(String name, String? idToken) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/shopping-lists'),
-        headers: headers,
-        body: json.encode({'name': name}),
-      );
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists'),
+      headers: headers,
+      body: json.encode({'name': name}),
+    );
 
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> jsonMap = json.decode(response.body);
-        return ShoppingList.fromJson(jsonMap);
-      } else {
-        throw Exception(
-          'Failed to create shopping list: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error while creating shopping list: $e');
+    if (response.statusCode == 201) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingList.fromJson(jsonMap);
+    } else {
+      throw Exception('Failed to create shopping list: ${response.statusCode}');
     }
   }
 
@@ -68,25 +57,21 @@ class ShoppingListRepository {
     String id,
     String? idToken,
   ) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/shopping-lists/$id'),
-        headers: headers,
-      );
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/shopping-lists/$id'),
+      headers: headers,
+    );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonMap = json.decode(response.body);
-        return ShoppingListDetail.fromJson(jsonMap);
-      } else if (response.statusCode == 404) {
-        throw Exception('Shopping list not found');
-      } else {
-        throw Exception(
-          'Failed to load shopping list detail: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error while fetching shopping list detail: $e');
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingListDetail.fromJson(jsonMap);
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else {
+      throw Exception(
+        'Failed to load shopping list detail: ${response.statusCode}',
+      );
     }
   }
 
@@ -96,33 +81,25 @@ class ShoppingListRepository {
     int version,
     String? idToken,
   ) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      headers['If-Match'] = '"$version"';
-      final response = await _client.put(
-        Uri.parse('$_baseUrl/shopping-lists/$id'),
-        headers: headers,
-        body: json.encode({'name': name}),
-      );
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = '"$version"';
+    final response = await _client.put(
+      Uri.parse('$_baseUrl/shopping-lists/$id'),
+      headers: headers,
+      body: json.encode({'name': name}),
+    );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonMap = json.decode(response.body);
-        return ShoppingList.fromJson(jsonMap);
-      } else if (response.statusCode == 403) {
-        throw Exception('You do not have permission to rename this list');
-      } else if (response.statusCode == 404) {
-        throw Exception('Shopping list not found');
-      } else if (response.statusCode == 412) {
-        throw Exception(
-          'This list was modified by someone else. Please refresh and try again',
-        );
-      } else {
-        throw Exception(
-          'Failed to update shopping list: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingList.fromJson(jsonMap);
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to rename this list');
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else if (response.statusCode == 412) {
+      throw OptimisticLockException('This list was modified by someone else.');
+    } else {
+      throw Exception('Failed to update shopping list: ${response.statusCode}');
     }
   }
 
@@ -131,31 +108,23 @@ class ShoppingListRepository {
     int version,
     String? idToken,
   ) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      headers['If-Match'] = '"$version"';
-      final response = await _client.delete(
-        Uri.parse('$_baseUrl/shopping-lists/$id'),
-        headers: headers,
-      );
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = '"$version"';
+    final response = await _client.delete(
+      Uri.parse('$_baseUrl/shopping-lists/$id'),
+      headers: headers,
+    );
 
-      if (response.statusCode == 204) {
-        return;
-      } else if (response.statusCode == 403) {
-        throw Exception('You do not have permission to delete this list');
-      } else if (response.statusCode == 404) {
-        throw Exception('Shopping list not found');
-      } else if (response.statusCode == 412) {
-        throw Exception(
-          'This list was modified by someone else. Please refresh and try again',
-        );
-      } else {
-        throw Exception(
-          'Failed to delete shopping list: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to delete this list');
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else if (response.statusCode == 412) {
+      throw OptimisticLockException('This list was modified by someone else');
+    } else {
+      throw Exception('Failed to delete shopping list: ${response.statusCode}');
     }
   }
 }
