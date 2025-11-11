@@ -15,6 +15,7 @@ import java.util.UUID;
 class ShoppingListService {
 
     private final ShoppingListRepository shoppingListRepository;
+    private final ShoppingListItemRepository shoppingListItemRepository;
     private final ShoppingListItemCheckboxRepository shoppingListItemCheckboxRepository;
     private final ShoppingListPermissionRepository shoppingListPermissionRepository;
 
@@ -141,6 +142,79 @@ class ShoppingListService {
             return new ShoppingListListDto(savedList.getId(), savedList.getName(), savedList.getVersion());
         } catch (OptimisticLockingFailureException e) {
             throw new ShoppingListPreconditionFailedException(id, e);
+        }
+    }
+
+    @Transactional
+    void addItem(UUID id, AddShoppingListItemRequest request, String userEmail) {
+        log.debug("Adding item '{}' to shopping list {} for user: {}", request.name(), id, userEmail);
+
+        // 1. Fetch shopping list
+        ShoppingList shoppingList = shoppingListRepository.findById(id)
+                .orElseThrow(() -> new ShoppingListNotFoundException(id));
+
+        // 2. Check permission
+        UserRole userRole = shoppingListPermissionRepository.getUserRole(userEmail, id)
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
+
+        if (userRole != UserRole.OWNER && userRole != UserRole.EDITOR) {
+            throw new ShoppingListAccessDeniedException(id);
+        }
+
+        // 3. NO version validation from client (no If-Match header required)
+
+        // 4. Add item to list
+        ShoppingListItem newItem = shoppingList.addItem(
+                request.name(),
+                request.quantity(),
+                request.unit()
+        );
+
+        // 5. Save with optimistic locking exception handling
+        try {
+            newItem = shoppingListItemRepository.save(newItem);
+        } catch (OptimisticLockingFailureException e) {
+            log.warn("Optimistic locking failure when adding item to shopping list {}", id);
+            throw new ShoppingListPreconditionFailedException(id, e);
+        }
+
+        // 6. Create unchecked checkbox for new item (after save, so item has ID)
+        ShoppingListItemCheckbox checkbox = new ShoppingListItemCheckbox(newItem.getId(), false);
+        shoppingListItemCheckboxRepository.save(checkbox);
+    }
+
+    @Transactional
+    void removeItem(UUID listId, RemoveShoppingListItemRequest request, String userEmail, Long expectedVersion) {
+        log.debug("Removing item {} from shopping list {} for user: {}", request.id(), listId, userEmail);
+
+        // 1. Fetch shopping list
+        ShoppingList shoppingList = shoppingListRepository.findById(listId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(listId));
+
+        // 2. Check permission
+        UserRole userRole = shoppingListPermissionRepository.getUserRole(userEmail, listId)
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(listId));
+
+        if (userRole != UserRole.OWNER && userRole != UserRole.EDITOR) {
+            throw new ShoppingListAccessDeniedException(listId);
+        }
+
+        // 3. Validate version
+        if (!shoppingList.getVersion().equals(expectedVersion)) {
+            throw new ShoppingListPreconditionFailedException(listId);
+        }
+
+        // 4. Remove item (idempotent - returns immediately if item not found)
+        shoppingList.removeItem(request.id());
+        // Note: Checkbox automatically deleted via CASCADE DELETE
+        // Note: Positions recalculated for remaining items (1, 2, 3, ...)
+
+        // 5. Save with optimistic locking exception handling
+        try {
+            shoppingListRepository.save(shoppingList);
+        } catch (OptimisticLockingFailureException e) {
+            log.warn("Optimistic locking failure when removing item from shopping list {}", listId);
+            throw new ShoppingListPreconditionFailedException(listId, e);
         }
     }
 }
