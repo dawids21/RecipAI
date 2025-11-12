@@ -471,8 +471,15 @@
       "name": "Bread"
     }
     ```
-  - Example response: No content
-  - Success: 204 No Content
+  - Example response:
+    ```json
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Weekly Groceries",
+      "version": 1
+    }
+    ```
+  - Success: 200 OK
   - Errors:
     - 400 Bad Request (validation error - blank name, name exceeds 255 characters, or unit exceeds 64 characters)
     - 401 Unauthorized
@@ -480,7 +487,7 @@
     - 404 Not Found (shopping list doesn't exist)
     - 412 Precondition Failed (concurrent modification detected during save)
   - Note: The item is automatically assigned the next sequential position. The shopping list version is incremented
-    after adding the item.
+    after adding the item. Returns the updated shopping list information with the new version number.
 - POST /shopping-lists/{id}/remove
   - Description: Remove an item from a shopping list
   - Authenticated: true
@@ -495,13 +502,21 @@
       "id": "770e8400-e29b-41d4-a716-446655440010"
     }
     ```
-  - Example response: No content
-  - Success: 204 No Content
+  - Example response:
+    ```json
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Weekly Groceries",
+      "version": 2
+    }
+    ```
+  - Success: 200 OK
   - Errors:
     - 400 Bad Request (validation error - missing or null item ID)
     - 401 Unauthorized
     - 403 Forbidden (user lacks permission)
     - 404 Not Found (shopping list doesn't exist)
     - 412 Precondition Failed (version mismatch - shopping list was modified by another user)
-  - Note: This operation is idempotent - removing a non-existent item returns 204 No Content without error.
-    The shopping list version is incremented after removing the item.
+  - Note: This operation is idempotent - removing a non-existent item returns 200 OK without error.
+    The shopping list version is incremented after removing the item. Returns the updated shopping list information with
+    the new version number.
