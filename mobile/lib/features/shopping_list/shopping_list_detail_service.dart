@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
-import 'optimistic_lock_exception.dart';
 import 'shopping_list_detail.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
@@ -59,10 +58,6 @@ class ShoppingListDetailService {
       );
       await loadShoppingListDetail(id);
       await _shoppingListListService.loadShoppingLists();
-    } on OptimisticLockException {
-      await loadShoppingListDetail(id);
-      await _shoppingListListService.loadShoppingLists();
-      rethrow;
     } finally {
       _isRenameRunning = false;
     }
@@ -78,10 +73,6 @@ class ShoppingListDetailService {
       final token = await _authService.idToken;
       await _shoppingListRepository.deleteShoppingList(id, version, token);
       await _shoppingListListService.loadShoppingLists();
-    } on OptimisticLockException {
-      await loadShoppingListDetail(id);
-      await _shoppingListListService.loadShoppingLists();
-      rethrow;
     } finally {
       _isDeleteRunning = false;
     }
