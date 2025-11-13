@@ -474,10 +474,9 @@
   - Example response:
     ```json
     {
-      "listId": "550e8400-e29b-41d4-a716-446655440000",
-      "listName": "Weekly Groceries",
-      "listVersion": 1,
-      "itemId": "770e8400-e29b-41d4-a716-446655440010"
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Weekly Groceries",
+      "version": 1
     }
     ```
   - Success: 200 OK
@@ -506,10 +505,9 @@
   - Example response:
     ```json
     {
-      "listId": "550e8400-e29b-41d4-a716-446655440000",
-      "listName": "Weekly Groceries",
-      "listVersion": 2,
-      "itemId": "770e8400-e29b-41d4-a716-446655440010"
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Weekly Groceries",
+      "version": 2
     }
     ```
   - Success: 200 OK
