@@ -462,17 +462,12 @@ class ShoppingListIntegrationTest {
 
         // Add item with name, quantity, and unit
         AddShoppingListItemRequest addRequest = new AddShoppingListItemRequest("Milk", new BigDecimal("2.5"), "liters");
-        ShoppingListListDto addResponse = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/add")
                 .body(addRequest)
                 .retrieve()
-                .body(ShoppingListListDto.class);
-
-        assertThat(addResponse).isNotNull();
-        assertThat(addResponse.id()).isEqualTo(list.id());
-        assertThat(addResponse.name()).isEqualTo("Groceries");
-        assertThat(addResponse.version()).isGreaterThan(originalVersion);
+                .toBodilessEntity();
 
         // Verify item appears in GET response
         ShoppingListDto updatedList = client
@@ -488,7 +483,7 @@ class ShoppingListIntegrationTest {
         assertThat(updatedList.items().getFirst().unit()).isEqualTo("liters");
         assertThat(updatedList.items().getFirst().position()).isEqualTo(1);
         assertThat(updatedList.items().getFirst().checked()).isFalse();
-        assertThat(updatedList.version()).isEqualTo(addResponse.version());
+        assertThat(updatedList.version()).isGreaterThan(originalVersion);
     }
 
     @Test
@@ -508,16 +503,12 @@ class ShoppingListIntegrationTest {
 
         // Add item with only name (quantity and unit null)
         AddShoppingListItemRequest addRequest = new AddShoppingListItemRequest("Bread", null, null);
-        ShoppingListListDto addResponse = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/add")
                 .body(addRequest)
                 .retrieve()
-                .body(ShoppingListListDto.class);
-
-        assertThat(addResponse).isNotNull();
-        assertThat(addResponse.id()).isEqualTo(list.id());
-        assertThat(addResponse.name()).isEqualTo("Shopping");
+                .toBodilessEntity();
 
         // Verify item appears with null quantity and unit
         ShoppingListDto updatedList = client
@@ -635,7 +626,7 @@ class ShoppingListIntegrationTest {
                 .uri("/shopping-lists/" + list.id() + "/add")
                 .body(addRequest)
                 .retrieve()
-                .body(ShoppingListListDto.class);
+                .toBodilessEntity();
 
         // Get updated list with item
         ShoppingListDto listWithItem = client
@@ -651,18 +642,13 @@ class ShoppingListIntegrationTest {
 
         // Remove item
         RemoveShoppingListItemRequest removeRequest = new RemoveShoppingListItemRequest(itemId);
-        ShoppingListListDto removeResponse = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/remove")
                 .header("If-Match", "\"" + versionWithItem + "\"")
                 .body(removeRequest)
                 .retrieve()
-                .body(ShoppingListListDto.class);
-
-        assertThat(removeResponse).isNotNull();
-        assertThat(removeResponse.id()).isEqualTo(list.id());
-        assertThat(removeResponse.name()).isEqualTo("Groceries");
-        assertThat(removeResponse.version()).isGreaterThan(versionWithItem);
+                .toBodilessEntity();
 
         // Verify item no longer in list
         ShoppingListDto listAfterRemove = client
@@ -673,7 +659,7 @@ class ShoppingListIntegrationTest {
 
         assertThat(listAfterRemove).isNotNull();
         assertThat(listAfterRemove.items()).isEmpty();
-        assertThat(listAfterRemove.version()).isEqualTo(removeResponse.version());
+        assertThat(listAfterRemove.version()).isGreaterThan(versionWithItem);
     }
 
     @Test
@@ -694,13 +680,13 @@ class ShoppingListIntegrationTest {
         // Add three items
         client.post().uri("/shopping-lists/" + list.id() + "/add")
                 .body(new AddShoppingListItemRequest("Item 1", null, null))
-                .retrieve().body(ShoppingListListDto.class);
+                .retrieve().toBodilessEntity();
         client.post().uri("/shopping-lists/" + list.id() + "/add")
                 .body(new AddShoppingListItemRequest("Item 2", null, null))
-                .retrieve().body(ShoppingListListDto.class);
+                .retrieve().toBodilessEntity();
         client.post().uri("/shopping-lists/" + list.id() + "/add")
                 .body(new AddShoppingListItemRequest("Item 3", null, null))
-                .retrieve().body(ShoppingListListDto.class);
+                .retrieve().toBodilessEntity();
 
         // Get list with all three items
         ShoppingListDto listWith3Items = client
@@ -724,7 +710,7 @@ class ShoppingListIntegrationTest {
                 .header("If-Match", "\"" + listWith3Items.version() + "\"")
                 .body(removeRequest)
                 .retrieve()
-                .body(ShoppingListListDto.class);
+                .toBodilessEntity();
 
         // Verify positions are recalculated (1, 2 instead of 1, 3)
         ShoppingListDto listAfterRemove = client
@@ -742,7 +728,7 @@ class ShoppingListIntegrationTest {
     }
 
     @Test
-    void shouldReturn200WhenRemovingNonExistentItem() {
+    void shouldReturn204WhenRemovingNonExistentItem() {
         RestClient client = restClient();
 
         // Create shopping list
@@ -765,19 +751,16 @@ class ShoppingListIntegrationTest {
 
         assertThat(currentList).isNotNull();
 
-        // Try to remove non-existent item - should return 200 (idempotent)
+        // Try to remove non-existent item - should return 204 (idempotent)
         UUID nonExistentItemId = UUID.randomUUID();
         RemoveShoppingListItemRequest removeRequest = new RemoveShoppingListItemRequest(nonExistentItemId);
-        ShoppingListListDto removeResponse = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/remove")
                 .header("If-Match", "\"" + currentList.version() + "\"")
                 .body(removeRequest)
                 .retrieve()
-                .body(ShoppingListListDto.class);
-
-        assertThat(removeResponse).isNotNull();
-        assertThat(removeResponse.id()).isEqualTo(list.id());
+                .toBodilessEntity();
 
         // Verify list unchanged
         ShoppingListDto listAfterRemove = client
@@ -828,7 +811,7 @@ class ShoppingListIntegrationTest {
 
         user1Client.post().uri("/shopping-lists/" + list.id() + "/add")
                 .body(new AddShoppingListItemRequest("Item", null, null))
-                .retrieve().body(ShoppingListListDto.class);
+                .retrieve().toBodilessEntity();
 
         ShoppingListDto listWithItem = user1Client
                 .get()
@@ -873,7 +856,7 @@ class ShoppingListIntegrationTest {
 
         client.post().uri("/shopping-lists/" + list.id() + "/add")
                 .body(new AddShoppingListItemRequest("Item 1", null, null))
-                .retrieve().body(ShoppingListListDto.class);
+                .retrieve().toBodilessEntity();
 
         ShoppingListDto listWithItem = client
                 .get()
@@ -889,7 +872,7 @@ class ShoppingListIntegrationTest {
         // Update list (add another item to change version)
         client.post().uri("/shopping-lists/" + list.id() + "/add")
                 .body(new AddShoppingListItemRequest("Item 2", null, null))
-                .retrieve().body(ShoppingListListDto.class);
+                .retrieve().toBodilessEntity();
 
         // Try to remove item with stale version - should get 412
         RemoveShoppingListItemRequest removeRequest = new RemoveShoppingListItemRequest(itemId);

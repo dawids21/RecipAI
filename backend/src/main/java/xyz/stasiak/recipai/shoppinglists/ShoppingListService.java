@@ -146,7 +146,7 @@ class ShoppingListService {
     }
 
     @Transactional
-    ShoppingListListDto addItem(UUID id, AddShoppingListItemRequest request, String userEmail) {
+    void addItem(UUID id, AddShoppingListItemRequest request, String userEmail) {
         log.debug("Adding item '{}' to shopping list {} for user: {}", request.name(), id, userEmail);
 
         // 1. Fetch shopping list
@@ -172,7 +172,7 @@ class ShoppingListService {
 
         // 5. Save with optimistic locking exception handling
         try {
-            newItem = shoppingListItemRepository.saveAndFlush(newItem);
+            newItem = shoppingListItemRepository.save(newItem);
         } catch (OptimisticLockingFailureException e) {
             log.warn("Optimistic locking failure when adding item to shopping list {}", id);
             throw new ShoppingListPreconditionFailedException(id, e);
@@ -181,13 +181,10 @@ class ShoppingListService {
         // 6. Create unchecked checkbox for new item (after save, so item has ID)
         ShoppingListItemCheckbox checkbox = new ShoppingListItemCheckbox(newItem.getId(), false);
         shoppingListItemCheckboxRepository.save(checkbox);
-
-        // 7. Return updated shopping list info
-        return toListDto(newItem.getShoppingList());
     }
 
     @Transactional
-    ShoppingListListDto removeItem(UUID listId, RemoveShoppingListItemRequest request, String userEmail, Long expectedVersion) {
+    void removeItem(UUID listId, RemoveShoppingListItemRequest request, String userEmail, Long expectedVersion) {
         log.debug("Removing item {} from shopping list {} for user: {}", request.id(), listId, userEmail);
 
         // 1. Fetch shopping list
@@ -214,13 +211,10 @@ class ShoppingListService {
 
         // 5. Save with optimistic locking exception handling
         try {
-            shoppingList = shoppingListRepository.saveAndFlush(shoppingList);
+            shoppingListRepository.save(shoppingList);
         } catch (OptimisticLockingFailureException e) {
             log.warn("Optimistic locking failure when removing item from shopping list {}", listId);
             throw new ShoppingListPreconditionFailedException(listId, e);
         }
-
-        // 6. Return updated shopping list info
-        return toListDto(shoppingList);
     }
 }
