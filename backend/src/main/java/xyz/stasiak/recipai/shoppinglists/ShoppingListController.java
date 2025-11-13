@@ -69,32 +69,6 @@ class ShoppingListController {
         return ResponseEntity.ok(updatedList);
     }
 
-    @PostMapping("/{id}/add")
-    ResponseEntity<Void> addItemToShoppingList(
-            @PathVariable UUID id,
-            @Valid @RequestBody AddShoppingListItemRequest request,
-            @AuthenticationPrincipal Jwt jwt
-    ) {
-        String userEmail = jwt.getClaimAsString("email");
-        log.debug("Adding item to shopping list with id: {} for user: {}", id, userEmail);
-        shoppingListService.addItem(id, request, userEmail);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{id}/remove")
-    ResponseEntity<Void> removeItemFromShoppingList(
-            @PathVariable UUID id,
-            @Valid @RequestBody RemoveShoppingListItemRequest request,
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestHeader("If-Match") String ifMatchHeader
-    ) {
-        String userEmail = jwt.getClaimAsString("email");
-        log.debug("Removing item from shopping list with id: {} for user: {}", id, userEmail);
-        Long expectedVersion = extractVersionFromETag(ifMatchHeader);
-        shoppingListService.removeItem(id, request, userEmail, expectedVersion);
-        return ResponseEntity.noContent().build();
-    }
-
     private Long extractVersionFromETag(String etag) {
         String versionStr = etag.replaceAll("^\"|\"$", "");
         return Long.parseLong(versionStr);

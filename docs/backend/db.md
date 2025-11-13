@@ -20,7 +20,6 @@
 - id: UUID PRIMARY KEY
 - name: VARCHAR(255) NOT NULL
 - version: BIGINT NOT NULL
-- last_modified: TIMESTAMP WITH TIME ZONE NOT NULL
 
 ### shopping_list_permission
 
