@@ -146,7 +146,7 @@ class ShoppingListService {
     }
 
     @Transactional
-    ShoppingListListDto addItem(UUID id, AddShoppingListItemRequest request, String userEmail) {
+    ShoppingListItemOperationResponse addItem(UUID id, AddShoppingListItemRequest request, String userEmail) {
         log.debug("Adding item '{}' to shopping list {} for user: {}", request.name(), id, userEmail);
 
         // 1. Fetch shopping list
@@ -182,12 +182,18 @@ class ShoppingListService {
         ShoppingListItemCheckbox checkbox = new ShoppingListItemCheckbox(newItem.getId(), false);
         shoppingListItemCheckboxRepository.save(checkbox);
 
-        // 7. Return updated shopping list info
-        return toListDto(newItem.getShoppingList());
+        // 7. Return updated shopping list info with item ID
+        ShoppingList updatedList = newItem.getShoppingList();
+        return new ShoppingListItemOperationResponse(
+                updatedList.getId(),
+                updatedList.getName(),
+                updatedList.getVersion(),
+                newItem.getId()
+        );
     }
 
     @Transactional
-    ShoppingListListDto removeItem(UUID listId, RemoveShoppingListItemRequest request, String userEmail, Long expectedVersion) {
+    ShoppingListItemOperationResponse removeItem(UUID listId, RemoveShoppingListItemRequest request, String userEmail, Long expectedVersion) {
         log.debug("Removing item {} from shopping list {} for user: {}", request.id(), listId, userEmail);
 
         // 1. Fetch shopping list
@@ -220,7 +226,12 @@ class ShoppingListService {
             throw new ShoppingListPreconditionFailedException(listId, e);
         }
 
-        // 6. Return updated shopping list info
-        return toListDto(shoppingList);
+        // 6. Return updated shopping list info with removed item ID
+        return new ShoppingListItemOperationResponse(
+                shoppingList.getId(),
+                shoppingList.getName(),
+                shoppingList.getVersion(),
+                request.id()
+        );
     }
 }
