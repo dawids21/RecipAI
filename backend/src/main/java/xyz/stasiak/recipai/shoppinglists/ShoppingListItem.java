@@ -22,6 +22,9 @@ class ShoppingListItem {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "list_id", nullable = false)
+    private UUID listId;
+
     @Column(nullable = false)
     private String name;
 
@@ -32,7 +35,14 @@ class ShoppingListItem {
     private String unit;
 
     @Column(nullable = false)
+    private Boolean checked = false;
+
+    @Column(nullable = false)
     private Integer position;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @Override
     public boolean equals(Object o) {

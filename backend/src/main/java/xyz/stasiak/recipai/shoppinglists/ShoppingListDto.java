@@ -9,7 +9,6 @@ import java.util.UUID;
 public record ShoppingListDto(
         @NotNull UUID id,
         @NotBlank String name,
-        @NotNull Long version,
         @NotNull List<ShoppingListItemDto> items,
         @NotNull UserRole role
 ) {

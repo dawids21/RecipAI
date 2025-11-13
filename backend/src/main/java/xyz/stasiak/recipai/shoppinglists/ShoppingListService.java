@@ -3,7 +3,6 @@ package xyz.stasiak.recipai.shoppinglists;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,7 +14,7 @@ import java.util.UUID;
 class ShoppingListService {
 
     private final ShoppingListRepository shoppingListRepository;
-    private final ShoppingListItemCheckboxRepository shoppingListItemCheckboxRepository;
+    private final ShoppingListItemRepository shoppingListItemRepository;
     private final ShoppingListPermissionRepository shoppingListPermissionRepository;
 
     List<ShoppingListListDto> findAll(String userEmail) {
@@ -43,51 +42,56 @@ class ShoppingListService {
         return toListDto(savedList);
     }
 
-    private ShoppingListListDto toListDto(ShoppingList list) {
-        return new ShoppingListListDto(list.getId(), list.getName(), list.getVersion());
-    }
-
     ShoppingListDto findById(UUID id, String userEmail) {
         log.debug("Fetching shopping list with id: {} for user: {}", id, userEmail);
 
-        List<ShoppingListView> rows = shoppingListRepository.findShoppingListViewWithItemsById(id);
-
-        // Check if shopping list exists (404 if not found)
-        if (rows.isEmpty()) {
-            throw new ShoppingListNotFoundException(id);
-        }
+        // Check if shopping list exists first (404 if not found)
+        ShoppingList shoppingList = shoppingListRepository.findById(id)
+                .orElseThrow(() -> new ShoppingListNotFoundException(id));
 
         // Check user permission (403 if no permission)
         UserRole role = shoppingListPermissionRepository.getUserRole(userEmail, id)
                 .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
 
-        ShoppingListView firstRow = rows.getFirst();
-        UUID listId = firstRow.getListId();
-        String listName = firstRow.getListName();
-        Long listVersion = firstRow.getListVersion();
+        // Fetch items and build DTO
+        List<ShoppingListItem> items = shoppingListItemRepository
+                .findByListIdOrderByPositionAsc(shoppingList.getId());
 
-        // Map items from rows (skip rows with null item_id - empty list case)
-        List<ShoppingListItemDto> itemDtos = rows.stream()
-                .filter(row -> row.getItemId() != null)
-                .map(row -> new ShoppingListItemDto(
-                        row.getItemId(),
-                        row.getItemName(),
-                        row.getItemQuantity(),
-                        row.getItemUnit(),
-                        row.getItemChecked(),
-                        row.getItemPosition()
-                ))
+        return toDto(shoppingList, items, role);
+    }
+
+    private ShoppingListListDto toListDto(ShoppingList list) {
+        return new ShoppingListListDto(list.getId(), list.getName());
+    }
+
+    private ShoppingListDto toDto(ShoppingList list, List<ShoppingListItem> items, UserRole role) {
+        List<ShoppingListItemDto> itemDtos = items.stream()
+                .map(this::toItemDto)
                 .toList();
 
-        return new ShoppingListDto(listId, listName, listVersion, itemDtos, role);
+        return new ShoppingListDto(list.getId(), list.getName(), itemDtos, role);
+    }
+
+    private ShoppingListItemDto toItemDto(ShoppingListItem item) {
+        return new ShoppingListItemDto(
+                item.getId(),
+                item.getName(),
+                item.getQuantity(),
+                item.getUnit(),
+                item.getChecked(),
+                item.getPosition(),
+                item.getVersion()
+        );
     }
 
     @Transactional
-    void deleteById(UUID id, String userEmail, Long expectedVersion) {
+    void deleteById(UUID id, String userEmail) {
         log.debug("Deleting shopping list with id: {} for user: {}", id, userEmail);
 
-        ShoppingList shoppingList = shoppingListRepository.findById(id)
-                .orElseThrow(() -> new ShoppingListNotFoundException(id));
+        // Check if shopping list exists first (404 if not found)
+        if (!shoppingListRepository.existsById(id)) {
+            throw new ShoppingListNotFoundException(id);
+        }
 
         // Check user permission (403 if no permission)
         UserRole userRole = shoppingListPermissionRepository.getUserRole(userEmail, id)
@@ -98,11 +102,6 @@ class ShoppingListService {
             throw new ShoppingListAccessDeniedException(id);
         }
 
-        // Version check (optimistic lock)
-        if (!shoppingList.getVersion().equals(expectedVersion)) {
-            throw new ShoppingListPreconditionFailedException(id);
-        }
-
         // Delete permissions first (items cascade automatically via DB constraint)
         shoppingListPermissionRepository.deleteAllByShoppingListId(id);
 
@@ -110,11 +109,10 @@ class ShoppingListService {
         shoppingListRepository.deleteById(id);
     }
 
-    @Transactional
-    ShoppingListListDto updateById(UUID id, UpdateShoppingListRequest request, String userEmail, Long expectedVersion) {
+    ShoppingListListDto updateById(UUID id, UpdateShoppingListRequest request, String userEmail) {
         log.debug("Updating shopping list with id: {} for user: {}", id, userEmail);
 
-        // Fetch entity for optimistic locking
+        // Check if shopping list exists first (404 if not found)
         ShoppingList shoppingList = shoppingListRepository.findById(id)
                 .orElseThrow(() -> new ShoppingListNotFoundException(id));
 
@@ -127,20 +125,12 @@ class ShoppingListService {
             throw new ShoppingListAccessDeniedException(id);
         }
 
-        // Version check (optimistic lock)
-        if (!shoppingList.getVersion().equals(expectedVersion)) {
-            throw new ShoppingListPreconditionFailedException(id);
-        }
-
         // Update name
         shoppingList.setName(request.name());
 
-        // Save and flush to detect concurrent modifications
-        try {
-            ShoppingList savedList = shoppingListRepository.saveAndFlush(shoppingList);
-            return new ShoppingListListDto(savedList.getId(), savedList.getName(), savedList.getVersion());
-        } catch (OptimisticLockingFailureException e) {
-            throw new ShoppingListPreconditionFailedException(id, e);
-        }
+        // Save and return simple DTO (id and name only)
+        ShoppingList savedList = shoppingListRepository.save(shoppingList);
+
+        return new ShoppingListListDto(savedList.getId(), savedList.getName());
     }
 }

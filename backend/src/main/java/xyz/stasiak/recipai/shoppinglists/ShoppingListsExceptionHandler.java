@@ -27,14 +27,4 @@ class ShoppingListsExceptionHandler {
         problemDetail.setTitle("Shopping List Access Denied");
         return problemDetail;
     }
-
-    @ExceptionHandler(ShoppingListPreconditionFailedException.class)
-    public ProblemDetail handleShoppingListPreconditionFailed(ShoppingListPreconditionFailedException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.PRECONDITION_FAILED,
-                ex.getMessage()
-        );
-        problemDetail.setTitle("Shopping List Precondition Failed");
-        return problemDetail;
-    }
 }

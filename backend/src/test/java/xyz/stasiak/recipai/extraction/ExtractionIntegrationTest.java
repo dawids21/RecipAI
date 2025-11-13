@@ -34,14 +34,13 @@ class ExtractionIntegrationTest {
 
     @Test
     void shouldExtractRecipeFromText() throws Exception {
-        RestClient client = restClient();
         ClassPathResource textResource = new ClassPathResource("recipe_sources/kwestia_smaku.txt");
         String content = loadResourceContent(textResource);
-
+        
         ExtractTextRequest request = new ExtractTextRequest(content);
 
         // Extract recipe from text
-        ExtractedRecipe extractedRecipe = client
+        ExtractedRecipe extractedRecipe = restClient()
                 .post()
                 .uri("/extract/text")
                 .body(request)
@@ -56,7 +55,6 @@ class ExtractionIntegrationTest {
 
     @Test
     void shouldExtractRecipeFromImage() throws Exception {
-        RestClient client = restClient();
         ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
 
         // Prepare multipart request
@@ -64,7 +62,7 @@ class ExtractionIntegrationTest {
         parts.add("file", imageResource);
 
         // Extract recipe from image
-        ExtractedRecipe extractedRecipe = client
+        ExtractedRecipe extractedRecipe = restClient()
                 .post()
                 .uri("/extract/image")
                 .body(parts)
