@@ -47,12 +47,16 @@ backend/
 │   │   ├── ShoppingListItemRepository.java # Shopping list item data access
 │   │   ├── ShoppingListService.java     # Shopping list business logic with permission checks
 │   │   ├── ShoppingListController.java  # Shopping list REST endpoints with JWT authentication
-│   │   ├── ShoppingListListDto.java     # Shopping list list response DTO
-│   │   ├── ShoppingListDto.java         # Shopping list detail response DTO with items
-│   │   ├── ShoppingListItemDto.java     # Shopping list item DTO
-│   │   ├── CreateShoppingListRequest.java # Create shopping list request DTO
-│   │   ├── ShoppingListNotFoundException.java # Shopping list not found exception
-│   │   └── ShoppingListsExceptionHandler.java # Exception handling with ProblemDetail
+│   │   ├── ShoppingListsExceptionHandler.java # Exception handling with ProblemDetail
+│   │   ├── dto/                         # Data Transfer Objects
+│   │   │   ├── ShoppingListListDto.java     # Shopping list list response DTO
+│   │   │   ├── ShoppingListDto.java         # Shopping list detail response DTO with items
+│   │   │   ├── ShoppingListItemDto.java     # Shopping list item DTO
+│   │   │   ├── CreateShoppingListRequest.java # Create shopping list request DTO
+│   │   │   └── UpdateShoppingListRequest.java # Update shopping list request DTO
+│   │   └── exception/                   # Custom exceptions
+│   │       ├── ShoppingListNotFoundException.java # Shopping list not found exception
+│   │       └── ShoppingListAccessDeniedException.java # Access denied exception
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/

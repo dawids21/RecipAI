@@ -8,6 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import xyz.stasiak.recipai.shoppinglists.dto.CreateShoppingListRequest;
+import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListDto;
+import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListListDto;
+import xyz.stasiak.recipai.shoppinglists.dto.UpdateShoppingListRequest;
 
 import java.util.List;
 import java.util.UUID;

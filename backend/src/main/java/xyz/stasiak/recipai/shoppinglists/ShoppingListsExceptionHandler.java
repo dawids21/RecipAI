@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
+import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
 @ControllerAdvice
 class ShoppingListsExceptionHandler {

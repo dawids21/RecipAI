@@ -4,6 +4,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.shoppinglists.dto.*;
+import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
+import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
 import java.util.List;
 import java.util.UUID;

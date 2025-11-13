@@ -1,6 +1,6 @@
 package xyz.stasiak.recipai.shoppinglists;
 
-enum UserRole {
+public enum UserRole {
     OWNER,
     EDITOR
 }

@@ -9,6 +9,10 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.shoppinglists.dto.CreateShoppingListRequest;
+import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListDto;
+import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListListDto;
+import xyz.stasiak.recipai.shoppinglists.dto.UpdateShoppingListRequest;
 
 import java.util.List;
 import java.util.UUID;
