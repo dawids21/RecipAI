@@ -4,14 +4,12 @@ import 'shopping_list_item.dart';
 class ShoppingListDetail {
   final String id;
   final String name;
-  final int version;
   final List<ShoppingListItem> items;
   final UserRole role;
 
   const ShoppingListDetail({
     required this.id,
     required this.name,
-    required this.version,
     required this.items,
     required this.role,
   });
@@ -28,7 +26,6 @@ class ShoppingListDetail {
     return ShoppingListDetail(
       id: json['id'] as String,
       name: json['name'] as String,
-      version: json['version'] as int,
       items: items,
       role: UserRole.fromApiString(json['role'] as String),
     );
@@ -38,7 +35,6 @@ class ShoppingListDetail {
     return {
       'id': id,
       'name': name,
-      'version': version,
       'items': items.map((item) => item.toJson()).toList(),
       'role': role.toApiString(),
     };

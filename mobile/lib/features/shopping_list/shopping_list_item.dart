@@ -5,6 +5,7 @@ class ShoppingListItem {
   final String? unit;
   final bool checked;
   final int position;
+  final int version;
 
   const ShoppingListItem({
     required this.id,
@@ -13,6 +14,7 @@ class ShoppingListItem {
     required this.unit,
     required this.checked,
     required this.position,
+    required this.version,
   });
 
   factory ShoppingListItem.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class ShoppingListItem {
       unit: json['unit'] as String?,
       checked: json['checked'] as bool,
       position: json['position'] as int,
+      version: json['version'] as int,
     );
   }
 
@@ -34,6 +37,7 @@ class ShoppingListItem {
       'unit': unit,
       'checked': checked,
       'position': position,
+      'version': version,
     };
   }
 }

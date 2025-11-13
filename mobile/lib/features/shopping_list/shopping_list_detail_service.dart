@@ -43,19 +43,12 @@ class ShoppingListDetailService {
   }
 
   Future<void> renameShoppingList(String id, String newName) async {
-    if (_isLoadShoppingListDetailRunning || _isRenameRunning) return;
+    if (_isRenameRunning) return;
     _isRenameRunning = true;
 
     try {
-      final currentDetail = _shoppingListDetail.value.valueOrThrow;
-      final version = currentDetail.version;
       final token = await _authService.idToken;
-      await _shoppingListRepository.updateShoppingList(
-        id,
-        newName,
-        version,
-        token,
-      );
+      await _shoppingListRepository.updateShoppingList(id, newName, token);
       await loadShoppingListDetail(id);
       await _shoppingListListService.loadShoppingLists();
     } finally {
@@ -64,14 +57,12 @@ class ShoppingListDetailService {
   }
 
   Future<void> deleteShoppingList(String id) async {
-    if (_isLoadShoppingListDetailRunning || _isDeleteRunning) return;
+    if (_isDeleteRunning) return;
     _isDeleteRunning = true;
 
     try {
-      final currentDetail = _shoppingListDetail.value.valueOrThrow;
-      final version = currentDetail.version;
       final token = await _authService.idToken;
-      await _shoppingListRepository.deleteShoppingList(id, version, token);
+      await _shoppingListRepository.deleteShoppingList(id, token);
       await _shoppingListListService.loadShoppingLists();
     } finally {
       _isDeleteRunning = false;
