@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists;
+package xyz.stasiak.recipai.shoppinglists.permissions;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

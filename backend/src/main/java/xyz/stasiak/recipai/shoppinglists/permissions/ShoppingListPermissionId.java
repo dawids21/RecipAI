@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists;
+package xyz.stasiak.recipai.shoppinglists.permissions;
 
 import jakarta.persistence.Embeddable;
 

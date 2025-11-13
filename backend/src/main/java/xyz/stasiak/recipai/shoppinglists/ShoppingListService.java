@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
+import xyz.stasiak.recipai.shoppinglists.permissions.ShoppingListPermissionService;
+import xyz.stasiak.recipai.shoppinglists.permissions.UserRole;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +20,7 @@ class ShoppingListService {
 
     private final ShoppingListRepository shoppingListRepository;
     private final ShoppingListItemRepository shoppingListItemRepository;
-    private final ShoppingListPermissionRepository shoppingListPermissionRepository;
+    private final ShoppingListPermissionService permissionService;
 
     List<ShoppingListListDto> findAll(String userEmail) {
         log.debug("Fetching all shopping lists for user: {}", userEmail);
@@ -34,12 +36,8 @@ class ShoppingListService {
         shoppingList.setName(request.name());
         ShoppingList savedList = shoppingListRepository.save(shoppingList);
 
-        // Create ShoppingListPermission association with OWNER role
-        ShoppingListPermission permission = new ShoppingListPermission();
-        ShoppingListPermissionId permissionId = new ShoppingListPermissionId(userEmail, savedList.getId());
-        permission.setId(permissionId);
-        permission.setRole(UserRole.OWNER);
-        shoppingListPermissionRepository.save(permission);
+        // Create OWNER permission for the creator
+        permissionService.addOwnerPermission(userEmail, savedList.getId());
 
         log.debug("Shopping list created with id: {} for user: {}", savedList.getId(), userEmail);
         return toListDto(savedList);
@@ -52,9 +50,11 @@ class ShoppingListService {
         ShoppingList shoppingList = shoppingListRepository.findById(id)
                 .orElseThrow(() -> new ShoppingListNotFoundException(id));
 
-        // Check user permission (403 if no permission)
-        UserRole role = shoppingListPermissionRepository.getUserRole(userEmail, id)
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
+        // Check user permission (403 if no permission or insufficient role)
+        if (!permissionService.checkEditorOrOwnerPermission(userEmail, id)) {
+            throw new ShoppingListAccessDeniedException(id);
+        }
+        UserRole role = permissionService.getUserRole(userEmail, id).orElseThrow();
 
         // Fetch items and build DTO
         List<ShoppingListItem> items = shoppingListItemRepository
@@ -96,17 +96,13 @@ class ShoppingListService {
             throw new ShoppingListNotFoundException(id);
         }
 
-        // Check user permission (403 if no permission)
-        UserRole userRole = shoppingListPermissionRepository.getUserRole(userEmail, id)
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
-
-        // Only OWNER can delete (403 if not OWNER)
-        if (userRole != UserRole.OWNER) {
+        // Check OWNER permission (403 if not OWNER or no permission)
+        if (!permissionService.checkOwnerPermission(userEmail, id)) {
             throw new ShoppingListAccessDeniedException(id);
         }
 
         // Delete permissions first (items cascade automatically via DB constraint)
-        shoppingListPermissionRepository.deleteAllByShoppingListId(id);
+        permissionService.deleteAllPermissions(id);
 
         // Delete the shopping list itself
         shoppingListRepository.deleteById(id);
@@ -119,12 +115,8 @@ class ShoppingListService {
         ShoppingList shoppingList = shoppingListRepository.findById(id)
                 .orElseThrow(() -> new ShoppingListNotFoundException(id));
 
-        // Check user permission (403 if no permission)
-        UserRole userRole = shoppingListPermissionRepository.getUserRole(userEmail, id)
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
-
-        // Both OWNER and EDITOR can update (403 if neither)
-        if (userRole != UserRole.OWNER && userRole != UserRole.EDITOR) {
+        // Check OWNER or EDITOR permission (403 if neither or no permission)
+        if (!permissionService.checkEditorOrOwnerPermission(userEmail, id)) {
             throw new ShoppingListAccessDeniedException(id);
         }
 

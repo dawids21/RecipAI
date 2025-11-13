@@ -2,7 +2,7 @@ package xyz.stasiak.recipai.shoppinglists.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import xyz.stasiak.recipai.shoppinglists.UserRole;
+import xyz.stasiak.recipai.shoppinglists.permissions.UserRole;
 
 import java.util.List;
 import java.util.UUID;

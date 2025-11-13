@@ -5,7 +5,7 @@
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
-- `shoppinglists` - manages shopping lists (basic CRUD operations, no user association in this iteration)
+- `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access)
 
 ## Codebase Structure
 
@@ -38,14 +38,10 @@ backend/
 │   ├── extraction/                      # "extraction" module
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
-│   │   ├── ShoppingListPermission.java  # Shopping list permission association entity
-│   │   ├── ShoppingListPermissionId.java # Composite key for shopping list permissions
-│   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
 │   │   ├── ShoppingListItem.java        # Shopping list item entity
 │   │   ├── ShoppingListRepository.java  # Shopping list data access
-│   │   ├── ShoppingListPermissionRepository.java # Permission queries repository
 │   │   ├── ShoppingListItemRepository.java # Shopping list item data access
-│   │   ├── ShoppingListService.java     # Shopping list business logic with permission checks
+│   │   ├── ShoppingListService.java     # Shopping list business logic with permission delegation
 │   │   ├── ShoppingListController.java  # Shopping list REST endpoints with JWT authentication
 │   │   ├── ShoppingListsExceptionHandler.java # Exception handling with ProblemDetail
 │   │   ├── dto/                         # Data Transfer Objects
@@ -54,9 +50,15 @@ backend/
 │   │   │   ├── ShoppingListItemDto.java     # Shopping list item DTO
 │   │   │   ├── CreateShoppingListRequest.java # Create shopping list request DTO
 │   │   │   └── UpdateShoppingListRequest.java # Update shopping list request DTO
-│   │   └── exception/                   # Custom exceptions
-│   │       ├── ShoppingListNotFoundException.java # Shopping list not found exception
-│   │       └── ShoppingListAccessDeniedException.java # Access denied exception
+│   │   ├── exception/                   # Custom exceptions
+│   │   │   ├── ShoppingListNotFoundException.java # Shopping list not found exception
+│   │   │   └── ShoppingListAccessDeniedException.java # Access denied exception
+│   │   └── permissions/                 # Permission management subpackage
+│   │       ├── UserRole.java                # Enum for OWNER/EDITOR roles (public)
+│   │       ├── ShoppingListPermission.java  # Shopping list permission association entity
+│   │       ├── ShoppingListPermissionId.java # Composite key for shopping list permissions
+│   │       ├── ShoppingListPermissionRepository.java # Permission queries repository
+│   │       └── ShoppingListPermissionService.java # Permission business logic service
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/
