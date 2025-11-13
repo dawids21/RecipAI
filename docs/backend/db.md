@@ -31,7 +31,7 @@
 ### shopping_list_items
 
 - id: UUID PRIMARY KEY
-- shopping_list_id: UUID NOT NULL (FK -> shopping_lists.id)
+- list_id: UUID NOT NULL (FK -> shopping_lists.id)
 - name: VARCHAR(255) NOT NULL
 - quantity: NUMERIC(12,3) NULL
 - unit: VARCHAR(64) NULL
@@ -60,7 +60,7 @@
     - One shopping list can have many items
     - Items are ordered by the `position` field
     - When a shopping list is deleted, all its items are deleted (CASCADE)
-- **shopping_list_items.shopping_list_id** → **shopping_lists.id**: Foreign key relationship with ON DELETE CASCADE
+- **shopping_list_items.list_id** → **shopping_lists.id**: Foreign key relationship with ON DELETE CASCADE
 - **shopping_list_item_checkbox** → **shopping_list_items**: One-to-One relationship
     - Each shopping list item can have one checkbox state record
     - The checkbox state is stored separately from the item to allow independent optimistic locking
