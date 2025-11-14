@@ -4,7 +4,7 @@ class ShoppingListItem {
   final double? quantity;
   final String? unit;
   final bool checked;
-  final int position;
+  final double position;
   final int version;
 
   const ShoppingListItem({
@@ -24,7 +24,7 @@ class ShoppingListItem {
       quantity: json['quantity'] as double?,
       unit: json['unit'] as String?,
       checked: json['checked'] as bool,
-      position: json['position'] as int,
+      position: json['position'] as double,
       version: json['version'] as int,
     );
   }
