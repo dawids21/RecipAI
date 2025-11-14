@@ -356,7 +356,7 @@ class ShoppingListItemIntegrationTest {
 
         // Create multiple items
         CreateShoppingListItemRequest request1 = new CreateShoppingListItemRequest("Apples", BigDecimal.valueOf(5), "pieces");
-        ShoppingListItemDto item1 = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/item")
                 .body(request1)
@@ -364,7 +364,7 @@ class ShoppingListItemIntegrationTest {
                 .body(ShoppingListItemDto.class);
 
         CreateShoppingListItemRequest request2 = new CreateShoppingListItemRequest("Bread", BigDecimal.valueOf(2), "loaves");
-        ShoppingListItemDto item2 = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/item")
                 .body(request2)
@@ -372,7 +372,7 @@ class ShoppingListItemIntegrationTest {
                 .body(ShoppingListItemDto.class);
 
         CreateShoppingListItemRequest request3 = new CreateShoppingListItemRequest("Milk", BigDecimal.valueOf(2), "liters");
-        ShoppingListItemDto item3 = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/item")
                 .body(request3)
@@ -404,7 +404,7 @@ class ShoppingListItemIntegrationTest {
 
         // Create three items
         CreateShoppingListItemRequest request1 = new CreateShoppingListItemRequest("Item 1", BigDecimal.ONE, "unit");
-        ShoppingListItemDto item1 = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/item")
                 .body(request1)
@@ -419,8 +419,10 @@ class ShoppingListItemIntegrationTest {
                 .retrieve()
                 .body(ShoppingListItemDto.class);
 
+        assertThat(item2).isNotNull();
+
         CreateShoppingListItemRequest request3 = new CreateShoppingListItemRequest("Item 3", BigDecimal.ONE, "unit");
-        ShoppingListItemDto item3 = client
+        client
                 .post()
                 .uri("/shopping-lists/" + list.id() + "/item")
                 .body(request3)
@@ -443,6 +445,7 @@ class ShoppingListItemIntegrationTest {
                 .retrieve()
                 .body(ShoppingListItemDto.class);
 
+        assertThat(item4).isNotNull();
         assertThat(item4.position()).isEqualByComparingTo(BigDecimal.valueOf(4.0));
 
         // Verify list contains items 1, 3, 4 (not 2)
@@ -491,6 +494,8 @@ class ShoppingListItemIntegrationTest {
                 .body(itemRequest)
                 .retrieve()
                 .body(ShoppingListItemDto.class);
+
+        assertThat(createdItem).isNotNull();
 
         // Delete and verify 204 No Content status
         var response = client
