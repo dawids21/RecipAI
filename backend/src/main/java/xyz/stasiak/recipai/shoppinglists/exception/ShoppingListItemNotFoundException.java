@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists.items.exception;
+package xyz.stasiak.recipai.shoppinglists.exception;
 
 import java.util.UUID;
 

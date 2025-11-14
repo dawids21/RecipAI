@@ -1,10 +1,7 @@
-package xyz.stasiak.recipai.shoppinglists.permissions;
+package xyz.stasiak.recipai.shoppinglists;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.Objects;
 
@@ -13,7 +10,8 @@ import java.util.Objects;
 @Getter
 @Setter
 @ToString
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 class ShoppingListPermission {
 
     @EmbeddedId
@@ -22,6 +20,14 @@ class ShoppingListPermission {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
+
+    boolean hasOwnerRights() {
+        return role == UserRole.OWNER;
+    }
+
+    boolean hasEditorRights() {
+        return hasOwnerRights() || role == UserRole.EDITOR;
+    }
 
     @Override
     public boolean equals(Object o) {

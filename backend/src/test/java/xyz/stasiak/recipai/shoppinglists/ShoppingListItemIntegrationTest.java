@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists.items;
+package xyz.stasiak.recipai.shoppinglists;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -8,11 +8,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.shoppinglists.dto.CreateShoppingListRequest;
-import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListDto;
-import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListListDto;
-import xyz.stasiak.recipai.shoppinglists.items.dto.CreateShoppingListItemRequest;
-import xyz.stasiak.recipai.shoppinglists.items.dto.ShoppingListItemDto;
+import xyz.stasiak.recipai.shoppinglists.dto.*;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -57,6 +53,28 @@ class ShoppingListItemIntegrationTest {
                 .body(ShoppingListDto.class);
     }
 
+    private ShoppingListItemDto createShoppingListItem(RestClient client, UUID shoppingListId, String name, BigDecimal quantity, String unit) {
+        CreateShoppingListItemRequest request = new CreateShoppingListItemRequest(name, quantity, unit);
+        return client
+                .post()
+                .uri("/shopping-lists/" + shoppingListId + "/item")
+                .body(request)
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
+    private ShoppingListItemDto createShoppingListItem(RestClient client, UUID shoppingListId, String name) {
+        return createShoppingListItem(client, shoppingListId, name, BigDecimal.ONE, "unit");
+    }
+
+    private void deleteShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId) {
+        client
+                .delete()
+                .uri("/shopping-lists/" + shoppingListId + "/item/" + itemId)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     @Test
     void shouldCreateItemWithEditorPermission() {
         RestClient client = restClient();
@@ -67,13 +85,7 @@ class ShoppingListItemIntegrationTest {
         assertThat(list.id()).isNotNull();
 
         // Create item with valid permissions
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Milk", BigDecimal.TWO, "liters");
-        ShoppingListItemDto createdItem = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(itemRequest)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Milk", BigDecimal.TWO, "liters");
 
         assertThat(createdItem).isNotNull();
         assertThat(createdItem.id()).isNotNull();
@@ -94,25 +106,13 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create first item
-        CreateShoppingListItemRequest request1 = new CreateShoppingListItemRequest("Item 1", BigDecimal.ONE, "unit");
-        ShoppingListItemDto item1 = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request1)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto item1 = createShoppingListItem(client, list.id(), "Item 1");
 
         assertThat(item1).isNotNull();
         assertThat(item1.position()).isEqualByComparingTo(BigDecimal.ONE);
 
         // Create second item - position should be 2.0
-        CreateShoppingListItemRequest request2 = new CreateShoppingListItemRequest("Item 2", BigDecimal.ONE, "unit");
-        ShoppingListItemDto item2 = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request2)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto item2 = createShoppingListItem(client, list.id(), "Item 2");
 
         assertThat(item2).isNotNull();
         assertThat(item2.position()).isEqualByComparingTo(BigDecimal.valueOf(2.0));
@@ -128,15 +128,8 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // User 2 tries to create an item (should get 403 Forbidden)
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Unauthorized Item", BigDecimal.ONE, "unit");
-
         try {
-            user2Client
-                    .post()
-                    .uri("/shopping-lists/" + list.id() + "/item")
-                    .body(itemRequest)
-                    .retrieve()
-                    .body(ShoppingListItemDto.class);
+            createShoppingListItem(user2Client, list.id(), "Unauthorized Item");
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -153,15 +146,8 @@ class ShoppingListItemIntegrationTest {
         // so a non-existent list returns 403 (permission denied) rather than 404
         UUID nonExistentId = UUID.randomUUID();
 
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Item", BigDecimal.ONE, "unit");
-
         try {
-            client
-                    .post()
-                    .uri("/shopping-lists/" + nonExistentId + "/item")
-                    .body(itemRequest)
-                    .retrieve()
-                    .body(ShoppingListItemDto.class);
+            createShoppingListItem(client, nonExistentId, "Item");
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -179,15 +165,8 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Try to create item with blank name (should fail validation)
-        CreateShoppingListItemRequest invalidRequest = new CreateShoppingListItemRequest("", BigDecimal.ONE, "unit");
-
         try {
-            client
-                    .post()
-                    .uri("/shopping-lists/" + list.id() + "/item")
-                    .body(invalidRequest)
-                    .retrieve()
-                    .body(ShoppingListItemDto.class);
+            createShoppingListItem(client, list.id(), "");
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(400);
@@ -204,15 +183,9 @@ class ShoppingListItemIntegrationTest {
 
         // Try to create item with name longer than 255 characters
         String longName = "a".repeat(256);
-        CreateShoppingListItemRequest invalidRequest = new CreateShoppingListItemRequest(longName, BigDecimal.ONE, "unit");
 
         try {
-            client
-                    .post()
-                    .uri("/shopping-lists/" + list.id() + "/item")
-                    .body(invalidRequest)
-                    .retrieve()
-                    .body(ShoppingListItemDto.class);
+            createShoppingListItem(client, list.id(), longName);
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(400);
@@ -228,23 +201,13 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create an item
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Item to Delete", BigDecimal.ONE, "unit");
-        ShoppingListItemDto createdItem = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(itemRequest)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item to Delete");
 
         assertThat(createdItem).isNotNull();
         assertThat(createdItem.id()).isNotNull();
 
         // Delete the item
-        client
-                .delete()
-                .uri("/shopping-lists/" + list.id() + "/item/" + createdItem.id())
-                .retrieve()
-                .toBodilessEntity();
+        deleteShoppingListItem(client, list.id(), createdItem.id());
 
         // Verify item is deleted by checking the shopping list
         ShoppingListDto updatedList = getShoppingList(client, list.id());
@@ -262,23 +225,13 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create an item with user 1
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Protected Item", BigDecimal.ONE, "unit");
-        ShoppingListItemDto createdItem = user1Client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(itemRequest)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto createdItem = createShoppingListItem(user1Client, list.id(), "Protected Item");
 
         assertThat(createdItem).isNotNull();
 
         // User 2 tries to delete the item (should get 403 Forbidden)
         try {
-            user2Client
-                    .delete()
-                    .uri("/shopping-lists/" + list.id() + "/item/" + createdItem.id())
-                    .retrieve()
-                    .toBodilessEntity();
+            deleteShoppingListItem(user2Client, list.id(), createdItem.id());
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -297,11 +250,7 @@ class ShoppingListItemIntegrationTest {
 
         // Try to delete non-existent item (should get 404)
         try {
-            client
-                    .delete()
-                    .uri("/shopping-lists/" + list.id() + "/item/" + nonExistentItemId)
-                    .retrieve()
-                    .toBodilessEntity();
+            deleteShoppingListItem(client, list.id(), nonExistentItemId);
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -323,23 +272,13 @@ class ShoppingListItemIntegrationTest {
         assertThat(list2).isNotNull();
 
         // Create an item in list 1
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Item in List 1", BigDecimal.ONE, "unit");
-        ShoppingListItemDto createdItem = client
-                .post()
-                .uri("/shopping-lists/" + list1.id() + "/item")
-                .body(itemRequest)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list1.id(), "Item in List 1");
 
         assertThat(createdItem).isNotNull();
 
         // Try to delete the item from list 2 (should get 404)
         try {
-            client
-                    .delete()
-                    .uri("/shopping-lists/" + list2.id() + "/item/" + createdItem.id())
-                    .retrieve()
-                    .toBodilessEntity();
+            deleteShoppingListItem(client, list2.id(), createdItem.id());
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -355,29 +294,9 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create multiple items
-        CreateShoppingListItemRequest request1 = new CreateShoppingListItemRequest("Apples", BigDecimal.valueOf(5), "pieces");
-        client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request1)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
-
-        CreateShoppingListItemRequest request2 = new CreateShoppingListItemRequest("Bread", BigDecimal.valueOf(2), "loaves");
-        client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request2)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
-
-        CreateShoppingListItemRequest request3 = new CreateShoppingListItemRequest("Milk", BigDecimal.valueOf(2), "liters");
-        client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request3)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        createShoppingListItem(client, list.id(), "Apples", BigDecimal.valueOf(5), "pieces");
+        createShoppingListItem(client, list.id(), "Bread", BigDecimal.valueOf(2), "loaves");
+        createShoppingListItem(client, list.id(), "Milk", BigDecimal.valueOf(2), "liters");
 
         // Retrieve the shopping list and verify all items are present and in order
         ShoppingListDto updatedList = getShoppingList(client, list.id());
@@ -403,47 +322,19 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create three items
-        CreateShoppingListItemRequest request1 = new CreateShoppingListItemRequest("Item 1", BigDecimal.ONE, "unit");
-        client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request1)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        createShoppingListItem(client, list.id(), "Item 1");
 
-        CreateShoppingListItemRequest request2 = new CreateShoppingListItemRequest("Item 2", BigDecimal.ONE, "unit");
-        ShoppingListItemDto item2 = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request2)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto item2 = createShoppingListItem(client, list.id(), "Item 2");
 
         assertThat(item2).isNotNull();
 
-        CreateShoppingListItemRequest request3 = new CreateShoppingListItemRequest("Item 3", BigDecimal.ONE, "unit");
-        client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request3)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        createShoppingListItem(client, list.id(), "Item 3");
 
         // Delete item 2
-        client
-                .delete()
-                .uri("/shopping-lists/" + list.id() + "/item/" + item2.id())
-                .retrieve()
-                .toBodilessEntity();
+        deleteShoppingListItem(client, list.id(), item2.id());
 
         // Create a new item - should get position 4.0 (max was 3.0)
-        CreateShoppingListItemRequest request4 = new CreateShoppingListItemRequest("Item 4", BigDecimal.ONE, "unit");
-        ShoppingListItemDto item4 = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(request4)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto item4 = createShoppingListItem(client, list.id(), "Item 4");
 
         assertThat(item4).isNotNull();
         assertThat(item4.position()).isEqualByComparingTo(BigDecimal.valueOf(4.0));
@@ -487,13 +378,7 @@ class ShoppingListItemIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create an item
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Item to Delete", BigDecimal.ONE, "unit");
-        ShoppingListItemDto createdItem = client
-                .post()
-                .uri("/shopping-lists/" + list.id() + "/item")
-                .body(itemRequest)
-                .retrieve()
-                .body(ShoppingListItemDto.class);
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item to Delete");
 
         assertThat(createdItem).isNotNull();
 

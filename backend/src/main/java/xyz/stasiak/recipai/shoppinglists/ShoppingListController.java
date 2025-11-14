@@ -8,10 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import xyz.stasiak.recipai.shoppinglists.dto.CreateShoppingListRequest;
-import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListDto;
-import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListListDto;
-import xyz.stasiak.recipai.shoppinglists.dto.UpdateShoppingListRequest;
+import xyz.stasiak.recipai.shoppinglists.dto.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -63,5 +60,33 @@ class ShoppingListController {
         log.debug("Updating shopping list with id: {} for user: {}", id, userEmail);
         ShoppingListListDto updatedList = shoppingListService.updateById(id, request, userEmail);
         return ResponseEntity.ok(updatedList);
+    }
+
+    @PostMapping("/{shopping_list_id}/item")
+    ResponseEntity<ShoppingListItemDto> createItem(
+            @PathVariable("shopping_list_id") UUID shoppingListId,
+            @Valid @RequestBody CreateShoppingListItemRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Creating item for shopping list {} by user {}", shoppingListId, userEmail);
+
+        ShoppingListItemDto dto = shoppingListService.createItem(shoppingListId, request, userEmail);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    @DeleteMapping("/{shopping_list_id}/item/{id}")
+    ResponseEntity<Void> deleteItem(
+            @PathVariable("shopping_list_id") UUID shoppingListId,
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Deleting item {} from shopping list {} by user {}", id, shoppingListId, userEmail);
+
+        shoppingListService.deleteItem(shoppingListId, id, userEmail);
+
+        return ResponseEntity.noContent().build();
     }
 }

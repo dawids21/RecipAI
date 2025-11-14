@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists.items.dto;
+package xyz.stasiak.recipai.shoppinglists.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

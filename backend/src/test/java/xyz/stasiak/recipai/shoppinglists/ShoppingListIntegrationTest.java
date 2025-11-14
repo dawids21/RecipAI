@@ -13,7 +13,6 @@ import xyz.stasiak.recipai.shoppinglists.dto.CreateShoppingListRequest;
 import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListDto;
 import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListListDto;
 import xyz.stasiak.recipai.shoppinglists.dto.UpdateShoppingListRequest;
-import xyz.stasiak.recipai.shoppinglists.permissions.UserRole;
 
 import java.util.List;
 import java.util.UUID;

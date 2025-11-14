@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists.items;
+package xyz.stasiak.recipai.shoppinglists;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -45,6 +45,15 @@ class ShoppingListItem {
     @Version
     @Column(nullable = false)
     private Long version;
+
+    ShoppingListItem(UUID shoppingListId, String name, BigDecimal quantity, String unit, BigDecimal position) {
+        this.shoppingListId = shoppingListId;
+        this.name = name;
+        this.quantity = quantity;
+        this.unit = unit;
+        this.position = position;
+        this.checked = false;
+    }
 
     @Override
     public boolean equals(Object o) {
