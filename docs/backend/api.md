@@ -357,7 +357,7 @@
             "quantity": 2.0,
             "unit": "liters",
             "checked": false,
-            "position": 1,
+            "position": 1.0,
             "version": 0
           },
           {
@@ -366,7 +366,7 @@
             "quantity": null,
             "unit": null,
             "checked": true,
-            "position": 2,
+            "position": 2.0,
             "version": 0
           }
         ],
@@ -429,3 +429,47 @@
     - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
     - Note: Deletes the shopping list, all items (via database CASCADE), and all permissions. Only OWNER role can
       delete.
+- POST /shopping-lists/{shopping_list_id}/item
+    - Description: Create a new item in a shopping list (position is calculated automatically)
+    - Authenticated: true
+    - Path parameters:
+        - `shopping_list_id` (UUID): Shopping list ID
+    - Roles: OWNER and EDITOR can create items
+    - Request body:
+      ```json
+      {
+        "name": "Milk",
+        "quantity": 2.0,
+        "unit": "liters"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440010",
+        "name": "Milk",
+        "quantity": 2.0,
+        "unit": "liters",
+        "checked": false,
+        "position": 1.0,
+        "version": 0
+      }
+      ```
+    - Success: 201 Created
+    - Errors: 400 Bad Request (validation error), 401 Unauthorized, 403 Forbidden (user lacks EDITOR/OWNER permission),
+      404 Not Found (shopping list doesn't exist)
+    - Note: Position is calculated automatically (always appended at end). The `quantity` and `unit` fields are optional
+      and can be null.
+- DELETE /shopping-lists/{shopping_list_id}/item/{id}
+    - Description: Delete an item from a shopping list
+    - Authenticated: true
+    - Path parameters:
+        - `shopping_list_id` (UUID): Shopping list ID
+        - `id` (UUID): Item ID
+    - Roles: OWNER and EDITOR can delete items
+    - Example response: No content
+    - Success: 204 No Content
+    - Errors: 401 Unauthorized, 403 Forbidden (user lacks EDITOR/OWNER permission), 404 Not Found (item not found or
+      doesn't belong to the shopping list)
+    - Note: EDITOR role is sufficient to delete items. Deleting an item does not renumber remaining items (gaps are
+      allowed in positions).

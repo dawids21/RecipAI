@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists;
+package xyz.stasiak.recipai.shoppinglists.items;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -11,7 +11,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "shopping_list_items")
+@Table(name = "shopping_list_items", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_shopping_list_items_list_position", columnNames = {"shopping_list_id", "position"})
+})
 @Getter
 @Setter
 @ToString
@@ -22,8 +24,8 @@ class ShoppingListItem {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "list_id", nullable = false)
-    private UUID listId;
+    @Column(name = "shopping_list_id", nullable = false)
+    private UUID shoppingListId;
 
     @Column(nullable = false)
     private String name;
@@ -37,8 +39,8 @@ class ShoppingListItem {
     @Column(nullable = false)
     private Boolean checked = false;
 
-    @Column(nullable = false)
-    private Integer position;
+    @Column(precision = 15, scale = 6, nullable = false)
+    private BigDecimal position;
 
     @Version
     @Column(nullable = false)

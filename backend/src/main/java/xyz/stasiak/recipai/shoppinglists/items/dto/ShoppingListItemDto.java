@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.shoppinglists.dto;
+package xyz.stasiak.recipai.shoppinglists.items.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +13,7 @@ public record ShoppingListItemDto(
         BigDecimal quantity,
         @Size(max = 64) String unit,
         @NotNull Boolean checked,
-        @NotNull Integer position,
+        @NotNull BigDecimal position,
         @NotNull Long version
 ) {
 }

@@ -4,9 +4,14 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import xyz.stasiak.recipai.shoppinglists.dto.*;
+import xyz.stasiak.recipai.shoppinglists.dto.CreateShoppingListRequest;
+import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListDto;
+import xyz.stasiak.recipai.shoppinglists.dto.ShoppingListListDto;
+import xyz.stasiak.recipai.shoppinglists.dto.UpdateShoppingListRequest;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
+import xyz.stasiak.recipai.shoppinglists.items.ShoppingListItemService;
+import xyz.stasiak.recipai.shoppinglists.items.dto.ShoppingListItemDto;
 import xyz.stasiak.recipai.shoppinglists.permissions.ShoppingListPermissionService;
 import xyz.stasiak.recipai.shoppinglists.permissions.UserRole;
 
@@ -19,7 +24,7 @@ import java.util.UUID;
 class ShoppingListService {
 
     private final ShoppingListRepository shoppingListRepository;
-    private final ShoppingListItemRepository shoppingListItemRepository;
+    private final ShoppingListItemService shoppingListItemService;
     private final ShoppingListPermissionService permissionService;
 
     List<ShoppingListListDto> findAll(String userEmail) {
@@ -56,35 +61,14 @@ class ShoppingListService {
         }
         UserRole role = permissionService.getUserRole(userEmail, id).orElseThrow();
 
-        // Fetch items and build DTO
-        List<ShoppingListItem> items = shoppingListItemRepository
-                .findByListIdOrderByPositionAsc(shoppingList.getId());
+        // Fetch items using ShoppingListItemService
+        List<ShoppingListItemDto> items = shoppingListItemService.findItemsForShoppingList(id);
 
-        return toDto(shoppingList, items, role);
+        return new ShoppingListDto(shoppingList.getId(), shoppingList.getName(), items, role);
     }
 
     private ShoppingListListDto toListDto(ShoppingList list) {
         return new ShoppingListListDto(list.getId(), list.getName());
-    }
-
-    private ShoppingListDto toDto(ShoppingList list, List<ShoppingListItem> items, UserRole role) {
-        List<ShoppingListItemDto> itemDtos = items.stream()
-                .map(this::toItemDto)
-                .toList();
-
-        return new ShoppingListDto(list.getId(), list.getName(), itemDtos, role);
-    }
-
-    private ShoppingListItemDto toItemDto(ShoppingListItem item) {
-        return new ShoppingListItemDto(
-                item.getId(),
-                item.getName(),
-                item.getQuantity(),
-                item.getUnit(),
-                item.getChecked(),
-                item.getPosition(),
-                item.getVersion()
-        );
     }
 
     @Transactional

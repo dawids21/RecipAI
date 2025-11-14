@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
+import xyz.stasiak.recipai.shoppinglists.items.exception.ShoppingListItemNotFoundException;
 
 @ControllerAdvice
 class ShoppingListsExceptionHandler {
@@ -27,6 +28,16 @@ class ShoppingListsExceptionHandler {
                 ex.getMessage()
         );
         problemDetail.setTitle("Shopping List Access Denied");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ShoppingListItemNotFoundException.class)
+    public ProblemDetail handleShoppingListItemNotFound(ShoppingListItemNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage()
+        );
+        problemDetail.setTitle("Shopping List Item Not Found");
         return problemDetail;
     }
 }

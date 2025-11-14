@@ -38,27 +38,34 @@ backend/
 │   ├── extraction/                      # "extraction" module
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
-│   │   ├── ShoppingListItem.java        # Shopping list item entity
 │   │   ├── ShoppingListRepository.java  # Shopping list data access
-│   │   ├── ShoppingListItemRepository.java # Shopping list item data access
-│   │   ├── ShoppingListService.java     # Shopping list business logic with permission delegation
+│   │   ├── ShoppingListService.java     # Shopping list business logic
 │   │   ├── ShoppingListController.java  # Shopping list REST endpoints with JWT authentication
 │   │   ├── ShoppingListsExceptionHandler.java # Exception handling with ProblemDetail
 │   │   ├── dto/                         # Data Transfer Objects
 │   │   │   ├── ShoppingListListDto.java     # Shopping list list response DTO
 │   │   │   ├── ShoppingListDto.java         # Shopping list detail response DTO with items
-│   │   │   ├── ShoppingListItemDto.java     # Shopping list item DTO
 │   │   │   ├── CreateShoppingListRequest.java # Create shopping list request DTO
 │   │   │   └── UpdateShoppingListRequest.java # Update shopping list request DTO
 │   │   ├── exception/                   # Custom exceptions
 │   │   │   ├── ShoppingListNotFoundException.java # Shopping list not found exception
 │   │   │   └── ShoppingListAccessDeniedException.java # Access denied exception
+│   │   ├── items/                       # Shopping list items submodule
+│   │   │   ├── ShoppingListItem.java        # Shopping list item entity (package-private)
+│   │   │   ├── ShoppingListItemRepository.java # Shopping list item data access (package-private)
+│   │   │   ├── ShoppingListItemService.java    # Shopping list item business logic (public, used by parent module)
+│   │   │   ├── ShoppingListItemController.java # Shopping list item REST endpoints with JWT (package-private)
+│   │   │   ├── dto/                         # Item DTOs
+│   │   │   │   ├── ShoppingListItemDto.java # Shopping list item response DTO (public)
+│   │   │   │   └── CreateShoppingListItemRequest.java # Create item request DTO (public)
+│   │   │   └── exception/                   # Item-specific exceptions
+│   │   │       └── ShoppingListItemNotFoundException.java # Item not found exception (public)
 │   │   └── permissions/                 # Permission management subpackage
 │   │       ├── UserRole.java                # Enum for OWNER/EDITOR roles (public)
 │   │       ├── ShoppingListPermission.java  # Shopping list permission association entity
 │   │       ├── ShoppingListPermissionId.java # Composite key for shopping list permissions
 │   │       ├── ShoppingListPermissionRepository.java # Permission queries repository
-│   │       └── ShoppingListPermissionService.java # Permission business logic service
+│   │       └── ShoppingListPermissionService.java # Permission business logic service (public)
 │   └── security/                        # "security" module
 │       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/
