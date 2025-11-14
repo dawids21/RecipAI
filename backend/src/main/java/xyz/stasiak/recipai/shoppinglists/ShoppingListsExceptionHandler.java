@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListItemNotFoundException;
+import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListItemVersionMismatchException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
 @ControllerAdvice
@@ -38,6 +39,16 @@ class ShoppingListsExceptionHandler {
                 ex.getMessage()
         );
         problemDetail.setTitle("Shopping List Item Not Found");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ShoppingListItemVersionMismatchException.class)
+    public ProblemDetail handleShoppingListItemVersionMismatch(ShoppingListItemVersionMismatchException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.PRECONDITION_FAILED,
+                ex.getMessage()
+        );
+        problemDetail.setTitle("Shopping List Item Version Mismatch");
         return problemDetail;
     }
 }

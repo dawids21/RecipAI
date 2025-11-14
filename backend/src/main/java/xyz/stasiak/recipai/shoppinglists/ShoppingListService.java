@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListItemNotFoundException;
+import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListItemVersionMismatchException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
 import java.math.BigDecimal;
@@ -134,8 +135,9 @@ class ShoppingListService {
     }
 
     @Transactional
-    void deleteItem(UUID shoppingListId, UUID itemId, String userEmail) {
-        log.debug("Deleting item {} from shopping list {} by user {}", itemId, shoppingListId, userEmail);
+    void deleteItem(UUID shoppingListId, UUID itemId, Long expectedVersion, String userEmail) {
+        log.debug("Deleting item {} from shopping list {} by user {} with expected version {}",
+                itemId, shoppingListId, userEmail, expectedVersion);
 
         ShoppingListItem item = shoppingListItemRepository.findById(itemId)
                 .orElseThrow(() -> new ShoppingListItemNotFoundException(itemId));
@@ -149,6 +151,10 @@ class ShoppingListService {
 
         if (!permission.hasEditorRights()) {
             throw new ShoppingListAccessDeniedException(shoppingListId);
+        }
+
+        if (!item.getVersion().equals(expectedVersion)) {
+            throw new ShoppingListItemVersionMismatchException(itemId, expectedVersion, item.getVersion());
         }
 
         shoppingListItemRepository.deleteById(itemId);

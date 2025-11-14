@@ -80,12 +80,13 @@ class ShoppingListController {
     ResponseEntity<Void> deleteItem(
             @PathVariable("shopping_list_id") UUID shoppingListId,
             @PathVariable UUID id,
+            @RequestHeader("If-Match") Long version,
             @AuthenticationPrincipal Jwt jwt) {
 
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Deleting item {} from shopping list {} by user {}", id, shoppingListId, userEmail);
+        log.debug("Deleting item {} from shopping list {} by user {} with version {}", id, shoppingListId, userEmail, version);
 
-        shoppingListService.deleteItem(shoppingListId, id, userEmail);
+        shoppingListService.deleteItem(shoppingListId, id, version, userEmail);
 
         return ResponseEntity.noContent().build();
     }

@@ -466,10 +466,16 @@
     - Path parameters:
         - `shopping_list_id` (UUID): Shopping list ID
         - `id` (UUID): Item ID
+  - Headers:
+      - `If-Match` (required): Version number of the item (obtained from GET request)
     - Roles: OWNER and EDITOR can delete items
     - Example response: No content
     - Success: 204 No Content
-    - Errors: 401 Unauthorized, 403 Forbidden (user lacks EDITOR/OWNER permission), 404 Not Found (item not found or
-      doesn't belong to the shopping list)
+  - Errors:
+      - 401 Unauthorized
+      - 403 Forbidden (user lacks EDITOR/OWNER permission)
+      - 404 Not Found (item not found or doesn't belong to the shopping list)
+      - 412 Precondition Failed (version mismatch - item was modified by another user)
     - Note: EDITOR role is sufficient to delete items. Deleting an item does not renumber remaining items (gaps are
-      allowed in positions).
+      allowed in positions). The `If-Match` header must contain the current version of the item to prevent concurrent
+      modification conflicts.

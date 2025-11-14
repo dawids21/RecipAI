@@ -96,10 +96,11 @@ class ShoppingListIntegrationTest {
         return createShoppingListItem(client, shoppingListId, name, BigDecimal.ONE, "unit");
     }
 
-    private void deleteShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId) {
+    private void deleteShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId, Long version) {
         client
                 .delete()
                 .uri("/shopping-lists/" + shoppingListId + "/item/" + itemId)
+                .header("If-Match", version.toString())
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -460,7 +461,7 @@ class ShoppingListIntegrationTest {
         assertThat(createdItem.id()).isNotNull();
 
         // Delete the item
-        deleteShoppingListItem(client, list.id(), createdItem.id());
+        deleteShoppingListItem(client, list.id(), createdItem.id(), createdItem.version());
 
         // Verify item is deleted by checking the shopping list
         ShoppingListDto updatedList = getShoppingList(client, list.id());
@@ -484,7 +485,7 @@ class ShoppingListIntegrationTest {
 
         // User 2 tries to delete the item (should get 403 Forbidden)
         try {
-            deleteShoppingListItem(user2Client, list.id(), createdItem.id());
+            deleteShoppingListItem(user2Client, list.id(), createdItem.id(), createdItem.version());
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -503,7 +504,7 @@ class ShoppingListIntegrationTest {
 
         // Try to delete non-existent item (should get 404)
         try {
-            deleteShoppingListItem(client, list.id(), nonExistentItemId);
+            deleteShoppingListItem(client, list.id(), nonExistentItemId, 0L);
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -531,7 +532,7 @@ class ShoppingListIntegrationTest {
 
         // Try to delete the item from list 2 (should get 404)
         try {
-            deleteShoppingListItem(client, list2.id(), createdItem.id());
+            deleteShoppingListItem(client, list2.id(), createdItem.id(), createdItem.version());
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -584,7 +585,7 @@ class ShoppingListIntegrationTest {
         createShoppingListItem(client, list.id(), "Item 3");
 
         // Delete item 2
-        deleteShoppingListItem(client, list.id(), item2.id());
+        deleteShoppingListItem(client, list.id(), item2.id(), item2.version());
 
         // Create a new item - should get position 4.0 (max was 3.0)
         ShoppingListItemDto item4 = createShoppingListItem(client, list.id(), "Item 4");
@@ -639,9 +640,35 @@ class ShoppingListIntegrationTest {
         var response = client
                 .delete()
                 .uri("/shopping-lists/" + list.id() + "/item/" + createdItem.id())
+                .header("If-Match", createdItem.version().toString())
                 .retrieve()
                 .toEntity(Void.class);
 
         assertThat(response.getStatusCode().value()).isEqualTo(204);
+    }
+
+    @Test
+    void shouldReturn412WhenDeletingItemWithWrongVersion() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Version Mismatch Test");
+        assertThat(list).isNotNull();
+
+        // Create an item
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item to Delete");
+        assertThat(createdItem).isNotNull();
+        assertThat(createdItem.version()).isEqualTo(0L);
+
+        // Try to delete with wrong version (should get 412 Precondition Failed)
+        try {
+            deleteShoppingListItem(client, list.id(), createdItem.id(), 999L);
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+            String responseBody = ex.getResponseBodyAsString();
+            assertThat(responseBody).contains("Version mismatch");
+            assertThat(responseBody).contains("Shopping List Item Version Mismatch");
+        }
     }
 }
