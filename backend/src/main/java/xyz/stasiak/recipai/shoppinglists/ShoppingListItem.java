@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -51,8 +52,16 @@ class ShoppingListItem {
         this.name = name;
         this.quantity = quantity;
         this.unit = unit;
-        this.position = position;
+        this.position = normalizePositionScale(position);
         this.checked = false;
+    }
+
+    private static BigDecimal normalizePositionScale(BigDecimal position) {
+        return position != null ? position.setScale(6, RoundingMode.HALF_UP) : null;
+    }
+
+    public void setPosition(BigDecimal position) {
+        this.position = normalizePositionScale(position);
     }
 
     @Override
