@@ -185,7 +185,11 @@ class ShoppingListDetailService {
     };
   }
 
-  void _onItemAdded(String tempId, ShoppingListItem addedItem) {
+  void _onItemAdded(
+    String tempId,
+    ShoppingListItem addedItem,
+    List<ShoppingListOperation> pendingOperations,
+  ) {
     final currentState = _shoppingListDetail.value;
     if (currentState is! AsyncData<ShoppingListDetail>) return;
 
@@ -197,16 +201,25 @@ class ShoppingListDetailService {
       return item;
     }).toList();
 
-    final updatedDetail = ShoppingListDetail(
+    var updatedDetail = ShoppingListDetail(
       id: detail.id,
       name: detail.name,
       items: updatedItems,
       role: detail.role,
     );
+
+    for (final operation in pendingOperations) {
+      updatedDetail = applyOperation(updatedDetail, operation);
+    }
+
     _shoppingListDetail.value = AsyncData(updatedDetail);
   }
 
-  void _onItemUpdated(String itemId, ShoppingListItem updatedItem) {
+  void _onItemUpdated(
+    String itemId,
+    ShoppingListItem updatedItem,
+    List<ShoppingListOperation> pendingOperations,
+  ) {
     final currentState = _shoppingListDetail.value;
     if (currentState is! AsyncData<ShoppingListDetail>) return;
 
@@ -220,12 +233,17 @@ class ShoppingListDetailService {
 
     itemsCopy.sort((a, b) => a.position.compareTo(b.position));
 
-    final updatedDetail = ShoppingListDetail(
+    var updatedDetail = ShoppingListDetail(
       id: detail.id,
       name: detail.name,
       items: itemsCopy,
       role: detail.role,
     );
+
+    for (final operation in pendingOperations) {
+      updatedDetail = applyOperation(updatedDetail, operation);
+    }
+
     _shoppingListDetail.value = AsyncData(updatedDetail);
   }
 

@@ -9,8 +9,10 @@ import 'shopping_list_operation.dart';
 import 'shopping_list_repository.dart';
 
 class _SyncCallbacks {
-  final Function(String, ShoppingListItem) onItemAdded;
-  final Function(String, ShoppingListItem) onItemUpdated;
+  final Function(String, ShoppingListItem, List<ShoppingListOperation>)
+  onItemAdded;
+  final Function(String, ShoppingListItem, List<ShoppingListOperation>)
+  onItemUpdated;
   final Function(ShoppingListDetail) onSync;
   final Function() onConflict;
   final Function(String) onError;
@@ -46,8 +48,10 @@ class ShoppingListSyncService {
 
   void startSyncing({
     required String listId,
-    required Function(String, ShoppingListItem) onItemAdded,
-    required Function(String, ShoppingListItem) onItemUpdated,
+    required Function(String, ShoppingListItem, List<ShoppingListOperation>)
+    onItemAdded,
+    required Function(String, ShoppingListItem, List<ShoppingListOperation>)
+    onItemUpdated,
     required Function(ShoppingListDetail) onSync,
     required VoidCallback onConflict,
     required ValueChanged<String> onError,
@@ -104,8 +108,14 @@ class ShoppingListSyncService {
               add.itemUnit,
               await _authService.idToken,
             );
-            callbacks?.onItemAdded.call(add.itemId, response);
             _replaceValuesInQueue(listId, add.itemId, response);
+            callbacks?.onItemAdded.call(
+              add.itemId,
+              response,
+              queue
+                  .where((operation) => operation.itemId == response.id)
+                  .toList(),
+            );
           case DeleteItemOperation delete:
             await _repository.deleteItem(
               listId,
@@ -121,8 +131,14 @@ class ShoppingListSyncService {
               move.targetIndex,
               await _authService.idToken,
             );
-            callbacks?.onItemUpdated.call(move.itemId, response);
             _replaceValuesInQueue(listId, move.itemId, response);
+            callbacks?.onItemUpdated.call(
+              move.itemId,
+              response,
+              queue
+                  .where((operation) => operation.itemId == response.id)
+                  .toList(),
+            );
         }
       } catch (e) {
         if (e.toString().contains('412')) {
