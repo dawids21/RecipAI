@@ -152,7 +152,6 @@ class ShoppingListRepository {
     String? unit,
     String? idToken,
   ) async {
-    await Future.delayed(Duration(seconds: 5));
     final headers = _getAuthHeaders(idToken);
     final body = <String, dynamic>{
       'name': name,
@@ -188,7 +187,6 @@ class ShoppingListRepository {
     int version,
     String? idToken,
   ) async {
-    await Future.delayed(Duration(seconds: 5));
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
@@ -221,7 +219,6 @@ class ShoppingListRepository {
     int targetIndex,
     String? idToken,
   ) async {
-    await Future.delayed(Duration(seconds: 5));
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
