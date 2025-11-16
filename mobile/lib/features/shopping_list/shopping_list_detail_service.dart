@@ -88,6 +88,7 @@ class ShoppingListDetailService {
     _syncService.startSyncing(
       listId: listId,
       onItemAdded: _onItemAdded,
+      onItemUpdated: _onItemUpdated,
       onSync: (detail) {
         _shoppingListDetail.value = AsyncData(detail);
       },
@@ -101,7 +102,7 @@ class ShoppingListDetailService {
     );
   }
 
-  void stopPolling() {
+  void stopSyncing() {
     if (_currentSyncingListId != null) {
       _syncService.stopSyncing(_currentSyncingListId!);
       _currentSyncingListId = null;
@@ -157,6 +158,21 @@ class ShoppingListDetailService {
           role: detail.role,
         );
       }(),
+      MoveItemOperation(:final targetIndex) => () {
+        final itemsCopy = detail.items.toList();
+        final movedItem = itemsCopy.firstWhere((i) => i.id == operation.itemId);
+        final oldIndex = itemsCopy.indexOf(movedItem);
+
+        itemsCopy.removeAt(oldIndex);
+        itemsCopy.insert(targetIndex, movedItem);
+
+        return ShoppingListDetail(
+          id: detail.id,
+          name: detail.name,
+          items: itemsCopy,
+          role: detail.role,
+        );
+      }(),
     };
 
     _shoppingListDetail.value = AsyncData(updatedDetail);
@@ -185,7 +201,30 @@ class ShoppingListDetailService {
     _shoppingListDetail.value = AsyncData(updatedDetail);
   }
 
+  void _onItemUpdated(String itemId, ShoppingListItem updatedItem) {
+    final currentState = _shoppingListDetail.value;
+    if (currentState is! AsyncData<ShoppingListDetail>) return;
+
+    final detail = currentState.value;
+    final itemsCopy = detail.items.toList();
+    final index = itemsCopy.indexWhere((i) => i.id == itemId);
+
+    if (index != -1) {
+      itemsCopy[index] = updatedItem;
+    }
+
+    itemsCopy.sort((a, b) => a.position.compareTo(b.position));
+
+    final updatedDetail = ShoppingListDetail(
+      id: detail.id,
+      name: detail.name,
+      items: itemsCopy,
+      role: detail.role,
+    );
+    _shoppingListDetail.value = AsyncData(updatedDetail);
+  }
+
   void dispose() {
-    stopPolling();
+    stopSyncing();
   }
 }

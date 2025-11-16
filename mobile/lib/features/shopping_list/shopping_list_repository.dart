@@ -152,6 +152,7 @@ class ShoppingListRepository {
     String? unit,
     String? idToken,
   ) async {
+    await Future.delayed(Duration(seconds: 5));
     final headers = _getAuthHeaders(idToken);
     final body = <String, dynamic>{
       'name': name,
@@ -187,6 +188,7 @@ class ShoppingListRepository {
     int version,
     String? idToken,
   ) async {
+    await Future.delayed(Duration(seconds: 5));
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
@@ -209,6 +211,41 @@ class ShoppingListRepository {
       throw Exception('412 Precondition Failed');
     } else {
       throw Exception('Failed to delete item: ${response.statusCode}');
+    }
+  }
+
+  Future<ShoppingListItem> moveItem(
+    String listId,
+    String itemId,
+    int version,
+    int targetIndex,
+    String? idToken,
+  ) async {
+    await Future.delayed(Duration(seconds: 5));
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = version.toString();
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId/move'),
+      headers: headers,
+      body: json.encode({'index': targetIndex}),
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingListItem.fromJson(jsonMap);
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid index');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to move items in this list');
+    } else if (response.statusCode == 404) {
+      throw Exception('Item not found');
+    } else if (response.statusCode == 412) {
+      throw Exception('412 Precondition Failed');
+    } else {
+      throw Exception('Failed to move item: ${response.statusCode}');
     }
   }
 }

@@ -144,6 +144,24 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
     }
   }
 
+  void _onReorder(detail, int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
+    if (oldIndex == newIndex) {
+      return;
+    }
+
+    final item = detail.items[oldIndex];
+    final operation = MoveItemOperation(
+      itemId: item.id,
+      itemVersion: item.version,
+      targetIndex: newIndex,
+    );
+    widget.shoppingListDetailService.processOperation(operation);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -259,26 +277,47 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                         child: Column(
                           children: [
                             if (detail.items.isNotEmpty)
-                              ...detail.items.map((item) {
-                                return ShoppingListItemWidget(
-                                  key: ValueKey(item.id),
-                                  item: item,
-                                  onEdit: (result) {
-                                    // TODO: Implement edit functionality
-                                  },
-                                  onDelete: () {
-                                    final operation = DeleteItemOperation(
-                                      itemId: item.id,
-                                      itemVersion: item.version,
-                                    );
-                                    widget.shoppingListDetailService
-                                        .processOperation(operation);
-                                  },
-                                );
-                              }),
+                              ReorderableListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                buildDefaultDragHandles: false,
+                                itemCount: detail.items.length,
+                                onReorder: (oldIndex, newIndex) {
+                                  _onReorder(detail, oldIndex, newIndex);
+                                },
+                                proxyDecorator: (child, index, animation) {
+                                  return Material(
+                                    elevation: 8.0,
+                                    color:
+                                        theme.colorScheme.surfaceContainerLow,
+                                    child: child,
+                                  );
+                                },
+                                itemBuilder: (context, index) {
+                                  final item = detail.items[index];
+                                  return ShoppingListItemWidget(
+                                    key: ValueKey(item.id),
+                                    item: item,
+                                    index: index,
+                                    showDragHandle: true,
+                                    onEdit: (result) {
+                                      // TODO: Implement edit functionality
+                                    },
+                                    onDelete: () {
+                                      final operation = DeleteItemOperation(
+                                        itemId: item.id,
+                                        itemVersion: item.version,
+                                      );
+                                      widget.shoppingListDetailService
+                                          .processOperation(operation);
+                                    },
+                                  );
+                                },
+                              ),
                             ShoppingListItemWidget(
                               key: const ValueKey('add-item'),
                               addMode: true,
+                              showDragHandle: false,
                               onEdit: (result) {
                                 final operation = AddItemOperation(
                                   itemName: result.name,

@@ -44,13 +44,17 @@
 - Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
   with dialog
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline item
-  management, real-time sync status indicator, and optimistic UI updates. Features PopupMenuButton with role-based
-  actions: "Rename List" available to all users, "Delete List" only visible to OWNER role users. Integrates with
-  ShoppingListSyncService for background syncing (10-second polling) and conflict resolution with user notifications
+  management, drag-and-drop reordering, real-time sync status indicator, and optimistic UI updates. Uses
+  ReorderableListView with custom drag handles for item reordering, with instant optimistic updates and backend
+  synchronization. Features PopupMenuButton with role-based actions: "Rename List" available to all users, "Delete List"
+  only visible to OWNER role users. Integrates with ShoppingListSyncService for background syncing (10-second polling)
+  and conflict resolution with user notifications
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items with smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit
-  extraction using regex, TextField-based editing with focus management, and visual states (checked items with
-  strikethrough). Supports both edit mode (for existing items) and add mode (for creating new items)
+  extraction using regex, TextField-based editing with focus management, optional drag handle for reordering (using
+  ReorderableDragStartListener), and visual states (checked items with strikethrough). Supports both edit mode (for
+  existing items) and add mode (for creating new items). Drag handle is only shown when showDragHandle parameter is
+  true, positioned on the left side before the checkbox
 - Shopping List Rename Dialog (`shopping_list_rename_dialog.dart`) - Stateful dialog widget for renaming shopping lists
   with TextField input, proper TextEditingController lifecycle management, and validation to prevent empty names
 

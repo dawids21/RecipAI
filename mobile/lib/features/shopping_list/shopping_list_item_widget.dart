@@ -20,6 +20,8 @@ class ShoppingListItemWidget extends StatefulWidget {
   final ValueChanged<ItemChanged> onEdit;
   final VoidCallback onDelete;
   final bool addMode;
+  final bool showDragHandle;
+  final int? index;
 
   const ShoppingListItemWidget({
     super.key,
@@ -27,6 +29,8 @@ class ShoppingListItemWidget extends StatefulWidget {
     required this.onEdit,
     required this.onDelete,
     this.addMode = false,
+    this.showDragHandle = false,
+    this.index,
   }) : item =
            item ??
            const ShoppingListItem(
@@ -134,6 +138,15 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
       padding: AppSpacing.smallVertical,
       child: Row(
         children: [
+          if (widget.showDragHandle)
+            ReorderableDragStartListener(
+              index: widget.index!,
+              child: Icon(
+                Icons.drag_handle,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          if (widget.showDragHandle) const SizedBox(width: AppSpacing.small),
           leadingWidget,
           const SizedBox(width: AppSpacing.small),
           Expanded(

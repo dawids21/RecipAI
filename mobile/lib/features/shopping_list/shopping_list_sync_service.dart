@@ -10,12 +10,14 @@ import 'shopping_list_repository.dart';
 
 class _SyncCallbacks {
   final Function(String, ShoppingListItem) onItemAdded;
+  final Function(String, ShoppingListItem) onItemUpdated;
   final Function(ShoppingListDetail) onSync;
   final Function() onConflict;
   final Function(String) onError;
 
   _SyncCallbacks({
     required this.onItemAdded,
+    required this.onItemUpdated,
     required this.onSync,
     required this.onConflict,
     required this.onError,
@@ -45,6 +47,7 @@ class ShoppingListSyncService {
   void startSyncing({
     required String listId,
     required Function(String, ShoppingListItem) onItemAdded,
+    required Function(String, ShoppingListItem) onItemUpdated,
     required Function(ShoppingListDetail) onSync,
     required VoidCallback onConflict,
     required ValueChanged<String> onError,
@@ -55,6 +58,7 @@ class ShoppingListSyncService {
     // Store callbacks
     _syncCallbacks[listId] = _SyncCallbacks(
       onItemAdded: onItemAdded,
+      onItemUpdated: onItemUpdated,
       onSync: onSync,
       onConflict: onConflict,
       onError: onError,
@@ -99,14 +103,24 @@ class ShoppingListSyncService {
               await _authService.idToken,
             );
             callbacks?.onItemAdded.call(add.itemId, response);
-            _replaceItemIdInQueue(listId, add.itemId, response.id);
+            _replaceValuesInQueue(listId, add.itemId, response);
           case DeleteItemOperation delete:
             await _repository.deleteItem(
               listId,
               delete.itemId,
-              delete.itemVersion,
+              delete.itemVersion!,
               await _authService.idToken,
             );
+          case MoveItemOperation move:
+            final response = await _repository.moveItem(
+              listId,
+              move.itemId,
+              move.itemVersion!,
+              move.targetIndex,
+              await _authService.idToken,
+            );
+            callbacks?.onItemUpdated.call(move.itemId, response);
+            _replaceValuesInQueue(listId, move.itemId, response);
         }
 
         _operationQueues[listId]!.removeAt(0);
@@ -130,14 +144,18 @@ class ShoppingListSyncService {
     getSyncStatusNotifier(listId).value = isProcessing;
   }
 
-  void _replaceItemIdInQueue(String listId, String oldId, String newId) {
+  void _replaceValuesInQueue(
+    String listId,
+    String itemId,
+    ShoppingListItem item,
+  ) {
     for (var i = 0; i < (_operationQueues[listId]?.length ?? 0); i++) {
       final operation = _operationQueues[listId]![i];
-      if (operation.itemId == oldId) {
+      if (operation.itemId == itemId) {
         if (operation is AddItemOperation) {
           _operationQueues[listId]![i] = AddItemOperation(
             id: operation.id,
-            itemId: newId,
+            itemId: item.id,
             itemName: operation.itemName,
             itemQuantity: operation.itemQuantity,
             itemUnit: operation.itemUnit,
@@ -145,8 +163,15 @@ class ShoppingListSyncService {
         } else if (operation is DeleteItemOperation) {
           _operationQueues[listId]![i] = DeleteItemOperation(
             id: operation.id,
-            itemId: newId,
-            itemVersion: operation.itemVersion,
+            itemId: operation.itemId,
+            itemVersion: item.version,
+          );
+        } else if (operation is MoveItemOperation) {
+          _operationQueues[listId]![i] = MoveItemOperation(
+            id: operation.id,
+            itemId: operation.itemId,
+            itemVersion: item.version,
+            targetIndex: operation.targetIndex,
           );
         }
       }

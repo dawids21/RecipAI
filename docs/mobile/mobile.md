@@ -27,7 +27,7 @@
 - Shopping List Item (`shopping_list_item.dart`) - Item data model with id, name, quantity, unit, checked, position,
   and version fields for optimistic concurrency control
 - Shopping List Operation (`shopping_list_operation.dart`) - Sealed class hierarchy for operation queue (
-  AddItemOperation, DeleteItemOperation) with UUID-based temporary IDs
+  AddItemOperation, DeleteItemOperation, MoveItemOperation) with UUID-based temporary IDs
 
 ## Codebase Structure
 

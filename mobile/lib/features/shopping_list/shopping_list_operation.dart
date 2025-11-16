@@ -3,8 +3,9 @@ import 'package:uuid/uuid.dart';
 sealed class ShoppingListOperation {
   final String id;
   final String itemId;
+  final int? itemVersion;
 
-  ShoppingListOperation({String? id, String? itemId})
+  ShoppingListOperation({String? id, String? itemId, this.itemVersion})
     : id = id ?? const Uuid().v4(),
       itemId = itemId ?? const Uuid().v4();
 }
@@ -24,11 +25,20 @@ class AddItemOperation extends ShoppingListOperation {
 }
 
 class DeleteItemOperation extends ShoppingListOperation {
-  final int itemVersion;
-
   DeleteItemOperation({
     super.id,
     required String itemId,
-    required this.itemVersion,
-  }) : super(itemId: itemId);
+    required int itemVersion,
+  }) : super(itemId: itemId, itemVersion: itemVersion);
+}
+
+class MoveItemOperation extends ShoppingListOperation {
+  final int targetIndex;
+
+  MoveItemOperation({
+    super.id,
+    required String itemId,
+    required int itemVersion,
+    required this.targetIndex,
+  }) : super(itemId: itemId, itemVersion: itemVersion);
 }
