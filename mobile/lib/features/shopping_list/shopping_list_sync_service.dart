@@ -91,12 +91,10 @@ class ShoppingListSyncService {
 
     _isSyncing[listId] = true;
     _updateSyncStatus(listId);
-    final queue = _operationQueues[listId] ?? [];
     final callbacks = _syncCallbacks[listId];
 
-    while (queue.isNotEmpty) {
-      final operation = queue.first;
-      queue.removeAt(0);
+    while (_operationQueues[listId]?.isNotEmpty ?? false) {
+      final operation = _operationQueues[listId]!.first;
 
       try {
         switch (operation) {
@@ -140,10 +138,14 @@ class ShoppingListSyncService {
                   .toList(),
             );
         }
+
+        _operationQueues[listId]!.removeAt(0);
       } catch (e) {
         if (e.toString().contains('412')) {
+          _operationQueues[listId]!.removeAt(0);
           await callbacks?.onConflict.call();
         } else {
+          _operationQueues[listId]!.removeAt(0);
           callbacks?.onError.call('Failed to sync: $e');
         }
       }
