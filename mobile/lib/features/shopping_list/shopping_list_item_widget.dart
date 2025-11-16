@@ -1,0 +1,166 @@
+import 'package:flutter/material.dart';
+
+import '../../core/theme.dart';
+import 'shopping_list_item.dart';
+
+class ItemChanged {
+  final String name;
+  final double? quantity;
+  final String? unit;
+
+  const ItemChanged({
+    required this.name,
+    required this.quantity,
+    required this.unit,
+  });
+}
+
+class ShoppingListItemWidget extends StatefulWidget {
+  final ShoppingListItem item;
+  final ValueChanged<ItemChanged> onEdit;
+  final VoidCallback onDelete;
+  final bool addMode;
+
+  const ShoppingListItemWidget({
+    super.key,
+    ShoppingListItem? item,
+    required this.onEdit,
+    required this.onDelete,
+    this.addMode = false,
+  }) : item =
+           item ??
+           const ShoppingListItem(
+             id: '',
+             name: '',
+             quantity: null,
+             unit: null,
+             checked: false,
+             position: 0,
+             version: 0,
+           );
+
+  @override
+  State<ShoppingListItemWidget> createState() => _ShoppingListItemWidgetState();
+}
+
+class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+  final _pattern = RegExp(r'^\s*(\d+[.,]?\d*)\s*([a-zA-Z]+)?\s+(.+)$');
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formatItem());
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(ShoppingListItemWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update controller text if item changed externally
+    if (oldWidget.item != widget.item && !_focusNode.hasFocus) {
+      _controller.text = _formatItem();
+    }
+  }
+
+  String _formatItem() {
+    if (widget.item.quantity != null) {
+      final qtyStr = widget.item.quantity! == widget.item.quantity!.toInt()
+          ? widget.item.quantity!.toInt().toString()
+          : widget.item.quantity!.toString();
+      if (widget.item.unit != null) {
+        return '$qtyStr ${widget.item.unit} ${widget.item.name}';
+      }
+      return '$qtyStr ${widget.item.name}';
+    }
+    return widget.item.name;
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _parseAndSave();
+    }
+  }
+
+  void _parseAndSave() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      // If empty, restore original value (unless in clearAfterEdit mode)
+      if (!widget.addMode) {
+        _controller.text = _formatItem();
+      }
+      return;
+    }
+
+    final match = _pattern.firstMatch(text);
+    if (match != null) {
+      final quantityStr = match.group(1)!.replaceAll(',', '.');
+      final quantity = double.tryParse(quantityStr);
+      final unit = match.group(2)?.trim();
+      final name = match.group(3)!.trim();
+      widget.onEdit(ItemChanged(name: name, quantity: quantity, unit: unit));
+    } else {
+      widget.onEdit(ItemChanged(name: text, quantity: null, unit: null));
+    }
+
+    // Clear field after edit if requested
+    if (widget.addMode) {
+      _controller.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final textStyle = widget.item.checked
+        ? theme.textTheme.bodyLarge?.copyWith(
+            decoration: TextDecoration.lineThrough,
+            color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
+          )
+        : theme.textTheme.bodyLarge;
+
+    final leadingWidget = Icon(
+      widget.addMode
+          ? Icons.add
+          : widget.item.checked
+          ? Icons.check_box
+          : Icons.check_box_outline_blank,
+    );
+
+    return Padding(
+      padding: AppSpacing.smallVertical,
+      child: Row(
+        children: [
+          leadingWidget,
+          const SizedBox(width: AppSpacing.small),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              style: textStyle,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                hintText: widget.addMode ? "Add item..." : null,
+              ),
+              onTapOutside: (_) => _focusNode.unfocus(),
+            ),
+          ),
+          IconButton(icon: const Icon(Icons.close), onPressed: widget.onDelete),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+}

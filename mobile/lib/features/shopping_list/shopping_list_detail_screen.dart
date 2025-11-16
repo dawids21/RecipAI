@@ -8,6 +8,8 @@ import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import 'shopping_list_detail_service.dart';
+import 'shopping_list_item_widget.dart';
+import 'shopping_list_operation.dart';
 import 'shopping_list_rename_dialog.dart';
 
 class ShoppingListDetailScreen extends StatefulWidget {
@@ -32,6 +34,11 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
     widget.shoppingListDetailService.loadShoppingListDetail(
       widget.shoppingListId,
     );
+    widget.shoppingListDetailService.startSyncing(
+      listId: widget.shoppingListId,
+      onConflict: _handleConflict,
+      onError: _handleError,
+    );
   }
 
   @override
@@ -40,6 +47,22 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
       getIt.resetLazySingleton<ShoppingListDetailService>();
     }
     super.dispose();
+  }
+
+  void _handleConflict() {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('List was updated by another user')),
+      );
+    }
+  }
+
+  void _handleError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   Future<String?> _showRenameDialog(String currentName) async {
@@ -200,57 +223,79 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      detail.name,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    ValueListenableBuilder(
+                      valueListenable: widget.shoppingListDetailService
+                          .getSyncStatusNotifier(detail.id),
+                      builder: (context, isSyncing, child) => Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              detail.name,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.small),
+                          if (isSyncing)
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(),
+                            )
+                          else
+                            Icon(
+                              Icons.check_circle,
+                              color: theme.colorScheme.primary,
+                              size: 24,
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: AppSpacing.medium),
-                    if (detail.items.isEmpty)
-                      Text(
-                        'No items in this list',
-                        style: theme.textTheme.bodyMedium,
-                      )
-                    else
-                      Card(
-                        child: Padding(
-                          padding: AppSpacing.cardMargin,
-                          child: Column(
-                            children: detail.items.map((item) {
-                              String itemText = item.name;
-                              if (item.quantity != null) {
-                                final quantity = item.quantity!;
-                                final quantityStr = quantity == quantity.toInt()
-                                    ? quantity.toInt().toString()
-                                    : quantity.toString();
-
-                                if (item.unit != null) {
-                                  itemText =
-                                      '$quantityStr ${item.unit} ${item.name}';
-                                } else {
-                                  itemText = '$quantityStr ${item.name}';
-                                }
-                              }
-
-                              return Padding(
-                                padding: AppSpacing.smallVertical,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      item.checked
-                                          ? Icons.check_box
-                                          : Icons.check_box_outline_blank,
-                                    ),
-                                    const SizedBox(width: AppSpacing.small),
-                                    Expanded(child: Text(itemText)),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
+                    Card(
+                      child: Padding(
+                        padding: AppSpacing.cardMargin,
+                        child: Column(
+                          children: [
+                            if (detail.items.isNotEmpty)
+                              ...detail.items.map((item) {
+                                return ShoppingListItemWidget(
+                                  key: ValueKey(item.id),
+                                  item: item,
+                                  onEdit: (result) {
+                                    // TODO: Implement edit functionality
+                                  },
+                                  onDelete: () {
+                                    final operation = DeleteItemOperation(
+                                      itemId: item.id,
+                                      itemVersion: item.version,
+                                    );
+                                    widget.shoppingListDetailService
+                                        .processOperation(operation);
+                                  },
+                                );
+                              }),
+                            ShoppingListItemWidget(
+                              key: const ValueKey('add-item'),
+                              addMode: true,
+                              onEdit: (result) {
+                                final operation = AddItemOperation(
+                                  itemName: result.name,
+                                  itemQuantity: result.quantity,
+                                  itemUnit: result.unit,
+                                );
+                                widget.shoppingListDetailService
+                                    .processOperation(operation);
+                              },
+                              onDelete: () {
+                                // No-op for add item widget
+                              },
+                            ),
+                          ],
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),

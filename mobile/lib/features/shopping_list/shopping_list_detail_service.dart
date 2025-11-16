@@ -1,23 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
 import 'shopping_list_detail.dart';
+import 'shopping_list_item.dart';
 import 'shopping_list_list_service.dart';
+import 'shopping_list_operation.dart';
 import 'shopping_list_repository.dart';
+import 'shopping_list_sync_service.dart';
 
 class ShoppingListDetailService {
   final ShoppingListRepository _shoppingListRepository;
   final AuthService _authService;
   final ShoppingListListService _shoppingListListService;
+  final ShoppingListSyncService _syncService;
 
   ShoppingListDetailService({
     required ShoppingListRepository shoppingListRepository,
     required AuthService authService,
     required ShoppingListListService shoppingListListService,
+    required ShoppingListSyncService syncService,
   }) : _shoppingListRepository = shoppingListRepository,
        _authService = authService,
-       _shoppingListListService = shoppingListListService;
+       _shoppingListListService = shoppingListListService,
+       _syncService = syncService;
 
   final ValueNotifier<AsyncValue<ShoppingListDetail>> _shoppingListDetail =
       ValueNotifier(const AsyncValue.loading());
@@ -67,5 +75,117 @@ class ShoppingListDetailService {
     } finally {
       _isDeleteRunning = false;
     }
+  }
+
+  String? _currentSyncingListId;
+
+  void startSyncing({
+    required String listId,
+    VoidCallback? onConflict,
+    ValueChanged<String>? onError,
+  }) {
+    _currentSyncingListId = listId;
+    _syncService.startSyncing(
+      listId: listId,
+      onItemAdded: _onItemAdded,
+      onSync: (detail) {
+        _shoppingListDetail.value = AsyncData(detail);
+      },
+      onConflict: () async {
+        await loadShoppingListDetail(listId);
+        onConflict?.call();
+      },
+      onError: (message) {
+        onError?.call(message);
+      },
+    );
+  }
+
+  void stopPolling() {
+    if (_currentSyncingListId != null) {
+      _syncService.stopSyncing(_currentSyncingListId!);
+      _currentSyncingListId = null;
+    }
+  }
+
+  ValueNotifier<bool> getSyncStatusNotifier(String listId) {
+    return _syncService.getSyncStatusNotifier(listId);
+  }
+
+  void processOperation(ShoppingListOperation operation) async {
+    final currentState = _shoppingListDetail.value;
+    if (currentState is! AsyncData<ShoppingListDetail>) return;
+
+    final detail = currentState.value;
+
+    // Apply optimistic update based on operation type
+    final updatedDetail = switch (operation) {
+      AddItemOperation(:final itemName, :final itemQuantity, :final itemUnit) =>
+        () {
+          final maxPosition = detail.items.isEmpty
+              ? 0.0
+              : detail.items
+                    .map((i) => i.position)
+                    .reduce((a, b) => a > b ? a : b);
+
+          final newItem = ShoppingListItem(
+            id: operation.itemId,
+            name: itemName,
+            quantity: itemQuantity,
+            unit: itemUnit,
+            checked: false,
+            position: maxPosition + 1.0,
+            version: 0,
+          );
+
+          final updatedItems = [...detail.items, newItem];
+          return ShoppingListDetail(
+            id: detail.id,
+            name: detail.name,
+            items: updatedItems,
+            role: detail.role,
+          );
+        }(),
+      DeleteItemOperation() => () {
+        final updatedItems = detail.items
+            .where((i) => i.id != operation.itemId)
+            .toList();
+        return ShoppingListDetail(
+          id: detail.id,
+          name: detail.name,
+          items: updatedItems,
+          role: detail.role,
+        );
+      }(),
+    };
+
+    _shoppingListDetail.value = AsyncData(updatedDetail);
+
+    _syncService.queueOperation(detail.id, operation);
+  }
+
+  void _onItemAdded(String tempId, ShoppingListItem addedItem) {
+    final currentState = _shoppingListDetail.value;
+    if (currentState is! AsyncData<ShoppingListDetail>) return;
+
+    final detail = currentState.value;
+    final updatedItems = detail.items.map((item) {
+      if (item.id == tempId) {
+        return addedItem;
+      }
+      return item;
+    }).toList();
+
+    final updatedDetail = ShoppingListDetail(
+      id: detail.id,
+      name: detail.name,
+      items: updatedItems,
+      role: detail.role,
+    );
+    _shoppingListDetail.value = AsyncData(updatedDetail);
+  }
+
+  void dispose() {
+    stopPolling();
   }
 }

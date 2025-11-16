@@ -6,9 +6,9 @@
 - `extraction` - Recipe extraction functionality supporting both URL extraction via WebView and image extraction via
   camera/gallery. Uses Repository-Service-View architecture with ExtractionRepository and ExtractionService
 - `auth` - User authentication using Firebase Authentication with Google Sign-In
-- `shopping_list` - Shopping list management with list creation, display, and state management. Uses
-  Repository-Service-View
-  architecture with ShoppingListRepository and ShoppingListListService
+- `shopping_list` - Shopping list management with list creation, display, item management, and optimistic UI updates.
+  Uses Repository-Service-View architecture with ShoppingListRepository, ShoppingListListService,
+  ShoppingListDetailService, and ShoppingListSyncService for background syncing and conflict resolution
 
 ## Data Models
 
@@ -24,6 +24,10 @@
 ### Shopping List module
 
 - Shopping List (`shopping_list.dart`) - Basic shopping list data model with id and name fields
+- Shopping List Item (`shopping_list_item.dart`) - Item data model with id, name, quantity, unit, checked, position,
+  and version fields for optimistic concurrency control
+- Shopping List Operation (`shopping_list_operation.dart`) - Sealed class hierarchy for operation queue (
+  AddItemOperation, DeleteItemOperation) with UUID-based temporary IDs
 
 ## Codebase Structure
 
@@ -61,11 +65,17 @@ mobile/
 │       │   └── ...                     # Other screens, models, and widgets
 │       ├── shopping_list/              # "shopping list" feature
 │       │   ├── shopping_list.dart      # Shopping list data model
+│       │   ├── shopping_list_item.dart # Shopping list item data model
 │       │   ├── shopping_list_repository.dart # Shopping list data access layer
-│       │   ├── shopping_list_list_service.dart # Shopping list business logic with ValueNotifier
+│       │   ├── shopping_list_list_service.dart # Shopping list list business logic with ValueNotifier
+│       │   ├── shopping_list_detail_service.dart # Shopping list detail business logic with optimistic updates
+│       │   ├── shopping_list_sync_service.dart # Background sync service with operation queue and conflict handling
+│       │   ├── shopping_list_operation.dart # Operation models for optimistic UI updates
 │       │   ├── shopping_list_setup.dart # Dependency injection setup for shopping list module
 │       │   ├── shopping_list_list.dart # Reusable shopping list body widget
-│       │   └── shopping_list_list_fab.dart # Reusable shopping list FAB widget
+│       │   ├── shopping_list_list_fab.dart # Reusable shopping list FAB widget
+│       │   ├── shopping_list_item_widget.dart # Reusable inline-editable item widget
+│       │   └── shopping_list_detail_screen.dart # Shopping list detail screen
 │       └── extraction/                 # "extraction" feature
 │           ├── extraction_repository.dart # API communication layer for extraction endpoints
 │           ├── extraction_service.dart # Business logic layer for extraction operations

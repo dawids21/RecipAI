@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/app_config.dart';
 import 'shopping_list.dart';
 import 'shopping_list_detail.dart';
+import 'shopping_list_item.dart';
 
 class ShoppingListRepository {
   final http.Client _client = http.Client();
@@ -141,6 +142,73 @@ class ShoppingListRepository {
       }
     } catch (e) {
       throw Exception('Network error: $e');
+    }
+  }
+
+  Future<ShoppingListItem> createItem(
+    String listId,
+    String name,
+    double? quantity,
+    String? unit,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    final body = <String, dynamic>{
+      'name': name,
+      if (quantity != null) 'quantity': quantity,
+      if (unit != null) 'unit': unit,
+    };
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/item'),
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 201) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingListItem.fromJson(jsonMap);
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid item data');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to add items to this list');
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else {
+      throw Exception('Failed to create item: ${response.statusCode}');
+    }
+  }
+
+  Future<void> deleteItem(
+    String listId,
+    String itemId,
+    int version,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = version.toString();
+
+    final response = await _client.delete(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
+    } else if (response.statusCode == 403) {
+      throw Exception(
+        'You do not have permission to delete items from this list',
+      );
+    } else if (response.statusCode == 404) {
+      throw Exception('Item not found');
+    } else if (response.statusCode == 412) {
+      throw Exception('412 Precondition Failed');
+    } else {
+      throw Exception('Failed to delete item: ${response.statusCode}');
     }
   }
 }
