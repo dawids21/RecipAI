@@ -118,9 +118,18 @@ class ShoppingListDetailService {
     if (currentState is! AsyncData<ShoppingListDetail>) return;
 
     final detail = currentState.value;
+    final updatedDetail = applyOperation(detail, operation);
 
-    // Apply optimistic update based on operation type
-    final updatedDetail = switch (operation) {
+    _shoppingListDetail.value = AsyncData(updatedDetail);
+
+    _syncService.queueOperation(detail.id, operation);
+  }
+
+  static ShoppingListDetail applyOperation(
+    ShoppingListDetail detail,
+    ShoppingListOperation operation,
+  ) {
+    return switch (operation) {
       AddItemOperation(:final itemName, :final itemQuantity, :final itemUnit) =>
         () {
           final maxPosition = detail.items.isEmpty
@@ -174,10 +183,6 @@ class ShoppingListDetailService {
         );
       }(),
     };
-
-    _shoppingListDetail.value = AsyncData(updatedDetail);
-
-    _syncService.queueOperation(detail.id, operation);
   }
 
   void _onItemAdded(String tempId, ShoppingListItem addedItem) {
