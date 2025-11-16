@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
@@ -169,7 +170,14 @@ class ShoppingListDetailService {
       }(),
       MoveItemOperation(:final targetIndex) => () {
         final itemsCopy = detail.items.toList();
-        final movedItem = itemsCopy.firstWhere((i) => i.id == operation.itemId);
+        final movedItem = itemsCopy.firstWhereOrNull(
+          (i) => i.id == operation.itemId,
+        );
+
+        if (movedItem == null) {
+          return detail;
+        }
+
         final oldIndex = itemsCopy.indexOf(movedItem);
 
         itemsCopy.removeAt(oldIndex);

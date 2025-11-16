@@ -95,6 +95,7 @@ class ShoppingListSyncService {
 
     while (_operationQueues[listId]?.isNotEmpty ?? false) {
       final operation = _operationQueues[listId]!.first;
+      _operationQueues[listId]!.removeAt(0);
 
       try {
         switch (operation) {
@@ -110,7 +111,7 @@ class ShoppingListSyncService {
             callbacks?.onItemAdded.call(
               add.itemId,
               response,
-              queue
+              _operationQueues[listId]!
                   .where((operation) => operation.itemId == response.id)
                   .toList(),
             );
@@ -133,19 +134,15 @@ class ShoppingListSyncService {
             callbacks?.onItemUpdated.call(
               move.itemId,
               response,
-              queue
+              _operationQueues[listId]!
                   .where((operation) => operation.itemId == response.id)
                   .toList(),
             );
         }
-
-        _operationQueues[listId]!.removeAt(0);
       } catch (e) {
         if (e.toString().contains('412')) {
-          _operationQueues[listId]!.removeAt(0);
           await callbacks?.onConflict.call();
         } else {
-          _operationQueues[listId]!.removeAt(0);
           callbacks?.onError.call('Failed to sync: $e');
         }
       }
@@ -179,13 +176,13 @@ class ShoppingListSyncService {
         } else if (operation is DeleteItemOperation) {
           _operationQueues[listId]![i] = DeleteItemOperation(
             id: operation.id,
-            itemId: operation.itemId,
+            itemId: item.id,
             itemVersion: item.version,
           );
         } else if (operation is MoveItemOperation) {
           _operationQueues[listId]![i] = MoveItemOperation(
             id: operation.id,
-            itemId: operation.itemId,
+            itemId: item.id,
             itemVersion: item.version,
             targetIndex: operation.targetIndex,
           );
