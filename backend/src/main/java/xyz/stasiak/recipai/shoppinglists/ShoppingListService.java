@@ -160,6 +160,177 @@ class ShoppingListService {
         shoppingListItemRepository.deleteById(itemId);
     }
 
+    @Transactional
+    ShoppingListItemDto updateItem(UUID shoppingListId, UUID itemId, Long expectedVersion, UpdateShoppingListItemRequest request, String userEmail) {
+        log.debug("Updating item {} from shopping list {} by user {} with expected version {}",
+                itemId, shoppingListId, userEmail, expectedVersion);
+
+        shoppingListRepository.findById(shoppingListId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(shoppingListId));
+
+        ShoppingListItem item = shoppingListItemRepository.findById(itemId)
+                .orElseThrow(() -> new ShoppingListItemNotFoundException(itemId));
+
+        if (!item.getShoppingListId().equals(shoppingListId)) {
+            throw new ShoppingListItemNotFoundException(itemId);
+        }
+
+        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, shoppingListId))
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+
+        if (!permission.hasEditorRights()) {
+            throw new ShoppingListAccessDeniedException(shoppingListId);
+        }
+
+        if (!item.getVersion().equals(expectedVersion)) {
+            throw new ShoppingListItemVersionMismatchException(itemId, expectedVersion, item.getVersion());
+        }
+
+        item.setName(request.name());
+        item.setQuantity(request.quantity());
+        item.setUnit(request.unit());
+
+        ShoppingListItem saved = shoppingListItemRepository.saveAndFlush(item);
+        return toItemDto(saved);
+    }
+
+    @Transactional
+    ShoppingListItemDto moveItem(UUID shoppingListId, UUID itemId, Long expectedVersion, int targetIndex, String userEmail) {
+        log.debug("Moving item {} to index {} in shopping list {} by user {} with expected version {}",
+                itemId, targetIndex, shoppingListId, userEmail, expectedVersion);
+
+        shoppingListRepository.findById(shoppingListId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(shoppingListId));
+
+        ShoppingListItem item = shoppingListItemRepository.findById(itemId)
+                .orElseThrow(() -> new ShoppingListItemNotFoundException(itemId));
+
+        if (!item.getShoppingListId().equals(shoppingListId)) {
+            throw new ShoppingListItemNotFoundException(itemId);
+        }
+
+        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, shoppingListId))
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+
+        if (!permission.hasEditorRights()) {
+            throw new ShoppingListAccessDeniedException(shoppingListId);
+        }
+
+        if (!item.getVersion().equals(expectedVersion)) {
+            throw new ShoppingListItemVersionMismatchException(itemId, expectedVersion, item.getVersion());
+        }
+
+        // Get current item index
+        int currentIndex = shoppingListItemRepository.findItemIndexInList(shoppingListId, itemId);
+        log.debug("Item {} current index: {}, target index: {}", itemId, currentIndex, targetIndex);
+
+        // If moving to the same index, return item as-is (idempotent)
+        if (currentIndex == targetIndex) {
+            log.debug("Item {} already at target index {}, returning without change", itemId, targetIndex);
+            return toItemDto(item);
+        }
+
+        // Calculate offset based on whether we're moving before or after current position
+        int offset;
+        if (targetIndex > currentIndex) {
+            // Moving after current position - use targetIndex as offset
+            offset = targetIndex;
+        } else {
+            // Moving before current position - use targetIndex - 1, but not negative
+            offset = Math.max(0, targetIndex - 1);
+        }
+
+        // Query for items at target position
+        List<ShoppingListItem> itemsAtTarget = shoppingListItemRepository.findByShoppingListIdWithLimitOffset(shoppingListId, offset);
+
+        BigDecimal newPosition;
+
+        if (itemsAtTarget.isEmpty()) {
+            // No items at this position - list is empty or index out of bounds
+            newPosition = BigDecimal.ONE;
+        } else if (offset == 0 && targetIndex == 0) {
+            // Move to top - subtract 1 from first item's position
+            newPosition = itemsAtTarget.getFirst().getPosition().subtract(BigDecimal.ONE);
+        } else if (itemsAtTarget.size() == 1) {
+            // Move to bottom - only one item returned means we're at the end
+            newPosition = itemsAtTarget.getFirst().getPosition().add(BigDecimal.ONE);
+        } else {
+            // Move between two items - calculate average
+            BigDecimal pos1 = itemsAtTarget.get(0).getPosition();
+            BigDecimal pos2 = itemsAtTarget.get(1).getPosition();
+            newPosition = pos1.add(pos2).divide(BigDecimal.valueOf(2), 6, java.math.RoundingMode.HALF_UP);
+        }
+
+        item.setPosition(newPosition);
+
+        ShoppingListItem saved = shoppingListItemRepository.saveAndFlush(item);
+        return toItemDto(saved);
+    }
+
+    @Transactional
+    ShoppingListItemDto checkItem(UUID shoppingListId, UUID itemId, Long expectedVersion, String userEmail) {
+        log.debug("Checking item {} from shopping list {} by user {} with expected version {}",
+                itemId, shoppingListId, userEmail, expectedVersion);
+
+        shoppingListRepository.findById(shoppingListId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(shoppingListId));
+
+        ShoppingListItem item = shoppingListItemRepository.findById(itemId)
+                .orElseThrow(() -> new ShoppingListItemNotFoundException(itemId));
+
+        if (!item.getShoppingListId().equals(shoppingListId)) {
+            throw new ShoppingListItemNotFoundException(itemId);
+        }
+
+        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, shoppingListId))
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+
+        if (!permission.hasEditorRights()) {
+            throw new ShoppingListAccessDeniedException(shoppingListId);
+        }
+
+        if (!item.getVersion().equals(expectedVersion)) {
+            throw new ShoppingListItemVersionMismatchException(itemId, expectedVersion, item.getVersion());
+        }
+
+        item.check();
+
+        ShoppingListItem saved = shoppingListItemRepository.saveAndFlush(item);
+        return toItemDto(saved);
+    }
+
+    @Transactional
+    ShoppingListItemDto uncheckItem(UUID shoppingListId, UUID itemId, Long expectedVersion, String userEmail) {
+        log.debug("Unchecking item {} from shopping list {} by user {} with expected version {}",
+                itemId, shoppingListId, userEmail, expectedVersion);
+
+        shoppingListRepository.findById(shoppingListId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(shoppingListId));
+
+        ShoppingListItem item = shoppingListItemRepository.findById(itemId)
+                .orElseThrow(() -> new ShoppingListItemNotFoundException(itemId));
+
+        if (!item.getShoppingListId().equals(shoppingListId)) {
+            throw new ShoppingListItemNotFoundException(itemId);
+        }
+
+        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, shoppingListId))
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+
+        if (!permission.hasEditorRights()) {
+            throw new ShoppingListAccessDeniedException(shoppingListId);
+        }
+
+        if (!item.getVersion().equals(expectedVersion)) {
+            throw new ShoppingListItemVersionMismatchException(itemId, expectedVersion, item.getVersion());
+        }
+
+        item.uncheck();
+
+        ShoppingListItem saved = shoppingListItemRepository.saveAndFlush(item);
+        return toItemDto(saved);
+    }
+
     private BigDecimal calculateNextPosition(UUID shoppingListId) {
         log.debug("Calculating next position for shopping list: {}", shoppingListId);
 

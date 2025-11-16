@@ -5,8 +5,9 @@
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
-- `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access
-  and optimistic locking for item deletion)
+- `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access,
+  optimistic locking with If-Match headers for all item operations, and comprehensive item management including update,
+  move, check, and uncheck functionality)
 
 ## Codebase Structure
 
@@ -55,7 +56,9 @@ backend/
 │   │   │   ├── ShoppingListItemDto.java     # Shopping list item response DTO
 │   │   │   ├── CreateShoppingListRequest.java # Create shopping list request DTO
 │   │   │   ├── UpdateShoppingListRequest.java # Update shopping list request DTO
-│   │   │   └── CreateShoppingListItemRequest.java # Create item request DTO
+│   │   │   ├── CreateShoppingListItemRequest.java # Create item request DTO
+│   │   │   ├── UpdateShoppingListItemRequest.java # Update item request DTO
+│   │   │   └── MoveShoppingListItemRequest.java # Move item request DTO
 │   │   └── exception/                   # Custom exceptions
 │   │       ├── ShoppingListNotFoundException.java # Shopping list not found exception
 │   │       ├── ShoppingListAccessDeniedException.java # Access denied exception

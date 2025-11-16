@@ -479,3 +479,135 @@
     - Note: EDITOR role is sufficient to delete items. Deleting an item does not renumber remaining items (gaps are
       allowed in positions). The `If-Match` header must contain the current version of the item to prevent concurrent
       modification conflicts.
+- PUT /shopping-lists/{shopping_list_id}/item/{id}
+    - Description: Update an item's name, quantity, and unit
+    - Authenticated: true
+    - Path parameters:
+        - `shopping_list_id` (UUID): Shopping list ID
+        - `id` (UUID): Item ID
+    - Headers:
+        - `If-Match` (required): Version number of the item (obtained from GET request)
+    - Roles: OWNER and EDITOR can update items
+    - Request body:
+      ```json
+      {
+        "name": "Updated Name",
+        "quantity": 3.0,
+        "unit": "kg"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440010",
+        "name": "Updated Name",
+        "quantity": 3.0,
+        "unit": "kg",
+        "checked": false,
+        "position": 1.0,
+        "version": 1
+      }
+      ```
+    - Success: 200 OK
+    - Errors:
+        - 400 Bad Request (validation error - blank name or oversized fields)
+        - 401 Unauthorized
+        - 403 Forbidden (user lacks EDITOR/OWNER permission)
+        - 404 Not Found (item not found or doesn't belong to the shopping list)
+        - 412 Precondition Failed (version mismatch)
+    - Note: The `If-Match` header must contain the current version. Version is automatically incremented on successful
+      update.
+- POST /shopping-lists/{shopping_list_id}/item/{id}/move
+    - Description: Move an item to a different position in the shopping list by index
+    - Authenticated: true
+    - Path parameters:
+        - `shopping_list_id` (UUID): Shopping list ID
+        - `id` (UUID): Item ID
+    - Headers:
+        - `If-Match` (required): Version number of the item
+    - Roles: OWNER and EDITOR can move items
+    - Request body:
+      ```json
+      {
+        "index": 2
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440010",
+        "name": "Milk",
+        "quantity": 2.0,
+        "unit": "liters",
+        "checked": false,
+        "position": 2.500000,
+        "version": 1
+      }
+      ```
+    - Success: 200 OK
+    - Errors:
+        - 400 Bad Request (invalid index - negative number)
+        - 401 Unauthorized
+        - 403 Forbidden (user lacks EDITOR/OWNER permission)
+        - 404 Not Found (item not found or doesn't belong to the shopping list)
+        - 412 Precondition Failed (version mismatch)
+    - Note: Index is 0-based. Moving to the same index is idempotent. Position values are automatically normalized to 6
+      decimal places.
+- POST /shopping-lists/{shopping_list_id}/item/{id}/check
+    - Description: Mark an item as checked
+    - Authenticated: true
+    - Path parameters:
+        - `shopping_list_id` (UUID): Shopping list ID
+        - `id` (UUID): Item ID
+    - Headers:
+        - `If-Match` (required): Version number of the item
+    - Roles: OWNER and EDITOR can check items
+    - Request body: Empty
+    - Example response:
+      ```json
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440010",
+        "name": "Milk",
+        "quantity": 2.0,
+        "unit": "liters",
+        "checked": true,
+        "position": 1.0,
+        "version": 1
+      }
+      ```
+    - Success: 200 OK
+    - Errors:
+        - 401 Unauthorized
+        - 403 Forbidden (user lacks EDITOR/OWNER permission)
+        - 404 Not Found (item not found or doesn't belong to the shopping list)
+        - 412 Precondition Failed (version mismatch)
+    - Note: Idempotent - checking an already checked item has no effect.
+- POST /shopping-lists/{shopping_list_id}/item/{id}/uncheck
+    - Description: Mark an item as unchecked
+    - Authenticated: true
+    - Path parameters:
+        - `shopping_list_id` (UUID): Shopping list ID
+        - `id` (UUID): Item ID
+    - Headers:
+        - `If-Match` (required): Version number of the item
+    - Roles: OWNER and EDITOR can uncheck items
+    - Request body: Empty
+    - Example response:
+      ```json
+      {
+        "id": "770e8400-e29b-41d4-a716-446655440010",
+        "name": "Milk",
+        "quantity": 2.0,
+        "unit": "liters",
+        "checked": false,
+        "position": 1.0,
+        "version": 2
+      }
+      ```
+    - Success: 200 OK
+    - Errors:
+        - 401 Unauthorized
+        - 403 Forbidden (user lacks EDITOR/OWNER permission)
+        - 404 Not Found (item not found or doesn't belong to the shopping list)
+        - 412 Precondition Failed (version mismatch)
+    - Note: Idempotent - unchecking an already unchecked item has no effect.

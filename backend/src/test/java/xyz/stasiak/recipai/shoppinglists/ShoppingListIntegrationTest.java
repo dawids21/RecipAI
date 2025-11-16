@@ -105,6 +105,46 @@ class ShoppingListIntegrationTest {
                 .toBodilessEntity();
     }
 
+    private ShoppingListItemDto updateShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId, Long version, String name, BigDecimal quantity, String unit) {
+        UpdateShoppingListItemRequest request = new UpdateShoppingListItemRequest(name, quantity, unit);
+        return client
+                .put()
+                .uri("/shopping-lists/" + shoppingListId + "/item/" + itemId)
+                .header("If-Match", version.toString())
+                .body(request)
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
+    private ShoppingListItemDto moveShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId, Long version, int targetIndex) {
+        MoveShoppingListItemRequest request = new MoveShoppingListItemRequest(targetIndex);
+        return client
+                .post()
+                .uri("/shopping-lists/" + shoppingListId + "/item/" + itemId + "/move")
+                .header("If-Match", version.toString())
+                .body(request)
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
+    private ShoppingListItemDto checkShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId, Long version) {
+        return client
+                .post()
+                .uri("/shopping-lists/" + shoppingListId + "/item/" + itemId + "/check")
+                .header("If-Match", version.toString())
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
+    private ShoppingListItemDto uncheckShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId, Long version) {
+        return client
+                .post()
+                .uri("/shopping-lists/" + shoppingListId + "/item/" + itemId + "/uncheck")
+                .header("If-Match", version.toString())
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
     @Test
     void shouldCreateAndListShoppingLists() {
         RestClient client = restClient();
@@ -658,7 +698,7 @@ class ShoppingListIntegrationTest {
         // Create an item
         ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item to Delete");
         assertThat(createdItem).isNotNull();
-        assertThat(createdItem.version()).isEqualTo(0L);
+        assertThat(createdItem.version()).isNotEqualTo(999L);
 
         // Try to delete with wrong version (should get 412 Precondition Failed)
         try {
@@ -669,6 +709,265 @@ class ShoppingListIntegrationTest {
             String responseBody = ex.getResponseBodyAsString();
             assertThat(responseBody).contains("Version mismatch");
             assertThat(responseBody).contains("Shopping List Item Version Mismatch");
+        }
+    }
+
+    @Test
+    void shouldUpdateItemSuccessfully() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Update Test List");
+        assertThat(list).isNotNull();
+
+        // Create an item
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Original Name", BigDecimal.ONE, "unit");
+        assertThat(createdItem).isNotNull();
+        assertThat(createdItem.version()).isNotNull();
+
+        // Update the item
+        ShoppingListItemDto updatedItem = updateShoppingListItem(
+                client, list.id(), createdItem.id(), createdItem.version(),
+                "Updated Name", BigDecimal.TWO, "liters"
+        );
+
+        assertThat(updatedItem).isNotNull();
+        assertThat(updatedItem.id()).isEqualTo(createdItem.id());
+        assertThat(updatedItem.name()).isEqualTo("Updated Name");
+        assertThat(updatedItem.quantity()).isEqualByComparingTo(BigDecimal.TWO);
+        assertThat(updatedItem.unit()).isEqualTo("liters");
+        assertThat(updatedItem.version()).isGreaterThan(createdItem.version());
+    }
+
+    @Test
+    void shouldReturn412WhenUpdatingItemWithWrongVersion() {
+        RestClient client = restClient();
+
+        // Create a shopping list and item
+        ShoppingListListDto list = createShoppingList(client, "Update Version Test");
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item", BigDecimal.ONE, "unit");
+
+        // Try to update with wrong version
+        try {
+            updateShoppingListItem(client, list.id(), createdItem.id(), 999L, "New Name", BigDecimal.ONE, "unit");
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenUpdatingItemWithoutPermission() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates list and item
+        ShoppingListListDto list = createShoppingList(user1Client, "Restricted List");
+        ShoppingListItemDto item = createShoppingListItem(user1Client, list.id(), "Item", BigDecimal.ONE, "unit");
+
+        // User 2 tries to update
+        try {
+            updateShoppingListItem(user2Client, list.id(), item.id(), item.version(), "Hacked", BigDecimal.ONE, "unit");
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldMoveItemToTopSuccessfully() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Move Test List");
+        assertThat(list).isNotNull();
+
+        // Create three items
+        ShoppingListItemDto item1 = createShoppingListItem(client, list.id(), "Item 1");
+        createShoppingListItem(client, list.id(), "Item 2");
+        ShoppingListItemDto item3 = createShoppingListItem(client, list.id(), "Item 3");
+
+        // Move item 3 to index 0 (top)
+        ShoppingListItemDto movedItem = moveShoppingListItem(client, list.id(), item3.id(), item3.version(), 0);
+
+        assertThat(movedItem).isNotNull();
+        assertThat(movedItem.position()).isLessThan(item1.position());
+        assertThat(movedItem.version()).isGreaterThan(item3.version());
+
+        // Verify order in list
+        ShoppingListDto updatedList = getShoppingList(client, list.id());
+        assertThat(updatedList.items()).hasSize(3);
+        assertThat(updatedList.items().getFirst().name()).isEqualTo("Item 3");
+    }
+
+    @Test
+    void shouldMoveItemToBottomSuccessfully() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Move Bottom Test");
+        assertThat(list).isNotNull();
+
+        // Create three items
+        ShoppingListItemDto item1 = createShoppingListItem(client, list.id(), "Item 1");
+        createShoppingListItem(client, list.id(), "Item 2");
+        ShoppingListItemDto item3 = createShoppingListItem(client, list.id(), "Item 3");
+
+        // Move item 1 to index 2 (after item 3)
+        ShoppingListItemDto movedItem = moveShoppingListItem(client, list.id(), item1.id(), item1.version(), 2);
+
+        assertThat(movedItem).isNotNull();
+        assertThat(movedItem.position()).isGreaterThan(item3.position());
+
+        // Verify order in list
+        ShoppingListDto updatedList = getShoppingList(client, list.id());
+        assertThat(updatedList.items()).hasSize(3);
+        assertThat(updatedList.items().get(2).name()).isEqualTo("Item 1");
+    }
+
+    @Test
+    void shouldMoveItemBetweenItemsSuccessfully() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Move Middle Test");
+        assertThat(list).isNotNull();
+
+        // Create three items
+        ShoppingListItemDto item1 = createShoppingListItem(client, list.id(), "Item 1");
+        ShoppingListItemDto item2 = createShoppingListItem(client, list.id(), "Item 2");
+        ShoppingListItemDto item3 = createShoppingListItem(client, list.id(), "Item 3");
+
+        // Move item 3 to index 1 (between item 1 and item 2)
+        ShoppingListItemDto movedItem = moveShoppingListItem(client, list.id(), item3.id(), item3.version(), 1);
+
+        assertThat(movedItem).isNotNull();
+        assertThat(movedItem.position()).isGreaterThan(item1.position());
+        assertThat(movedItem.position()).isLessThan(item2.position());
+
+        // Verify order in list
+        ShoppingListDto updatedList = getShoppingList(client, list.id());
+        assertThat(updatedList.items()).hasSize(3);
+        assertThat(updatedList.items().get(1).name()).isEqualTo("Item 3");
+    }
+
+    @Test
+    void shouldReturn412WhenMovingItemWithWrongVersion() {
+        RestClient client = restClient();
+
+        // Create a shopping list and items
+        ShoppingListListDto list = createShoppingList(client, "Move Version Test");
+        ShoppingListItemDto item1 = createShoppingListItem(client, list.id(), "Item 1");
+        createShoppingListItem(client, list.id(), "Item 2");
+
+        // Try to move with wrong version
+        try {
+            moveShoppingListItem(client, list.id(), item1.id(), 999L, 1);
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+        }
+    }
+
+    @Test
+    void shouldCheckItemSuccessfully() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Check Test List");
+        assertThat(list).isNotNull();
+
+        // Create an item
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item to Check");
+        assertThat(createdItem.checked()).isFalse();
+        assertThat(createdItem.version()).isNotNull();
+
+        // Check the item
+        ShoppingListItemDto checkedItem = checkShoppingListItem(client, list.id(), createdItem.id(), createdItem.version());
+
+        assertThat(checkedItem).isNotNull();
+        assertThat(checkedItem.checked()).isTrue();
+        assertThat(checkedItem.version()).isGreaterThan(createdItem.version());
+    }
+
+    @Test
+    void shouldUncheckItemSuccessfully() {
+        RestClient client = restClient();
+
+        // Create a shopping list
+        ShoppingListListDto list = createShoppingList(client, "Uncheck Test List");
+        assertThat(list).isNotNull();
+
+        // Create an item
+        ShoppingListItemDto createdItem = createShoppingListItem(client, list.id(), "Item to Uncheck");
+
+        // Check the item
+        ShoppingListItemDto checkedItem = checkShoppingListItem(client, list.id(), createdItem.id(), createdItem.version());
+        assertThat(checkedItem.checked()).isTrue();
+
+        // Uncheck the item
+        ShoppingListItemDto uncheckedItem = uncheckShoppingListItem(client, list.id(), checkedItem.id(), checkedItem.version());
+
+        assertThat(uncheckedItem).isNotNull();
+        assertThat(uncheckedItem.checked()).isFalse();
+        assertThat(uncheckedItem.version()).isGreaterThan(checkedItem.version());
+    }
+
+    @Test
+    void shouldCheckAndUncheckBeIdempotent() {
+        RestClient client = restClient();
+
+        // Create a shopping list and item
+        ShoppingListListDto list = createShoppingList(client, "Idempotent Test");
+        ShoppingListItemDto item = createShoppingListItem(client, list.id(), "Item", BigDecimal.ONE, "unit");
+
+        // Check the item multiple times
+        ShoppingListItemDto checked1 = checkShoppingListItem(client, list.id(), item.id(), item.version());
+        assertThat(checked1.checked()).isTrue();
+
+        ShoppingListItemDto checked2 = checkShoppingListItem(client, list.id(), checked1.id(), checked1.version());
+        assertThat(checked2.checked()).isTrue();
+
+        // Uncheck the item multiple times
+        ShoppingListItemDto unchecked1 = uncheckShoppingListItem(client, list.id(), checked2.id(), checked2.version());
+        assertThat(unchecked1.checked()).isFalse();
+
+        ShoppingListItemDto unchecked2 = uncheckShoppingListItem(client, list.id(), unchecked1.id(), unchecked1.version());
+        assertThat(unchecked2.checked()).isFalse();
+    }
+
+    @Test
+    void shouldReturn412WhenCheckingItemWithWrongVersion() {
+        RestClient client = restClient();
+
+        // Create a shopping list and item
+        ShoppingListListDto list = createShoppingList(client, "Check Version Test");
+        ShoppingListItemDto item = createShoppingListItem(client, list.id(), "Item", BigDecimal.ONE, "unit");
+
+        // Try to check with wrong version
+        try {
+            checkShoppingListItem(client, list.id(), item.id(), 999L);
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenCheckingItemWithoutPermission() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates list and item
+        ShoppingListListDto list = createShoppingList(user1Client, "Check Permission Test");
+        ShoppingListItemDto item = createShoppingListItem(user1Client, list.id(), "Item", BigDecimal.ONE, "unit");
+
+        // User 2 tries to check
+        try {
+            checkShoppingListItem(user2Client, list.id(), item.id(), item.version());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
     }
 }

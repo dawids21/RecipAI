@@ -56,12 +56,20 @@ class ShoppingListItem {
         this.checked = false;
     }
 
-    private static BigDecimal normalizePositionScale(BigDecimal position) {
-        return position != null ? position.setScale(6, RoundingMode.HALF_UP) : null;
+    void check() {
+        this.checked = true;
     }
 
-    public void setPosition(BigDecimal position) {
+    void uncheck() {
+        this.checked = false;
+    }
+
+    void setPosition(BigDecimal position) {
         this.position = normalizePositionScale(position);
+    }
+
+    private static BigDecimal normalizePositionScale(BigDecimal position) {
+        return position != null ? position.setScale(6, RoundingMode.HALF_UP) : null;
     }
 
     @Override
