@@ -311,6 +311,19 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                                       widget.shoppingListDetailService
                                           .processOperation(operation);
                                     },
+                                    onCheckChanged: (checked) {
+                                      final operation = checked
+                                          ? CheckItemOperation(
+                                              itemId: item.id,
+                                              itemVersion: item.version,
+                                            )
+                                          : UncheckItemOperation(
+                                              itemId: item.id,
+                                              itemVersion: item.version,
+                                            );
+                                      widget.shoppingListDetailService
+                                          .processOperation(operation);
+                                    },
                                   );
                                 },
                               ),
@@ -318,6 +331,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                               key: const ValueKey('add-item'),
                               addMode: true,
                               showDragHandle: false,
+                              onCheckChanged: null,
+                              // No checkbox interaction in add mode
                               onEdit: (result) {
                                 final operation = AddItemOperation(
                                   itemName: result.name,

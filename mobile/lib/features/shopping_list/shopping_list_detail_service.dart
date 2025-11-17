@@ -190,6 +190,52 @@ class ShoppingListDetailService {
           role: detail.role,
         );
       }(),
+      CheckItemOperation() => () {
+        final updatedItems = detail.items.map((item) {
+          if (item.id == operation.itemId) {
+            return ShoppingListItem(
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              checked: true,
+              position: item.position,
+              version: item.version,
+            );
+          }
+          return item;
+        }).toList();
+
+        return ShoppingListDetail(
+          id: detail.id,
+          name: detail.name,
+          items: updatedItems,
+          role: detail.role,
+        );
+      }(),
+      UncheckItemOperation() => () {
+        final updatedItems = detail.items.map((item) {
+          if (item.id == operation.itemId) {
+            return ShoppingListItem(
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+              checked: false,
+              position: item.position,
+              version: item.version,
+            );
+          }
+          return item;
+        }).toList();
+
+        return ShoppingListDetail(
+          id: detail.id,
+          name: detail.name,
+          items: updatedItems,
+          role: detail.role,
+        );
+      }(),
     };
   }
 

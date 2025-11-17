@@ -42,3 +42,19 @@ class MoveItemOperation extends ShoppingListOperation {
     required this.targetIndex,
   }) : super(itemId: itemId, itemVersion: itemVersion);
 }
+
+class CheckItemOperation extends ShoppingListOperation {
+  CheckItemOperation({
+    super.id,
+    required String itemId,
+    required int itemVersion,
+  }) : super(itemId: itemId, itemVersion: itemVersion);
+}
+
+class UncheckItemOperation extends ShoppingListOperation {
+  UncheckItemOperation({
+    super.id,
+    required String itemId,
+    required int itemVersion,
+  }) : super(itemId: itemId, itemVersion: itemVersion);
+}

@@ -138,6 +138,36 @@ class ShoppingListSyncService {
                   .where((operation) => operation.itemId == response.id)
                   .toList(),
             );
+          case CheckItemOperation check:
+            final response = await _repository.checkItem(
+              listId,
+              check.itemId,
+              check.itemVersion!,
+              await _authService.idToken,
+            );
+            _replaceValuesInQueue(listId, check.itemId, response);
+            callbacks?.onItemUpdated.call(
+              check.itemId,
+              response,
+              _operationQueues[listId]!
+                  .where((operation) => operation.itemId == response.id)
+                  .toList(),
+            );
+          case UncheckItemOperation uncheck:
+            final response = await _repository.uncheckItem(
+              listId,
+              uncheck.itemId,
+              uncheck.itemVersion!,
+              await _authService.idToken,
+            );
+            _replaceValuesInQueue(listId, uncheck.itemId, response);
+            callbacks?.onItemUpdated.call(
+              uncheck.itemId,
+              response,
+              _operationQueues[listId]!
+                  .where((operation) => operation.itemId == response.id)
+                  .toList(),
+            );
         }
       } catch (e) {
         if (e.toString().contains('412')) {
@@ -185,6 +215,18 @@ class ShoppingListSyncService {
             itemId: item.id,
             itemVersion: item.version,
             targetIndex: operation.targetIndex,
+          );
+        } else if (operation is CheckItemOperation) {
+          _operationQueues[listId]![i] = CheckItemOperation(
+            id: operation.id,
+            itemId: item.id,
+            itemVersion: item.version,
+          );
+        } else if (operation is UncheckItemOperation) {
+          _operationQueues[listId]![i] = UncheckItemOperation(
+            id: operation.id,
+            itemId: item.id,
+            itemVersion: item.version,
           );
         }
       }

@@ -245,4 +245,66 @@ class ShoppingListRepository {
       throw Exception('Failed to move item: ${response.statusCode}');
     }
   }
+
+  Future<ShoppingListItem> checkItem(
+    String listId,
+    String itemId,
+    int version,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = version.toString();
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId/check'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingListItem.fromJson(jsonMap);
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to check items in this list');
+    } else if (response.statusCode == 404) {
+      throw Exception('Item not found');
+    } else if (response.statusCode == 412) {
+      throw Exception('412 Precondition Failed');
+    } else {
+      throw Exception('Failed to check item: ${response.statusCode}');
+    }
+  }
+
+  Future<ShoppingListItem> uncheckItem(
+    String listId,
+    String itemId,
+    int version,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = version.toString();
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId/uncheck'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingListItem.fromJson(jsonMap);
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
+    } else if (response.statusCode == 403) {
+      throw Exception(
+        'You do not have permission to uncheck items in this list',
+      );
+    } else if (response.statusCode == 404) {
+      throw Exception('Item not found');
+    } else if (response.statusCode == 412) {
+      throw Exception('412 Precondition Failed');
+    } else {
+      throw Exception('Failed to uncheck item: ${response.statusCode}');
+    }
+  }
 }

@@ -19,6 +19,7 @@ class ShoppingListItemWidget extends StatefulWidget {
   final ShoppingListItem item;
   final ValueChanged<ItemChanged> onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<bool>? onCheckChanged;
   final bool addMode;
   final bool showDragHandle;
   final int? index;
@@ -28,6 +29,7 @@ class ShoppingListItemWidget extends StatefulWidget {
     ShoppingListItem? item,
     required this.onEdit,
     required this.onDelete,
+    this.onCheckChanged,
     this.addMode = false,
     this.showDragHandle = false,
     this.index,
@@ -126,13 +128,18 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
           )
         : theme.textTheme.bodyLarge;
 
-    final leadingWidget = Icon(
-      widget.addMode
-          ? Icons.add
-          : widget.item.checked
-          ? Icons.check_box
-          : Icons.check_box_outline_blank,
-    );
+    final leadingWidget = widget.addMode
+        ? const Icon(Icons.add)
+        : Checkbox(
+            value: widget.item.checked,
+            onChanged: widget.onCheckChanged != null
+                ? (bool? value) {
+                    if (value != null) {
+                      widget.onCheckChanged!(value);
+                    }
+                  }
+                : null,
+          );
 
     return Padding(
       padding: AppSpacing.smallVertical,
