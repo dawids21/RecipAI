@@ -64,6 +64,9 @@ dependencies:
   # UUID generation
   uuid: ^4.0.0
 
+  # Collection utilities
+  collection: ^1.19.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
