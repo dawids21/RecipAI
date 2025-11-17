@@ -239,8 +239,6 @@ class ShoppingListDetailService {
       itemsCopy[index] = updatedItem;
     }
 
-    itemsCopy.sort((a, b) => a.position.compareTo(b.position));
-
     var updatedDetail = ShoppingListDetail(
       id: detail.id,
       name: detail.name,
