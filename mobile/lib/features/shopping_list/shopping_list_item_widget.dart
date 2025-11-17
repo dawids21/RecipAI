@@ -143,35 +143,42 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
 
     return Padding(
       padding: AppSpacing.smallVertical,
-      child: Row(
-        children: [
-          if (widget.showDragHandle)
-            ReorderableDragStartListener(
-              index: widget.index!,
-              child: Icon(
-                Icons.drag_handle,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Row(
+          children: [
+            if (widget.showDragHandle)
+              ReorderableDragStartListener(
+                index: widget.index!,
+                child: Icon(
+                  Icons.drag_handle,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            if (widget.showDragHandle) const SizedBox(width: AppSpacing.small),
+            leadingWidget,
+            const SizedBox(width: AppSpacing.small),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                style: textStyle,
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: widget.addMode ? "Add item..." : null,
+                ),
+                onTapOutside: (_) => _focusNode.unfocus(),
               ),
             ),
-          if (widget.showDragHandle) const SizedBox(width: AppSpacing.small),
-          leadingWidget,
-          const SizedBox(width: AppSpacing.small),
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              style: textStyle,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-                hintText: widget.addMode ? "Add item..." : null,
+            if (!widget.addMode)
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: widget.onDelete,
               ),
-              onTapOutside: (_) => _focusNode.unfocus(),
-            ),
-          ),
-          IconButton(icon: const Icon(Icons.close), onPressed: widget.onDelete),
-        ],
+          ],
+        ),
       ),
     );
   }

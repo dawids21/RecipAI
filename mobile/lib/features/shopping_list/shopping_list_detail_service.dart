@@ -236,6 +236,34 @@ class ShoppingListDetailService {
           role: detail.role,
         );
       }(),
+      UpdateItemOperation(
+        :final itemName,
+        :final itemQuantity,
+        :final itemUnit,
+      ) =>
+        () {
+          final updatedItems = detail.items.map((item) {
+            if (item.id == operation.itemId) {
+              return ShoppingListItem(
+                id: item.id,
+                name: itemName,
+                quantity: itemQuantity,
+                unit: itemUnit,
+                checked: item.checked,
+                position: item.position,
+                version: item.version,
+              );
+            }
+            return item;
+          }).toList();
+
+          return ShoppingListDetail(
+            id: detail.id,
+            name: detail.name,
+            items: updatedItems,
+            role: detail.role,
+          );
+        }(),
     };
   }
 

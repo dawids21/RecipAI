@@ -168,6 +168,24 @@ class ShoppingListSyncService {
                   .where((operation) => operation.itemId == response.id)
                   .toList(),
             );
+          case UpdateItemOperation update:
+            final response = await _repository.updateItem(
+              listId,
+              update.itemId,
+              update.itemVersion!,
+              update.itemName,
+              update.itemQuantity,
+              update.itemUnit,
+              await _authService.idToken,
+            );
+            _replaceValuesInQueue(listId, update.itemId, response);
+            callbacks?.onItemUpdated.call(
+              update.itemId,
+              response,
+              _operationQueues[listId]!
+                  .where((operation) => operation.itemId == response.id)
+                  .toList(),
+            );
         }
       } catch (e) {
         if (e.toString().contains('412')) {
@@ -227,6 +245,15 @@ class ShoppingListSyncService {
             id: operation.id,
             itemId: item.id,
             itemVersion: item.version,
+          );
+        } else if (operation is UpdateItemOperation) {
+          _operationQueues[listId]![i] = UpdateItemOperation(
+            id: operation.id,
+            itemId: item.id,
+            itemVersion: item.version,
+            itemName: operation.itemName,
+            itemQuantity: operation.itemQuantity,
+            itemUnit: operation.itemUnit,
           );
         }
       }

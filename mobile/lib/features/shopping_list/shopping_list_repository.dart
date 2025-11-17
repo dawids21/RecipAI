@@ -307,4 +307,48 @@ class ShoppingListRepository {
       throw Exception('Failed to uncheck item: ${response.statusCode}');
     }
   }
+
+  Future<ShoppingListItem> updateItem(
+    String listId,
+    String itemId,
+    int version,
+    String name,
+    double? quantity,
+    String? unit,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    headers['If-Match'] = version.toString();
+
+    final body = <String, dynamic>{
+      'name': name,
+      if (quantity != null) 'quantity': quantity,
+      if (unit != null) 'unit': unit,
+    };
+
+    final response = await _client.put(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId'),
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body);
+      return ShoppingListItem.fromJson(jsonMap);
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid item data');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
+    } else if (response.statusCode == 403) {
+      throw Exception(
+        'You do not have permission to update items in this list',
+      );
+    } else if (response.statusCode == 404) {
+      throw Exception('Item not found');
+    } else if (response.statusCode == 412) {
+      throw Exception('412 Precondition Failed');
+    } else {
+      throw Exception('Failed to update item: ${response.statusCode}');
+    }
+  }
 }

@@ -301,7 +301,15 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                                     index: index,
                                     showDragHandle: true,
                                     onEdit: (result) {
-                                      // TODO: Implement edit functionality
+                                      final operation = UpdateItemOperation(
+                                        itemId: item.id,
+                                        itemVersion: item.version,
+                                        itemName: result.name,
+                                        itemQuantity: result.quantity,
+                                        itemUnit: result.unit,
+                                      );
+                                      widget.shoppingListDetailService
+                                          .processOperation(operation);
                                     },
                                     onDelete: () {
                                       final operation = DeleteItemOperation(

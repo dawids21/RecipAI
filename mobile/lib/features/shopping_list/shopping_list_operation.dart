@@ -58,3 +58,18 @@ class UncheckItemOperation extends ShoppingListOperation {
     required int itemVersion,
   }) : super(itemId: itemId, itemVersion: itemVersion);
 }
+
+class UpdateItemOperation extends ShoppingListOperation {
+  final String itemName;
+  final double? itemQuantity;
+  final String? itemUnit;
+
+  UpdateItemOperation({
+    super.id,
+    required String itemId,
+    required int itemVersion,
+    required this.itemName,
+    required this.itemQuantity,
+    required this.itemUnit,
+  }) : super(itemId: itemId, itemVersion: itemVersion);
+}
