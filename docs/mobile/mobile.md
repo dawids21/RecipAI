@@ -63,6 +63,8 @@ mobile/
 │       │   ├── recipe_setup.dart       # Dependency injection setup for recipe module
 │       │   ├── recipe_list.dart        # Reusable recipe list body widget
 │       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
+│       │   ├── recipe_to_shopping_list_screen.dart # Add ingredients to shopping list screen
+│       │   ├── recipe_to_shopping_list_service.dart # Service for adding ingredients to shopping list
 │       │   └── ...                     # Other screens, models, and widgets
 │       ├── shopping_list/              # "shopping list" feature
 │       │   ├── shopping_list.dart      # Shopping list data model

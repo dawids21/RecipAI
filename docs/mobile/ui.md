@@ -27,6 +27,9 @@
 - Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Modal dialog for sharing recipes with other users, featuring
   email input with validation, shared users list with UserRole enum display, and unshare functionality with Material
   Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current user
+- Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
+  shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
+  and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success
 
 ### Auth feature
 
@@ -93,6 +96,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
     - `/recipes/create` - Recipe creation screen (nested route)
     - `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
     - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
+  - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
   - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 
 ### Bottom Navigation Bar
@@ -130,11 +134,14 @@ All routes except `/login` require user authentication. The app automatically re
 3. **Speed Dial FAB → Create Tap** (on Recipes tab) → Create Recipe Screen (`/recipes/create`)
 4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
 5. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
-6. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
-7. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
+6. **Add to Shopping List Tap** (on Recipe Detail Screen) → Recipe To Shopping List Screen (
+   `/recipes/:id/to-shopping-list`) → Select ingredients → Choose shopping list → Items queued for sync → Back to Recipe
+   Detail Screen
+7. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
+8. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
    Main Screen
-8. **Successful Manual Creation** → Back to Main Screen (with recipe added)
-9. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+9. **Successful Manual Creation** → Back to Main Screen (with recipe added)
+10. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 #### Shopping List Management Flow
 

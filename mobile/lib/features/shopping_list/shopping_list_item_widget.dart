@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 import 'shopping_list_item.dart';
+import 'shopping_list_item_parser.dart';
 
 class ItemChanged {
   final String name;
@@ -52,7 +53,6 @@ class ShoppingListItemWidget extends StatefulWidget {
 class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
   late TextEditingController _controller;
   late FocusNode _focusNode;
-  final _pattern = RegExp(r'^\s*(\d+[.,]?\d*)\s*([a-zA-Z]+)?\s+(.+)$');
 
   @override
   void initState() {
@@ -100,16 +100,14 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
       return;
     }
 
-    final match = _pattern.firstMatch(text);
-    if (match != null) {
-      final quantityStr = match.group(1)!.replaceAll(',', '.');
-      final quantity = double.tryParse(quantityStr);
-      final unit = match.group(2)?.trim();
-      final name = match.group(3)!.trim();
-      widget.onEdit(ItemChanged(name: name, quantity: quantity, unit: unit));
-    } else {
-      widget.onEdit(ItemChanged(name: text, quantity: null, unit: null));
-    }
+    final parsed = ShoppingListItemParser.parse(text);
+    widget.onEdit(
+      ItemChanged(
+        name: parsed.name,
+        quantity: parsed.quantity,
+        unit: parsed.unit,
+      ),
+    );
 
     // Clear field after edit if requested
     if (widget.addMode) {

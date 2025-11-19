@@ -14,9 +14,12 @@ import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_service.dart';
+import '../features/recipe/recipe_to_shopping_list_screen.dart';
+import '../features/recipe/recipe_to_shopping_list_service.dart';
 import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
+import '../features/shopping_list/shopping_list_sync_service.dart';
 import 'main_screen.dart';
 
 /// Route definitions with enum for type-safe navigation
@@ -27,7 +30,8 @@ enum AppRoute {
   imageExtraction('recipes/image-extraction'), // '/recipes/image-extraction'
   recipeCreate('recipes/create'), // '/recipes/create'
   recipeDetail('recipes/:id'), // '/recipes/:id'
-  recipeEdit('edit'), // '/recipes/:id/edit');
+  recipeEdit('edit'), // '/recipes/:id/edit'
+  recipeToShoppingList('to-shopping-list'), // '/recipes/:id/to-shopping-list'
   shoppingListDetail('shopping-lists/:id'); // '/shopping-lists/:id'
 
   const AppRoute(this.path);
@@ -159,6 +163,21 @@ GoRouter createAppRouter() {
                   return EditRecipeScreen(
                     recipeId: id,
                     recipeDetailService: getIt<RecipeDetailService>(),
+                  );
+                },
+              ),
+              GoRoute(
+                path: AppRoute.recipeToShoppingList.path,
+                name: AppRoute.recipeToShoppingList.name,
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return RecipeToShoppingListScreen(
+                    recipeId: id,
+                    recipeDetailService: getIt<RecipeDetailService>(),
+                    shoppingListListService: getIt<ShoppingListListService>(),
+                    recipeToShoppingListService: RecipeToShoppingListService(
+                      syncService: getIt<ShoppingListSyncService>(),
+                    ),
                   );
                 },
               ),

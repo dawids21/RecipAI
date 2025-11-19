@@ -140,6 +140,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             // Build menu items based on user role
             final menuItems = <PopupMenuItem<String>>[];
 
+            // Always show add to shopping list option
+            menuItems.add(
+              PopupMenuItem<String>(
+                value: 'addToShoppingList',
+                child: Row(
+                  children: [
+                    Icon(Icons.shopping_cart),
+                    const SizedBox(width: AppSpacing.small),
+                    Text('Add to Shopping List'),
+                  ],
+                ),
+              ),
+            );
+
             // Always show share option
             menuItems.add(
               PopupMenuItem<String>(
@@ -177,7 +191,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 actions: [
                   PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'delete') {
+                      if (value == 'addToShoppingList') {
+                        context.goNamed(
+                          AppRoute.recipeToShoppingList.name,
+                          pathParameters: {'id': widget.recipeId},
+                        );
+                      } else if (value == 'delete') {
                         _showDeleteConfirmation();
                       } else if (value == 'share') {
                         _showSharingDialog();
