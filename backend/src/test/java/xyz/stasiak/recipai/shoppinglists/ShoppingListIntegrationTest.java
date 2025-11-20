@@ -145,6 +145,35 @@ class ShoppingListIntegrationTest {
                 .body(ShoppingListItemDto.class);
     }
 
+    private void shareShoppingList(RestClient client, UUID shoppingListId, String email) {
+        ShareShoppingListRequest request = new ShareShoppingListRequest(email);
+        client
+                .post()
+                .uri("/shopping-lists/" + shoppingListId + "/share")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void unshareShoppingList(RestClient client, UUID shoppingListId, String email) {
+        UnshareShoppingListRequest request = new UnshareShoppingListRequest(email);
+        client
+                .post()
+                .uri("/shopping-lists/" + shoppingListId + "/unshare")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private List<SharedUserDto> getSharedUsers(RestClient client, UUID shoppingListId) {
+        return client
+                .get()
+                .uri("/shopping-lists/" + shoppingListId + "/users")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
     @Test
     void shouldCreateAndListShoppingLists() {
         RestClient client = restClient();
@@ -969,5 +998,220 @@ class ShoppingListIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
+    }
+
+    @Test
+    void shouldShareAndUnshareShoppingLists() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates a shopping list
+        ShoppingListListDto list = createShoppingList(user1Client, "Shared List");
+        assertThat(list).isNotNull();
+
+        // User 2 cannot access initially
+        try {
+            getShoppingList(user2Client, list.id());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User 1 shares with User 2
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 can now access the list
+        ShoppingListDto sharedList = getShoppingList(user2Client, list.id());
+        assertThat(sharedList).isNotNull();
+        assertThat(sharedList.name()).isEqualTo("Shared List");
+        assertThat(sharedList.role()).isEqualTo(UserRole.EDITOR);
+
+        // Verify shared users list
+        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, list.id());
+        assertThat(sharedUsers).hasSize(2);
+        assertThat(sharedUsers)
+                .extracting(SharedUserDto::email)
+                .containsExactly("user1@example.com", "user2@example.com");
+        assertThat(sharedUsers)
+                .extracting(SharedUserDto::role)
+                .containsExactly(UserRole.OWNER, UserRole.EDITOR);
+
+        // User 1 unshares from User 2
+        unshareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 can no longer access
+        try {
+            getShoppingList(user2Client, list.id());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldAllowEditorsToShareAndUnshare() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates and shares with User 2
+        ShoppingListListDto list = createShoppingList(user1Client, "Editor Share Test");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 (EDITOR) can share with another user
+        shareShoppingList(user2Client, list.id(), "user@example.com");
+
+        // Verify three users have access
+        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, list.id());
+        assertThat(sharedUsers).hasSize(3);
+
+        // User 2 (EDITOR) can unshare
+        unshareShoppingList(user2Client, list.id(), "user@example.com");
+
+        // Verify only two users remain
+        sharedUsers = getSharedUsers(user1Client, list.id());
+        assertThat(sharedUsers).hasSize(2);
+    }
+
+    @Test
+    void shouldPreventUnsharingOwner() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates and shares with User 2
+        ShoppingListListDto list = createShoppingList(user1Client, "Unshare Owner Test");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 tries to unshare User 1 (OWNER) - should fail
+        try {
+            unshareShoppingList(user2Client, list.id(), "user1@example.com");
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // Verify User 1 still has access
+        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, list.id());
+        assertThat(sharedUsers).hasSize(2);
+        assertThat(sharedUsers)
+                .extracting(SharedUserDto::email)
+                .contains("user1@example.com");
+    }
+
+    @Test
+    void shouldAllowEditorToUnshareThemselves() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates and shares with User 2
+        ShoppingListListDto list = createShoppingList(user1Client, "Self Unshare Test");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 can unshare themselves
+        unshareShoppingList(user2Client, list.id(), "user2@example.com");
+
+        // User 2 can no longer access
+        try {
+            getShoppingList(user2Client, list.id());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldPreventOwnerFromUnsharingThemselves() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // User 1 creates a list
+        ShoppingListListDto list = createShoppingList(user1Client, "Owner Self Unshare Test");
+
+        // User 1 tries to unshare themselves - should fail
+        try {
+            unshareShoppingList(user1Client, list.id(), "user1@example.com");
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // Verify User 1 still has access
+        ShoppingListDto listDto = getShoppingList(user1Client, list.id());
+        assertThat(listDto).isNotNull();
+    }
+
+    @Test
+    void shouldHandleDuplicateShareAsNoOp() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // User 1 creates and shares with User 2
+        ShoppingListListDto list = createShoppingList(user1Client, "Duplicate Share Test");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // Share again - should be no-op
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // Verify still only 2 users
+        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, list.id());
+        assertThat(sharedUsers).hasSize(2);
+    }
+
+    @Test
+    void shouldHandleUnshareNonExistentAsNoOp() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // User 1 creates a list
+        ShoppingListListDto list = createShoppingList(user1Client, "Unshare Non-existent Test");
+
+        // Unshare someone who doesn't have access - should be no-op
+        unshareShoppingList(user1Client, list.id(), "nonexistent@example.com");
+
+        // Verify still only 1 user
+        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, list.id());
+        assertThat(sharedUsers).hasSize(1);
+    }
+
+    @Test
+    void shouldAllowSharedUserToEditItems() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates and shares with User 2
+        ShoppingListListDto list = createShoppingList(user1Client, "Shared Edit Test");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 can create items
+        ShoppingListItemDto item = createShoppingListItem(user2Client, list.id(), "User 2 Item");
+        assertThat(item).isNotNull();
+        assertThat(item.name()).isEqualTo("User 2 Item");
+
+        // User 2 can update items
+        ShoppingListItemDto updated = updateShoppingListItem(user2Client, list.id(), item.id(), item.version(), "Updated Item", BigDecimal.TWO, "pieces");
+        assertThat(updated.name()).isEqualTo("Updated Item");
+
+        // User 1 can see the changes
+        ShoppingListDto listDto = getShoppingList(user1Client, list.id());
+        assertThat(listDto.items()).hasSize(1);
+        assertThat(listDto.items().getFirst().name()).isEqualTo("Updated Item");
+    }
+
+    @Test
+    void shouldPreventSharedUserFromDeletingList() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates and shares with User 2
+        ShoppingListListDto list = createShoppingList(user1Client, "Delete Permission Test");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        // User 2 (EDITOR) tries to delete - should fail
+        try {
+            deleteShoppingList(user2Client, list.id());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // Verify list still exists
+        ShoppingListDto listDto = getShoppingList(user1Client, list.id());
+        assertThat(listDto).isNotNull();
     }
 }

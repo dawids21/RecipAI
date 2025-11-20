@@ -4,10 +4,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.UUID;
 
 interface ShoppingListPermissionRepository extends JpaRepository<ShoppingListPermission, ShoppingListPermissionId> {
     @Modifying
     @Query("DELETE FROM ShoppingListPermission slp WHERE slp.id.shoppingListId = ?1")
     void deleteAllByShoppingListId(UUID shoppingListId);
+
+    @Query("SELECT slp FROM ShoppingListPermission slp WHERE slp.id.shoppingListId = ?1 ORDER BY slp.role DESC")
+    List<ShoppingListPermission> findAllByShoppingListId(UUID shoppingListId);
 }

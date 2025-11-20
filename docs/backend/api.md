@@ -611,3 +611,52 @@
         - 404 Not Found (item not found or doesn't belong to the shopping list)
         - 412 Precondition Failed (version mismatch)
     - Note: Idempotent - unchecking an already unchecked item has no effect.
+- GET /shopping-lists/{id}/users
+    - Description: Get all users that a shopping list is shared with, including their roles
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Shopping list ID
+    - Example response:
+      ```json
+      [
+        {
+          "email": "owner@example.com",
+          "role": "OWNER"
+        },
+        {
+          "email": "editor@example.com",
+          "role": "EDITOR"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 403 Forbidden (if user lacks access), 404 Not Found
+    - Note: OWNER appears first in the returned list, followed by EDITOR roles
+- POST /shopping-lists/{id}/share
+    - Description: Share shopping list with another user (grants EDITOR access)
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Shopping list ID
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 204 No Content
+    - Errors: 403 Forbidden (if user has no access), 404 Not Found, 400 Bad Request
+    - Note: Shared user receives EDITOR access. Duplicate shares are silently ignored.
+- POST /shopping-lists/{id}/unshare
+    - Description: Remove shared access from a user
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Shopping list ID
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 204 No Content
+    - Errors: 403 Forbidden (if user has no access, or trying to unshare OWNER), 404 Not Found, 400 Bad Request
+    - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.

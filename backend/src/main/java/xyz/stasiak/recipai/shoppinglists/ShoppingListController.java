@@ -152,4 +152,27 @@ class ShoppingListController {
 
         return ResponseEntity.ok(dto);
     }
+
+    @GetMapping("/{id}/users")
+    List<SharedUserDto> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting shared users for shopping list: {} by user: {}", id, userEmail);
+        return shoppingListService.getSharedUsers(id, userEmail);
+    }
+
+    @PostMapping("/{id}/share")
+    ResponseEntity<Void> shareShoppingList(@PathVariable UUID id, @Valid @RequestBody ShareShoppingListRequest request, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Sharing shopping list {} from {} to {}", id, userEmail, request.email());
+        shoppingListService.shareShoppingList(request.email(), id, userEmail);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/unshare")
+    ResponseEntity<Void> unshareShoppingList(@PathVariable UUID id, @Valid @RequestBody UnshareShoppingListRequest request, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Unsharing shopping list {} from {} for {}", id, userEmail, request.email());
+        shoppingListService.unshareShoppingList(request.email(), id, userEmail);
+        return ResponseEntity.noContent().build();
+    }
 }
