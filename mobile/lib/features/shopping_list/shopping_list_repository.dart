@@ -6,6 +6,7 @@ import '../../core/app_config.dart';
 import 'shopping_list.dart';
 import 'shopping_list_detail.dart';
 import 'shopping_list_item.dart';
+import 'shopping_list_permission.dart';
 
 class ShoppingListRepository {
   final http.Client _client = http.Client();
@@ -349,6 +350,75 @@ class ShoppingListRepository {
       throw Exception('412 Precondition Failed');
     } else {
       throw Exception('Failed to update item: ${response.statusCode}');
+    }
+  }
+
+  Future<List<ShoppingListPermission>> fetchSharedUsers(
+    String shoppingListId,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/shopping-lists/$shoppingListId/users'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList
+          .map(
+            (json) =>
+                ShoppingListPermission.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else {
+      throw Exception('Failed to load shared users: ${response.statusCode}');
+    }
+  }
+
+  Future<void> shareShoppingList(
+    String shoppingListId,
+    String email,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists/$shoppingListId/share'),
+      headers: headers,
+      body: json.encode({'email': email}),
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else {
+      throw Exception('Failed to share shopping list: ${response.statusCode}');
+    }
+  }
+
+  Future<void> unshareShoppingList(
+    String shoppingListId,
+    String email,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/shopping-lists/$shoppingListId/unshare'),
+      headers: headers,
+      body: json.encode({'email': email}),
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else {
+      throw Exception(
+        'Failed to unshare shopping list: ${response.statusCode}',
+      );
     }
   }
 }

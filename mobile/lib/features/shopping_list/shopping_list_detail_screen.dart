@@ -11,6 +11,7 @@ import 'shopping_list_detail_service.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_operation.dart';
 import 'shopping_list_rename_dialog.dart';
+import 'shopping_list_sharing_dialog.dart';
 
 class ShoppingListDetailScreen extends StatefulWidget {
   final String shoppingListId;
@@ -156,6 +157,15 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     }
   }
 
+  Future<void> _showSharingDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => ShoppingListSharingDialog(
+        shoppingListDetailService: widget.shoppingListDetailService,
+      ),
+    );
+  }
+
   void _onReorder(detail, int oldIndex, int newIndex) {
     if (newIndex > oldIndex) {
       newIndex -= 1;
@@ -221,6 +231,19 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
 
             menuItems.add(
               const PopupMenuItem<String>(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Share List'),
+                  ],
+                ),
+              ),
+            );
+
+            menuItems.add(
+              const PopupMenuItem<String>(
                 value: 'delete_all_checked',
                 child: Row(
                   children: [
@@ -269,6 +292,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                     onSelected: (value) {
                       if (value == 'rename') {
                         _renameShoppingList(detail.id, detail.name);
+                      } else if (value == 'share') {
+                        _showSharingDialog();
                       } else if (value == 'delete') {
                         _deleteShoppingList(detail.id, detail.name);
                       } else if (value == 'delete_all_checked') {

@@ -10,6 +10,7 @@ import 'shopping_list_item.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_operation.dart';
 import 'shopping_list_repository.dart';
+import 'shopping_list_shared_user.dart';
 import 'shopping_list_sync_service.dart';
 
 class ShoppingListDetailService {
@@ -34,9 +35,18 @@ class ShoppingListDetailService {
   ValueListenable<AsyncValue<ShoppingListDetail>> get shoppingListDetail =>
       _shoppingListDetail;
 
+  final ValueNotifier<AsyncValue<List<ShoppingListSharedUser>>> _sharedUsers =
+      ValueNotifier(const AsyncValue.loading());
+
+  ValueListenable<AsyncValue<List<ShoppingListSharedUser>>> get sharedUsers =>
+      _sharedUsers;
+
   bool _isLoadShoppingListDetailRunning = false;
   bool _isRenameRunning = false;
   bool _isDeleteRunning = false;
+  bool _isLoadSharedUsersRunning = false;
+  bool _isShareShoppingListRunning = false;
+  bool _isUnshareShoppingListRunning = false;
 
   Future<void> loadShoppingListDetail(String id) async {
     if (_isLoadShoppingListDetailRunning) return;
@@ -367,6 +377,104 @@ class ShoppingListDetailService {
     }
 
     _shoppingListDetail.value = AsyncData(updatedDetail);
+  }
+
+  Future<void> loadSharedUsers() async {
+    if (_isLoadSharedUsersRunning) return;
+    _isLoadSharedUsersRunning = true;
+
+    _sharedUsers.value = const AsyncValue.loading();
+
+    // Get shoppingListId from current state
+    final shoppingListDetail = _shoppingListDetail.value;
+    if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
+      _isLoadSharedUsersRunning = false;
+      return;
+    }
+    final shoppingListId = shoppingListDetail.value.id;
+
+    _sharedUsers.value = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      final permissions = await _shoppingListRepository.fetchSharedUsers(
+        shoppingListId,
+        token,
+      );
+      final currentUserEmail = _authService.email;
+      return permissions.map((permission) {
+        return ShoppingListSharedUser(
+          permission: permission,
+          isCurrentUser: permission.email == currentUserEmail,
+        );
+      }).toList();
+    });
+
+    _isLoadSharedUsersRunning = false;
+  }
+
+  Future<void> shareShoppingList(String email) async {
+    if (_isShareShoppingListRunning) return;
+    _isShareShoppingListRunning = true;
+
+    // Get shoppingListId from current state
+    final shoppingListDetail = _shoppingListDetail.value;
+    if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
+      _isShareShoppingListRunning = false;
+      throw Exception('Shopping list not loaded');
+    }
+    final shoppingListId = shoppingListDetail.value.id;
+
+    final result = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      return _shoppingListRepository.shareShoppingList(
+        shoppingListId,
+        email,
+        token,
+      );
+    });
+
+    if (result is AsyncData) {
+      await loadSharedUsers(); // Refresh list on success
+      await _shoppingListListService.loadShoppingLists();
+    }
+
+    _isShareShoppingListRunning = false;
+
+    if (result is AsyncError) {
+      throw result.error;
+    }
+  }
+
+  Future<void> unshareShoppingList(String email) async {
+    if (_isUnshareShoppingListRunning) return;
+    _isUnshareShoppingListRunning = true;
+
+    // Get shoppingListId from current state
+    final shoppingListDetail = _shoppingListDetail.value;
+    if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
+      _isUnshareShoppingListRunning = false;
+      throw Exception('Shopping list not loaded');
+    }
+    final shoppingListId = shoppingListDetail.value.id;
+
+    final result = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      return _shoppingListRepository.unshareShoppingList(
+        shoppingListId,
+        email,
+        token,
+      );
+    });
+
+    if (result is AsyncData) {
+      await loadSharedUsers(); // Refresh list on success
+      await _shoppingListListService.loadShoppingLists();
+    }
+
+    _isUnshareShoppingListRunning = false;
+
+    if (result is AsyncError) {
+      throw result.error;
+    }
   }
 
   void dispose() {
