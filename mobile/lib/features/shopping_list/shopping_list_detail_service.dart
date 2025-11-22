@@ -126,6 +126,36 @@ class ShoppingListDetailService {
     _syncService.queueOperation(detail.id, operation);
   }
 
+  List<ShoppingListItem> _getCheckedItems() {
+    final currentState = _shoppingListDetail.value;
+    if (currentState is! AsyncData<ShoppingListDetail>) return [];
+
+    final detail = currentState.value;
+    return detail.items.where((item) => item.checked).toList();
+  }
+
+  void deleteAllCheckedItems() {
+    final checkedItems = _getCheckedItems();
+    for (final item in checkedItems) {
+      final operation = DeleteItemOperation(
+        itemId: item.id,
+        itemVersion: item.version,
+      );
+      processOperation(operation);
+    }
+  }
+
+  void uncheckAllItems() {
+    final checkedItems = _getCheckedItems();
+    for (final item in checkedItems) {
+      final operation = UncheckItemOperation(
+        itemId: item.id,
+        itemVersion: item.version,
+      );
+      processOperation(operation);
+    }
+  }
+
   static ShoppingListDetail applyOperation(
     ShoppingListDetail detail,
     ShoppingListOperation operation,

@@ -49,9 +49,9 @@
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline item
   management, drag-and-drop reordering, real-time sync status indicator, and optimistic UI updates. Uses
   ReorderableListView with custom drag handles for item reordering, with instant optimistic updates and backend
-  synchronization. Features PopupMenuButton with role-based actions: "Rename List" available to all users, "Delete List"
-  only visible to OWNER role users. Integrates with ShoppingListSyncService for background syncing (10-second polling)
-  and conflict resolution with user notifications
+  synchronization. Features PopupMenuButton with actions: "Rename List", "Delete all checked" (bulk delete checked
+  items), and "Uncheck all" (bulk uncheck checked items). Integrates with ShoppingListSyncService for background
+  syncing (10-second polling) and conflict resolution with user notifications
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items with smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit
   extraction using regex, TextField-based editing with focus management, optional drag handle for reordering (using

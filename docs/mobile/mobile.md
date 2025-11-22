@@ -8,7 +8,8 @@
 - `auth` - User authentication using Firebase Authentication with Google Sign-In
 - `shopping_list` - Shopping list management with list creation, display, item management, and optimistic UI updates.
   Uses Repository-Service-View architecture with ShoppingListRepository, ShoppingListListService,
-  ShoppingListDetailService, and ShoppingListSyncService for background syncing and conflict resolution
+  ShoppingListDetailService (with bulk operations: deleteAllCheckedItems, uncheckAllItems), and
+  ShoppingListSyncService for background syncing and conflict resolution
 
 ## Data Models
 

@@ -204,6 +204,32 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
               ),
             );
 
+            menuItems.add(
+              const PopupMenuItem<String>(
+                value: 'delete_all_checked',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_sweep),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Delete all checked'),
+                  ],
+                ),
+              ),
+            );
+
+            menuItems.add(
+              const PopupMenuItem<String>(
+                value: 'uncheck_all',
+                child: Row(
+                  children: [
+                    Icon(Icons.remove_done),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Uncheck all'),
+                  ],
+                ),
+              ),
+            );
+
             if (detail.role == UserRole.owner) {
               menuItems.add(
                 const PopupMenuItem<String>(
@@ -230,6 +256,11 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                         _renameShoppingList(detail.id, detail.name);
                       } else if (value == 'delete') {
                         _deleteShoppingList(detail.id, detail.name);
+                      } else if (value == 'delete_all_checked') {
+                        widget.shoppingListDetailService
+                            .deleteAllCheckedItems();
+                      } else if (value == 'uncheck_all') {
+                        widget.shoppingListDetailService.uncheckAllItems();
                       }
                     },
                     itemBuilder: (context) => menuItems,
