@@ -110,6 +110,18 @@ class ShoppingListDetailService {
     }
   }
 
+  void pauseSyncing() {
+    if (_currentSyncingListId != null) {
+      _syncService.pauseSyncing(_currentSyncingListId!);
+    }
+  }
+
+  void resumeSyncing() {
+    if (_currentSyncingListId != null) {
+      _syncService.resumeSyncing(_currentSyncingListId!);
+    }
+  }
+
   ValueNotifier<bool> getSyncStatusNotifier(String listId) {
     return _syncService.getSyncStatusNotifier(listId);
   }

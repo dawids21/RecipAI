@@ -27,10 +27,12 @@ class ShoppingListDetailScreen extends StatefulWidget {
       _ShoppingListDetailScreenState();
 }
 
-class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
+class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.shoppingListDetailService.loadShoppingListDetail(
       widget.shoppingListId,
     );
@@ -43,10 +45,20 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (getIt.isRegistered<ShoppingListDetailService>()) {
       getIt.resetLazySingleton<ShoppingListDetailService>();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      widget.shoppingListDetailService.pauseSyncing();
+    } else if (state == AppLifecycleState.resumed) {
+      widget.shoppingListDetailService.resumeSyncing();
+    }
   }
 
   void _handleConflict() {

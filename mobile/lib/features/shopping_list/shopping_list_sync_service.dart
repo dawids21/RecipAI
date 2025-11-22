@@ -81,6 +81,24 @@ class ShoppingListSyncService {
     _syncCallbacks.remove(listId);
   }
 
+  void pauseSyncing(String listId) {
+    _syncTimers[listId]?.cancel();
+  }
+
+  void resumeSyncing(String listId) {
+    // Only resume if callbacks exist and timer isn't already active
+    if (_syncCallbacks[listId] != null &&
+        (_syncTimers[listId]?.isActive != true)) {
+      // Recreate timer
+      _syncTimers[listId] = Timer.periodic(
+        const Duration(seconds: 10),
+        (_) => _syncList(listId),
+      );
+      // Immediately sync to catch up on changes
+      _syncList(listId);
+    }
+  }
+
   void queueOperation(String listId, ShoppingListOperation operation) {
     _operationQueues.putIfAbsent(listId, () => []).add(operation);
     _processQueue(listId);
