@@ -148,126 +148,131 @@ class _RecipeToShoppingListScreenState
         title: const Text('Add to Shopping List'),
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
-      body: ValueListenableBuilder(
-        valueListenable: widget.recipeDetailService.recipeDetail,
-        builder: (context, recipeAsync, _) {
-          return recipeAsync.when(
-            loading: () => const LoadingWidget(),
-            error: (error) => ApiErrorWidget(
-              errorMessage: 'Error: $error',
-              onRetry: () {
-                widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
-              },
-            ),
-            data: (recipeDetail) {
-              final ingredients = recipeDetail.data.ingredients;
+      body: SafeArea(
+        top: false,
+        child: ValueListenableBuilder(
+          valueListenable: widget.recipeDetailService.recipeDetail,
+          builder: (context, recipeAsync, _) {
+            return recipeAsync.when(
+              loading: () => const LoadingWidget(),
+              error: (error) => ApiErrorWidget(
+                errorMessage: 'Error: $error',
+                onRetry: () {
+                  widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
+                },
+              ),
+              data: (recipeDetail) {
+                final ingredients = recipeDetail.data.ingredients;
 
-              // Initialize all as selected on first build
-              if (!_initialized && ingredients.isNotEmpty) {
-                _selectedIndices = Set.from(
-                  List.generate(ingredients.length, (i) => i),
-                );
-                _initialized = true;
-              }
+                // Initialize all as selected on first build
+                if (!_initialized && ingredients.isNotEmpty) {
+                  _selectedIndices = Set.from(
+                    List.generate(ingredients.length, (i) => i),
+                  );
+                  _initialized = true;
+                }
 
-              // Handle edge case: no ingredients
-              if (ingredients.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.large),
-                    child: Text(
-                      'This recipe has no ingredients to add.',
-                      style: theme.textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                );
-              }
-
-              return Column(
-                children: [
-                  // Header section
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.medium),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          recipeDetail.name,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.small),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Select ingredients',
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            TextButton(
-                              onPressed: () =>
-                                  _toggleSelectAll(ingredients.length),
-                              child: Text(
-                                _selectedIndices.length == ingredients.length
-                                    ? 'Deselect All'
-                                    : 'Select All',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Ingredients list
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: ingredients.length,
-                      itemBuilder: (context, index) {
-                        final ingredient = ingredients[index];
-                        final isSelected = _selectedIndices.contains(index);
-                        final subtitle = ingredient.quantity.isNotEmpty
-                            ? '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''}'
-                            : (ingredient.unit ?? '');
-
-                        return CheckboxListTile(
-                          title: Text(ingredient.name),
-                          subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
-                          value: isSelected,
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                _selectedIndices.add(index);
-                              } else {
-                                _selectedIndices.remove(index);
-                              }
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Add button
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.medium),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _selectedIndices.isNotEmpty
-                            ? () => _onAddButtonPressed(ingredients)
-                            : null,
-                        child: const Text('Add to Shopping List'),
+                // Handle edge case: no ingredients
+                if (ingredients.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.large),
+                      child: Text(
+                        'This recipe has no ingredients to add.',
+                        style: theme.textTheme.bodyLarge,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+                  );
+                }
+
+                return Column(
+                  children: [
+                    // Header section
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.medium),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            recipeDetail.name,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.small),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Select ingredients',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    _toggleSelectAll(ingredients.length),
+                                child: Text(
+                                  _selectedIndices.length == ingredients.length
+                                      ? 'Deselect All'
+                                      : 'Select All',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Ingredients list
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: ingredients.length,
+                        itemBuilder: (context, index) {
+                          final ingredient = ingredients[index];
+                          final isSelected = _selectedIndices.contains(index);
+                          final subtitle = ingredient.quantity.isNotEmpty
+                              ? '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''}'
+                              : (ingredient.unit ?? '');
+
+                          return CheckboxListTile(
+                            title: Text(ingredient.name),
+                            subtitle: subtitle.isNotEmpty
+                                ? Text(subtitle)
+                                : null,
+                            value: isSelected,
+                            onChanged: (value) {
+                              setState(() {
+                                if (value == true) {
+                                  _selectedIndices.add(index);
+                                } else {
+                                  _selectedIndices.remove(index);
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Add button
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.medium),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _selectedIndices.isNotEmpty
+                              ? () => _onAddButtonPressed(ingredients)
+                              : null,
+                          child: const Text('Add to Shopping List'),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

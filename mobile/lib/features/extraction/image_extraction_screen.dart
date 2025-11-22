@@ -128,57 +128,60 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
         title: const Text('Extract from Image'),
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
-      body: Padding(
-        padding: AppSpacing.screenPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildImagePreview(),
-            const SizedBox(height: AppSpacing.large),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isUploading
-                        ? null
-                        : () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Camera'),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: AppSpacing.screenPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildImagePreview(),
+              const SizedBox(height: AppSpacing.large),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isUploading
+                          ? null
+                          : () => _pickImage(ImageSource.camera),
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Camera'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.medium),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isUploading
-                        ? null
-                        : () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Gallery'),
+                  const SizedBox(width: AppSpacing.medium),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isUploading
+                          ? null
+                          : () => _pickImage(ImageSource.gallery),
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Gallery'),
+                    ),
                   ),
+                ],
+              ),
+              if (_selectedImage != null) ...[
+                const SizedBox(height: AppSpacing.large),
+                ElevatedButton(
+                  onPressed: _isUploading ? null : _extractRecipe,
+                  child: _isUploading
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: AppSpacing.small),
+                            Text('Extracting...'),
+                          ],
+                        )
+                      : const Text('Extract Recipe'),
                 ),
               ],
-            ),
-            if (_selectedImage != null) ...[
-              const SizedBox(height: AppSpacing.large),
-              ElevatedButton(
-                onPressed: _isUploading ? null : _extractRecipe,
-                child: _isUploading
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: AppSpacing.small),
-                          Text('Extracting...'),
-                        ],
-                      )
-                    : const Text('Extract Recipe'),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );

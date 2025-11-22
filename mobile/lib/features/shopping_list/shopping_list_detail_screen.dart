@@ -175,17 +175,20 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
               title: const Text('Shopping List Details'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: const LoadingWidget(),
+            body: const SafeArea(top: false, child: LoadingWidget()),
           ),
           error: (error) => Scaffold(
             appBar: AppBar(
               title: const Text('Shopping List Details'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: ApiErrorWidget(
-              errorMessage: 'Error: $error',
-              onRetry: () => widget.shoppingListDetailService
-                  .loadShoppingListDetail(widget.shoppingListId),
+            body: SafeArea(
+              top: false,
+              child: ApiErrorWidget(
+                errorMessage: 'Error: $error',
+                onRetry: () => widget.shoppingListDetailService
+                    .loadShoppingListDetail(widget.shoppingListId),
+              ),
             ),
           ),
           data: (detail) {
@@ -267,129 +270,132 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                   ),
                 ],
               ),
-              body: SingleChildScrollView(
-                padding: AppSpacing.screenPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ValueListenableBuilder(
-                      valueListenable: widget.shoppingListDetailService
-                          .getSyncStatusNotifier(detail.id),
-                      builder: (context, isSyncing, child) => Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              detail.name,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.small),
-                          if (isSyncing)
-                            const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(),
-                            )
-                          else
-                            Icon(
-                              Icons.check_circle,
-                              color: theme.colorScheme.primary,
-                              size: 24,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.medium),
-                    Card(
-                      child: Padding(
-                        padding: AppSpacing.cardMargin,
-                        child: Column(
+              body: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: AppSpacing.screenPadding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ValueListenableBuilder(
+                        valueListenable: widget.shoppingListDetailService
+                            .getSyncStatusNotifier(detail.id),
+                        builder: (context, isSyncing, child) => Row(
                           children: [
-                            if (detail.items.isNotEmpty)
-                              ReorderableListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                buildDefaultDragHandles: false,
-                                itemCount: detail.items.length,
-                                onReorder: (oldIndex, newIndex) {
-                                  _onReorder(detail, oldIndex, newIndex);
-                                },
-                                proxyDecorator: (child, index, animation) {
-                                  return Material(
-                                    elevation: 8.0,
-                                    color:
-                                        theme.colorScheme.surfaceContainerLow,
-                                    child: child,
-                                  );
-                                },
-                                itemBuilder: (context, index) {
-                                  final item = detail.items[index];
-                                  return ShoppingListItemWidget(
-                                    key: ValueKey(item.id),
-                                    item: item,
-                                    index: index,
-                                    showDragHandle: true,
-                                    onEdit: (result) {
-                                      final operation = UpdateItemOperation(
-                                        itemId: item.id,
-                                        itemVersion: item.version,
-                                        itemName: result.name,
-                                        itemQuantity: result.quantity,
-                                        itemUnit: result.unit,
-                                      );
-                                      widget.shoppingListDetailService
-                                          .processOperation(operation);
-                                    },
-                                    onDelete: () {
-                                      final operation = DeleteItemOperation(
-                                        itemId: item.id,
-                                        itemVersion: item.version,
-                                      );
-                                      widget.shoppingListDetailService
-                                          .processOperation(operation);
-                                    },
-                                    onCheckChanged: (checked) {
-                                      final operation = checked
-                                          ? CheckItemOperation(
-                                              itemId: item.id,
-                                              itemVersion: item.version,
-                                            )
-                                          : UncheckItemOperation(
-                                              itemId: item.id,
-                                              itemVersion: item.version,
-                                            );
-                                      widget.shoppingListDetailService
-                                          .processOperation(operation);
-                                    },
-                                  );
-                                },
+                            Expanded(
+                              child: Text(
+                                detail.name,
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ShoppingListItemWidget(
-                              key: const ValueKey('add-item'),
-                              addMode: true,
-                              showDragHandle: false,
-                              onCheckChanged: null,
-                              // No checkbox interaction in add mode
-                              onEdit: (result) {
-                                final operation = AddItemOperation(
-                                  itemName: result.name,
-                                  itemQuantity: result.quantity,
-                                  itemUnit: result.unit,
-                                );
-                                widget.shoppingListDetailService
-                                    .processOperation(operation);
-                              },
-                              onDelete: () {
-                                // No-op for add item widget
-                              },
                             ),
+                            const SizedBox(width: AppSpacing.small),
+                            if (isSyncing)
+                              const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(),
+                              )
+                            else
+                              Icon(
+                                Icons.check_circle,
+                                color: theme.colorScheme.primary,
+                                size: 24,
+                              ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.medium),
+                      Card(
+                        child: Padding(
+                          padding: AppSpacing.cardMargin,
+                          child: Column(
+                            children: [
+                              if (detail.items.isNotEmpty)
+                                ReorderableListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  buildDefaultDragHandles: false,
+                                  itemCount: detail.items.length,
+                                  onReorder: (oldIndex, newIndex) {
+                                    _onReorder(detail, oldIndex, newIndex);
+                                  },
+                                  proxyDecorator: (child, index, animation) {
+                                    return Material(
+                                      elevation: 8.0,
+                                      color:
+                                          theme.colorScheme.surfaceContainerLow,
+                                      child: child,
+                                    );
+                                  },
+                                  itemBuilder: (context, index) {
+                                    final item = detail.items[index];
+                                    return ShoppingListItemWidget(
+                                      key: ValueKey(item.id),
+                                      item: item,
+                                      index: index,
+                                      showDragHandle: true,
+                                      onEdit: (result) {
+                                        final operation = UpdateItemOperation(
+                                          itemId: item.id,
+                                          itemVersion: item.version,
+                                          itemName: result.name,
+                                          itemQuantity: result.quantity,
+                                          itemUnit: result.unit,
+                                        );
+                                        widget.shoppingListDetailService
+                                            .processOperation(operation);
+                                      },
+                                      onDelete: () {
+                                        final operation = DeleteItemOperation(
+                                          itemId: item.id,
+                                          itemVersion: item.version,
+                                        );
+                                        widget.shoppingListDetailService
+                                            .processOperation(operation);
+                                      },
+                                      onCheckChanged: (checked) {
+                                        final operation = checked
+                                            ? CheckItemOperation(
+                                                itemId: item.id,
+                                                itemVersion: item.version,
+                                              )
+                                            : UncheckItemOperation(
+                                                itemId: item.id,
+                                                itemVersion: item.version,
+                                              );
+                                        widget.shoppingListDetailService
+                                            .processOperation(operation);
+                                      },
+                                    );
+                                  },
+                                ),
+                              ShoppingListItemWidget(
+                                key: const ValueKey('add-item'),
+                                addMode: true,
+                                showDragHandle: false,
+                                onCheckChanged: null,
+                                // No checkbox interaction in add mode
+                                onEdit: (result) {
+                                  final operation = AddItemOperation(
+                                    itemName: result.name,
+                                    itemQuantity: result.quantity,
+                                    itemUnit: result.unit,
+                                  );
+                                  widget.shoppingListDetailService
+                                      .processOperation(operation);
+                                },
+                                onDelete: () {
+                                  // No-op for add item widget
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

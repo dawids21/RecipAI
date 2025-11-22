@@ -32,9 +32,12 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         title: const Text('Create Recipe'),
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
-      body: RecipeFormWidget(
-        initialRecipe: widget.prefilledRecipe,
-        onSave: _createRecipe,
+      body: SafeArea(
+        top: false,
+        child: RecipeFormWidget(
+          initialRecipe: widget.prefilledRecipe,
+          onSave: _createRecipe,
+        ),
       ),
     );
   }

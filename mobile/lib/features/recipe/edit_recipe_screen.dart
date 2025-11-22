@@ -38,18 +38,21 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
               title: const Text('Edit Recipe'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: const LoadingWidget(),
+            body: const SafeArea(top: false, child: LoadingWidget()),
           ),
           error: (error) => Scaffold(
             appBar: AppBar(
               title: const Text('Edit Recipe'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: ApiErrorWidget(
-              errorMessage: 'Error: $error',
-              onRetry: () {
-                widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
-              },
+            body: SafeArea(
+              top: false,
+              child: ApiErrorWidget(
+                errorMessage: 'Error: $error',
+                onRetry: () {
+                  widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
+                },
+              ),
             ),
           ),
           data: (recipeDetail) => Scaffold(
@@ -57,9 +60,12 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
               title: const Text('Edit Recipe'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: RecipeFormWidget(
-              initialRecipe: recipeDetail,
-              onSave: _updateRecipe,
+            body: SafeArea(
+              top: false,
+              child: RecipeFormWidget(
+                initialRecipe: recipeDetail,
+                onSave: _updateRecipe,
+              ),
             ),
           ),
         );

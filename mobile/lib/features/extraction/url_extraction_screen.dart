@@ -149,66 +149,69 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
         title: const Text('Extract Recipe'),
         backgroundColor: theme.colorScheme.inversePrimary,
       ),
-      body: Column(
-        children: [
-          // URL Input Section
-          Container(
-            padding: AppSpacing.screenPadding,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _urlController,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter recipe URL',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.link),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // URL Input Section
+            Container(
+              padding: AppSpacing.screenPadding,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _urlController,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter recipe URL',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.link),
+                          ),
+                          keyboardType: TextInputType.url,
+                          textInputAction: TextInputAction.go,
+                          onSubmitted: (_) => _loadUrl(),
                         ),
-                        keyboardType: TextInputType.url,
-                        textInputAction: TextInputAction.go,
-                        onSubmitted: (_) => _loadUrl(),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.small),
-                    ElevatedButton(
-                      onPressed: _loadUrl,
-                      child: const Text('Load'),
+                      const SizedBox(width: AppSpacing.small),
+                      ElevatedButton(
+                        onPressed: _loadUrl,
+                        child: const Text('Load'),
+                      ),
+                    ],
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: AppSpacing.small),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
                     ),
                   ],
-                ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: AppSpacing.small),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: theme.colorScheme.onErrorContainer,
-                      ),
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
 
-          // WebView Section
-          Expanded(
-            child: Stack(
-              children: [
-                WebViewWidget(controller: _controller),
-                if (_isLoading) const Positioned.fill(child: LoadingWidget()),
-              ],
+            // WebView Section
+            Expanded(
+              child: Stack(
+                children: [
+                  WebViewWidget(controller: _controller),
+                  if (_isLoading) const Positioned.fill(child: LoadingWidget()),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isExtracting ? null : _extractRecipe,

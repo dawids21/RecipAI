@@ -122,18 +122,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               title: const Text('Recipe Details'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: const LoadingWidget(),
+            body: const SafeArea(top: false, child: LoadingWidget()),
           ),
           error: (error) => Scaffold(
             appBar: AppBar(
               title: const Text('Recipe Details'),
               backgroundColor: theme.colorScheme.inversePrimary,
             ),
-            body: ApiErrorWidget(
-              errorMessage: 'Error: $error',
-              onRetry: () {
-                widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
-              },
+            body: SafeArea(
+              top: false,
+              child: ApiErrorWidget(
+                errorMessage: 'Error: $error',
+                onRetry: () {
+                  widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
+                },
+              ),
             ),
           ),
           data: (recipeDetail) {
@@ -210,101 +213,104 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 onPressed: _navigateToEdit,
                 child: const Icon(Icons.edit),
               ),
-              body: SingleChildScrollView(
-                padding: AppSpacing.screenPadding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Recipe Name
-                    Text(
-                      recipeDetail.name,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+              body: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  padding: AppSpacing.screenPadding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Recipe Name
+                      Text(
+                        recipeDetail.name,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.large),
+                      const SizedBox(height: AppSpacing.large),
 
-                    // Ingredients Section
-                    Text(
-                      'Ingredients',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      // Ingredients Section
+                      Text(
+                        'Ingredients',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.small),
-                    Card(
-                      child: Padding(
-                        padding: AppSpacing.cardMargin,
-                        child: Column(
-                          children: recipeDetail.data.ingredients.map((
-                            ingredient,
-                          ) {
-                            return Padding(
-                              padding: AppSpacing.smallVertical,
-                              child: Row(
-                                children: [
-                                  const IngredientBullet(),
-                                  const SizedBox(width: AppSpacing.small),
-                                  Expanded(
-                                    child: Text(
-                                      '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''} ${ingredient.name}',
-                                      style: theme.textTheme.bodyLarge,
+                      const SizedBox(height: AppSpacing.small),
+                      Card(
+                        child: Padding(
+                          padding: AppSpacing.cardMargin,
+                          child: Column(
+                            children: recipeDetail.data.ingredients.map((
+                              ingredient,
+                            ) {
+                              return Padding(
+                                padding: AppSpacing.smallVertical,
+                                child: Row(
+                                  children: [
+                                    const IngredientBullet(),
+                                    const SizedBox(width: AppSpacing.small),
+                                    Expanded(
+                                      child: Text(
+                                        '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''} ${ingredient.name}',
+                                        style: theme.textTheme.bodyLarge,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.large),
+                      const SizedBox(height: AppSpacing.large),
 
-                    // Instructions Section
-                    Text(
-                      'Instructions',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.small),
-                    Card(
-                      child: Padding(
-                        padding: AppSpacing.screenPadding,
-                        child: Column(
-                          children: recipeDetail.data.instructions
-                              .asMap()
-                              .entries
-                              .map((entry) {
-                                int index = entry.key;
-                                Instruction instruction = entry.value;
-                                return Padding(
-                                  padding: AppSpacing.mediumVertical,
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      StepNumberBadge(stepNumber: index + 1),
-                                      const SizedBox(
-                                        width:
-                                            AppSpacing.small +
-                                            AppSpacing.extraSmall,
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          instruction.step,
-                                          style: theme.textTheme.bodyLarge,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              })
-                              .toList(),
+                      // Instructions Section
+                      Text(
+                        'Instructions',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.small),
+                      Card(
+                        child: Padding(
+                          padding: AppSpacing.screenPadding,
+                          child: Column(
+                            children: recipeDetail.data.instructions
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                                  int index = entry.key;
+                                  Instruction instruction = entry.value;
+                                  return Padding(
+                                    padding: AppSpacing.mediumVertical,
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        StepNumberBadge(stepNumber: index + 1),
+                                        const SizedBox(
+                                          width:
+                                              AppSpacing.small +
+                                              AppSpacing.extraSmall,
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            instruction.step,
+                                            style: theme.textTheme.bodyLarge,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                })
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
