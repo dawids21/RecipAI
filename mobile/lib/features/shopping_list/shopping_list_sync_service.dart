@@ -5,6 +5,7 @@ import 'package:recipai_mobile/features/shopping_list/shopping_list_item.dart';
 
 import '../auth/auth_service.dart';
 import 'shopping_list_detail.dart';
+import 'shopping_list_exceptions.dart';
 import 'shopping_list_operation.dart';
 import 'shopping_list_repository.dart';
 
@@ -113,7 +114,6 @@ class ShoppingListSyncService {
 
     while (_operationQueues[listId]?.isNotEmpty ?? false) {
       final operation = _operationQueues[listId]!.first;
-      _operationQueues[listId]!.removeAt(0);
 
       try {
         switch (operation) {
@@ -130,7 +130,11 @@ class ShoppingListSyncService {
               add.itemId,
               response,
               _operationQueues[listId]!
-                  .where((operation) => operation.itemId == response.id)
+                  .where(
+                    (operation) =>
+                        operation.id != add.id &&
+                        operation.itemId == response.id,
+                  )
                   .toList(),
             );
           case DeleteItemOperation delete:
@@ -153,7 +157,11 @@ class ShoppingListSyncService {
               move.itemId,
               response,
               _operationQueues[listId]!
-                  .where((operation) => operation.itemId == response.id)
+                  .where(
+                    (operation) =>
+                        operation.id != move.id &&
+                        operation.itemId == response.id,
+                  )
                   .toList(),
             );
           case CheckItemOperation check:
@@ -168,7 +176,11 @@ class ShoppingListSyncService {
               check.itemId,
               response,
               _operationQueues[listId]!
-                  .where((operation) => operation.itemId == response.id)
+                  .where(
+                    (operation) =>
+                        operation.id != check.id &&
+                        operation.itemId == response.id,
+                  )
                   .toList(),
             );
           case UncheckItemOperation uncheck:
@@ -183,7 +195,11 @@ class ShoppingListSyncService {
               uncheck.itemId,
               response,
               _operationQueues[listId]!
-                  .where((operation) => operation.itemId == response.id)
+                  .where(
+                    (operation) =>
+                        operation.id != uncheck.id &&
+                        operation.itemId == response.id,
+                  )
                   .toList(),
             );
           case UpdateItemOperation update:
@@ -201,16 +217,24 @@ class ShoppingListSyncService {
               update.itemId,
               response,
               _operationQueues[listId]!
-                  .where((operation) => operation.itemId == response.id)
+                  .where(
+                    (operation) =>
+                        operation.id != update.id &&
+                        operation.itemId == response.id,
+                  )
                   .toList(),
             );
         }
+        _operationQueues[listId]!.removeAt(0);
+      } on ShoppingListItemApiConflictException {
+        _operationQueues[listId]!.removeAt(0);
+        await callbacks?.onConflict.call();
+      } on ShoppingListItemApiException catch (e) {
+        _operationQueues[listId]!.removeAt(0);
+        callbacks?.onError.call('Failed to process operation: ${e.message}');
       } catch (e) {
-        if (e.toString().contains('412')) {
-          await callbacks?.onConflict.call();
-        } else {
-          callbacks?.onError.call('Failed to sync: $e');
-        }
+        // retry if operation failed due to connection error
+        await Future.delayed(const Duration(seconds: 3));
       }
     }
 
@@ -290,7 +314,7 @@ class ShoppingListSyncService {
       final detail = await _repository.fetchShoppingListDetail(listId, token);
       callbacks.onSync(detail);
     } catch (e) {
-      callbacks.onError('Failed to sync list: $e');
+      // syncing fails silently
     }
   }
 }

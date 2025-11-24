@@ -104,7 +104,10 @@ class ShoppingListDetailService {
         _shoppingListDetail.value = AsyncData(detail);
       },
       onConflict: () async {
-        await loadShoppingListDetail(listId);
+        _shoppingListDetail.value = await AsyncValue.guardAsync(() async {
+          final token = await _authService.idToken;
+          return _shoppingListRepository.fetchShoppingListDetail(listId, token);
+        });
         onConflict?.call();
       },
       onError: (message) {

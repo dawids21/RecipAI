@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/app_config.dart';
 import 'shopping_list.dart';
 import 'shopping_list_detail.dart';
+import 'shopping_list_exceptions.dart';
 import 'shopping_list_item.dart';
 import 'shopping_list_permission.dart';
 
@@ -166,20 +167,20 @@ class ShoppingListRepository {
       body: json.encode(body),
     );
 
-    if (response.statusCode == 201) {
-      final Map<String, dynamic> jsonMap = json.decode(response.body);
-      return ShoppingListItem.fromJson(jsonMap);
-    } else if (response.statusCode == 400) {
-      throw Exception('Invalid item data');
+    if (response.statusCode == 400) {
+      throw ShoppingListItemApiException('Invalid item data');
     } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized');
+      throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
-      throw Exception('You do not have permission to add items to this list');
+      throw ShoppingListItemApiException(
+        'You do not have permission to add items to this list',
+      );
     } else if (response.statusCode == 404) {
-      throw Exception('Shopping list not found');
-    } else {
-      throw Exception('Failed to create item: ${response.statusCode}');
+      throw ShoppingListItemApiException('Shopping list not found');
     }
+
+    final Map<String, dynamic> jsonMap = json.decode(response.body);
+    return ShoppingListItem.fromJson(jsonMap);
   }
 
   Future<void> deleteItem(
@@ -196,20 +197,16 @@ class ShoppingListRepository {
       headers: headers,
     );
 
-    if (response.statusCode == 204) {
-      return;
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized');
+    if (response.statusCode == 401) {
+      throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
-      throw Exception(
+      throw ShoppingListItemApiException(
         'You do not have permission to delete items from this list',
       );
     } else if (response.statusCode == 404) {
-      throw Exception('Item not found');
+      throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
-      throw Exception('412 Precondition Failed');
-    } else {
-      throw Exception('Failed to delete item: ${response.statusCode}');
+      throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
   }
 
@@ -229,22 +226,22 @@ class ShoppingListRepository {
       body: json.encode({'index': targetIndex}),
     );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonMap = json.decode(response.body);
-      return ShoppingListItem.fromJson(jsonMap);
-    } else if (response.statusCode == 400) {
-      throw Exception('Invalid index');
+    if (response.statusCode == 400) {
+      throw ShoppingListItemApiException('Invalid index');
     } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized');
+      throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
-      throw Exception('You do not have permission to move items in this list');
+      throw ShoppingListItemApiException(
+        'You do not have permission to move items in this list',
+      );
     } else if (response.statusCode == 404) {
-      throw Exception('Item not found');
+      throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
-      throw Exception('412 Precondition Failed');
-    } else {
-      throw Exception('Failed to move item: ${response.statusCode}');
+      throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
+
+    final Map<String, dynamic> jsonMap = json.decode(response.body);
+    return ShoppingListItem.fromJson(jsonMap);
   }
 
   Future<ShoppingListItem> checkItem(
@@ -261,20 +258,20 @@ class ShoppingListRepository {
       headers: headers,
     );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonMap = json.decode(response.body);
-      return ShoppingListItem.fromJson(jsonMap);
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized');
+    if (response.statusCode == 401) {
+      throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
-      throw Exception('You do not have permission to check items in this list');
+      throw ShoppingListItemApiException(
+        'You do not have permission to check items in this list',
+      );
     } else if (response.statusCode == 404) {
-      throw Exception('Item not found');
+      throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
-      throw Exception('412 Precondition Failed');
-    } else {
-      throw Exception('Failed to check item: ${response.statusCode}');
+      throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
+
+    final Map<String, dynamic> jsonMap = json.decode(response.body);
+    return ShoppingListItem.fromJson(jsonMap);
   }
 
   Future<ShoppingListItem> uncheckItem(
@@ -291,22 +288,20 @@ class ShoppingListRepository {
       headers: headers,
     );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonMap = json.decode(response.body);
-      return ShoppingListItem.fromJson(jsonMap);
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized');
+    if (response.statusCode == 401) {
+      throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
-      throw Exception(
+      throw ShoppingListItemApiException(
         'You do not have permission to uncheck items in this list',
       );
     } else if (response.statusCode == 404) {
-      throw Exception('Item not found');
+      throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
-      throw Exception('412 Precondition Failed');
-    } else {
-      throw Exception('Failed to uncheck item: ${response.statusCode}');
+      throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
+
+    final Map<String, dynamic> jsonMap = json.decode(response.body);
+    return ShoppingListItem.fromJson(jsonMap);
   }
 
   Future<ShoppingListItem> updateItem(
@@ -333,24 +328,22 @@ class ShoppingListRepository {
       body: json.encode(body),
     );
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonMap = json.decode(response.body);
-      return ShoppingListItem.fromJson(jsonMap);
-    } else if (response.statusCode == 400) {
-      throw Exception('Invalid item data');
+    if (response.statusCode == 400) {
+      throw ShoppingListItemApiException('Invalid item data');
     } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized');
+      throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
-      throw Exception(
+      throw ShoppingListItemApiException(
         'You do not have permission to update items in this list',
       );
     } else if (response.statusCode == 404) {
-      throw Exception('Item not found');
+      throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
-      throw Exception('412 Precondition Failed');
-    } else {
-      throw Exception('Failed to update item: ${response.statusCode}');
+      throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
+
+    final Map<String, dynamic> jsonMap = json.decode(response.body);
+    return ShoppingListItem.fromJson(jsonMap);
   }
 
   Future<List<ShoppingListPermission>> fetchSharedUsers(
