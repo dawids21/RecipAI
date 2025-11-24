@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recipai_mobile/core/theme.dart';
 
 import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
@@ -52,9 +53,17 @@ class _ShoppingListListState extends State<ShoppingListList> {
                 itemCount: shoppingLists.length,
                 itemBuilder: (context, index) {
                   final shoppingList = shoppingLists[index];
-                  return ListTile(
-                    title: Text(shoppingList.name),
-                    onTap: () => _onShoppingListTap(context, shoppingList),
+                  return Card(
+                    margin: AppSpacing.cardMargin,
+                    child: ListTile(
+                      title: Text(
+                        shoppingList.name,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios),
+                      onTap: () => _onShoppingListTap(context, shoppingList),
+                      contentPadding: AppSpacing.listTilePadding,
+                    ),
                   );
                 },
               );
