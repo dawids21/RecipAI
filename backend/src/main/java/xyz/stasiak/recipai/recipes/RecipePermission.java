@@ -9,15 +9,15 @@ import lombok.ToString;
 import java.util.Objects;
 
 @Entity
-@Table(name = "user_recipes")
+@Table(name = "recipe_permission")
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
-class UserRecipe {
+class RecipePermission {
 
     @EmbeddedId
-    private UserRecipeId id;
+    private RecipePermissionId id;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -26,8 +26,8 @@ class UserRecipe {
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        UserRecipe userRecipe = (UserRecipe) o;
-        return Objects.equals(id, userRecipe.id) && role == userRecipe.role;
+        RecipePermission recipePermission = (RecipePermission) o;
+        return Objects.equals(id, recipePermission.id) && role == recipePermission.role;
     }
 
     @Override

@@ -15,7 +15,7 @@ import java.util.UUID;
 class RecipeService {
 
     private final RecipeRepository recipeRepository;
-    private final UserRecipeRepository userRecipeRepository;
+    private final RecipePermissionRepository recipePermissionRepository;
     private final ObjectMapper objectMapper;
 
     public List<RecipeListDto> findAll(String userEmail) {
@@ -29,7 +29,7 @@ class RecipeService {
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
         // Check if user has access and get their role
-        UserRole userRole = userRecipeRepository.getUserRole(userEmail, id)
+        UserRole userRole = recipePermissionRepository.getUserRole(userEmail, id)
                 .orElseThrow(() -> new RecipeAccessDeniedException(id));
 
         return toDto(recipe, userRole);
@@ -42,12 +42,12 @@ class RecipeService {
 
         Recipe savedRecipe = recipeRepository.save(recipe);
 
-        // Create UserRecipe association with OWNER role
-        UserRecipe userRecipe = new UserRecipe();
-        UserRecipeId userRecipeId = new UserRecipeId(userEmail, savedRecipe.getId());
-        userRecipe.setId(userRecipeId);
-        userRecipe.setRole(UserRole.OWNER);
-        userRecipeRepository.save(userRecipe);
+        // Create RecipePermission association with OWNER role
+        RecipePermission recipePermission = new RecipePermission();
+        RecipePermissionId recipePermissionId = new RecipePermissionId(userEmail, savedRecipe.getId());
+        recipePermission.setId(recipePermissionId);
+        recipePermission.setRole(UserRole.OWNER);
+        recipePermissionRepository.save(recipePermission);
 
         return toDto(savedRecipe, UserRole.OWNER);
     }
@@ -59,7 +59,7 @@ class RecipeService {
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
         // Check if user has access (OWNER or EDITOR) and get their role
-        UserRole userRole = userRecipeRepository.getUserRole(userEmail, id)
+        UserRole userRole = recipePermissionRepository.getUserRole(userEmail, id)
                 .orElseThrow(() -> new RecipeAccessDeniedException(id));
 
         // Both OWNER and EDITOR can update recipes
@@ -82,15 +82,15 @@ class RecipeService {
         }
 
         // Only OWNER can delete recipes
-        UserRole userRole = userRecipeRepository.getUserRole(userEmail, id)
+        UserRole userRole = recipePermissionRepository.getUserRole(userEmail, id)
                 .orElseThrow(() -> new RecipeAccessDeniedException(id));
 
         if (userRole != UserRole.OWNER) {
             throw new RecipeAccessDeniedException(id);
         }
 
-        // Delete ALL UserRecipe associations first (including shared users)
-        userRecipeRepository.deleteAllByRecipeId(id);
+        // Delete ALL RecipePermission associations first (including shared users)
+        recipePermissionRepository.deleteAllByRecipeId(id);
 
         // Then delete the recipe itself
         recipeRepository.deleteById(id);
@@ -145,21 +145,21 @@ class RecipeService {
         }
 
         // Validate that the requester has access (OWNER or EDITOR can share)
-        userRecipeRepository.getUserRole(requesterEmail, recipeId)
+        recipePermissionRepository.getUserRole(requesterEmail, recipeId)
                 .orElseThrow(() -> new RecipeAccessDeniedException(recipeId));
 
         // Check if target user already has access
-        if (userRecipeRepository.getUserRole(targetEmail, recipeId).isPresent()) {
+        if (recipePermissionRepository.getUserRole(targetEmail, recipeId).isPresent()) {
             log.warn("Recipe {} is already shared with user {}", recipeId, targetEmail);
             return; // Already shared, no-op
         }
 
         // Create EDITOR association for target user
-        UserRecipe sharedRecipe = new UserRecipe();
-        UserRecipeId sharedRecipeId = new UserRecipeId(targetEmail, recipeId);
+        RecipePermission sharedRecipe = new RecipePermission();
+        RecipePermissionId sharedRecipeId = new RecipePermissionId(targetEmail, recipeId);
         sharedRecipe.setId(sharedRecipeId);
         sharedRecipe.setRole(UserRole.EDITOR);
-        userRecipeRepository.save(sharedRecipe);
+        recipePermissionRepository.save(sharedRecipe);
 
         log.info("Recipe {} shared successfully from {} to {}", recipeId, requesterEmail, targetEmail);
     }
@@ -178,11 +178,11 @@ class RecipeService {
         }
 
         // Validate that the requester has access (OWNER or EDITOR can unshare)
-        userRecipeRepository.getUserRole(requesterEmail, recipeId)
+        recipePermissionRepository.getUserRole(requesterEmail, recipeId)
                 .orElseThrow(() -> new RecipeAccessDeniedException(recipeId));
 
         // Get target user's role - validate they have access and prevent unsharing OWNER
-        UserRole targetRole = userRecipeRepository.getUserRole(targetEmail, recipeId)
+        UserRole targetRole = recipePermissionRepository.getUserRole(targetEmail, recipeId)
                 .orElse(null);
 
         if (targetRole == null) {
@@ -196,8 +196,8 @@ class RecipeService {
         }
 
         // Remove the EDITOR association
-        UserRecipeId targetUserRecipeId = new UserRecipeId(targetEmail, recipeId);
-        userRecipeRepository.deleteById(targetUserRecipeId);
+        RecipePermissionId targetRecipePermissionId = new RecipePermissionId(targetEmail, recipeId);
+        recipePermissionRepository.deleteById(targetRecipePermissionId);
 
         log.info("Recipe {} unshared successfully from {} for {}", recipeId, requesterEmail, targetEmail);
     }
@@ -211,12 +211,12 @@ class RecipeService {
         }
 
         // Validate user has access
-        userRecipeRepository.getUserRole(userEmail, recipeId)
+        recipePermissionRepository.getUserRole(userEmail, recipeId)
                 .orElseThrow(() -> new RecipeAccessDeniedException(recipeId));
 
         // Get all users with access to this recipe (OWNER first due to ORDER BY role DESC)
-        return userRecipeRepository.findAllByRecipeId(recipeId).stream()
-                .map(userRecipe -> new SharedUserDto(userRecipe.getId().email(), userRecipe.getRole()))
+        return recipePermissionRepository.findAllByRecipeId(recipeId).stream()
+                .map(recipePermission -> new SharedUserDto(recipePermission.getId().email(), recipePermission.getRole()))
                 .toList();
     }
 }

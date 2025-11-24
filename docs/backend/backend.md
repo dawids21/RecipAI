@@ -17,10 +17,10 @@ backend/
 │   ├── RecipAiApplication.java          # Main Spring Boot application entry point
 │   ├── recipes/                         # "recipes" module
 │   │   ├── Recipe.java                  # Recipe entity
-│   │   ├── UserRecipe.java              # User-Recipe association entity with roles
-│   │   ├── UserRecipeId.java            # Composite key for user-recipe associations
+│   │   ├── RecipePermission.java        # User-Recipe association entity with roles
+│   │   ├── RecipePermissionId.java      # Composite key for user-recipe associations
 │   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
-│   │   ├── UserRecipeRepository.java    # Role-based user-recipe data access
+│   │   ├── RecipePermissionRepository.java # Role-based user-recipe data access
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering
 │   │   ├── RecipeService.java           # Recipe business logic with role-based sharing
 │   │   ├── RecipeController.java        # Recipe REST endpoints with sharing support
