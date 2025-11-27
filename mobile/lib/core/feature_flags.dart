@@ -1,6 +1,6 @@
 class FeatureFlags {
-  static const bool shoppingListsEnabled = bool.fromEnvironment(
-    'SHOPPING_LISTS',
+  static const bool recipeCollectionsEnabled = bool.fromEnvironment(
+    'RECIPE_COLLECTIONS',
     defaultValue: false,
   );
 }
