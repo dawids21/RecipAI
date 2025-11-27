@@ -161,6 +161,8 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
                 controller: _controller,
                 focusNode: _focusNode,
                 style: textStyle,
+                maxLines: null,
+                keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   isDense: true,
