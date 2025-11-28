@@ -115,6 +115,14 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
     }
   }
 
+  void _onSubmitted() {
+    _parseAndSave();
+    // Keep focus in add mode for quick consecutive entry
+    if (widget.addMode) {
+      _focusNode.requestFocus();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -163,12 +171,14 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
                 style: textStyle,
                 maxLines: null,
                 keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   hintText: widget.addMode ? "Add item..." : null,
                 ),
+                onSubmitted: (_) => _onSubmitted(),
                 onTapOutside: (_) => _focusNode.unfocus(),
               ),
             ),
