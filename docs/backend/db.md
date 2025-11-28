@@ -39,6 +39,18 @@
 - version: BIGINT NOT NULL
 - Constraints: UNIQUE(shopping_list_id, position) - ensures each item has a unique position within a list
 
+### recipes_collections
+
+- id: UUID PRIMARY KEY
+- name: VARCHAR(255) NOT NULL
+
+### recipes_collection_permission
+
+- email: VARCHAR(255) NOT NULL
+- recipes_collection_id: UUID NOT NULL (FK -> recipes_collections.id)
+- role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
+- PRIMARY KEY (email, recipes_collection_id)
+
 ## Relationships
 
 - **recipe_permission** ↔ **recipes**: Many-to-Many relationship through `recipe_permission` join table with role-based
@@ -58,9 +70,17 @@
     - Items are ordered by the `position` field
     - When a shopping list is deleted, all its items are deleted (CASCADE)
 - **shopping_list_items.shopping_list_id** → **shopping_lists.id**: Foreign key relationship with ON DELETE CASCADE
+- **recipes_collection_permission** ↔ **recipes_collections**: Many-to-Many relationship through
+  `recipes_collection_permission` join table with role-based access
+    - One user (identified by email) can have many collections with different roles
+    - One collection can belong to multiple users with different access levels
+    - **OWNER**: Can view, edit, delete collections
+    - **EDITOR**: Can view and edit collections (granted through future sharing functionality)
+- **recipes_collection_permission.recipes_collection_id** → **recipes_collections.id**: Foreign key relationship
 
 ## Indexes
 
 - Primary key indexes on all tables
 - Composite primary key index on `recipe_permission(email, recipe_id)`
 - Composite primary key index on `shopping_list_permission(email, shopping_list_id)`
+- Composite primary key index on `recipes_collection_permission(email, recipes_collection_id)`

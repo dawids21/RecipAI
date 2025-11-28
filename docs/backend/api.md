@@ -4,6 +4,7 @@
 
 - Recipes: Maps the `recipes` DB table with user-scoped access.
 - Shopping Lists: Maps the `shopping_lists` DB table for managing shopping lists.
+- Collections: Maps the `recipes_collections` DB table for organizing recipes into groups.
 
 ## Endpoints
 
@@ -660,3 +661,76 @@
     - Success: 204 No Content
     - Errors: 403 Forbidden (if user has no access, or trying to unshare OWNER), 404 Not Found, 400 Bad Request
     - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
+
+### Recipe Collections
+
+- GET /collections
+    - Description: Get all recipes collections accessible by the authenticated user
+    - Authenticated: true
+    - Example response:
+      ```json
+      [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Italian Recipes"
+        },
+        {
+          "id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "Asian Recipes"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 401 Unauthorized
+- POST /collections
+    - Description: Create a new recipes collection and grant OWNER permission to the authenticated user
+    - Authenticated: true
+    - Note: Automatically creates a permission record with OWNER role for the authenticated user
+    - Request body:
+      ```json
+      {
+        "name": "My Collection"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "My Collection"
+      }
+      ```
+    - Success: 201 Created
+    - Errors: 400 Bad Request (validation error - blank name), 401 Unauthorized
+- PUT /collections/{id}
+    - Description: Update the name of an existing recipes collection
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Collection ID
+    - Roles: OWNER and EDITOR can update
+    - Request body:
+      ```json
+      {
+        "name": "Updated Collection Name"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Updated Collection Name"
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 400 Bad Request (validation error), 401 Unauthorized, 403 Forbidden (user lacks EDITOR/OWNER permission),
+      404 Not Found
+    - Note: Both OWNER and EDITOR roles can update the collection name
+- DELETE /collections/{id}
+    - Description: Delete a recipes collection and all associated permissions
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Collection ID
+    - Roles: Only OWNER can delete
+    - Example response: No content
+    - Success: 204 No Content
+    - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
+    - Note: Deletes the collection and all permissions. Only OWNER role can delete.

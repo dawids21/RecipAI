@@ -3,6 +3,8 @@
 ## Modules
 
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality
+- `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
+  role-based access)
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
 - `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access,
@@ -36,7 +38,24 @@ backend/
 │   │   ├── RecipeNotFoundException.java # Recipe not found exception
 │   │   ├── RecipeAccessDeniedException.java # Access denied exception
 │   │   ├── ErrorResponse.java           # Error response DTO
-│   │   └── RecipesExceptionHandler.java # Exception handling
+│   │   ├── RecipesExceptionHandler.java # Exception handling
+│   │   └── collections/                 # "collections" submodule
+│   │       ├── RecipesCollection.java           # RecipesCollection entity
+│   │       ├── RecipesCollectionPermission.java # Collection permission association entity
+│   │       ├── RecipesCollectionPermissionId.java # Composite key for collection permissions
+│   │       ├── UserRole.java             # Enum for OWNER/EDITOR roles
+│   │       ├── RecipesCollectionRepository.java # Collection data access
+│   │       ├── RecipesCollectionPermissionRepository.java # Collection permission data access
+│   │       ├── RecipesCollectionService.java    # Collection business logic
+│   │       ├── RecipesCollectionController.java # Collection REST endpoints
+│   │       ├── RecipesCollectionsExceptionHandler.java # Exception handling
+│   │       ├── dto/                      # Data Transfer Objects
+│   │       │   ├── RecipesCollectionListDto.java # Recipes collection list response DTO
+│   │       │   ├── CreateRecipesCollectionRequest.java # Create recipes collection request DTO
+│   │       │   └── UpdateRecipesCollectionRequest.java # Update recipes collection request DTO
+│   │       └── exception/                # Custom exceptions
+│   │           ├── RecipesCollectionNotFoundException.java # Collection not found exception
+│   │           └── RecipesCollectionAccessDeniedException.java # Access denied exception
 │   ├── extraction/                      # "extraction" module
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
