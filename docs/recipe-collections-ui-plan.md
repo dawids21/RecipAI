@@ -23,11 +23,11 @@
     - Filtered list of recipes.
 - **Primary Actions**:
     - **Select Filter**: Tapping a chip updates the recipe list.
-    - **Manage Collections**: Accessed via AppBar overflow menu (Three dots).
+  - **Recipes Collections**: Accessed via AppBar overflow menu (Three dots).
     - **Create Recipe**: Standard FAB (context-aware of selected filter).
 - **Navigation**:
     - Tap Recipe -> Detail Screen.
-    - Overflow Menu -> Manage Collections Screen.
+  - Overflow Menu -> Recipes Collections List Screen.
 - **Components Required**:
     - `CollectionFilterBar` (New).
     - `RecipeList` (Existing - Updated to accept filter params).
@@ -35,28 +35,29 @@
     - `GET /collections` (To populate filter bar).
     - `GET /recipes` (With `collectionId` or `unassigned` query params).
 - **Edge Cases**:
-    - If the active collection filter is deleted/left via the Manage screen, the view resets to "All Recipes" upon
+    - If the active collection filter is deleted/left via the Recipes Collections List screen, the view resets to "All
+      Recipes" upon
       return.
 
-### View 2: Manage Collections Screen
+### View 2: Recipes Collections List Screen
 
-- **Path**: `/collections`
-- **Purpose**: Central hub for creating, renaming, deleting, and sharing collections.
-- **Trigger/Entry Point**: Main Screen AppBar Overflow Menu -> "Manage Collections".
+- **Path**: `/recipes-collections`
+- **Purpose**: Central hub for creating, renaming, deleting, and sharing recipes collections.
+- **Trigger/Entry Point**: Main Screen AppBar Overflow Menu -> "Recipes Collections List".
 - **Key Data Displayed**:
-    - Alphabetically sorted list of user-created collections (excluding "Unassigned").
-    - Loading shimmer or "No collections found" empty state.
+    - Alphabetically sorted list of user-created recipes collections (excluding "Unassigned").
+    - Loading shimmer or "No recipes collections found" empty state.
 - **Primary Actions**:
-    - **Create**: FAB opens `CreateCollectionDialog`.
+    - **Create**: FAB opens `CreateRecipesCollectionDialog`.
     - **Row Actions**: Three-dot menu on each tile:
-        - **Rename**: Opens `RenameCollectionDialog` (Owner/Editor).
+        - **Rename**: Opens `RenameRecipesCollectionDialog` (Owner/Editor).
         - **Share**: Opens `SharingDialog` (Owner/Editor).
         - **Delete**: Opens confirmation dialog (Owner only).
         - **Leave**: Opens confirmation dialog (Editor only).
 - **Navigation**:
     - Back button -> Returns to Main Screen.
 - **Components Required**:
-    - `CollectionListTile` (Standard ListTile with actions).
+    - `RecipesCollectionListTile` (Standard ListTile with actions).
     - `ApiErrorWidget` (Existing).
 - **API Endpoints Used**:
     - `GET /collections`
@@ -67,7 +68,7 @@
 ### View 3: Create/Edit Recipe Screen (Updated)
 
 - **Path**: `/recipes/create` OR `/recipes/:id/edit`
-- **Purpose**: Assign or re-assign a recipe to a collection.
+- **Purpose**: Assign or re-assign a recipe to a recipes collection.
 - **Trigger/Entry Point**: FAB on Main Screen or "Edit" on Detail Screen.
 - **Key Data Displayed**:
     - Standard recipe form fields.
@@ -85,10 +86,10 @@
 ### View 4: Generic Sharing Dialog
 
 - **Path**: Modal Dialog (Overlay)
-- **Purpose**: Manage access to a specific collection.
-- **Trigger/Entry Point**: "Share" action from Manage Collections screen.
+- **Purpose**: Manage access to a specific recipes collection.
+- **Trigger/Entry Point**: "Share" action from Recipes Collections List screen.
 - **Key Data Displayed**:
-    - Title: "Share [Collection Name]".
+    - Title: "Share [Recipes Collection Name]".
     - List of current users (Email + Role).
 - **Primary Actions**:
     - **Add User**: Text input for email + "Add" button.
@@ -104,7 +105,7 @@
 
 ### Primary Flow: Organization & Filtering
 
-1. **Create Collection**: User goes to `Main` -> Overflow Menu -> `Manage Collections` -> FAB -> Enters "Dinner
+1. **Create Recipes Collection**: User goes to `Main` -> Overflow Menu -> `Recipes Collections` -> FAB -> Enters "Dinner
    Ideas" -> Saves.
 2. **Assign Recipe**: User taps `Back` -> Taps `Create Recipe` -> Fills details -> Selects "Dinner Ideas" in dropdown ->
    Saves.
@@ -112,11 +113,13 @@
 
 ### Alternative Flows
 
-- **Sharing**: User in `Manage Collections` -> Taps Menu on "Dinner Ideas" -> `Share` -> Enters spouse's email. Spouse
+- **Sharing**: User in `Recipes Collections List` -> Taps Menu on "Dinner Ideas" -> `Share` -> Enters spouse's email.
+  Spouse
   opens app -> Sees "Dinner Ideas" in their filter bar.
 - **Contextual Creation**: User selects "Keto" filter on Main Screen -> Taps `Create Recipe` -> Form opens with "Keto"
   already selected in the dropdown.
-- **Leaving**: Editor goes to `Manage Collections` -> Taps Menu on "Shared List" -> `Leave` -> Confirms. Collection
+- **Leaving**: Editor goes to `Recipes Collections List` -> Taps Menu on "Shared List" -> `Leave` -> Confirms. Recipes
+  collection
   disappears from their list.
 
 ### Exit Points
@@ -127,7 +130,7 @@
 ## 4. Navigation Structure
 
 - **Entry Points**:
-    - **Main App Bar Overflow**: "Manage Collections" -> `/collections`.
+    - **Main App Bar Overflow**: "Recipes Collections" -> `/collections`.
 - **Internal Navigation**:
     - `/collections` is a terminal screen (stack push). It does not navigate deeper except for Dialog overlays.
 - **Exit Points**:
@@ -139,13 +142,13 @@
 
 ### New Components
 
-1. **CollectionFilterBar**
+1. **RecipesCollectionFilterBar**
     - **Purpose**: Horizontal list of chips for filtering.
     - **Used In**: `MainScreen` (Recipes Tab).
-    - **Key Props**: `List<Collection>`, `selectedId`, `onSelected(id)`.
+   - **Key Props**: `List<RecipesCollection>`, `selectedId`, `onSelected(id)`.
 2. **SharingDialog** (Generic Refactor)
-    - **Purpose**: Reusable dialog for managing ACLs (Recipes, Collections, Shopping Lists).
-    - **Used In**: `ManageCollectionsScreen`, `RecipeDetailScreen`.
+    - **Purpose**: Reusable dialog for managing ACLs (Recipes, Recipes Collections, Shopping Lists).
+    - **Used In**: `RecipesCollectionsListScreen`, `RecipeDetailScreen`.
     - **Key Props**: `entityName`, `List<SharedUser>`, `onAddUser(email)`, `onRemoveUser(email)`.
 
 ### Reused Components
@@ -162,11 +165,12 @@
 ## 6. State Management
 
 - **Local State**:
-    - `CollectionFilterBar`: Scroll position.
+    - `RecipesCollectionFilterBar`: Scroll position.
     - `RecipeFormWidget`: Selected value in Collection dropdown.
 - **Shared State**:
-    - `RecipeListService`: Holds `List<Collection>`, `currentFilterId`, and `List<Recipe>`.
-    - **Syncing**: The `ManageCollectionsScreen` and `MainScreen` observe the same service. Creating a collection in the
+    - `RecipeListService`: Holds `List<RecipesCollection>`, `currentFilterId`, and `List<Recipe>`.
+    - **Syncing**: The `RecipesCollectionsListScreen` and `MainScreen` observe the same service. Creating a collection
+      in the
       Manager updates the list in the Service, which automatically updates the Filter Bar on the Main Screen.
 - **Persistence**:
     - Active filter selection is transient (resets on app restart).
@@ -177,32 +181,33 @@
     - Filter chips must be large enough for touch targets.
     - Dropdowns must be labeled clearly.
 - **Responsive Design**:
-    - Filter bar uses `ListView.horizontal` to handle any number of collections without overflowing.
+    - Filter bar uses `ListView.horizontal` to handle any number of recipes collections without overflowing.
 - **Performance**:
     - Use `Shimmer` loading states when switching filters.
     - Optimistic UI updates for Renaming (update local state immediately while waiting for API).
 - **Error Handling**:
     - "Last Save Wins" logic for naming conflicts.
-    - Toast notifications for "Permission Denied" if a user tries to access a collection they were removed from.
+  - Toast notifications for "Permission Denied" if a user tries to access a recipes collection they were removed from.
 
 ## 8. Security Considerations
 
 - **Authentication**: All `/collections` endpoints require valid Bearer token.
 - **Authorization**:
     - UI hides "Delete" option for Editors.
-    - Frontend should handle 403 Forbidden gracefully if a user navigates to a collection they no longer have access to.
+  - Frontend should handle 403 Forbidden gracefully if a user navigates to a recipes collection they no longer have
+    access to.
 - **Data Protection**:
     - Sharing is strictly "Push" (email match). No public link sharing.
 
 ## 9. Requirements Mapping
 
-- **US-COL-001 (Create)** - `ManageCollectionsScreen` FAB - Opens creation dialog, calls API, updates list.
-- **US-COL-002 (Filter)** - `CollectionFilterBar` - Chips trigger service filter method.
+- **US-COL-001 (Create)** - `RecipesCollectionsListScreen` FAB - Opens creation dialog, calls API, updates list.
+- **US-COL-002 (Filter)** - `RecipesCollectionFilterBar` - Chips trigger service filter method.
 - **US-COL-003 (Assign Create)** - `RecipeFormWidget` - Dropdown allows selection, defaults to active filter.
 - **US-COL-004 (Move)** - `RecipeFormWidget` - Changing dropdown updates `collectionId`.
 - **US-COL-005 (Share)** - `SharingDialog` - Input field calls `share` endpoint.
-- **US-COL-008 (Rename)** - `ManageCollectionsScreen` - Tile menu option updates name globally.
-- **US-COL-009/010 (Delete/Leave)** - `ManageCollectionsScreen` - Context-aware menu option (Owner=Delete,
+- **US-COL-008 (Rename)** - `RecipesCollectionsListScreen` - Tile menu option updates name globally.
+- **US-COL-009/010 (Delete/Leave)** - `RecipesCollectionsListScreen` - Context-aware menu option (Owner=Delete,
   Editor=Leave).
 
 ## 10. Open Questions
