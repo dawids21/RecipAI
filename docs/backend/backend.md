@@ -4,7 +4,7 @@
 
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
-  role-based access)
+  role-based access, sharing functionality with OWNER/EDITOR roles)
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
 - `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access,
@@ -52,7 +52,10 @@ backend/
 │   │       ├── dto/                      # Data Transfer Objects
 │   │       │   ├── RecipesCollectionListDto.java # Recipes collection list response DTO
 │   │       │   ├── CreateRecipesCollectionRequest.java # Create recipes collection request DTO
-│   │       │   └── UpdateRecipesCollectionRequest.java # Update recipes collection request DTO
+│   │       │   ├── UpdateRecipesCollectionRequest.java # Update recipes collection request DTO
+│   │       │   ├── ShareRecipesCollectionRequest.java # Share recipes collection request DTO
+│   │       │   ├── UnshareRecipesCollectionRequest.java # Unshare recipes collection request DTO
+│   │       │   └── SharedUserDto.java # Shared user response DTO with role
 │   │       └── exception/                # Custom exceptions
 │   │           ├── RecipesCollectionNotFoundException.java # Collection not found exception
 │   │           └── RecipesCollectionAccessDeniedException.java # Access denied exception

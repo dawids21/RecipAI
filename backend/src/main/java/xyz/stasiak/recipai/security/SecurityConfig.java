@@ -21,7 +21,7 @@ class SecurityConfig {
 
         return http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/recipes/**", "/extract/**", "/users/**", "/shopping-lists/**").authenticated()
+                        .requestMatchers("/recipes/**", "/extract/**", "/users/**", "/shopping-lists/**", "/collections/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

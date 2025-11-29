@@ -1,6 +1,6 @@
 package xyz.stasiak.recipai.recipes.collections;
 
-enum UserRole {
+public enum UserRole {
     OWNER,
     EDITOR
 }

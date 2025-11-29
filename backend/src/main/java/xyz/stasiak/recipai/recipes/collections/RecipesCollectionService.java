@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
+import xyz.stasiak.recipai.recipes.collections.dto.SharedUserDto;
 import xyz.stasiak.recipai.recipes.collections.dto.UpdateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionNotFoundException;
@@ -82,6 +83,83 @@ class RecipesCollectionService {
         permissionRepository.deleteAllByRecipesCollectionId(id);
 
         recipesCollectionRepository.deleteById(id);
+    }
+
+    void shareRecipesCollection(String targetEmail, UUID recipesCollectionId, String requesterEmail) {
+        log.debug("Sharing recipes collection {} from {} to {}", recipesCollectionId, requesterEmail, targetEmail);
+
+        // Validate recipes collection exists
+        if (!recipesCollectionRepository.existsById(recipesCollectionId)) {
+            throw new RecipesCollectionNotFoundException(recipesCollectionId);
+        }
+
+        // Validate requester has access (OWNER or EDITOR can share)
+        permissionRepository.findById(new RecipesCollectionPermissionId(requesterEmail, recipesCollectionId))
+                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(recipesCollectionId));
+
+        // Check if target already has access - no-op if already shared
+        RecipesCollectionPermissionId targetPermissionId = new RecipesCollectionPermissionId(targetEmail, recipesCollectionId);
+        if (permissionRepository.findById(targetPermissionId).isPresent()) {
+            log.warn("Recipes collection {} is already shared with user {}", recipesCollectionId, targetEmail);
+            return;
+        }
+
+        // Create EDITOR permission for target user
+        RecipesCollectionPermission permission = new RecipesCollectionPermission(targetPermissionId, UserRole.EDITOR);
+        permissionRepository.save(permission);
+
+        log.info("Recipes collection {} shared from {} to {}", recipesCollectionId, requesterEmail, targetEmail);
+    }
+
+    void unshareRecipesCollection(String targetEmail, UUID recipesCollectionId, String requesterEmail) {
+        log.debug("Unsharing recipes collection {} from {} for {}", recipesCollectionId, requesterEmail, targetEmail);
+
+        // Validate recipes collection exists
+        if (!recipesCollectionRepository.existsById(recipesCollectionId)) {
+            throw new RecipesCollectionNotFoundException(recipesCollectionId);
+        }
+
+        // Validate requester has access
+        permissionRepository.findById(new RecipesCollectionPermissionId(requesterEmail, recipesCollectionId))
+                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(recipesCollectionId));
+
+        // Get target user's permission
+        RecipesCollectionPermissionId targetPermissionId = new RecipesCollectionPermissionId(targetEmail, recipesCollectionId);
+        RecipesCollectionPermission targetPermission = permissionRepository.findById(targetPermissionId)
+                .orElse(null);
+
+        // Prevent unsharing OWNER
+        if (targetPermission != null && targetPermission.hasOwnerRights()) {
+            if (targetEmail.equals(requesterEmail)) {
+                log.warn("OWNER {} cannot unshare themselves from recipes collection {}", requesterEmail, recipesCollectionId);
+            } else {
+                log.warn("Cannot unshare OWNER {} from recipes collection {}", targetEmail, recipesCollectionId);
+            }
+            throw new RecipesCollectionAccessDeniedException(recipesCollectionId);
+        }
+
+        // Remove EDITOR permission (deleteById is no-op if record doesn't exist)
+        permissionRepository.deleteById(targetPermissionId);
+
+        log.info("Recipes collection {} unshared from {} for {}", recipesCollectionId, requesterEmail, targetEmail);
+    }
+
+    List<SharedUserDto> getSharedUsers(UUID recipesCollectionId, String userEmail) {
+        log.debug("Getting shared users for recipes collection: {} by user: {}", recipesCollectionId, userEmail);
+
+        // Validate recipes collection exists
+        if (!recipesCollectionRepository.existsById(recipesCollectionId)) {
+            throw new RecipesCollectionNotFoundException(recipesCollectionId);
+        }
+
+        // Validate user has access
+        permissionRepository.findById(new RecipesCollectionPermissionId(userEmail, recipesCollectionId))
+                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(recipesCollectionId));
+
+        // Return all users with access, OWNER first
+        return permissionRepository.findAllByRecipesCollectionId(recipesCollectionId).stream()
+                .map(perm -> new SharedUserDto(perm.getId().email(), perm.getRole()))
+                .toList();
     }
 
     private RecipesCollectionListDto toListDto(RecipesCollection recipesCollection) {

@@ -734,3 +734,54 @@
     - Success: 204 No Content
     - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
     - Note: Deletes the collection and all permissions. Only OWNER role can delete.
+- GET /collections/{id}/users
+    - Description: Get all users that a recipes collection is shared with, including their roles
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Collection ID
+    - Example response:
+      ```json
+      [
+        {
+          "email": "owner@example.com",
+          "role": "OWNER"
+        },
+        {
+          "email": "editor@example.com",
+          "role": "EDITOR"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 401 Unauthorized, 403 Forbidden (if user lacks access), 404 Not Found
+    - Note: OWNER appears first in the returned list, followed by EDITOR roles
+- POST /collections/{id}/share
+    - Description: Share recipes collection with another user (grants EDITOR access)
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Collection ID
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 204 No Content
+    - Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden (if user has no access), 404 Not
+      Found
+    - Note: Shared user receives EDITOR access. Duplicate shares are silently ignored (idempotent).
+- POST /collections/{id}/unshare
+    - Description: Remove shared access from a user
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Collection ID
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 204 No Content
+    - Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden (if user has no access, or trying
+      to unshare OWNER), 404 Not Found
+    - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
