@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_service.dart';
+import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/recipe_list.dart';
 import '../features/recipe/recipe_list_fab.dart';
 import '../features/recipe/recipe_list_service.dart';
 import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
+import 'feature_flags.dart';
 import 'get_it.dart';
+import 'routes.dart';
+import 'theme.dart';
 
 class MainScreen extends StatefulWidget {
   final RecipeListService recipeListService;
+  final RecipesCollectionListService recipesCollectionListService;
   final ShoppingListListService shoppingListListService;
   final AuthService authService;
 
   const MainScreen({
     super.key,
     required this.recipeListService,
+    required this.recipesCollectionListService,
     required this.shoppingListListService,
     required this.authService,
   });
@@ -32,6 +39,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     widget.recipeListService.loadRecipes();
+    if (FeatureFlags.recipesCollectionsEnabled) {
+      widget.recipesCollectionListService.loadRecipesCollections();
+    }
     widget.shoppingListListService.loadShoppingLists();
   }
 
@@ -40,6 +50,9 @@ class _MainScreenState extends State<MainScreen> {
     // Reset both services on dispose
     if (getIt.isRegistered<RecipeListService>()) {
       getIt.resetLazySingleton<RecipeListService>();
+    }
+    if (getIt.isRegistered<RecipesCollectionListService>()) {
+      getIt.resetLazySingleton<RecipesCollectionListService>();
     }
     if (getIt.isRegistered<ShoppingListListService>()) {
       getIt.resetLazySingleton<ShoppingListListService>();
@@ -96,10 +109,47 @@ class _MainScreenState extends State<MainScreen> {
         title: const Text('RecipAI'),
         backgroundColor: theme.colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _onLogoutTap(context),
-            tooltip: 'Logout',
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'recipes_collections') {
+                context.goNamed(AppRoute.recipesCollections.name);
+              } else if (value == 'logout') {
+                _onLogoutTap(context);
+              }
+            },
+            itemBuilder: (context) {
+              final menuItems = <PopupMenuItem<String>>[];
+
+              if (FeatureFlags.recipesCollectionsEnabled) {
+                menuItems.add(
+                  const PopupMenuItem<String>(
+                    value: 'recipes_collections',
+                    child: Row(
+                      children: [
+                        Icon(Icons.folder),
+                        SizedBox(width: AppSpacing.small),
+                        Text('Recipes collections'),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              menuItems.add(
+                const PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout),
+                      SizedBox(width: AppSpacing.small),
+                      Text('Logout'),
+                    ],
+                  ),
+                ),
+              );
+
+              return menuItems;
+            },
           ),
         ],
       ),

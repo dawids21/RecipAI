@@ -9,6 +9,8 @@ import '../features/auth/login_screen.dart';
 import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
 import '../features/extraction/url_extraction_screen.dart';
+import '../features/recipe/collection/recipes_collection_list_screen.dart';
+import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
 import '../features/recipe/recipe_detail_screen.dart';
@@ -31,6 +33,7 @@ enum AppRoute {
   recipeCreate('recipes/create'), // '/recipes/create'
   recipeDetail('recipes/:id'), // '/recipes/:id'
   recipeEdit('edit'), // '/recipes/:id/edit'
+  recipesCollections('recipes-collections'), // '/recipes-collections'
   recipeToShoppingList('to-shopping-list'), // '/recipes/:id/to-shopping-list'
   shoppingListDetail('shopping-lists/:id'); // '/shopping-lists/:id'
 
@@ -115,6 +118,7 @@ GoRouter createAppRouter() {
         name: AppRoute.main.name,
         builder: (context, state) => MainScreen(
           recipeListService: getIt<RecipeListService>(),
+          recipesCollectionListService: getIt<RecipesCollectionListService>(),
           shoppingListListService: getIt<ShoppingListListService>(),
           authService: getIt<AuthService>(),
         ),
@@ -182,6 +186,16 @@ GoRouter createAppRouter() {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: AppRoute.recipesCollections.path,
+            name: AppRoute.recipesCollections.name,
+            builder: (context, state) {
+              return RecipesCollectionListScreen(
+                recipesCollectionListService:
+                    getIt<RecipesCollectionListService>(),
+              );
+            },
           ),
           GoRoute(
             path: AppRoute.shoppingListDetail.path,

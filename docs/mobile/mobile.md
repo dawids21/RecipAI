@@ -3,6 +3,8 @@
 ## Features
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details
+- `recipe/collection` - Recipe collections management for organizing recipes into collections. Uses
+  Repository-Service-View architecture with RecipesCollectionRepository and RecipesCollectionListService
 - `extraction` - Recipe extraction functionality supporting both URL extraction via WebView and image extraction via
   camera/gallery. Uses Repository-Service-View architecture with ExtractionRepository and ExtractionService
 - `auth` - User authentication using Firebase Authentication with Google Sign-In
@@ -21,6 +23,7 @@
 - Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and UserRole enum
 - User Role (`user_role.dart`) - Enum defining user roles (owner, editor) with API conversion methods for
   uppercase/lowercase handling
+- Recipes Collection (`collection/recipes_collection.dart`) - Data model for recipe collections with id and name fields
 
 ### Shopping List module
 
@@ -66,6 +69,14 @@ mobile/
 │       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
 │       │   ├── recipe_to_shopping_list_screen.dart # Add ingredients to shopping list screen
 │       │   ├── recipe_to_shopping_list_service.dart # Service for adding ingredients to shopping list
+│       │   ├── collection/             # Recipe collections sub-feature
+│       │   │   ├── recipes_collection.dart # Recipes collection data model
+│       │   │   ├── recipes_collection_repository.dart # Collections data access layer
+│       │   │   ├── recipes_collection_list_service.dart # Collections list business logic with ValueNotifier
+│       │   │   ├── recipes_collection_setup.dart # Dependency injection setup for collections
+│       │   │   ├── recipes_collection_list_screen.dart # Collections list screen with CRUD operations
+│       │   │   ├── recipes_collection_list_item.dart # Reusable collection list item widget
+│       │   │   └── recipes_collection_rename_dialog.dart # Dialog for renaming collections
 │       │   └── ...                     # Other screens, models, and widgets
 │       ├── shopping_list/              # "shopping list" feature
 │       │   ├── shopping_list.dart      # Shopping list data model
@@ -107,8 +118,8 @@ Feature flags are defined in `core/feature_flags.dart` using `bool.fromEnvironme
 
 Available feature flags:
 
-- `shoppingListsEnabled` - Controls visibility of shopping lists feature in the app (environment variable:
-  `SHOPPING_LISTS`, default: `false`)
+- `recipesCollectionsEnabled` - Controls visibility of recipe collections feature in the app (environment variable:
+  `RECIPES_COLLECTIONS`, default: `false`)
 
 ```dart
 import 'package:mobile/core/feature_flags.dart';
@@ -123,10 +134,10 @@ class _MyScreenState extends State<MyScreen> {
           Text('Main content'),
 
           // Conditionally rendered based on feature flag
-          if (FeatureFlags.shoppingListsEnabled)
+          if (FeatureFlags.featureEnabled)
             Container(
               padding: EdgeInsets.all(16),
-              child: Text('Shopping lists feature is enabled!'),
+              child: Text('Feature is enabled!'),
             ),
         ],
       ),

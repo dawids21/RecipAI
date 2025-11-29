@@ -13,6 +13,7 @@ import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_repository.dart';
 import 'package:recipai_mobile/features/auth/auth_setup.dart';
 import 'package:recipai_mobile/features/extraction/extraction_setup.dart';
+import 'package:recipai_mobile/features/recipe/collection/recipes_collection_setup.dart';
 import 'package:recipai_mobile/features/recipe/recipe_setup.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_setup.dart';
 import 'package:recipai_mobile/main.dart';
@@ -77,6 +78,7 @@ void main() {
   testWidgets('RecipAI app smoke test', (WidgetTester tester) async {
     setupAuth(authRepository: MockAuthRepository(isAuthenticated: true));
     setupRecipe();
+    setupRecipesCollection();
     setupShoppingList();
     setupExtraction();
 

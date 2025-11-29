@@ -6,7 +6,8 @@
 
 - Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing both recipe and
   shopping list tabs. Displays RecipeList or ShoppingListList widgets based on selected tab, with corresponding FABs (
-  RecipeListFab or ShoppingListListFab)
+  RecipeListFab or ShoppingListListFab). Features PopupMenuButton in AppBar with "Recipes collections" option (when
+  feature flag is enabled) and logout functionality
 
 ### Recipe feature
 
@@ -30,6 +31,15 @@
 - Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
   shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
   and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success
+- Recipes Collection List Screen (`collection/recipes_collection_list_screen.dart`) - Screen for managing recipe
+  collections with pull-to-refresh, FAB for creating new collections, inline rename/delete operations via
+  PopupMenuButton
+  on each list item, and error handling with retry functionality
+- Recipes Collection List Item (`collection/recipes_collection_list_item.dart`) - Reusable Card widget for displaying
+  individual recipe collections in a list with title, tap handling, and PopupMenuButton for rename/delete actions
+- Recipes Collection Rename Dialog (`collection/recipes_collection_rename_dialog.dart`) - Stateful dialog widget for
+  renaming recipe collections with TextField input, proper TextEditingController lifecycle management, validation to
+  prevent empty names, and pre-filled current name
 
 ### Auth feature
 
@@ -97,6 +107,8 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
     - `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
     - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
   - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
+  - `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections, shown when feature flag
+    enabled)
   - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 
 ### Bottom Navigation Bar
@@ -142,6 +154,16 @@ All routes except `/login` require user authentication. The app automatically re
    Main Screen
 9. **Successful Manual Creation** → Back to Main Screen (with recipe added)
 10. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+
+#### Recipe Collections Management Flow
+
+1. **AppBar Menu → Recipes collections** (when feature flag enabled) → Recipes Collection List Screen (
+   `/recipes-collections`)
+2. **FAB Tap** (on Collections screen) → Create dialog with name input → Collection created → List refreshed
+3. **Pull to Refresh** (on Collections screen) → Collections reloaded from API
+4. **Collection Item Menu → Rename** → Rename dialog with pre-filled name → Collection renamed → List refreshed
+5. **Collection Item Menu → Delete** → Confirmation dialog → Collection deleted → List refreshed
+6. **Back Button** (on Collections screen) → Back to Main Screen
 
 #### Shopping List Management Flow
 
