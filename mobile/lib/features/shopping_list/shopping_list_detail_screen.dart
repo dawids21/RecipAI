@@ -37,6 +37,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     widget.shoppingListDetailService.loadShoppingListDetail(
       widget.shoppingListId,
     );
+    widget.shoppingListDetailService.loadSharedUsers(widget.shoppingListId);
     widget.shoppingListDetailService.startSyncing(
       listId: widget.shoppingListId,
       onConflict: _handleConflict,

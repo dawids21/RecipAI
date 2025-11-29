@@ -4,13 +4,13 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
+import '../../core/widgets/sharing_dialog.dart';
 import '../auth/auth_service.dart';
 import 'shopping_list_detail.dart';
 import 'shopping_list_item.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_operation.dart';
 import 'shopping_list_repository.dart';
-import 'shopping_list_shared_user.dart';
 import 'shopping_list_sync_service.dart';
 
 class ShoppingListDetailService {
@@ -35,11 +35,10 @@ class ShoppingListDetailService {
   ValueListenable<AsyncValue<ShoppingListDetail>> get shoppingListDetail =>
       _shoppingListDetail;
 
-  final ValueNotifier<AsyncValue<List<ShoppingListSharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueListenable<AsyncValue<List<ShoppingListSharedUser>>> get sharedUsers =>
-      _sharedUsers;
+  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
 
   bool _isLoadShoppingListDetailRunning = false;
   bool _isRenameRunning = false;
@@ -382,30 +381,23 @@ class ShoppingListDetailService {
     _shoppingListDetail.value = AsyncData(updatedDetail);
   }
 
-  Future<void> loadSharedUsers() async {
+  Future<void> loadSharedUsers(String id) async {
     if (_isLoadSharedUsersRunning) return;
     _isLoadSharedUsersRunning = true;
 
     _sharedUsers.value = const AsyncValue.loading();
 
-    // Get shoppingListId from current state
-    final shoppingListDetail = _shoppingListDetail.value;
-    if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
-      _isLoadSharedUsersRunning = false;
-      return;
-    }
-    final shoppingListId = shoppingListDetail.value.id;
-
     _sharedUsers.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
       final permissions = await _shoppingListRepository.fetchSharedUsers(
-        shoppingListId,
+        id,
         token,
       );
       final currentUserEmail = _authService.email;
       return permissions.map((permission) {
-        return ShoppingListSharedUser(
-          permission: permission,
+        return SharedUser(
+          email: permission.email,
+          role: permission.role.displayName,
           isCurrentUser: permission.email == currentUserEmail,
         );
       }).toList();
@@ -436,7 +428,7 @@ class ShoppingListDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(); // Refresh list on success
+      await loadSharedUsers(shoppingListId); // Refresh list on success
       await _shoppingListListService.loadShoppingLists();
     }
 
@@ -469,7 +461,7 @@ class ShoppingListDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(); // Refresh list on success
+      await loadSharedUsers(shoppingListId); // Refresh list on success
       await _shoppingListListService.loadShoppingLists();
     }
 

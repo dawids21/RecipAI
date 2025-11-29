@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/app_config.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
-import 'shared_user.dart';
+import 'recipe_permission.dart';
 
 class RecipeRepository {
   final http.Client _client = http.Client();
@@ -131,7 +131,7 @@ class RecipeRepository {
     }
   }
 
-  Future<List<SharedUser>> fetchSharedUsers(
+  Future<List<RecipePermission>> fetchSharedUsers(
     String recipeId,
     String? idToken,
   ) async {
@@ -145,7 +145,9 @@ class RecipeRepository {
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = json.decode(response.body);
         return jsonList
-            .map((json) => SharedUser.fromJson(json as Map<String, dynamic>))
+            .map(
+              (json) => RecipePermission.fromJson(json as Map<String, dynamic>),
+            )
             .toList();
       } else if (response.statusCode == 404) {
         throw Exception('Recipe not found');

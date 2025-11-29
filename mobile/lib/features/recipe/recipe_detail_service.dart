@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:recipai_mobile/core/widgets/sharing_dialog.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_service.dart';
 import 'recipe_repository.dart';
-import 'recipe_shared_user.dart';
 
 class RecipeDetailService {
   final RecipeRepository _recipeRepository;
@@ -26,11 +26,10 @@ class RecipeDetailService {
 
   ValueListenable<AsyncValue<RecipeDetail>> get recipeDetail => _recipeDetail;
 
-  final ValueNotifier<AsyncValue<List<RecipeSharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueListenable<AsyncValue<List<RecipeSharedUser>>> get sharedUsers =>
-      _sharedUsers;
+  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
 
   bool _isLoadRecipeDetailRunning = false;
   bool _isDeleteRecipeRunning = false;
@@ -91,31 +90,21 @@ class RecipeDetailService {
     }
   }
 
-  Future<void> loadSharedUsers() async {
+  Future<void> loadSharedUsers(String id) async {
     if (_isLoadSharedUsersRunning) return;
     _isLoadSharedUsersRunning = true;
 
     _sharedUsers.value = const AsyncValue.loading();
 
-    // Get recipeId from current state
-    final recipeDetail = _recipeDetail.value;
-    if (recipeDetail is! AsyncData<RecipeDetail>) {
-      _isLoadSharedUsersRunning = false;
-      return;
-    }
-    final recipeId = recipeDetail.value.id;
-
     _sharedUsers.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      final sharedUsers = await _recipeRepository.fetchSharedUsers(
-        recipeId,
-        token,
-      );
+      final permissions = await _recipeRepository.fetchSharedUsers(id, token);
       final currentUserEmail = _authService.email;
-      return sharedUsers.map((sharedUser) {
-        return RecipeSharedUser(
-          sharedUser: sharedUser,
-          isCurrentUser: sharedUser.email == currentUserEmail,
+      return permissions.map((permission) {
+        return SharedUser(
+          email: permission.email,
+          role: permission.role.displayName,
+          isCurrentUser: permission.email == currentUserEmail,
         );
       }).toList();
     });
@@ -141,7 +130,7 @@ class RecipeDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(); // Refresh list on success
+      await loadSharedUsers(recipeId); // Refresh list on success
     }
 
     _isShareRecipeRunning = false;
@@ -169,7 +158,7 @@ class RecipeDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(); // Refresh list on success
+      await loadSharedUsers(recipeId); // Refresh list on success
     }
 
     _isUnshareRecipeRunning = false;

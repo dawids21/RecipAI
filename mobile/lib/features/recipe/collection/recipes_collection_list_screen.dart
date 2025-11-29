@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/sharing_dialog.dart';
 import '../../../shared/api_error_widget.dart';
 import '../../../shared/loading_widget.dart';
+import 'recipes_collection.dart';
 import 'recipes_collection_list_item.dart';
 import 'recipes_collection_list_service.dart';
 
@@ -136,6 +138,60 @@ class _RecipesCollectionListScreenState
     }
   }
 
+  Future<void> _showSharingDialog(RecipesCollection collection) async {
+    widget.recipesCollectionListService.loadSharedUsers(collection.id);
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => SharingDialog(
+        title: 'Share ${collection.name}',
+        sharedUsers: widget.recipesCollectionListService.sharedUsers,
+        onShare: (email) async {
+          try {
+            await widget.recipesCollectionListService.shareCollection(
+              collection.id,
+              email,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Collection shared with $email')),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+            }
+            rethrow;
+          }
+        },
+        onUnshare: (email) async {
+          try {
+            await widget.recipesCollectionListService.unshareCollection(
+              collection.id,
+              email,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Collection unshared with $email')),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Failed to unshare: $e')));
+            }
+            rethrow;
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -170,6 +226,7 @@ class _RecipesCollectionListScreenState
                       recipesCollection: recipesCollection,
                       onRename: (newName) =>
                           _handleRename(recipesCollection.id, newName),
+                      onShare: () => _showSharingDialog(recipesCollection),
                       onDelete: () => _handleDelete(
                         recipesCollection.id,
                         recipesCollection.name,

@@ -1,13 +1,13 @@
 import '../../shared/user_role.dart';
 
-class SharedUser {
+class RecipePermission {
   final String email;
   final UserRole role;
 
-  const SharedUser({required this.email, required this.role});
+  const RecipePermission({required this.email, required this.role});
 
-  factory SharedUser.fromJson(Map<String, dynamic> json) {
-    return SharedUser(
+  factory RecipePermission.fromJson(Map<String, dynamic> json) {
+    return RecipePermission(
       email: json['email'] as String,
       role: UserRole.fromApiString(json['role'] as String),
     );

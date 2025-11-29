@@ -47,7 +47,9 @@ mobile/
 │   │   ├── async_value.dart           # AsyncValue sealed class (Loading/Data/Error)
 │   │   ├── get_it.dart                # Global GetIt instance
 │   │   ├── feature_flags.dart         # Feature flags configuration using environment variables
-│   │   └── theme.dart                 # App theme and spacing constants
+│   │   ├── theme.dart                 # App theme and spacing constants
+│   │   └── widgets/                    # Reusable widgets shared across features
+│   │       └── sharing_dialog.dart    # Generic sharing dialog with SharedUser DTO
 │   ├── shared/                         # Shared/reusable widgets and utilities
 │   │   ├── loading_widget.dart        # Loading indicator widget
 │   │   ├── api_error_widget.dart      # API error display widget

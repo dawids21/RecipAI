@@ -32,6 +32,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void initState() {
     super.initState();
     widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
+    widget.recipeDetailService.loadSharedUsers(widget.recipeId);
   }
 
   @override

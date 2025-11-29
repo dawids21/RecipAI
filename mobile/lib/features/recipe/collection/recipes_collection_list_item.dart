@@ -8,12 +8,14 @@ class RecipesCollectionListItem extends StatelessWidget {
   final RecipesCollection recipesCollection;
   final Function(String newName) onRename;
   final VoidCallback onDelete;
+  final VoidCallback onShare;
 
   const RecipesCollectionListItem({
     super.key,
     required this.recipesCollection,
     required this.onRename,
     required this.onDelete,
+    required this.onShare,
   });
 
   @override
@@ -36,6 +38,8 @@ class RecipesCollectionListItem extends StatelessWidget {
               if (newName != null) {
                 onRename(newName);
               }
+            } else if (value == 'share') {
+              onShare();
             } else if (value == 'delete') {
               onDelete();
             }
@@ -48,6 +52,16 @@ class RecipesCollectionListItem extends StatelessWidget {
                   Icon(Icons.edit),
                   SizedBox(width: AppSpacing.small),
                   Text('Rename'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'share',
+              child: Row(
+                children: [
+                  Icon(Icons.share),
+                  SizedBox(width: AppSpacing.small),
+                  Text('Share'),
                 ],
               ),
             ),
