@@ -9,12 +9,15 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
+import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("SameParameterValue")
 @Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RecipeIntegrationTest {
@@ -33,8 +36,101 @@ class RecipeIntegrationTest {
                 .build();
     }
 
+    private RecipeDto createRecipe(RestClient client, String name, RecipeData data, UUID collectionId) {
+        CreateRecipeRequest request = new CreateRecipeRequest(name, data, collectionId);
+        return client
+                .post()
+                .uri("/recipes")
+                .body(request)
+                .retrieve()
+                .body(RecipeDto.class);
+    }
+
+    private List<RecipeListDto> getAllRecipes(RestClient client) {
+        return client
+                .get()
+                .uri("/recipes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private RecipeDto getRecipe(RestClient client, UUID id) {
+        return client
+                .get()
+                .uri("/recipes/" + id)
+                .retrieve()
+                .body(RecipeDto.class);
+    }
+
+    private RecipeDto updateRecipe(RestClient client, UUID id, String name, RecipeData data, UUID collectionId) {
+        UpdateRecipeRequest request = new UpdateRecipeRequest(name, data, collectionId);
+        return client
+                .put()
+                .uri("/recipes/" + id)
+                .body(request)
+                .retrieve()
+                .body(RecipeDto.class);
+    }
+
+    private void deleteRecipe(RestClient client, UUID id) {
+        client
+                .delete()
+                .uri("/recipes/" + id)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void shareRecipe(RestClient client, UUID recipeId, String email) {
+        ShareRecipeRequest request = new ShareRecipeRequest(email);
+        client
+                .post()
+                .uri("/recipes/" + recipeId + "/share")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void unshareRecipe(RestClient client, UUID recipeId, String email) {
+        UnshareRecipeRequest request = new UnshareRecipeRequest(email);
+        client
+                .post()
+                .uri("/recipes/" + recipeId + "/unshare")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private List<SharedUserDto> getSharedUsers(RestClient client, UUID recipeId) {
+        return client
+                .get()
+                .uri("/recipes/" + recipeId + "/shared_users")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private RecipesCollectionListDto createCollection(RestClient client, String name) {
+        CreateRecipesCollectionRequest request = new CreateRecipesCollectionRequest(name);
+        return client
+                .post()
+                .uri("/collections")
+                .body(request)
+                .retrieve()
+                .body(RecipesCollectionListDto.class);
+    }
+
+    private RecipeData createTestRecipeData() {
+        return new RecipeData(
+                List.of(new Ingredient("flour", "300g", null)),
+                List.of(new Instruction("Make dough"))
+        );
+    }
+
     @Test
     void shouldCreateReadUpdateDeleteRecipes() {
+        RestClient client = restClient();
+
         // CREATE: Create first recipe
         RecipeData pizzaData = new RecipeData(
                 List.of(
@@ -48,14 +144,8 @@ class RecipeIntegrationTest {
                         new Instruction("Bake for 15 minutes")
                 )
         );
-        CreateRecipeRequest pizzaRequest = new CreateRecipeRequest("Pizza Margherita", pizzaData);
 
-        RecipeDto pizzaResponse = restClient()
-                .post()
-                .uri("/recipes")
-                .body(pizzaRequest)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto pizzaResponse = createRecipe(client, "Pizza Margherita", pizzaData, null);
         assertThat(pizzaResponse).isNotNull();
         assertThat(pizzaResponse.name()).isEqualTo("Pizza Margherita");
 
@@ -72,24 +162,13 @@ class RecipeIntegrationTest {
                         new Instruction("Mix with eggs")
                 )
         );
-        CreateRecipeRequest pastaRequest = new CreateRecipeRequest("Spaghetti Carbonara", pastaData);
 
-        RecipeDto pastaResponse = restClient()
-                .post()
-                .uri("/recipes")
-                .body(pastaRequest)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto pastaResponse = createRecipe(client, "Spaghetti Carbonara", pastaData, null);
         assertThat(pastaResponse).isNotNull();
         assertThat(pastaResponse.name()).isEqualTo("Spaghetti Carbonara");
 
         // READ: List all recipes - check that our created recipes are present
-        List<RecipeListDto> listResponse = restClient()
-                .get()
-                .uri("/recipes")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<RecipeListDto> listResponse = getAllRecipes(client);
 
         assertThat(listResponse).isNotEmpty();
         assertThat(listResponse)
@@ -100,11 +179,7 @@ class RecipeIntegrationTest {
                 .contains("Pizza Margherita", "Spaghetti Carbonara");
 
         // READ: Get detailed recipe
-        RecipeDto detailedRecipe = restClient()
-                .get()
-                .uri("/recipes/" + pizzaResponse.id())
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto detailedRecipe = getRecipe(client, pizzaResponse.id());
         assertThat(detailedRecipe).isNotNull();
         assertThat(detailedRecipe.name()).isEqualTo("Pizza Margherita");
         assertThat(detailedRecipe.data().ingredients()).hasSize(3);
@@ -126,14 +201,8 @@ class RecipeIntegrationTest {
                         new Instruction("Bake for 20 minutes")
                 )
         );
-        UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Updated Pizza Margherita", updatedPizzaData);
 
-        RecipeDto updatedRecipe = restClient()
-                .put()
-                .uri("/recipes/" + pizzaResponse.id())
-                .body(updateRequest)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto updatedRecipe = updateRecipe(client, pizzaResponse.id(), "Updated Pizza Margherita", updatedPizzaData, null);
 
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.id()).isEqualTo(pizzaResponse.id());
@@ -143,29 +212,17 @@ class RecipeIntegrationTest {
         assertThat(updatedRecipe.data().ingredients().getFirst().quantity()).isEqualTo("400g");
 
         // READ: Verify GET shows updated data
-        RecipeDto fetchedUpdatedRecipe = restClient()
-                .get()
-                .uri("/recipes/" + pizzaResponse.id())
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto fetchedUpdatedRecipe = getRecipe(client, pizzaResponse.id());
         assertThat(fetchedUpdatedRecipe).isNotNull();
         assertThat(fetchedUpdatedRecipe.name()).isEqualTo("Updated Pizza Margherita");
         assertThat(fetchedUpdatedRecipe.data().ingredients()).hasSize(3);
 
         // DELETE: Delete the pasta recipe
-        restClient()
-                .delete()
-                .uri("/recipes/" + pastaResponse.id())
-                .retrieve()
-                .toBodilessEntity();
+        deleteRecipe(client, pastaResponse.id());
 
         // READ: Verify deleted recipe returns 404
         try {
-            restClient()
-                    .get()
-                    .uri("/recipes/" + pastaResponse.id())
-                    .retrieve()
-                    .body(RecipeDto.class);
+            getRecipe(client, pastaResponse.id());
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
@@ -173,12 +230,7 @@ class RecipeIntegrationTest {
         }
 
         // READ: Verify updated recipe still exists in list
-        List<RecipeListDto> finalListResponse = restClient()
-                .get()
-                .uri("/recipes")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<RecipeListDto> finalListResponse = getAllRecipes(client);
 
         assertThat(finalListResponse)
                 .extracting(RecipeListDto::id)
@@ -192,20 +244,15 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturn404WhenUpdatingNonExistentRecipe() {
+        RestClient client = restClient();
         RecipeData data = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
                 List.of(new Instruction("Make dough"))
         );
-        UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Non-existent", data);
         UUID randomId = UUID.randomUUID();
 
         try {
-            restClient()
-                    .put()
-                    .uri("/recipes/" + randomId)
-                    .body(updateRequest)
-                    .retrieve()
-                    .body(RecipeDto.class);
+            updateRecipe(client, randomId, "Non-existent", data, null);
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
@@ -215,14 +262,11 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturn404WhenDeletingNonExistentRecipe() {
+        RestClient client = restClient();
         UUID randomId = UUID.randomUUID();
 
         try {
-            restClient()
-                    .delete()
-                    .uri("/recipes/" + randomId)
-                    .retrieve()
-                    .toBodilessEntity();
+            deleteRecipe(client, randomId);
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
@@ -232,19 +276,16 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldIsolateRecipesBetweenUsers() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData user1RecipeData = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
                 List.of(new Instruction("Make bread"))
         );
-        CreateRecipeRequest user1Request = new CreateRecipeRequest("User 1 Recipe", user1RecipeData);
 
-        RecipeDto user1Recipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes")
-                .body(user1Request)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto user1Recipe = createRecipe(user1Client, "User 1 Recipe", user1RecipeData, null);
         assertThat(user1Recipe).isNotNull();
         assertThat(user1Recipe.name()).isEqualTo("User 1 Recipe");
 
@@ -253,24 +294,13 @@ class RecipeIntegrationTest {
                 List.of(new Ingredient("sugar", "200g", null)),
                 List.of(new Instruction("Make cake"))
         );
-        CreateRecipeRequest user2Request = new CreateRecipeRequest("User 2 Recipe", user2RecipeData);
 
-        RecipeDto user2Recipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .post()
-                .uri("/recipes")
-                .body(user2Request)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto user2Recipe = createRecipe(user2Client, "User 2 Recipe", user2RecipeData, null);
         assertThat(user2Recipe).isNotNull();
         assertThat(user2Recipe.name()).isEqualTo("User 2 Recipe");
 
         // User 1 should see their own recipes (including those created in other tests)
-        List<RecipeListDto> user1Recipes = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .get()
-                .uri("/recipes")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<RecipeListDto> user1Recipes = getAllRecipes(user1Client);
 
         assertThat(user1Recipes)
                 .extracting(RecipeListDto::id)
@@ -280,12 +310,7 @@ class RecipeIntegrationTest {
                 .contains("User 1 Recipe");
 
         // User 2 should only see their own recipes
-        List<RecipeListDto> user2Recipes = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .get()
-                .uri("/recipes")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<RecipeListDto> user2Recipes = getAllRecipes(user2Client);
 
         assertThat(user2Recipes)
                 .extracting(RecipeListDto::id)
@@ -299,28 +324,21 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldPreventCrossUserAccess() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
                 List.of(new Instruction("Secret recipe step"))
         );
-        CreateRecipeRequest request = new CreateRecipeRequest("Secret Recipe", recipeData);
 
-        RecipeDto user1Recipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes")
-                .body(request)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto user1Recipe = createRecipe(user1Client, "Secret Recipe", recipeData, null);
         assertThat(user1Recipe).isNotNull();
 
         // User 2 should not be able to access user 1's recipe
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .get()
-                    .uri("/recipes/" + user1Recipe.id())
-                    .retrieve()
-                    .body(RecipeDto.class);
+            getRecipe(user2Client, user1Recipe.id());
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
@@ -328,14 +346,8 @@ class RecipeIntegrationTest {
         }
 
         // User 2 should not be able to update user 1's recipe
-        UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Hacked Recipe", recipeData);
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .put()
-                    .uri("/recipes/" + user1Recipe.id())
-                    .body(updateRequest)
-                    .retrieve()
-                    .body(RecipeDto.class);
+            updateRecipe(user2Client, user1Recipe.id(), "Hacked Recipe", recipeData, null);
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
@@ -344,11 +356,7 @@ class RecipeIntegrationTest {
 
         // User 2 should not be able to delete user 1's recipe
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .delete()
-                    .uri("/recipes/" + user1Recipe.id())
-                    .retrieve()
-                    .toBodilessEntity();
+            deleteRecipe(user2Client, user1Recipe.id());
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
@@ -358,60 +366,38 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldShareAndUnshareRecipes() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
                 List.of(new Instruction("Secret recipe step"))
         );
-        CreateRecipeRequest request = new CreateRecipeRequest("Shared Recipe", recipeData);
 
-        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes")
-                .body(request)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto ownerRecipe = createRecipe(user1Client, "Shared Recipe", recipeData, null);
         assertThat(ownerRecipe).isNotNull();
         assertThat(ownerRecipe.role()).isEqualTo(UserRole.OWNER);
 
         // User 2 should not have access initially
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .get()
-                    .uri("/recipes/" + ownerRecipe.id())
-                    .retrieve()
-                    .body(RecipeDto.class);
+            getRecipe(user2Client, ownerRecipe.id());
             assertThat(false).isTrue(); // Should not reach here
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // User 1 shares recipe with User 2
-        ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes/" + ownerRecipe.id() + "/share")
-                .body(shareRequest)
-                .retrieve()
-                .toBodilessEntity();
+        shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
 
         // User 2 should now have EDITOR access
-        RecipeDto sharedRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .get()
-                .uri("/recipes/" + ownerRecipe.id())
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto sharedRecipe = getRecipe(user2Client, ownerRecipe.id());
         assertThat(sharedRecipe).isNotNull();
         assertThat(sharedRecipe.role()).isEqualTo(UserRole.EDITOR);
         assertThat(sharedRecipe.name()).isEqualTo("Shared Recipe");
 
         // Test shared users endpoint after sharing - should show OWNER first, then EDITOR
-        List<SharedUserDto> sharedUsersAfterSharing = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .get()
-                .uri("/recipes/" + ownerRecipe.id() + "/shared_users")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<SharedUserDto> sharedUsersAfterSharing = getSharedUsers(user1Client, ownerRecipe.id());
         assertThat(sharedUsersAfterSharing).isNotNull();
         assertThat(sharedUsersAfterSharing).hasSize(2);
         assertThat(sharedUsersAfterSharing.get(0).email()).isEqualTo("user1@example.com");
@@ -424,205 +410,119 @@ class RecipeIntegrationTest {
                 List.of(new Ingredient("updated ingredient", "200g", null)),
                 List.of(new Instruction("Updated recipe step"))
         );
-        UpdateRecipeRequest updateRequest = new UpdateRecipeRequest("Updated Shared Recipe", updatedData);
 
-        RecipeDto updatedRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .put()
-                .uri("/recipes/" + ownerRecipe.id())
-                .body(updateRequest)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto updatedRecipe = updateRecipe(user2Client, ownerRecipe.id(), "Updated Shared Recipe", updatedData, null);
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.name()).isEqualTo("Updated Shared Recipe");
         assertThat(updatedRecipe.role()).isEqualTo(UserRole.EDITOR);
 
         // User 2 (EDITOR) should NOT be able to delete the recipe
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .delete()
-                    .uri("/recipes/" + ownerRecipe.id())
-                    .retrieve()
-                    .toBodilessEntity();
+            deleteRecipe(user2Client, ownerRecipe.id());
             assertThat(false).isTrue(); // Should not reach here
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // User 1 unshares the recipe from User 2
-        UnshareRecipeRequest unshareRequest = new UnshareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes/" + ownerRecipe.id() + "/unshare")
-                .body(unshareRequest)
-                .retrieve()
-                .toBodilessEntity();
+        unshareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
 
         // User 2 should no longer have access
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .get()
-                    .uri("/recipes/" + ownerRecipe.id())
-                    .retrieve()
-                    .body(RecipeDto.class);
+            getRecipe(user2Client, ownerRecipe.id());
             assertThat(false).isTrue(); // Should not reach here
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // Test shared users endpoint after unsharing - should show only OWNER
-        List<SharedUserDto> sharedUsersAfterUnsharing = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .get()
-                .uri("/recipes/" + ownerRecipe.id() + "/shared_users")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<SharedUserDto> sharedUsersAfterUnsharing = getSharedUsers(user1Client, ownerRecipe.id());
         assertThat(sharedUsersAfterUnsharing).isNotNull();
         assertThat(sharedUsersAfterUnsharing).hasSize(1);
         assertThat(sharedUsersAfterUnsharing.getFirst().email()).isEqualTo("user1@example.com");
         assertThat(sharedUsersAfterUnsharing.getFirst().role()).isEqualTo(UserRole.OWNER);
 
         // User 1 (OWNER) should still be able to delete the recipe
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .delete()
-                .uri("/recipes/" + ownerRecipe.id())
-                .retrieve()
-                .toBodilessEntity();
+        deleteRecipe(user1Client, ownerRecipe.id());
     }
 
     @Test
     void shouldAllowEditorsToShareAndUnshareButPreventUnsharingOwner() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user3Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
                 List.of(new Instruction("Step"))
         );
-        CreateRecipeRequest request = new CreateRecipeRequest("Editor Sharing Test Recipe", recipeData);
 
-        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes")
-                .body(request)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto ownerRecipe = createRecipe(user1Client, "Editor Sharing Test Recipe", recipeData, null);
         assertThat(ownerRecipe).isNotNull();
 
         // User 1 shares recipe with User 2 (making User 2 an EDITOR)
-        ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes/" + ownerRecipe.id() + "/share")
-                .body(shareRequest)
-                .retrieve()
-                .toBodilessEntity();
+        shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
 
         // User 2 (EDITOR) should be able to share the recipe with a third user
-        ShareRecipeRequest editorShareRequest = new ShareRecipeRequest("user@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .post()
-                .uri("/recipes/" + ownerRecipe.id() + "/share")
-                .body(editorShareRequest)
-                .retrieve()
-                .toBodilessEntity();
+        shareRecipe(user2Client, ownerRecipe.id(), "user@example.com");
 
         // Verify the third user now has access
-        RecipeDto thirdUserRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN)
-                .get()
-                .uri("/recipes/" + ownerRecipe.id())
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto thirdUserRecipe = getRecipe(user3Client, ownerRecipe.id());
         assertThat(thirdUserRecipe).isNotNull();
         assertThat(thirdUserRecipe.role()).isEqualTo(UserRole.EDITOR);
 
         // User 2 (EDITOR) should be able to unshare the recipe from the third user
-        UnshareRecipeRequest editorUnshareRequest = new UnshareRecipeRequest("user@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .post()
-                .uri("/recipes/" + ownerRecipe.id() + "/unshare")
-                .body(editorUnshareRequest)
-                .retrieve()
-                .toBodilessEntity();
+        unshareRecipe(user2Client, ownerRecipe.id(), "user@example.com");
 
         // Verify third user no longer has access
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN)
-                    .get()
-                    .uri("/recipes/" + ownerRecipe.id())
-                    .retrieve()
-                    .body(RecipeDto.class);
+            getRecipe(user3Client, ownerRecipe.id());
             assertThat(false).isTrue(); // Should not reach here
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // User 2 (EDITOR) should NOT be able to unshare the OWNER (User 1)
-        UnshareRecipeRequest unshareOwnerRequest = new UnshareRecipeRequest("user1@example.com");
         try {
-            restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                    .post()
-                    .uri("/recipes/" + ownerRecipe.id() + "/unshare")
-                    .body(unshareOwnerRequest)
-                    .retrieve()
-                    .toBodilessEntity();
+            unshareRecipe(user2Client, ownerRecipe.id(), "user1@example.com");
             assertThat(false).isTrue(); // Should not reach here
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
         // Verify User 1 (OWNER) still has access
-        RecipeDto ownerStillHasAccess = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .get()
-                .uri("/recipes/" + ownerRecipe.id())
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto ownerStillHasAccess = getRecipe(user1Client, ownerRecipe.id());
         assertThat(ownerStillHasAccess).isNotNull();
         assertThat(ownerStillHasAccess.role()).isEqualTo(UserRole.OWNER);
     }
 
     @Test
     void shouldHandleSharedRecipesInUserRecipeList() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
                 List.of(new Instruction("Step"))
         );
-        CreateRecipeRequest request = new CreateRecipeRequest("Recipe To Be Shared", recipeData);
 
-        RecipeDto ownerRecipe = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes")
-                .body(request)
-                .retrieve()
-                .body(RecipeDto.class);
+        RecipeDto ownerRecipe = createRecipe(user1Client, "Recipe To Be Shared", recipeData, null);
         assertThat(ownerRecipe).isNotNull();
 
         // User 2 should not see the recipe in their list initially
-        List<RecipeListDto> user2RecipesBefore = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .get()
-                .uri("/recipes")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<RecipeListDto> user2RecipesBefore = getAllRecipes(user2Client);
 
         assertThat(user2RecipesBefore)
                 .extracting(RecipeListDto::id)
                 .doesNotContain(ownerRecipe.id());
 
         // User 1 shares recipe with User 2
-        ShareRecipeRequest shareRequest = new ShareRecipeRequest("user2@example.com");
-        restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1)
-                .post()
-                .uri("/recipes/" + ownerRecipe.id() + "/share")
-                .body(shareRequest)
-                .retrieve()
-                .toBodilessEntity();
+        shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
 
         // User 2 should now see the recipe in their list
-        List<RecipeListDto> user2RecipesAfter = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2)
-                .get()
-                .uri("/recipes")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+        List<RecipeListDto> user2RecipesAfter = getAllRecipes(user2Client);
 
         assertThat(user2RecipesAfter)
                 .extracting(RecipeListDto::id)
@@ -630,5 +530,142 @@ class RecipeIntegrationTest {
         assertThat(user2RecipesAfter)
                 .extracting(RecipeListDto::name)
                 .contains("Recipe To Be Shared");
+    }
+
+    @Test
+    void shouldCreateRecipeWithCollection() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // Create a collection first
+        RecipesCollectionListDto collection = createCollection(client, "Italian Recipes");
+        assertThat(collection).isNotNull();
+        assertThat(collection.name()).isEqualTo("Italian Recipes");
+
+        // Create a recipe with collection assignment
+        RecipeData recipeData = createTestRecipeData();
+
+        RecipeDto response = createRecipe(client, "Pasta", recipeData, collection.id());
+
+        assertThat(response).isNotNull();
+        assertThat(response.name()).isEqualTo("Pasta");
+        assertThat(response.collectionId()).isEqualTo(collection.id());
+        assertThat(response.collectionName()).isEqualTo("Italian Recipes");
+    }
+
+    @Test
+    void shouldCreateRecipeWithoutCollection() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // Create a recipe without collection assignment
+        RecipeData recipeData = createTestRecipeData();
+
+        RecipeDto response = createRecipe(client, "Standalone Recipe", recipeData, null);
+
+        assertThat(response).isNotNull();
+        assertThat(response.name()).isEqualTo("Standalone Recipe");
+        assertThat(response.collectionId()).isNull();
+        assertThat(response.collectionName()).isNull();
+    }
+
+    @Test
+    void shouldUpdateRecipeCollectionAssignment() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // Create a recipe without collection
+        RecipeData recipeData = createTestRecipeData();
+
+        RecipeDto createdRecipe = createRecipe(client, "Recipe to Assign", recipeData, null);
+
+        assertThat(createdRecipe.collectionId()).isNull();
+
+        // Create a collection
+        RecipesCollectionListDto collection = createCollection(client, "My Collection");
+
+        // Update recipe to assign it to the collection
+        RecipeDto updatedRecipe = updateRecipe(client, createdRecipe.id(), "Recipe to Assign", recipeData, collection.id());
+
+        assertThat(updatedRecipe).isNotNull();
+        assertThat(updatedRecipe.collectionId()).isEqualTo(collection.id());
+        assertThat(updatedRecipe.collectionName()).isEqualTo("My Collection");
+    }
+
+    @Test
+    void shouldRemoveRecipeFromCollection() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // Create a collection
+        RecipesCollectionListDto collection = createCollection(client, "Temporary Collection");
+
+        // Create a recipe in the collection
+        RecipeData recipeData = createTestRecipeData();
+
+        RecipeDto createdRecipe = createRecipe(client, "Recipe in Collection", recipeData, collection.id());
+
+        assertThat(createdRecipe.collectionId()).isEqualTo(collection.id());
+
+        // Update recipe to remove it from the collection (set collectionId to null)
+        RecipeDto updatedRecipe = updateRecipe(client, createdRecipe.id(), "Recipe in Collection", recipeData, null);
+
+        assertThat(updatedRecipe).isNotNull();
+        assertThat(updatedRecipe.collectionId()).isNull();
+        assertThat(updatedRecipe.collectionName()).isNull();
+    }
+
+    @Test
+    void shouldReturnCollectionNameInRecipeDetail() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // Create a collection
+        RecipesCollectionListDto collection = createCollection(client, "Desserts");
+
+        // Create a recipe in the collection
+        RecipeData recipeData = createTestRecipeData();
+
+        RecipeDto createdRecipe = createRecipe(client, "Tiramisu", recipeData, collection.id());
+
+        // Fetch the recipe detail via GET endpoint
+        RecipeDto fetchedRecipe = getRecipe(client, createdRecipe.id());
+
+        assertThat(fetchedRecipe).isNotNull();
+        assertThat(fetchedRecipe.name()).isEqualTo("Tiramisu");
+        assertThat(fetchedRecipe.collectionId()).isEqualTo(collection.id());
+        assertThat(fetchedRecipe.collectionName()).isEqualTo("Desserts");
+    }
+
+    @Test
+    void shouldReturn404WhenAssigningToNonExistentCollection() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        // Try to create a recipe with a non-existent collection ID
+        RecipeData recipeData = createTestRecipeData();
+        UUID nonExistentCollectionId = UUID.randomUUID();
+
+        try {
+            createRecipe(client, "Invalid Recipe", recipeData, nonExistentCollectionId);
+            // Should not reach here
+            assertThat(false).isTrue();
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenAssigningToUnauthorizedCollection() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates a collection
+        RecipesCollectionListDto user1Collection = createCollection(user1Client, "User 1 Collection");
+
+        // User 2 tries to create a recipe in User 1's collection (should fail with 403)
+        RecipeData recipeData = createTestRecipeData();
+
+        try {
+            createRecipe(user2Client, "Unauthorized Recipe", recipeData, user1Collection.id());
+            // Should not reach here
+            assertThat(false).isTrue();
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
     }
 }

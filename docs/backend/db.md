@@ -7,6 +7,7 @@
 - id: UUID PRIMARY KEY
 - name: VARCHAR(255) NOT NULL
 - data: JSONB NOT NULL
+- recipes_collection_id: UUID NULL (FK -> recipes_collections.id)
 
 ### recipe_permission
 
@@ -77,6 +78,12 @@
     - **OWNER**: Can view, edit, delete collections
     - **EDITOR**: Can view and edit collections (granted through future sharing functionality)
 - **recipes_collection_permission.recipes_collection_id** → **recipes_collections.id**: Foreign key relationship
+- **recipes** → **recipes_collections**: Optional Many-to-One relationship
+  - One recipe can optionally belong to one collection (via recipes.recipes_collection_id)
+  - Many recipes can belong to the same collection
+  - When a collection is deleted, the foreign key is set to NULL (ON DELETE SET NULL)
+  - Recipe permissions and collection permissions remain independent (no automatic syncing)
+- **recipes.recipes_collection_id** → **recipes_collections.id**: Foreign key relationship with ON DELETE SET NULL
 
 ## Indexes
 

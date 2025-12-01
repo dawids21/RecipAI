@@ -30,3 +30,5 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://securetoken.google.com/recipai-751ae
+  jackson:
+    default-property-inclusion: non_null

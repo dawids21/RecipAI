@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.recipes.collections.RecipesCollectionService;
+import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +19,7 @@ class RecipeService {
     private final RecipeRepository recipeRepository;
     private final RecipePermissionRepository recipePermissionRepository;
     private final ObjectMapper objectMapper;
+    private final RecipesCollectionService recipesCollectionService;
 
     public List<RecipeListDto> findAll(String userEmail) {
         return recipeRepository.findAllByUserEmail(userEmail).stream()
@@ -25,6 +28,8 @@ class RecipeService {
     }
 
     public RecipeDto findById(UUID id, String userEmail) {
+        log.debug("Finding recipe with id: {} for user: {}", id, userEmail);
+
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
 
@@ -32,13 +37,31 @@ class RecipeService {
         UserRole userRole = recipePermissionRepository.getUserRole(userEmail, id)
                 .orElseThrow(() -> new RecipeAccessDeniedException(id));
 
-        return toDto(recipe, userRole);
+        // Get collection name if recipe is in a collection
+        String collectionName = null;
+        if (recipe.getRecipesCollectionId() != null) {
+            RecipesCollectionListDto collectionDto = recipesCollectionService.findById(recipe.getRecipesCollectionId(), userEmail);
+            collectionName = collectionDto.name();
+        }
+
+        return toDto(recipe, userRole, collectionName);
     }
 
     public RecipeDto save(CreateRecipeRequest request, String userEmail) {
+        log.debug("Creating recipe with name: {} for user: {}", request.name(), userEmail);
+
         Recipe recipe = new Recipe();
         recipe.setName(request.name());
         recipe.setData(convertToJsonNode(request.data()));
+        recipe.setRecipesCollectionId(request.recipesCollectionId());
+
+        // Validate collection if provided
+        RecipesCollectionListDto collectionDto = null;
+        if (request.recipesCollectionId() != null) {
+            collectionDto = recipesCollectionService.findById(request.recipesCollectionId(), userEmail);
+            recipe.setRecipesCollectionId(collectionDto.id());
+            log.debug("Recipe will be assigned to collection: {}", request.recipesCollectionId());
+        }
 
         Recipe savedRecipe = recipeRepository.save(recipe);
 
@@ -49,7 +72,9 @@ class RecipeService {
         recipePermission.setRole(UserRole.OWNER);
         recipePermissionRepository.save(recipePermission);
 
-        return toDto(savedRecipe, UserRole.OWNER);
+        log.info("Recipe created with id: {}", savedRecipe.getId());
+
+        return toDto(savedRecipe, UserRole.OWNER, collectionDto != null ? collectionDto.name() : null);
     }
 
     public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
@@ -67,11 +92,24 @@ class RecipeService {
             throw new RecipeAccessDeniedException(id);
         }
 
+        // Validate collection if provided
+        RecipesCollectionListDto collectionDto = null;
+        if (request.recipesCollectionId() != null) {
+            collectionDto = recipesCollectionService.findById(request.recipesCollectionId(), userEmail);
+            log.debug("Recipe will be moved to collection: {}", request.recipesCollectionId());
+        } else {
+            log.debug("Recipe will be removed from collection");
+        }
+
         existingRecipe.setName(request.name());
         existingRecipe.setData(convertToJsonNode(request.data()));
+        existingRecipe.setRecipesCollectionId(request.recipesCollectionId());
 
         Recipe savedRecipe = recipeRepository.save(existingRecipe);
-        return toDto(savedRecipe, userRole);
+
+        log.info("Recipe updated with id: {}", savedRecipe.getId());
+
+        return toDto(savedRecipe, userRole, collectionDto != null ? collectionDto.name() : null);
     }
 
     public void deleteById(UUID id, String userEmail) {
@@ -96,9 +134,9 @@ class RecipeService {
         recipeRepository.deleteById(id);
     }
 
-    private RecipeDto toDto(Recipe recipe, UserRole userRole) {
+    private RecipeDto toDto(Recipe recipe, UserRole userRole, String collectionName) {
         RecipeData recipeData = convertToRecipeData(recipe.getData());
-        return new RecipeDto(recipe.getId(), recipe.getName(), recipeData, userRole);
+        return new RecipeDto(recipe.getId(), recipe.getName(), recipeData, userRole, recipe.getRecipesCollectionId(), collectionName);
     }
 
     private RecipeListDto toRecipeListDto(Recipe recipe) {

@@ -17,7 +17,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-class RecipesCollectionService {
+public class RecipesCollectionService {
 
     private final RecipesCollectionRepository recipesCollectionRepository;
     private final RecipesCollectionPermissionRepository permissionRepository;
@@ -27,6 +27,24 @@ class RecipesCollectionService {
         return recipesCollectionRepository.findAllByUserEmail(userEmail).stream()
                 .map(this::toListDto)
                 .toList();
+    }
+
+    public RecipesCollectionListDto findById(UUID collectionId, String userEmail) {
+        log.debug("Finding collection for id: {} by user: {}", collectionId, userEmail);
+
+        RecipesCollection collection = recipesCollectionRepository.findById(collectionId)
+                .orElseThrow(() -> new RecipesCollectionNotFoundException(collectionId));
+
+        // Validate user has permission (at least EDITOR role)
+        RecipesCollectionPermission permission = permissionRepository.findById(
+                        new RecipesCollectionPermissionId(userEmail, collectionId))
+                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(collectionId));
+
+        if (!permission.hasEditorRights()) {
+            throw new RecipesCollectionAccessDeniedException(collectionId);
+        }
+
+        return toListDto(collection);
     }
 
     @Transactional

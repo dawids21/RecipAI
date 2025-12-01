@@ -31,6 +31,9 @@ class Recipe {
     @Column(nullable = false, columnDefinition = "jsonb")
     private JsonNode data;
 
+    @Column(name = "recipes_collection_id")
+    private UUID recipesCollectionId;
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

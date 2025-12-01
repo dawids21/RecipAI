@@ -57,13 +57,15 @@
             }
           ]
         },
-        "role": "OWNER"
+        "role": "OWNER",
+        "collectionId": "550e8400-e29b-41d4-a716-446655440000",
+        "collectionName": "Italian Recipes"
       }
       ```
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
   - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare) or "EDITOR" (can
-    view and edit only)
+    view and edit only). `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection
 - POST /recipes
     - Description: Add new recipe
     - Authenticated: true
@@ -71,6 +73,7 @@
       ```json
       {
         "name": "Pizza",
+        "recipesCollectionId": "550e8400-e29b-41d4-a716-446655440000",
         "data": {
           "ingredients": [
             {
@@ -122,11 +125,16 @@
             }
           ]
         },
-        "role": "OWNER"
+        "role": "OWNER",
+        "collectionId": "550e8400-e29b-41d4-a716-446655440000",
+        "collectionName": "Italian Recipes"
       }
       ```
     - Success: 201 Created
-    - Errors: 400 Bad request
+  - Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection
+    doesn't exist)
+  - Note: `recipesCollectionId` is optional and can be null. When provided, user must have EDITOR or OWNER access to the
+    collection. Response includes `collectionId` and `collectionName` when recipe is assigned to a collection
 - PUT /recipes/{uuid}
     - Description: Update existing recipe by UUID
   - Authenticated: true
@@ -134,6 +142,7 @@
         ```json
         {
           "name": "Updated Pizza",
+          "recipesCollectionId": "550e8400-e29b-41d4-a716-446655440000",
           "data": {
             "ingredients": [
               {
@@ -185,12 +194,16 @@
               }
             ]
           },
-          "role": "OWNER"
+          "role": "OWNER",
+          "collectionId": "550e8400-e29b-41d4-a716-446655440000",
+          "collectionName": "Italian Recipes"
         }
         ```
       - Success: 200 OK
-      - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found, 400 Bad request
-    - Note: Both OWNER and EDITOR roles can update recipes
+      - Errors: 403 Forbidden (if user lacks access to recipe or specified collection), 404 Not Found (if recipe or
+        collection doesn't exist), 400 Bad request
+      - Note: Both OWNER and EDITOR roles can update recipes. `recipesCollectionId` is optional and can be null to
+        remove recipe from collection. When provided, user must have EDITOR or OWNER access to the collection
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true
