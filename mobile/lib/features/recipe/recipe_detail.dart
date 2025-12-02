@@ -74,12 +74,16 @@ class RecipeDetail {
   final String name;
   final RecipeData data;
   final UserRole role;
+  final String? collectionId;
+  final String? collectionName;
 
   const RecipeDetail({
     required this.id,
     required this.name,
     required this.data,
     required this.role,
+    this.collectionId,
+    this.collectionName,
   });
 
   factory RecipeDetail.fromJson(Map<String, dynamic> json) {
@@ -88,6 +92,8 @@ class RecipeDetail {
       name: json['name'] as String,
       data: RecipeData.fromJson(json['data'] as Map<String, dynamic>),
       role: UserRole.fromApiString(json['role'] as String),
+      collectionId: json['collectionId'] as String?,
+      collectionName: json['collectionName'] as String?,
     );
   }
 
@@ -97,6 +103,7 @@ class RecipeDetail {
       'name': name,
       'data': data.toJson(),
       'role': role.toApiString(),
+      'recipesCollectionId': collectionId,
     };
   }
 }

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,14 +6,22 @@ import '../../core/theme.dart';
 import '../../shared/error_message_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import 'collection/recipes_collection.dart';
+import 'collection/recipes_collection_list_service.dart';
 import 'ingredient_input_widget.dart';
 import 'recipe_detail.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
   final Future<void> Function(RecipeDetail recipe) onSave;
+  final RecipesCollectionListService recipesCollectionListService;
 
-  const RecipeFormWidget({super.key, this.initialRecipe, required this.onSave});
+  const RecipeFormWidget({
+    super.key,
+    this.initialRecipe,
+    required this.onSave,
+    required this.recipesCollectionListService,
+  });
 
   @override
   State<RecipeFormWidget> createState() => _RecipeFormWidgetState();
@@ -26,6 +35,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
   final List<Ingredient?> _ingredients = [];
   bool _isLoading = false;
   String? _errorMessage;
+  RecipesCollection? _selectedCollection;
 
   @override
   void initState() {
@@ -41,6 +51,15 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       _instructionsController.text = initialRecipe.data.instructions
           .map((instruction) => instruction.step)
           .join('\n');
+
+      // Build selected collection from recipe details
+      if (initialRecipe.collectionId != null &&
+          initialRecipe.collectionName != null) {
+        _selectedCollection = RecipesCollection(
+          id: initialRecipe.collectionId!,
+          name: initialRecipe.collectionName!,
+        );
+      }
 
       // Pre-populate ingredients
       if (initialRecipe.data.ingredients.isNotEmpty) {
@@ -160,10 +179,13 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       );
 
       final recipe = RecipeDetail(
-        id: widget.initialRecipe?.id ?? '', // Keep existing ID for updates
+        id: widget.initialRecipe?.id ?? '',
+        // Keep existing ID for updates
         name: _nameController.text.trim(),
         data: recipeData,
         role: widget.initialRecipe?.role ?? UserRole.owner,
+        collectionId: _selectedCollection?.id,
+        collectionName: _selectedCollection?.name,
       );
 
       await widget.onSave(recipe);
@@ -229,6 +251,75 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                           return 'Recipe name is required';
                         }
                         return null;
+                      },
+                    ),
+
+                    const SizedBox(height: AppSpacing.medium),
+
+                    // Collection dropdown
+                    ValueListenableBuilder(
+                      valueListenable: widget
+                          .recipesCollectionListService
+                          .recipesCollections,
+                      builder: (context, collectionsAsync, _) {
+                        return collectionsAsync.when(
+                          loading: () =>
+                              DropdownButtonFormField<RecipesCollection?>(
+                                decoration: const InputDecoration(
+                                  labelText: 'Collection',
+                                ),
+                                items: const [],
+                                onChanged: null, // Disabled while loading
+                              ),
+                          error: (error) =>
+                              DropdownButtonFormField<RecipesCollection?>(
+                                decoration: InputDecoration(
+                                  labelText: 'Collection',
+                                  errorText: 'Failed to load collections',
+                                  errorStyle: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                                items: const [],
+                                onChanged: null, // Disabled on error
+                              ),
+                          data: (collections) {
+                            // Find matching collection from loaded list by ID
+                            final currentValue = _selectedCollection != null
+                                ? collections.firstWhereOrNull(
+                                    (c) => c.id == _selectedCollection!.id,
+                                  )
+                                : null;
+
+                            return DropdownButtonFormField<RecipesCollection?>(
+                              initialValue: currentValue,
+                              decoration: const InputDecoration(
+                                labelText: 'Collection',
+                              ),
+                              style: theme.textTheme.bodyLarge,
+                              items: [
+                                // "None" option
+                                const DropdownMenuItem<RecipesCollection?>(
+                                  value: null,
+                                  child: Text('None'),
+                                ),
+                                // Collection options
+                                ...collections.map(
+                                  (collection) =>
+                                      DropdownMenuItem<RecipesCollection?>(
+                                        value: collection,
+                                        child: Text(collection.name),
+                                      ),
+                                ),
+                              ],
+                              onChanged: (RecipesCollection? newValue) {
+                                setState(() {
+                                  _selectedCollection = newValue;
+                                });
+                              },
+                            );
+                          },
+                        );
                       },
                     ),
 

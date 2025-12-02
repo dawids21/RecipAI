@@ -145,6 +145,8 @@ GoRouter createAppRouter() {
               return CreateRecipeScreen(
                 prefilledRecipe: recipeDetail,
                 recipeListService: getIt<RecipeListService>(),
+                recipesCollectionListService:
+                    getIt<RecipesCollectionListService>(),
               );
             },
           ),
@@ -167,6 +169,8 @@ GoRouter createAppRouter() {
                   return EditRecipeScreen(
                     recipeId: id,
                     recipeDetailService: getIt<RecipeDetailService>(),
+                    recipesCollectionListService:
+                        getIt<RecipesCollectionListService>(),
                   );
                 },
               ),

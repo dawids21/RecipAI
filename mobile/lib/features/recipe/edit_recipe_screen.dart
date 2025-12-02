@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
+import 'collection/recipes_collection_list_service.dart';
 import 'recipe_detail.dart';
 import 'recipe_detail_service.dart';
 import 'recipe_form_widget.dart';
@@ -9,11 +10,13 @@ import 'recipe_form_widget.dart';
 class EditRecipeScreen extends StatefulWidget {
   final String recipeId;
   final RecipeDetailService recipeDetailService;
+  final RecipesCollectionListService recipesCollectionListService;
 
   const EditRecipeScreen({
     super.key,
     required this.recipeId,
     required this.recipeDetailService,
+    required this.recipesCollectionListService,
   });
 
   @override
@@ -65,6 +68,8 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
               child: RecipeFormWidget(
                 initialRecipe: recipeDetail,
                 onSave: _updateRecipe,
+                recipesCollectionListService:
+                    widget.recipesCollectionListService,
               ),
             ),
           ),

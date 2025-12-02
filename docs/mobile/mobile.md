@@ -19,7 +19,7 @@
 
 - Recipe (`recipe.dart`) - Basic recipe data model with id and name
 - Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including UserRole
-  enum (owner/editor)
+  enum (owner/editor), and optional collectionId and collectionName fields for recipe-to-collection assignment
 - Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and UserRole enum
 - User Role (`user_role.dart`) - Enum defining user roles (owner, editor) with API conversion methods for
   uppercase/lowercase handling

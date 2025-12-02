@@ -228,6 +228,28 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
+                      // Collection info (conditional rendering)
+                      if (recipeDetail.collectionName != null) ...[
+                        const SizedBox(height: AppSpacing.small),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.folder,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: AppSpacing.extraSmall),
+                            Text(
+                              '${recipeDetail.collectionName}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
                       const SizedBox(height: AppSpacing.large),
 
                       // Ingredients Section

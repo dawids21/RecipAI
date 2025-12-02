@@ -14,12 +14,16 @@
 - Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with pull-to-refresh
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
-  with Edit FAB, Share button, and role-based conditional Delete button for recipe management
+  with Edit FAB, Share button, and role-based conditional Delete button for recipe management. Shows collection name
+  when recipe is assigned to a collection
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
   RecipeFormWidget
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
-  and instruction inputs, validation, and save functionality
+  and instruction inputs, validation, collection dropdown menu for optional collection assignment, and save
+  functionality.
+  Dropdown shows loading/error states and all available collections with "None" option to create recipes without
+  collection
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes in a list
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
