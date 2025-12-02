@@ -149,41 +149,43 @@ class _RecipesCollectionListScreenState
         title: 'Share ${collection.name}',
         sharedUsers: widget.recipesCollectionListService.sharedUsers,
         onShare: (email) async {
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
           try {
             await widget.recipesCollectionListService.shareCollection(
               collection.id,
               email,
             );
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(content: Text('Collection shared with $email')),
               );
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Failed to share: $e')));
+              scaffoldMessenger.showSnackBar(
+                SnackBar(content: Text('Failed to share: $e')),
+              );
             }
             rethrow;
           }
         },
         onUnshare: (email) async {
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
           try {
             await widget.recipesCollectionListService.unshareCollection(
               collection.id,
               email,
             );
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(content: Text('Collection unshared with $email')),
               );
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Failed to unshare: $e')));
+              scaffoldMessenger.showSnackBar(
+                SnackBar(content: Text('Failed to unshare: $e')),
+              );
             }
             rethrow;
           }
