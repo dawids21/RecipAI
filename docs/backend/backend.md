@@ -2,8 +2,8 @@
 
 ## Modules
 
-- `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality and optional collection
-  assignment
+- `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality, optional collection
+  assignment, and filtering capabilities (by collection or unassigned status)
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
   role-based access, sharing functionality with OWNER/EDITOR roles)
 - `extraction` - extracts recipes from text/images using AI
@@ -24,9 +24,9 @@ backend/
 │   │   ├── RecipePermissionId.java      # Composite key for user-recipe associations
 │   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
 │   │   ├── RecipePermissionRepository.java # Role-based user-recipe data access
-│   │   ├── RecipeRepository.java        # Recipe data access with user filtering
+│   │   ├── RecipeRepository.java        # Recipe data access with user filtering (all, by collection, unassigned, accessible)
 │   │   ├── RecipeService.java           # Recipe business logic with role-based sharing and collection assignment validation
-│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing support
+│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing and filtering support
 │   │   ├── RecipeDto.java               # Recipe response DTO with role, collectionId, and collectionName
 │   │   ├── RecipeListDto.java           # Recipe list response DTO
 │   │   ├── CreateRecipeRequest.java     # Create recipe request DTO
@@ -39,7 +39,7 @@ backend/
 │   │   ├── RecipeNotFoundException.java # Recipe not found exception
 │   │   ├── RecipeAccessDeniedException.java # Access denied exception
 │   │   ├── ErrorResponse.java           # Error response DTO
-│   │   ├── RecipesExceptionHandler.java # Exception handling
+│   │   ├── RecipesExceptionHandler.java # Exception handling (404, 403, 400 errors)
 │   │   └── collections/                 # "collections" submodule
 │   │       ├── RecipesCollection.java           # RecipesCollection entity
 │   │       ├── RecipesCollectionPermission.java # Collection permission association entity

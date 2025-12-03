@@ -11,6 +11,7 @@ import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
+import xyz.stasiak.recipai.recipes.collections.dto.ShareRecipesCollectionRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,6 +51,24 @@ class RecipeIntegrationTest {
         return client
                 .get()
                 .uri("/recipes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private List<RecipeListDto> getRecipesByCollection(RestClient client, UUID recipesCollectionId) {
+        return client
+                .get()
+                .uri("/recipes?collectionId=" + recipesCollectionId)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private List<RecipeListDto> getUnassignedRecipes(RestClient client) {
+        return client
+                .get()
+                .uri("/recipes?unassigned=true")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
@@ -118,6 +137,16 @@ class RecipeIntegrationTest {
                 .body(request)
                 .retrieve()
                 .body(RecipesCollectionListDto.class);
+    }
+
+    private void shareCollection(RestClient client, UUID collectionId, String email) {
+        ShareRecipesCollectionRequest request = new ShareRecipesCollectionRequest(email);
+        client
+                .post()
+                .uri("/collections/" + collectionId + "/share")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
     }
 
     private RecipeData createTestRecipeData() {
@@ -665,6 +694,113 @@ class RecipeIntegrationTest {
             // Should not reach here
             assertThat(false).isTrue();
         } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldFilterRecipesByCollectionId() {
+        RestClient client = restClient();
+
+        // Setup: Create collection and recipes
+        RecipesCollectionListDto collection = createCollection(client, "Italian");
+
+        RecipeData testData = createTestRecipeData();
+
+        createRecipe(client, "Pizza", testData, collection.id());
+        createRecipe(client, "Pasta", testData, collection.id());
+        createRecipe(client, "Salad", testData, null); // Unassigned
+
+        // Test: Filter by collectionId
+
+        List<RecipeListDto> filtered = getRecipesByCollection(client, collection.id());
+
+        // Verify: Only recipes in collection returned
+        assertThat(filtered).extracting(RecipeListDto::name)
+                .contains("Pizza", "Pasta");
+    }
+
+    @Test
+    void shouldFilterRecipesByUnassigned() {
+        RestClient client = restClient();
+
+        // Setup: Create collection and recipes
+        RecipesCollectionListDto collection = createCollection(client, "Italian");
+
+        RecipeData testData = createTestRecipeData();
+
+        createRecipe(client, "Pizza", testData, collection.id());
+        createRecipe(client, "Salad", testData, null);
+        createRecipe(client, "Soup", testData, null);
+
+        // Test: Filter by unassigned=true
+        List<RecipeListDto> unassigned = getUnassignedRecipes(client);
+
+        // Verify: Only unassigned recipes returned
+        assertThat(unassigned).extracting(RecipeListDto::name)
+                .contains("Salad", "Soup");
+    }
+
+    @Test
+    void shouldReturnAllAccessibleRecipesWhenNoFilter() {
+        RestClient client = restClient();
+
+        // Setup: Create recipes with different access paths
+        RecipesCollectionListDto collection = createCollection(client, "Italian");
+
+        RecipeData testData = createTestRecipeData();
+
+        // Recipe via recipe permission only
+        createRecipe(client, "Salad", testData, null);
+
+        // Recipe via collection permission
+        createRecipe(client, "Pizza", testData, collection.id());
+
+        // Test: Get all recipes without filter
+        List<RecipeListDto> all = getAllRecipes(client);
+
+        // Verify: Both recipes accessible (via different permission paths)
+        assertThat(all).extracting(RecipeListDto::name)
+                .contains("Salad", "Pizza");
+    }
+
+    @Test
+    void shouldAccessRecipeInSharedCollection() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // Setup: User1 creates collection and recipe, shares collection with User2
+        RecipesCollectionListDto collection = createCollection(user1Client, "Shared");
+        RecipeData testData = createTestRecipeData();
+        createRecipe(user1Client, "Pizza", testData, collection.id());
+
+        shareCollection(user1Client, collection.id(), "user2@example.com");
+
+        // Test: User2 filters by shared collection (no recipe permission needed)
+        List<RecipeListDto> user2Recipes = getRecipesByCollection(user2Client, collection.id());
+
+        // Verify: User2 can access recipe via collection permission (NOT recipe permission)
+        assertThat(user2Recipes).extracting(RecipeListDto::name)
+                .contains("Pizza");
+    }
+
+    @Test
+    void shouldNotAccessRecipeInCollectionWithoutPermission() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // Setup: User1 creates collection with recipe (not shared)
+        RecipesCollectionListDto collection = createCollection(user1Client, "Private");
+        RecipeData testData = createTestRecipeData();
+        createRecipe(user1Client, "Secret", testData, collection.id());
+
+        // Test: User2 attempts to filter by User1's private collection
+        try {
+            getRecipesByCollection(user2Client, collection.id());
+            // Should not reach here
+            assertThat(false).isTrue();
+        } catch (RestClientResponseException ex) {
+            // Verify: 403 Forbidden (no collection permission)
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
     }

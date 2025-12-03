@@ -22,7 +22,29 @@ class RecipeService {
     private final RecipesCollectionService recipesCollectionService;
 
     public List<RecipeListDto> findAll(String userEmail) {
+        log.debug("Finding all accessible recipes for user {}", userEmail);
+
         return recipeRepository.findAllByUserEmail(userEmail).stream()
+                .map(this::toRecipeListDto)
+                .toList();
+    }
+
+    public List<RecipeListDto> findAllByCollectionId(UUID collectionId, String userEmail) {
+        log.debug("Finding recipes in collection {} for user {}", collectionId, userEmail);
+
+        // Validate user has access to the collection (throws RecipesCollectionNotFoundException or RecipesCollectionAccessDeniedException)
+        recipesCollectionService.findById(collectionId, userEmail);
+
+        // If validation passes, fetch recipes in this collection
+        return recipeRepository.findAllByRecipesCollectionId(collectionId).stream()
+                .map(this::toRecipeListDto)
+                .toList();
+    }
+
+    public List<RecipeListDto> findAllUnassigned(String userEmail) {
+        log.debug("Finding unassigned recipes for user {}", userEmail);
+
+        return recipeRepository.findAllUnassignedByUserEmail(userEmail).stream()
                 .map(this::toRecipeListDto)
                 .toList();
     }

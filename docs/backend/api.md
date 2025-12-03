@@ -11,8 +11,18 @@
 ### Recipes
 
 - GET /recipes
-    - Description: Get all recipes as list with basic info
+    - Description: Get recipes as list with basic info, with optional filtering by collection or unassigned status
     - Authenticated: true
+    - Query parameters:
+        - `collectionId` (UUID, optional): Filter recipes by collection ID
+        - `unassigned` (boolean, optional): Filter recipes not assigned to any collection (use `true` to enable)
+        - Note: `collectionId` and `unassigned` are mutually exclusive and cannot be specified together
+    - Behavior:
+        - No parameters: Returns all recipes accessible by the user (either through direct permission or collection
+          permission)
+        - With `collectionId`: Returns only recipes in the specified collection (requires user to have access to the
+          collection)
+        - With `unassigned=true`: Returns only recipes not assigned to any collection
     - Example response:
       ```json
       [
@@ -27,6 +37,8 @@
       ]
       ```
     - Success: 200 OK
+    - Errors: 400 Bad Request (if both collectionId and unassigned are specified), 403 Forbidden (if user lacks access
+      to specified collection), 404 Not Found (if collection doesn't exist)
 - GET /recipes/{uuid}
     - Description: Get recipe by UUID
     - Authenticated: true

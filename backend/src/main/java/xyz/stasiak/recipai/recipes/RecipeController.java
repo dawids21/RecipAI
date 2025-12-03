@@ -21,10 +21,29 @@ class RecipeController {
     private final RecipeService recipeService;
 
     @GetMapping
-    public List<RecipeListDto> getAllRecipes(@AuthenticationPrincipal Jwt jwt) {
+    public List<RecipeListDto> getAllRecipes(
+            @RequestParam(required = false) UUID collectionId,
+            @RequestParam(required = false) Boolean unassigned,
+            @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting all recipes for user: {}", userEmail);
-        return recipeService.findAll(userEmail);
+
+        // Validate mutual exclusivity
+        if (collectionId != null && Boolean.TRUE.equals(unassigned)) {
+            log.warn("User {} provided both collectionId and unassigned filters", userEmail);
+            throw new IllegalArgumentException("Cannot specify both collectionId and unassigned filters");
+        }
+
+        // Route to appropriate service method
+        if (collectionId != null) {
+            log.debug("Getting recipes for collection {} for user {}", collectionId, userEmail);
+            return recipeService.findAllByCollectionId(collectionId, userEmail);
+        } else if (Boolean.TRUE.equals(unassigned)) {
+            log.debug("Getting unassigned recipes for user {}", userEmail);
+            return recipeService.findAllUnassigned(userEmail);
+        } else {
+            log.debug("Getting all accessible recipes for user {}", userEmail);
+            return recipeService.findAll(userEmail);
+        }
     }
 
     @GetMapping("/{id}")
