@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recipai_mobile/core/feature_flags.dart';
 
 import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
@@ -42,11 +43,12 @@ class _RecipeListState extends State<RecipeList> {
 
     return Column(
       children: [
-        RecipeFilterBar(
-          collections: widget.recipesCollectionListService.recipesCollections,
-          selectedCollectionId: widget.recipeListService.selectedCollectionId,
-          onFilterChanged: (id) => widget.recipeListService.setFilter(id),
-        ),
+        if (FeatureFlags.recipesCollectionsEnabled)
+          RecipeFilterBar(
+            collections: widget.recipesCollectionListService.recipesCollections,
+            selectedCollectionId: widget.recipeListService.selectedCollectionId,
+            onFilterChanged: (id) => widget.recipeListService.setFilter(id),
+          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
