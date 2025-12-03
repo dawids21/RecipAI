@@ -16,14 +16,25 @@ class RecipeListService {
   }) : _recipeRepository = recipeRepository,
        _authService = authService;
 
+  static const String unassignedFilterId = '__UNASSIGNED__';
+
   final ValueNotifier<AsyncValue<List<Recipe>>> _recipes = ValueNotifier(
     const AsyncValue.loading(),
   );
 
   ValueListenable<AsyncValue<List<Recipe>>> get recipes => _recipes;
 
+  final ValueNotifier<String?> _selectedCollectionId = ValueNotifier(null);
+
+  ValueListenable<String?> get selectedCollectionId => _selectedCollectionId;
+
   bool _isLoadRecipesRunning = false;
   bool _isCreateRecipeRunning = false;
+
+  Future<void> setFilter(String? collectionId) async {
+    _selectedCollectionId.value = collectionId;
+    await loadRecipes();
+  }
 
   Future<void> loadRecipes() async {
     if (_isLoadRecipesRunning) return;
@@ -31,7 +42,15 @@ class RecipeListService {
     _recipes.value = const AsyncValue.loading();
     _recipes.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      return _recipeRepository.fetchRecipes(token);
+      final filterValue = _selectedCollectionId.value;
+
+      if (filterValue == null) {
+        return _recipeRepository.fetchRecipes(token);
+      } else if (filterValue == unassignedFilterId) {
+        return _recipeRepository.fetchUnassignedRecipes(token);
+      } else {
+        return _recipeRepository.fetchRecipesByCollectionId(filterValue, token);
+      }
     });
     _isLoadRecipesRunning = false;
   }
@@ -54,5 +73,10 @@ class RecipeListService {
     if (result is AsyncError<RecipeDetail>) {
       throw result.error;
     }
+  }
+
+  void dispose() {
+    _recipes.dispose();
+    _selectedCollectionId.dispose();
   }
 }

@@ -11,7 +11,11 @@
 
 ### Recipe feature
 
-- Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with pull-to-refresh
+- Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with horizontal
+  Recipe Filter Bar.
+- Recipe Filter Bar (`recipe_filter_bar.dart`) - Self-contained horizontal scrollable chip filter widget using Material
+  3
+  ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
   with Edit FAB, Share button, and role-based conditional Delete button for recipe management. Shows collection name

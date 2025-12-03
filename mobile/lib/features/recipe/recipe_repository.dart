@@ -21,23 +21,56 @@ class RecipeRepository {
   }
 
   Future<List<Recipe>> fetchRecipes(String? idToken) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/recipes'),
-        headers: headers,
-      );
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/recipes'),
+      headers: headers,
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonList = json.decode(response.body);
-        return jsonList
-            .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
-            .toList();
-      } else {
-        throw Exception('Failed to load recipes: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error while fetching recipes: $e');
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList
+          .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception('Failed to load recipes: ${response.statusCode}');
+    }
+  }
+
+  Future<List<Recipe>> fetchRecipesByCollectionId(
+    String collectionId,
+    String? idToken,
+  ) async {
+    final headers = _getAuthHeaders(idToken);
+    final uri = Uri.parse(
+      '$_baseUrl/recipes',
+    ).replace(queryParameters: {'collectionId': collectionId});
+    final response = await _client.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList
+          .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception('Failed to load recipes: ${response.statusCode}');
+    }
+  }
+
+  Future<List<Recipe>> fetchUnassignedRecipes(String? idToken) async {
+    final headers = _getAuthHeaders(idToken);
+    final uri = Uri.parse(
+      '$_baseUrl/recipes',
+    ).replace(queryParameters: {'unassigned': 'true'});
+    final response = await _client.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList
+          .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception('Failed to load recipes: ${response.statusCode}');
     }
   }
 

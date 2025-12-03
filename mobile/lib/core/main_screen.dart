@@ -156,7 +156,10 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          RecipeList(recipeListService: widget.recipeListService),
+          RecipeList(
+            recipeListService: widget.recipeListService,
+            recipesCollectionListService: widget.recipesCollectionListService,
+          ),
           ShoppingListList(
             shoppingListListService: widget.shoppingListListService,
           ),
