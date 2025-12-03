@@ -15,6 +15,15 @@
 - Flutter Lints 5.0.0 (dev dependency)
 - Flutter Test (dev dependency)
 
+## Documentation
+
+- `./docs/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app, implemented features,
+  its codebase structure and usage patterns.
+- `./docs/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app.
+  Contains navigation flow, theme system and data models.
+- `./docs/architecture.md` - **Mobile App Architecture** - Describes the architecture of the mobile app.
+- `./docs/upload_key.md` - **Upload Key Management** - Instructions for encrypting/decrypting the app upload key.
+
 ## Coding Practices
 
 ### Modular Architecture

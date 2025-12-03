@@ -20,6 +20,12 @@
 - PostgreSQL 17.5
 - Flyway
 
+## Documentation
+
+- `./docs/backend.md` - **Backend App Overview** - Provides an overview of the backend modules and codebase structure.
+- `./docs/api.md` - **API Documentation** - Contains API endpoints, request/response formats, and examples.
+- `./docs/db.md` - **Database Schema** - Describes the database structure, tables
+
 ## Coding Practices
 
 ### Modular Architecture
