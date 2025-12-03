@@ -116,7 +116,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
 
   /// Parses ingredient text to extract quantity and unit from the quantity field
   static Ingredient parseIngredientText(String name, String quantityText) {
-    final regex = RegExp(r'(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s*');
+    final regex = RegExp(r'(\d+(?:[.,]\d+)?)\s*([\p{L}]*)\s*', unicode: true);
     final match = regex.firstMatch(quantityText.trim());
 
     if (match != null) {

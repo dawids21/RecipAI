@@ -9,7 +9,10 @@ typedef ParsedShoppingListItem = ({
 });
 
 class ShoppingListItemParser {
-  static final _pattern = RegExp(r'^\s*(\d+[.,]?\d*)\s*([a-zA-Z]+)?\s+(.+)$');
+  static final _pattern = RegExp(
+    r'^\s*(\d+[.,]?\d*)\s*([\p{L}]+)?\s+(.+)$',
+    unicode: true,
+  );
 
   /// Parses a text string into ingredient components.
   ///
