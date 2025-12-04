@@ -9,7 +9,6 @@ import '../features/recipe/recipe_list_service.dart';
 import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
-import 'feature_flags.dart';
 import 'get_it.dart';
 import 'routes.dart';
 import 'theme.dart';
@@ -39,9 +38,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     widget.recipeListService.loadRecipes();
-    if (FeatureFlags.recipesCollectionsEnabled) {
-      widget.recipesCollectionListService.loadRecipesCollections();
-    }
+    widget.recipesCollectionListService.loadRecipesCollections();
     widget.shoppingListListService.loadShoppingLists();
   }
 
@@ -120,20 +117,18 @@ class _MainScreenState extends State<MainScreen> {
             itemBuilder: (context) {
               final menuItems = <PopupMenuItem<String>>[];
 
-              if (FeatureFlags.recipesCollectionsEnabled) {
-                menuItems.add(
-                  const PopupMenuItem<String>(
-                    value: 'recipes_collections',
-                    child: Row(
-                      children: [
-                        Icon(Icons.folder),
-                        SizedBox(width: AppSpacing.small),
-                        Text('Recipes collections'),
-                      ],
-                    ),
+              menuItems.add(
+                const PopupMenuItem<String>(
+                  value: 'recipes_collections',
+                  child: Row(
+                    children: [
+                      Icon(Icons.folder),
+                      SizedBox(width: AppSpacing.small),
+                      Text('Recipes collections'),
+                    ],
                   ),
-                );
-              }
+                ),
+              );
 
               menuItems.add(
                 const PopupMenuItem<String>(
