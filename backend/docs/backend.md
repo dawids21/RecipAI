@@ -3,7 +3,8 @@
 ## Modules
 
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality, optional collection
-  assignment, and filtering capabilities (by collection or unassigned status)
+  assignment, collection-based access control within that collection), and filtering capabilities (by collection or
+  unassigned status)
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
   role-based access, sharing functionality with OWNER/EDITOR roles)
 - `extraction` - extracts recipes from text/images using AI
@@ -25,7 +26,7 @@ backend/
 │   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
 │   │   ├── RecipePermissionRepository.java # Role-based user-recipe data access
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering (all, by collection, unassigned, accessible)
-│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing and collection assignment validation
+│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, and collection-based access control
 │   │   ├── RecipeController.java        # Recipe REST endpoints with sharing and filtering support
 │   │   ├── RecipeDto.java               # Recipe response DTO with role, collectionId, and collectionName
 │   │   ├── RecipeListDto.java           # Recipe list response DTO

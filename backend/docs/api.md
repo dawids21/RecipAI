@@ -77,7 +77,8 @@
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
   - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare) or "EDITOR" (can
-    view and edit only). `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection
+    view and edit only). Users with access to a collection automatically receive EDITOR access to all recipes in that
+    collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection
 - POST /recipes
     - Description: Add new recipe
     - Authenticated: true
@@ -214,15 +215,16 @@
       - Success: 200 OK
       - Errors: 403 Forbidden (if user lacks access to recipe or specified collection), 404 Not Found (if recipe or
         collection doesn't exist), 400 Bad request
-      - Note: Both OWNER and EDITOR roles can update recipes. `recipesCollectionId` is optional and can be null to
-        remove recipe from collection. When provided, user must have EDITOR or OWNER access to the collection
+    - Note: Both OWNER and EDITOR roles can update recipes. Users with access to a collection automatically receive
+      EDITOR access to all recipes in that collection. `recipesCollectionId` is optional and can be null to remove
+      recipe from collection. When provided, user must have EDITOR or OWNER access to the collection
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true
       - Example response: No content
       - Success: 204 No Content
     - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-    - Note: Only OWNER role can delete recipes
+    - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes
 - GET /recipes/{uuid}/shared_users
     - Description: Get all users that a recipe is shared with, including their roles
     - Authenticated: true
@@ -241,7 +243,8 @@
       ```
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
-    - Note: OWNER appears first in the returned list, followed by EDITOR roles
+  - Note: OWNER appears first in the returned list, followed by EDITOR roles. Users can access this endpoint if they
+    have direct recipe permission or access to the collection containing the recipe
 
 ### Extraction
 
@@ -330,7 +333,8 @@
       ```
     - Success: 200 OK
     - Errors: 403 Forbidden (if user has no access to the recipe), 404 Not Found, 400 Bad request
-    - Note: Shared user receives EDITOR access.
+  - Note: Shared user receives EDITOR access. Users with access to a collection can share recipes within that
+    collection.
 
 - POST /recipes/{uuid}/unshare
     - Description: Remove shared access from another user
@@ -344,7 +348,8 @@
     - Success: 200 OK
     - Errors: 403 Forbidden (if user has no access to the recipe or EDITOR tries to unshare from OWNER), 404 Not Found,
       400 Bad request
-    - Note: Removes EDITOR access from target user.
+  - Note: Removes EDITOR access from target user. Users with access to a collection can unshare recipes within that
+    collection.
 
 ### Shopping Lists
 

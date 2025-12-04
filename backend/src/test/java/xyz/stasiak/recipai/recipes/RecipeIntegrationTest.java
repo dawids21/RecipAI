@@ -804,4 +804,37 @@ class RecipeIntegrationTest {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
     }
+
+    @Test
+    void shouldAccessRecipeDetailInSharedCollectionWithEditorRole() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // Setup: User1 creates collection with recipe
+        RecipesCollectionListDto collection = createCollection(user1Client, "Shared Recipes");
+        RecipeData testData = createTestRecipeData();
+        RecipeDto createdRecipe = createRecipe(user1Client, "Pasta Carbonara", testData, collection.id());
+
+        // User2 should not have access initially
+        try {
+            getRecipe(user2Client, createdRecipe.id());
+            assertThat(false).isTrue(); // Should not reach here
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User1 shares collection with User2
+        shareCollection(user1Client, collection.id(), "user2@example.com");
+
+        // Test: User2 should now have access to recipe via shared collection
+        RecipeDto recipeForUser2 = getRecipe(user2Client, createdRecipe.id());
+
+        // Verify: User2 can access the recipe with EDITOR role (via collection)
+        assertThat(recipeForUser2).isNotNull();
+        assertThat(recipeForUser2.id()).isEqualTo(createdRecipe.id());
+        assertThat(recipeForUser2.name()).isEqualTo("Pasta Carbonara");
+        assertThat(recipeForUser2.role()).isEqualTo(UserRole.EDITOR);
+        assertThat(recipeForUser2.collectionId()).isEqualTo(collection.id());
+        assertThat(recipeForUser2.collectionName()).isEqualTo("Shared Recipes");
+    }
 }
