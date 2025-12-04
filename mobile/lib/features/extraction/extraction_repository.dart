@@ -25,24 +25,20 @@ class ExtractionRepository {
     String htmlContent,
     String? idToken,
   ) async {
-    try {
-      final headers = _getAuthHeaders(idToken);
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/extract/text'),
-        headers: headers,
-        body: json.encode({'text': htmlContent}),
-      );
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/extract/text'),
+      headers: headers,
+      body: json.encode({'text': htmlContent}),
+    );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonMap = jsonDecode(response.body);
-        return ExtractedRecipe.fromJson(jsonMap);
-      } else {
-        throw Exception(
-          'Failed to extract recipe from text: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error while extracting recipe from text: $e');
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = jsonDecode(response.body);
+      return ExtractedRecipe.fromJson(jsonMap);
+    } else {
+      throw Exception(
+        'Failed to extract recipe from text: ${response.statusCode}',
+      );
     }
   }
 
@@ -50,40 +46,36 @@ class ExtractionRepository {
     XFile imageFile,
     String? idToken,
   ) async {
-    try {
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$_baseUrl/extract/image'),
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_baseUrl/extract/image'),
+    );
+
+    // Add auth header
+    if (idToken != null) {
+      request.headers['Authorization'] = 'Bearer $idToken';
+    }
+
+    // Add file with MIME type
+    final mimeType = lookupMimeType(imageFile.path);
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+      ),
+    );
+
+    final response = await request.send();
+    final responseBody = await http.Response.fromStream(response);
+
+    if (responseBody.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = jsonDecode(responseBody.body);
+      return ExtractedRecipe.fromJson(jsonMap);
+    } else {
+      throw Exception(
+        'Failed to extract recipe from image: ${responseBody.statusCode}',
       );
-
-      // Add auth header
-      if (idToken != null) {
-        request.headers['Authorization'] = 'Bearer $idToken';
-      }
-
-      // Add file with MIME type
-      final mimeType = lookupMimeType(imageFile.path);
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
-        ),
-      );
-
-      final response = await request.send();
-      final responseBody = await http.Response.fromStream(response);
-
-      if (responseBody.statusCode == 200) {
-        final Map<String, dynamic> jsonMap = jsonDecode(responseBody.body);
-        return ExtractedRecipe.fromJson(jsonMap);
-      } else {
-        throw Exception(
-          'Failed to extract recipe from image: ${responseBody.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Network error while extracting recipe from image: $e');
     }
   }
 }

@@ -49,13 +49,13 @@ class ExtractedInstruction {
 
 class ExtractedRecipe {
   final String name;
-  final String description;
+  final String? description;
   final List<ExtractedIngredient> ingredients;
   final List<ExtractedInstruction> instructions;
 
   const ExtractedRecipe({
     required this.name,
-    required this.description,
+    this.description,
     required this.ingredients,
     required this.instructions,
   });
@@ -63,7 +63,7 @@ class ExtractedRecipe {
   factory ExtractedRecipe.fromJson(Map<String, dynamic> json) {
     return ExtractedRecipe(
       name: json['name'] as String,
-      description: json['description'] as String,
+      description: json['description'] as String?,
       ingredients: (json['ingredients'] as List<dynamic>)
           .map(
             (ingredient) => ExtractedIngredient.fromJson(
