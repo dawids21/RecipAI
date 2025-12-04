@@ -14,14 +14,14 @@ import 'recipe_detail.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
-  final String? prefilledCollectionId;
+  final RecipesCollection? initialCollection;
   final Future<void> Function(RecipeDetail recipe) onSave;
   final RecipesCollectionListService recipesCollectionListService;
 
   const RecipeFormWidget({
     super.key,
     this.initialRecipe,
-    this.prefilledCollectionId,
+    this.initialCollection,
     required this.onSave,
     required this.recipesCollectionListService,
   });
@@ -62,6 +62,8 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
           id: initialRecipe.collectionId!,
           name: initialRecipe.collectionName!,
         );
+      } else if (widget.initialCollection != null) {
+        _selectedCollection = widget.initialCollection;
       }
 
       // Pre-populate ingredients
@@ -86,6 +88,9 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       }
     } else {
       // Start with one empty ingredient input for new recipes
+      if (widget.initialCollection != null) {
+        _selectedCollection = widget.initialCollection;
+      }
       _addIngredient();
     }
   }
@@ -292,13 +297,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                                   ? collections.firstWhereOrNull(
                                       (c) => c.id == _selectedCollection!.id,
                                     )
-                                  : (widget.prefilledCollectionId != null
-                                        ? collections.firstWhereOrNull(
-                                            (c) =>
-                                                c.id ==
-                                                widget.prefilledCollectionId!,
-                                          )
-                                        : null);
+                                  : null;
 
                               return DropdownButtonFormField<
                                 RecipesCollection?

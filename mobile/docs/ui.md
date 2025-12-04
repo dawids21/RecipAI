@@ -26,9 +26,9 @@
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
   and instruction inputs, validation, collection dropdown menu for optional collection assignment, and save
-  functionality. Accepts optional prefilledCollectionId parameter to prefill collection dropdown. Dropdown shows
+  functionality. Accepts optional initialCollection parameter to prefill collection dropdown. Dropdown shows
   loading/error states and all available collections with "None" option to create recipes without collection. Prefill
-  priority: initialRecipe's collection > prefilledCollectionId > null
+  priority: initialRecipe's collection > initialCollection > null
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes in a list
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation

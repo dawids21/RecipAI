@@ -1,4 +1,6 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:recipai_mobile/features/recipe/collection/recipes_collection.dart';
 
 import 'collection/recipes_collection_list_service.dart';
 import 'recipe_detail.dart';
@@ -22,6 +24,22 @@ class CreateRecipeScreen extends StatefulWidget {
 }
 
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
+  RecipesCollection? _getSelectedCollection() {
+    final selectedCollectionId =
+        widget.recipeListService.selectedCollectionId.value;
+    RecipesCollection? selectedCollection;
+    if (selectedCollectionId != null &&
+        selectedCollectionId != RecipeListService.unassignedFilterId) {
+      selectedCollection = widget
+          .recipesCollectionListService
+          .recipesCollections
+          .value
+          .valueOrNull
+          ?.firstWhereOrNull((element) => element.id == selectedCollectionId);
+    }
+    return selectedCollection;
+  }
+
   Future<void> _createRecipe(RecipeDetail recipe) async {
     return widget.recipeListService.createRecipe(recipe);
   }
@@ -29,14 +47,8 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedCollectionId =
-        widget.recipeListService.selectedCollectionId.value;
 
-    final prefilledCollectionId =
-        (selectedCollectionId != null &&
-            selectedCollectionId != RecipeListService.unassignedFilterId)
-        ? selectedCollectionId
-        : null;
+    RecipesCollection? selectedCollection = _getSelectedCollection();
 
     return Scaffold(
       appBar: AppBar(
@@ -47,9 +59,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         top: false,
         child: RecipeFormWidget(
           initialRecipe: widget.prefilledRecipe,
+          initialCollection: selectedCollection,
           onSave: _createRecipe,
           recipesCollectionListService: widget.recipesCollectionListService,
-          prefilledCollectionId: prefilledCollectionId,
         ),
       ),
     );
