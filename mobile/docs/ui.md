@@ -21,13 +21,14 @@
   with Edit FAB, Share button, and role-based conditional Delete button for recipe management. Shows collection name
   when recipe is assigned to a collection
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
-  RecipeFormWidget
+  RecipeFormWidget. Automatically prefills collection dropdown when user has an active collection filter, enabling
+  context-aware recipe creation
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
   and instruction inputs, validation, collection dropdown menu for optional collection assignment, and save
-  functionality.
-  Dropdown shows loading/error states and all available collections with "None" option to create recipes without
-  collection
+  functionality. Accepts optional prefilledCollectionId parameter to prefill collection dropdown. Dropdown shows
+  loading/error states and all available collections with "None" option to create recipes without collection. Prefill
+  priority: initialRecipe's collection > prefilledCollectionId > null
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes in a list
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
@@ -167,16 +168,17 @@ All routes except `/login` require user authentication. The app automatically re
 1. **Recipe Tap** (on Recipes tab) → Recipe Detail Screen (`/recipes/:id` with recipe ID parameter)
 2. **Speed Dial FAB → Extract Tap** (on Recipes tab) → Extraction Dialog → URL/Image Extraction Screen (
    `/recipes/url-extraction` or `/recipes/image-extraction`)
-3. **Speed Dial FAB → Create Tap** (on Recipes tab) → Create Recipe Screen (`/recipes/create`)
+3. **Speed Dial FAB → Create Tap** (on Recipes tab) → Create Recipe Screen (`/recipes/create`) with collection
+   pre-selected if a collection filter is active
 4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
 5. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
 6. **Add to Shopping List Tap** (on Recipe Detail Screen) → Recipe To Shopping List Screen (
    `/recipes/:id/to-shopping-list`) → Select ingredients → Choose shopping list → Items queued for sync → Back to Recipe
    Detail Screen
 7. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
-8. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data → Recipe creation → Back to
-   Main Screen
-9. **Successful Manual Creation** → Back to Main Screen (with recipe added)
+8. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data and collection (if filter
+   active) → Recipe creation → Back to Main Screen
+9. **Successful Manual Creation** → Back to Main Screen (with recipe added to selected collection if filter was active)
 10. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 #### Recipe Collections Management Flow

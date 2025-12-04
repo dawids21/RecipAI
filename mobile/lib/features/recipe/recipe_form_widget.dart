@@ -14,12 +14,14 @@ import 'recipe_detail.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
+  final String? prefilledCollectionId;
   final Future<void> Function(RecipeDetail recipe) onSave;
   final RecipesCollectionListService recipesCollectionListService;
 
   const RecipeFormWidget({
     super.key,
     this.initialRecipe,
+    this.prefilledCollectionId,
     required this.onSave,
     required this.recipesCollectionListService,
   });
@@ -290,7 +292,13 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                                   ? collections.firstWhereOrNull(
                                       (c) => c.id == _selectedCollection!.id,
                                     )
-                                  : null;
+                                  : (widget.prefilledCollectionId != null
+                                        ? collections.firstWhereOrNull(
+                                            (c) =>
+                                                c.id ==
+                                                widget.prefilledCollectionId!,
+                                          )
+                                        : null);
 
                               return DropdownButtonFormField<
                                 RecipesCollection?

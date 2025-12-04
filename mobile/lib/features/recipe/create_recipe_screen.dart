@@ -29,6 +29,14 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selectedCollectionId =
+        widget.recipeListService.selectedCollectionId.value;
+
+    final prefilledCollectionId =
+        (selectedCollectionId != null &&
+            selectedCollectionId != RecipeListService.unassignedFilterId)
+        ? selectedCollectionId
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,6 +49,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           initialRecipe: widget.prefilledRecipe,
           onSave: _createRecipe,
           recipesCollectionListService: widget.recipesCollectionListService,
+          prefilledCollectionId: prefilledCollectionId,
         ),
       ),
     );
