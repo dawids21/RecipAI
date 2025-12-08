@@ -107,7 +107,8 @@ class ShoppingListService {
 
     @Transactional
     ShoppingListItemDto createItem(UUID shoppingListId, CreateShoppingListItemRequest request, String userEmail) {
-        log.debug("Creating item for shopping list {} by user {}", shoppingListId, userEmail);
+        log.debug("Creating item for shopping list {} by user {} at index: {}",
+                shoppingListId, userEmail, request.index());
 
         shoppingListRepository.findById(shoppingListId)
                 .orElseThrow(() -> new ShoppingListNotFoundException(shoppingListId));
@@ -119,7 +120,15 @@ class ShoppingListService {
             throw new ShoppingListAccessDeniedException(shoppingListId);
         }
 
-        BigDecimal position = calculateNextPosition(shoppingListId);
+        // Calculate position: use specified index or append at end
+        BigDecimal position;
+        if (request.index() != null) {
+            position = calculatePositionForIndex(shoppingListId, request.index());
+            log.debug("Using calculated position {} for index {}", position, request.index());
+        } else {
+            position = calculateNextPosition(shoppingListId);
+            log.debug("No index specified, appending at position {}", position);
+        }
 
         ShoppingListItem item = new ShoppingListItem(
                 shoppingListId,
@@ -346,6 +355,48 @@ class ShoppingListService {
         BigDecimal nextPosition = maxPosition.get().add(BigDecimal.ONE);
         log.debug("Max position: {}, next position: {}", maxPosition.get(), nextPosition);
         return nextPosition;
+    }
+
+    /**
+     * Calculates position for inserting a new item at the specified index.
+     * Uses the same algorithm as moveItem but with insertion semantics.
+     *
+     * @param shoppingListId The shopping list ID
+     * @param targetIndex    The 0-based index where the item should be inserted
+     * @return The calculated position as BigDecimal
+     */
+    private BigDecimal calculatePositionForIndex(UUID shoppingListId, int targetIndex) {
+        log.debug("Calculating position for index {} in shopping list {}", targetIndex, shoppingListId);
+
+        // For insertion: offset = max(0, targetIndex - 1) to get surrounding items
+        int offset = Math.max(0, targetIndex - 1);
+
+        // Query for up to 2 items at the target position
+        List<ShoppingListItem> itemsAtTarget = shoppingListItemRepository.findByShoppingListIdWithLimitOffset(shoppingListId, offset);
+
+        BigDecimal newPosition;
+
+        if (itemsAtTarget.isEmpty()) {
+            // Empty list or index out of bounds - default to 1.0
+            newPosition = BigDecimal.ONE;
+            log.debug("No items found, using position 1.0");
+        } else if (offset == 0 && targetIndex == 0) {
+            // Insert at top - subtract 1 from first item's position
+            newPosition = itemsAtTarget.getFirst().getPosition().subtract(BigDecimal.ONE);
+            log.debug("Inserting at top with position {}", newPosition);
+        } else if (itemsAtTarget.size() == 1) {
+            // Insert at bottom - add 1 to last item's position
+            newPosition = itemsAtTarget.getFirst().getPosition().add(BigDecimal.ONE);
+            log.debug("Inserting at bottom with position {}", newPosition);
+        } else {
+            // Insert between two items - calculate average
+            BigDecimal pos1 = itemsAtTarget.get(0).getPosition();
+            BigDecimal pos2 = itemsAtTarget.get(1).getPosition();
+            newPosition = pos1.add(pos2).divide(BigDecimal.valueOf(2), 6, java.math.RoundingMode.HALF_UP);
+            log.debug("Inserting between positions {} and {} with position {}", pos1, pos2, newPosition);
+        }
+
+        return newPosition;
     }
 
     private ShoppingListListDto toListDto(ShoppingList list) {

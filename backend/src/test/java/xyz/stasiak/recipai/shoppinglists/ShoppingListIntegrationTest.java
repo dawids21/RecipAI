@@ -82,18 +82,22 @@ class ShoppingListIntegrationTest {
                 .toBodilessEntity();
     }
 
+    private ShoppingListItemDto createShoppingListItem(RestClient client, UUID shoppingListId, String name) {
+        return createShoppingListItem(client, shoppingListId, name, BigDecimal.ONE, "unit");
+    }
+
     private ShoppingListItemDto createShoppingListItem(RestClient client, UUID shoppingListId, String name, BigDecimal quantity, String unit) {
-        CreateShoppingListItemRequest request = new CreateShoppingListItemRequest(name, quantity, unit);
+        return createShoppingListItem(client, shoppingListId, name, quantity, unit, null);
+    }
+
+    private ShoppingListItemDto createShoppingListItem(RestClient client, UUID shoppingListId, String name, BigDecimal quantity, String unit, Integer index) {
+        CreateShoppingListItemRequest request = new CreateShoppingListItemRequest(name, quantity, unit, index);
         return client
                 .post()
                 .uri("/shopping-lists/" + shoppingListId + "/item")
                 .body(request)
                 .retrieve()
                 .body(ShoppingListItemDto.class);
-    }
-
-    private ShoppingListItemDto createShoppingListItem(RestClient client, UUID shoppingListId, String name) {
-        return createShoppingListItem(client, shoppingListId, name, BigDecimal.ONE, "unit");
     }
 
     private void deleteShoppingListItem(RestClient client, UUID shoppingListId, UUID itemId, Long version) {
@@ -679,7 +683,7 @@ class ShoppingListIntegrationTest {
         assertThat(list).isNotNull();
 
         // Create an item and verify 201 Created status
-        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Test Item", BigDecimal.ONE, "unit");
+        CreateShoppingListItemRequest itemRequest = new CreateShoppingListItemRequest("Test Item", BigDecimal.ONE, "unit", null);
 
         var response = client
                 .post()
@@ -1213,5 +1217,32 @@ class ShoppingListIntegrationTest {
         // Verify list still exists
         ShoppingListDto listDto = getShoppingList(user1Client, list.id());
         assertThat(listDto).isNotNull();
+    }
+
+    @Test
+    void shouldCreateItemAtSpecifiedIndex() {
+        RestClient client = restClient();
+
+        ShoppingListListDto list = createShoppingList(client, "Position Test");
+        assertThat(list).isNotNull();
+
+        // Create three items at the end
+        ShoppingListItemDto item1 = createShoppingListItem(client, list.id(), "Item 1");
+        ShoppingListItemDto item2 = createShoppingListItem(client, list.id(), "Item 2");
+        createShoppingListItem(client, list.id(), "Item 3");
+
+        // Create new item at index 1 (between Item 1 and Item 2)
+        ShoppingListItemDto newItem = createShoppingListItem(client, list.id(), "New Item", BigDecimal.ONE, "unit", 1);
+
+        assertThat(newItem).isNotNull();
+        assertThat(newItem.position()).isGreaterThan(item1.position());
+        assertThat(newItem.position()).isLessThan(item2.position());
+
+        // Verify final order
+        ShoppingListDto updatedList = getShoppingList(client, list.id());
+        assertThat(updatedList.items()).hasSize(4);
+        assertThat(updatedList.items())
+                .extracting(ShoppingListItemDto::name)
+                .containsExactly("Item 1", "New Item", "Item 2", "Item 3");
     }
 }

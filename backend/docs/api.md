@@ -461,7 +461,7 @@
     - Note: Deletes the shopping list, all items (via database CASCADE), and all permissions. Only OWNER role can
       delete.
 - POST /shopping-lists/{shopping_list_id}/item
-    - Description: Create a new item in a shopping list (position is calculated automatically)
+    - Description: Create a new item in a shopping list at the specified index or at the end
     - Authenticated: true
     - Path parameters:
         - `shopping_list_id` (UUID): Shopping list ID
@@ -471,9 +471,21 @@
       {
         "name": "Milk",
         "quantity": 2.0,
-        "unit": "liters"
+        "unit": "liters",
+        "index": 0
       }
       ```
+    - Request fields:
+        - `name` (string, required): Item name (max 255 characters)
+        - `quantity` (number, optional): Item quantity
+        - `unit` (string, optional): Unit of measurement (max 64 characters)
+        - `index` (integer, optional): 0-based index where to insert the item. If not provided, item is appended at the
+          end
+    - Behavior:
+        - When `index` is not provided or null: Item is appended at the end (default behavior)
+        - When `index` is 0: Item is inserted at the beginning
+        - When `index` is between 0 and list size: Item is inserted at that position
+        - When `index` >= list size: Item is appended at the end
     - Example response:
       ```json
       {
@@ -487,10 +499,13 @@
       }
       ```
     - Success: 201 Created
-    - Errors: 400 Bad Request (validation error), 401 Unauthorized, 403 Forbidden (user lacks EDITOR/OWNER permission),
-      404 Not Found (shopping list doesn't exist)
-    - Note: Position is calculated automatically (always appended at end). The `quantity` and `unit` fields are optional
-      and can be null.
+    - Errors:
+        - 400 Bad Request (validation error - blank name, oversized fields, or negative index)
+        - 401 Unauthorized
+        - 403 Forbidden (user lacks EDITOR/OWNER permission)
+        - 404 Not Found (shopping list doesn't exist)
+    - Note: Position is calculated using the same fractional positioning algorithm as the move operation, allowing
+      precise insertion between existing items. The `quantity` and `unit` fields are optional and can be null.
 - DELETE /shopping-lists/{shopping_list_id}/item/{id}
     - Description: Delete an item from a shopping list
     - Authenticated: true
