@@ -8,6 +8,7 @@ import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import 'shopping_list_detail_service.dart';
+import 'shopping_list_item_add_widget.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_operation.dart';
 import 'shopping_list_rename_dialog.dart';
@@ -409,13 +410,9 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                                     );
                                   },
                                 ),
-                              ShoppingListItemWidget(
+                              ShoppingListItemAddWidget(
                                 key: const ValueKey('add-item'),
-                                addMode: true,
-                                showDragHandle: false,
-                                onCheckChanged: null,
-                                // No checkbox interaction in add mode
-                                onEdit: (result) {
+                                onAdd: (result) {
                                   final operation = AddItemOperation(
                                     itemName: result.name,
                                     itemQuantity: result.quantity,
@@ -423,9 +420,6 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                                   );
                                   widget.shoppingListDetailService
                                       .processOperation(operation);
-                                },
-                                onDelete: () {
-                                  // No-op for add item widget
                                 },
                               ),
                             ],

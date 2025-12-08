@@ -20,31 +20,19 @@ class ShoppingListItemWidget extends StatefulWidget {
   final ShoppingListItem item;
   final ValueChanged<ItemChanged> onEdit;
   final VoidCallback onDelete;
-  final ValueChanged<bool>? onCheckChanged;
-  final bool addMode;
+  final ValueChanged<bool> onCheckChanged;
   final bool showDragHandle;
   final int? index;
 
   const ShoppingListItemWidget({
     super.key,
-    ShoppingListItem? item,
+    required this.item,
     required this.onEdit,
     required this.onDelete,
-    this.onCheckChanged,
-    this.addMode = false,
+    required this.onCheckChanged,
     this.showDragHandle = false,
     this.index,
-  }) : item =
-           item ??
-           const ShoppingListItem(
-             id: '',
-             name: '',
-             quantity: null,
-             unit: null,
-             checked: false,
-             position: 0,
-             version: 0,
-           );
+  });
 
   @override
   State<ShoppingListItemWidget> createState() => _ShoppingListItemWidgetState();
@@ -93,10 +81,8 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
   void _parseAndSave() {
     final text = _controller.text.trim();
     if (text.isEmpty) {
-      // If empty, restore original value (unless in clearAfterEdit mode)
-      if (!widget.addMode) {
-        _controller.text = _formatItem();
-      }
+      // If empty, restore original value
+      _controller.text = _formatItem();
       return;
     }
 
@@ -108,19 +94,10 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
         unit: parsed.unit,
       ),
     );
-
-    // Clear field after edit if requested
-    if (widget.addMode) {
-      _controller.clear();
-    }
   }
 
   void _onSubmitted() {
     _parseAndSave();
-    // Keep focus in add mode for quick consecutive entry
-    if (widget.addMode) {
-      _focusNode.requestFocus();
-    }
   }
 
   @override
@@ -134,18 +111,14 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
           )
         : theme.textTheme.bodyLarge;
 
-    final leadingWidget = widget.addMode
-        ? const Icon(Icons.add)
-        : Checkbox(
-            value: widget.item.checked,
-            onChanged: widget.onCheckChanged != null
-                ? (bool? value) {
-                    if (value != null) {
-                      widget.onCheckChanged!(value);
-                    }
-                  }
-                : null,
-          );
+    final leadingWidget = Checkbox(
+      value: widget.item.checked,
+      onChanged: (bool? value) {
+        if (value != null) {
+          widget.onCheckChanged(value);
+        }
+      },
+    );
 
     return Padding(
       padding: AppSpacing.smallVertical,
@@ -172,21 +145,19 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
                 maxLines: null,
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.done,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
-                  hintText: widget.addMode ? "Add item..." : null,
                 ),
                 onSubmitted: (_) => _onSubmitted(),
                 onTapOutside: (_) => _focusNode.unfocus(),
               ),
             ),
-            if (!widget.addMode)
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: widget.onDelete,
-              ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: widget.onDelete,
+            ),
           ],
         ),
       ),

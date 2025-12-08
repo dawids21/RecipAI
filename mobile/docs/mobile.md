@@ -94,7 +94,8 @@ mobile/
 │       │   ├── shopping_list_setup.dart # Dependency injection setup for shopping list module
 │       │   ├── shopping_list_list.dart # Reusable shopping list body widget
 │       │   ├── shopping_list_list_fab.dart # Reusable shopping list FAB widget
-│       │   ├── shopping_list_item_widget.dart # Reusable inline-editable item widget
+│       │   ├── shopping_list_item_widget.dart # Reusable inline-editable item widget for existing items
+│       │   ├── shopping_list_item_add_widget.dart # Dedicated widget for adding new items
 │       │   └── shopping_list_detail_screen.dart # Shopping list detail screen
 │       └── extraction/                 # "extraction" feature
 │           ├── extraction_repository.dart # API communication layer for extraction endpoints
