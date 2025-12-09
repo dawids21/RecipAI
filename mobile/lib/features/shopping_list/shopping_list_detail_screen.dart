@@ -35,7 +35,7 @@ class ShoppingListDetailScreen extends StatefulWidget {
 
 class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     with WidgetsBindingObserver {
-  String? _ephemeralItemAfterId;
+  int? _ephemeralItemIndex;
 
   @override
   void initState() {
@@ -174,20 +174,27 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     );
   }
 
-  void _createEphemeralItemAfter(String itemId) {
+  void _createEphemeralItemAfter(int index) {
     setState(() {
-      _ephemeralItemAfterId = itemId;
+      _ephemeralItemIndex = index;
     });
   }
 
-  void _saveEphemeralItem(String afterItemId, ItemChanged result) {
+  void _saveEphemeralItem(ItemChanged result) {
+    if (_ephemeralItemIndex == null) return;
+
     final currentState =
         widget.shoppingListDetailService.shoppingListDetail.value;
     if (currentState is! AsyncData<ShoppingListDetail>) return;
 
     final detail = currentState.value;
+    final uncheckedItems = detail.items.where((item) => !item.checked).toList();
+
+    if (_ephemeralItemIndex! >= uncheckedItems.length) return;
+
+    final afterItem = uncheckedItems[_ephemeralItemIndex!];
     final afterIndex = detail.items.indexWhere(
-      (item) => item.id == afterItemId,
+      (item) => item.id == afterItem.id,
     );
     final insertionIndex = afterIndex + 1;
 
@@ -201,13 +208,13 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     widget.shoppingListDetailService.processOperation(operation);
 
     setState(() {
-      _ephemeralItemAfterId = null;
+      _ephemeralItemIndex = null;
     });
   }
 
   void _discardEphemeralItem() {
     setState(() {
-      _ephemeralItemAfterId = null;
+      _ephemeralItemIndex = null;
     });
   }
 
@@ -351,12 +358,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                   );
             widget.shoppingListDetailService.processOperation(operation);
           },
-          onSubmitted: () => _createEphemeralItemAfter(item.id),
+          onSubmitted: () => _createEphemeralItemAfter(i),
         ),
       );
 
       // Handle ephemeral item insertion in unchecked section only
-      if (_ephemeralItemAfterId == item.id) {
+      if (_ephemeralItemIndex == i) {
         final tempItem = ShoppingListItem(
           id: 'temp-${const Uuid().v4()}',
           name: '',
@@ -379,7 +386,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
               if (result.name.isEmpty) {
                 _discardEphemeralItem();
               } else {
-                _saveEphemeralItem(_ephemeralItemAfterId!, result);
+                _saveEphemeralItem(result);
               }
             },
             onDelete: _discardEphemeralItem,
@@ -425,7 +432,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                   );
             widget.shoppingListDetailService.processOperation(operation);
           },
-          onSubmitted: () => _createEphemeralItemAfter(item.id),
+          onSubmitted: () => _createEphemeralItemAfter(i),
         ),
       );
     }

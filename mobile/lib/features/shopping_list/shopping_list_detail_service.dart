@@ -185,7 +185,12 @@ class ShoppingListDetailService {
     ShoppingListOperation operation,
   ) {
     return switch (operation) {
-      AddItemOperation(:final itemName, :final itemQuantity, :final itemUnit, :final index) =>
+      AddItemOperation(
+        :final itemName,
+        :final itemQuantity,
+        :final itemUnit,
+        :final index,
+      ) =>
         () {
           final newItem = ShoppingListItem(
             id: operation.itemId,
