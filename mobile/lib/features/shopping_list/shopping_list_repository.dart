@@ -153,12 +153,14 @@ class ShoppingListRepository {
     double? quantity,
     String? unit,
     String? idToken,
+    int? index,
   ) async {
     final headers = _getAuthHeaders(idToken);
     final body = <String, dynamic>{
       'name': name,
       if (quantity != null) 'quantity': quantity,
       if (unit != null) 'unit': unit,
+      if (index != null) 'index': index,
     };
 
     final response = await _client.post(

@@ -124,6 +124,7 @@ class ShoppingListSyncService {
               add.itemQuantity,
               add.itemUnit,
               await _authService.idToken,
+              add.index,
             );
             _replaceValuesInQueue(listId, add.itemId, response);
             callbacks?.onItemAdded.call(
@@ -262,6 +263,7 @@ class ShoppingListSyncService {
             itemName: operation.itemName,
             itemQuantity: operation.itemQuantity,
             itemUnit: operation.itemUnit,
+            index: operation.index,
           );
         } else if (operation is DeleteItemOperation) {
           _operationQueues[listId]![i] = DeleteItemOperation(

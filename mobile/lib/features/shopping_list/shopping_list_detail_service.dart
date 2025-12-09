@@ -185,25 +185,26 @@ class ShoppingListDetailService {
     ShoppingListOperation operation,
   ) {
     return switch (operation) {
-      AddItemOperation(:final itemName, :final itemQuantity, :final itemUnit) =>
+      AddItemOperation(:final itemName, :final itemQuantity, :final itemUnit, :final index) =>
         () {
-          final maxPosition = detail.items.isEmpty
-              ? 0.0
-              : detail.items
-                    .map((i) => i.position)
-                    .reduce((a, b) => a > b ? a : b);
-
           final newItem = ShoppingListItem(
             id: operation.itemId,
             name: itemName,
             quantity: itemQuantity,
             unit: itemUnit,
             checked: false,
-            position: maxPosition + 1.0,
+            position: 0.0,
             version: 0,
           );
 
-          final updatedItems = [...detail.items, newItem];
+          final updatedItems = [...detail.items];
+
+          if (index != null && index >= 0 && index <= updatedItems.length) {
+            updatedItems.insert(index, newItem);
+          } else {
+            updatedItems.add(newItem);
+          }
+
           return ShoppingListDetail(
             id: detail.id,
             name: detail.name,

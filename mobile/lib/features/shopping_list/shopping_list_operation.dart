@@ -14,6 +14,7 @@ class AddItemOperation extends ShoppingListOperation {
   final String itemName;
   final double? itemQuantity;
   final String? itemUnit;
+  final int? index;
 
   AddItemOperation({
     super.id,
@@ -21,6 +22,7 @@ class AddItemOperation extends ShoppingListOperation {
     required this.itemName,
     required this.itemQuantity,
     required this.itemUnit,
+    this.index,
   });
 }
 
