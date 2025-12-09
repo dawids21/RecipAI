@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../core/async_value.dart';
 import '../../core/get_it.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import 'shopping_list_detail.dart';
 import 'shopping_list_detail_service.dart';
+import 'shopping_list_item.dart';
 import 'shopping_list_item_add_widget.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_operation.dart';
@@ -31,6 +35,8 @@ class ShoppingListDetailScreen extends StatefulWidget {
 
 class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     with WidgetsBindingObserver {
+  String? _ephemeralItemAfterId;
+
   @override
   void initState() {
     super.initState();
@@ -168,6 +174,43 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     );
   }
 
+  void _createEphemeralItemAfter(String itemId) {
+    setState(() {
+      _ephemeralItemAfterId = itemId;
+    });
+  }
+
+  void _saveEphemeralItem(String afterItemId, ItemChanged result) {
+    final currentState =
+        widget.shoppingListDetailService.shoppingListDetail.value;
+    if (currentState is! AsyncData<ShoppingListDetail>) return;
+
+    final detail = currentState.value;
+    final afterIndex = detail.items.indexWhere(
+      (item) => item.id == afterItemId,
+    );
+    final insertionIndex = afterIndex + 1;
+
+    final operation = AddItemOperation(
+      itemName: result.name,
+      itemQuantity: result.quantity,
+      itemUnit: result.unit,
+      index: insertionIndex,
+    );
+
+    widget.shoppingListDetailService.processOperation(operation);
+
+    setState(() {
+      _ephemeralItemAfterId = null;
+    });
+  }
+
+  void _discardEphemeralItem() {
+    setState(() {
+      _ephemeralItemAfterId = null;
+    });
+  }
+
   void _onReorder(detail, int oldIndex, int newIndex) {
     if (newIndex > oldIndex) {
       newIndex -= 1;
@@ -184,6 +227,84 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       targetIndex: newIndex,
     );
     widget.shoppingListDetailService.processOperation(operation);
+  }
+
+  List<Widget> _buildItemWidgets(ShoppingListDetail detail) {
+    final widgets = <Widget>[];
+
+    for (int i = 0; i < detail.items.length; i++) {
+      final item = detail.items[i];
+
+      widgets.add(
+        ShoppingListItemWidget(
+          key: ValueKey(item.id),
+          item: item,
+          index: i,
+          showDragHandle: true,
+          onEdit: (result) {
+            final operation = UpdateItemOperation(
+              itemId: item.id,
+              itemVersion: item.version,
+              itemName: result.name,
+              itemQuantity: result.quantity,
+              itemUnit: result.unit,
+            );
+            widget.shoppingListDetailService.processOperation(operation);
+          },
+          onDelete: () {
+            final operation = DeleteItemOperation(
+              itemId: item.id,
+              itemVersion: item.version,
+            );
+            widget.shoppingListDetailService.processOperation(operation);
+          },
+          onCheckChanged: (checked) {
+            final operation = checked
+                ? CheckItemOperation(itemId: item.id, itemVersion: item.version)
+                : UncheckItemOperation(
+                    itemId: item.id,
+                    itemVersion: item.version,
+                  );
+            widget.shoppingListDetailService.processOperation(operation);
+          },
+          onSubmitted: () => _createEphemeralItemAfter(item.id),
+        ),
+      );
+
+      if (_ephemeralItemAfterId == item.id) {
+        final tempItem = ShoppingListItem(
+          id: 'temp-${const Uuid().v4()}',
+          name: '',
+          quantity: null,
+          unit: null,
+          checked: false,
+          position: 0.0,
+          version: 0,
+        );
+
+        widgets.add(
+          ShoppingListItemWidget(
+            key: const ValueKey('ephemeral-item'),
+            item: tempItem,
+            index: i + 1,
+            showDragHandle: true,
+            autoFocus: true,
+            allowEmpty: true,
+            onEdit: (result) {
+              if (result.name.isEmpty) {
+                _discardEphemeralItem();
+              } else {
+                _saveEphemeralItem(_ephemeralItemAfterId!, result);
+              }
+            },
+            onDelete: _discardEphemeralItem,
+            onCheckChanged: (_) {},
+          ),
+        );
+      }
+    }
+
+    return widgets;
   }
 
   @override
@@ -352,11 +473,10 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                           child: Column(
                             children: [
                               if (detail.items.isNotEmpty)
-                                ReorderableListView.builder(
+                                ReorderableListView(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   buildDefaultDragHandles: false,
-                                  itemCount: detail.items.length,
                                   onReorder: (oldIndex, newIndex) {
                                     _onReorder(detail, oldIndex, newIndex);
                                   },
@@ -368,47 +488,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                                       child: child,
                                     );
                                   },
-                                  itemBuilder: (context, index) {
-                                    final item = detail.items[index];
-                                    return ShoppingListItemWidget(
-                                      key: ValueKey(item.id),
-                                      item: item,
-                                      index: index,
-                                      showDragHandle: true,
-                                      onEdit: (result) {
-                                        final operation = UpdateItemOperation(
-                                          itemId: item.id,
-                                          itemVersion: item.version,
-                                          itemName: result.name,
-                                          itemQuantity: result.quantity,
-                                          itemUnit: result.unit,
-                                        );
-                                        widget.shoppingListDetailService
-                                            .processOperation(operation);
-                                      },
-                                      onDelete: () {
-                                        final operation = DeleteItemOperation(
-                                          itemId: item.id,
-                                          itemVersion: item.version,
-                                        );
-                                        widget.shoppingListDetailService
-                                            .processOperation(operation);
-                                      },
-                                      onCheckChanged: (checked) {
-                                        final operation = checked
-                                            ? CheckItemOperation(
-                                                itemId: item.id,
-                                                itemVersion: item.version,
-                                              )
-                                            : UncheckItemOperation(
-                                                itemId: item.id,
-                                                itemVersion: item.version,
-                                              );
-                                        widget.shoppingListDetailService
-                                            .processOperation(operation);
-                                      },
-                                    );
-                                  },
+                                  children: _buildItemWidgets(detail),
                                 ),
                               ShoppingListItemAddWidget(
                                 key: const ValueKey('add-item'),

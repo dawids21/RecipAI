@@ -23,6 +23,9 @@ class ShoppingListItemWidget extends StatefulWidget {
   final ValueChanged<bool> onCheckChanged;
   final bool showDragHandle;
   final int? index;
+  final VoidCallback? onSubmitted;
+  final bool autoFocus;
+  final bool allowEmpty;
 
   const ShoppingListItemWidget({
     super.key,
@@ -32,6 +35,9 @@ class ShoppingListItemWidget extends StatefulWidget {
     required this.onCheckChanged,
     this.showDragHandle = false,
     this.index,
+    this.onSubmitted,
+    this.autoFocus = false,
+    this.allowEmpty = false,
   });
 
   @override
@@ -48,6 +54,12 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
     _controller = TextEditingController(text: _formatItem());
     _focusNode = FocusNode();
     _focusNode.addListener(_onFocusChange);
+
+    if (widget.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -81,7 +93,10 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
   void _parseAndSave() {
     final text = _controller.text.trim();
     if (text.isEmpty) {
-      // If empty, restore original value
+      if (widget.allowEmpty) {
+        widget.onEdit(const ItemChanged(name: '', quantity: null, unit: null));
+        return;
+      }
       _controller.text = _formatItem();
       return;
     }
@@ -98,6 +113,7 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
 
   void _onSubmitted() {
     _parseAndSave();
+    widget.onSubmitted?.call();
   }
 
   @override
