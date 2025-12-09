@@ -211,7 +211,36 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     });
   }
 
-  void _onReorder(detail, int oldIndex, int newIndex) {
+  Widget _buildDoneSectionHeader() {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.medium,
+        horizontal: AppSpacing.small,
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.small),
+            child: Text(
+              'Done',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+        ],
+      ),
+    );
+  }
+
+  void _onReorderUnchecked(
+    ShoppingListDetail detail,
+    int oldIndex,
+    int newIndex,
+  ) {
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -220,22 +249,77 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       return;
     }
 
-    final item = detail.items[oldIndex];
+    // Get unchecked items in array order (no sorting by position)
+    final sectionItems = detail.items.where((item) => !item.checked).toList();
+
+    // Get the moved item from section
+    final movedItem = sectionItems[oldIndex];
+
+    // Find global index of target
+    final targetItem = sectionItems[newIndex];
+    final globalNewIndex = detail.items.indexWhere(
+      (item) => item.id == targetItem.id,
+    );
+
+    // Create operation with global index
     final operation = MoveItemOperation(
-      itemId: item.id,
-      itemVersion: item.version,
-      targetIndex: newIndex,
+      itemId: movedItem.id,
+      itemVersion: movedItem.version,
+      targetIndex: globalNewIndex,
     );
     widget.shoppingListDetailService.processOperation(operation);
   }
 
-  List<Widget> _buildItemWidgets(ShoppingListDetail detail) {
-    final widgets = <Widget>[];
+  void _onReorderChecked(
+    ShoppingListDetail detail,
+    int oldIndex,
+    int newIndex,
+  ) {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
 
-    for (int i = 0; i < detail.items.length; i++) {
-      final item = detail.items[i];
+    if (oldIndex == newIndex) {
+      return;
+    }
 
-      widgets.add(
+    // Get checked items in array order (no sorting by position)
+    final sectionItems = detail.items.where((item) => item.checked).toList();
+
+    // Get the moved item from section
+    final movedItem = sectionItems[oldIndex];
+
+    // Find global index of target
+    final targetItem = sectionItems[newIndex];
+    final globalNewIndex = detail.items.indexWhere(
+      (item) => item.id == targetItem.id,
+    );
+
+    // Create operation with global index
+    final operation = MoveItemOperation(
+      itemId: movedItem.id,
+      itemVersion: movedItem.version,
+      targetIndex: globalNewIndex,
+    );
+    widget.shoppingListDetailService.processOperation(operation);
+  }
+
+  ({List<Widget> unchecked, List<Widget> checked}) _buildSplitItemWidgets(
+    ShoppingListDetail detail,
+  ) {
+    // Filter items into unchecked and checked lists
+    // Keep the order from detail.items (array order) to preserve optimistic updates
+    final uncheckedItems = detail.items.where((item) => !item.checked).toList();
+    final checkedItems = detail.items.where((item) => item.checked).toList();
+
+    final uncheckedWidgets = <Widget>[];
+    final checkedWidgets = <Widget>[];
+
+    // Build unchecked section widgets
+    for (int i = 0; i < uncheckedItems.length; i++) {
+      final item = uncheckedItems[i];
+
+      uncheckedWidgets.add(
         ShoppingListItemWidget(
           key: ValueKey(item.id),
           item: item,
@@ -271,6 +355,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
         ),
       );
 
+      // Handle ephemeral item insertion in unchecked section only
       if (_ephemeralItemAfterId == item.id) {
         final tempItem = ShoppingListItem(
           id: 'temp-${const Uuid().v4()}',
@@ -282,7 +367,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           version: 0,
         );
 
-        widgets.add(
+        uncheckedWidgets.add(
           ShoppingListItemWidget(
             key: const ValueKey('ephemeral-item'),
             item: tempItem,
@@ -304,7 +389,48 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       }
     }
 
-    return widgets;
+    // Build checked section widgets
+    for (int i = 0; i < checkedItems.length; i++) {
+      final item = checkedItems[i];
+
+      checkedWidgets.add(
+        ShoppingListItemWidget(
+          key: ValueKey(item.id),
+          item: item,
+          index: i,
+          showDragHandle: true,
+          onEdit: (result) {
+            final operation = UpdateItemOperation(
+              itemId: item.id,
+              itemVersion: item.version,
+              itemName: result.name,
+              itemQuantity: result.quantity,
+              itemUnit: result.unit,
+            );
+            widget.shoppingListDetailService.processOperation(operation);
+          },
+          onDelete: () {
+            final operation = DeleteItemOperation(
+              itemId: item.id,
+              itemVersion: item.version,
+            );
+            widget.shoppingListDetailService.processOperation(operation);
+          },
+          onCheckChanged: (checked) {
+            final operation = checked
+                ? CheckItemOperation(itemId: item.id, itemVersion: item.version)
+                : UncheckItemOperation(
+                    itemId: item.id,
+                    itemVersion: item.version,
+                  );
+            widget.shoppingListDetailService.processOperation(operation);
+          },
+          onSubmitted: () => _createEphemeralItemAfter(item.id),
+        ),
+      );
+    }
+
+    return (unchecked: uncheckedWidgets, checked: checkedWidgets);
   }
 
   @override
@@ -470,39 +596,105 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                       Card(
                         child: Padding(
                           padding: AppSpacing.cardMargin,
-                          child: Column(
-                            children: [
-                              if (detail.items.isNotEmpty)
-                                ReorderableListView(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  buildDefaultDragHandles: false,
-                                  onReorder: (oldIndex, newIndex) {
-                                    _onReorder(detail, oldIndex, newIndex);
-                                  },
-                                  proxyDecorator: (child, index, animation) {
-                                    return Material(
-                                      elevation: 8.0,
-                                      color:
-                                          theme.colorScheme.surfaceContainerLow,
-                                      child: child,
-                                    );
-                                  },
-                                  children: _buildItemWidgets(detail),
-                                ),
-                              ShoppingListItemAddWidget(
-                                key: const ValueKey('add-item'),
-                                onAdd: (result) {
-                                  final operation = AddItemOperation(
-                                    itemName: result.name,
-                                    itemQuantity: result.quantity,
-                                    itemUnit: result.unit,
-                                  );
-                                  widget.shoppingListDetailService
-                                      .processOperation(operation);
-                                },
-                              ),
-                            ],
+                          child: Builder(
+                            builder: (context) {
+                              final splitWidgets = _buildSplitItemWidgets(
+                                detail,
+                              );
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Unchecked section with animation
+                                  AnimatedSize(
+                                    duration: AppAnimations.sectionTransition,
+                                    curve: AppAnimations.sectionCurve,
+                                    alignment: Alignment.topCenter,
+                                    child: splitWidgets.unchecked.isNotEmpty
+                                        ? ReorderableListView(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            buildDefaultDragHandles: false,
+                                            onReorder: (oldIndex, newIndex) =>
+                                                _onReorderUnchecked(
+                                                  detail,
+                                                  oldIndex,
+                                                  newIndex,
+                                                ),
+                                            proxyDecorator:
+                                                (child, index, animation) {
+                                                  return Material(
+                                                    elevation: 8.0,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .surfaceContainerLow,
+                                                    child: child,
+                                                  );
+                                                },
+                                            children: splitWidgets.unchecked,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+
+                                  // Add item widget
+                                  ShoppingListItemAddWidget(
+                                    key: const ValueKey('add-item'),
+                                    onAdd: (result) {
+                                      final operation = AddItemOperation(
+                                        itemName: result.name,
+                                        itemQuantity: result.quantity,
+                                        itemUnit: result.unit,
+                                      );
+                                      widget.shoppingListDetailService
+                                          .processOperation(operation);
+                                    },
+                                  ),
+
+                                  // Done section header with animation
+                                  AnimatedCrossFade(
+                                    duration: AppAnimations.sectionTransition,
+                                    crossFadeState:
+                                        splitWidgets.checked.isNotEmpty
+                                        ? CrossFadeState.showFirst
+                                        : CrossFadeState.showSecond,
+                                    firstChild: _buildDoneSectionHeader(),
+                                    secondChild: const SizedBox.shrink(),
+                                  ),
+
+                                  // Done section with animation
+                                  AnimatedSize(
+                                    duration: AppAnimations.sectionTransition,
+                                    curve: AppAnimations.sectionCurve,
+                                    alignment: Alignment.topCenter,
+                                    child: splitWidgets.checked.isNotEmpty
+                                        ? ReorderableListView(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            buildDefaultDragHandles: false,
+                                            onReorder: (oldIndex, newIndex) =>
+                                                _onReorderChecked(
+                                                  detail,
+                                                  oldIndex,
+                                                  newIndex,
+                                                ),
+                                            proxyDecorator:
+                                                (child, index, animation) {
+                                                  return Material(
+                                                    elevation: 8.0,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .surfaceContainerLow,
+                                                    child: child,
+                                                  );
+                                                },
+                                            children: splitWidgets.checked,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),

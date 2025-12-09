@@ -29,3 +29,9 @@ class AppSpacing {
   static const double extraSmall = 4.0;
   static const double extraLarge = 32.0;
 }
+
+/// Animation constants for UI transitions
+class AppAnimations {
+  static const Duration sectionTransition = Duration(milliseconds: 300);
+  static const Curve sectionCurve = Curves.easeInOut;
+}

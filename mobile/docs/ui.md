@@ -66,12 +66,14 @@
 - Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
   with dialog
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline item
-  management, drag-and-drop reordering, real-time sync status indicator, and optimistic UI updates. Uses
-  ReorderableListView with custom drag handles for item reordering, with instant optimistic updates and backend
-  synchronization. Uses ShoppingListItemWidget for existing items and ShoppingListItemAddWidget for adding new items.
-  Features PopupMenuButton with actions: "Rename List", "Delete all checked" (bulk delete checked
-  items), and "Uncheck all" (bulk uncheck checked items). Integrates with ShoppingListSyncService for background
-  syncing (10-second polling) and conflict resolution with user notifications
+  management, drag-and-drop reordering, real-time sync status indicator, and optimistic UI updates. Items are organized
+  into two sections: active items (unchecked) at the top and "Done" section at the bottom for checked items, separated
+  by the add item widget and a "Done" header. Each section uses ReorderableListView with custom drag handles for item
+  reordering within the section (drag-and-drop is restricted to within sections, not between them). The Done section
+  uses AnimatedSize for smooth expand/collapse transitions when items are checked/unchecked. Features PopupMenuButton
+  with actions: "Rename List", "Share List", "Delete all checked" (bulk delete checked items), and "Uncheck all"
+  (bulk uncheck checked items). Integrates with ShoppingListSyncService for background syncing (10-second polling)
+  and conflict resolution with user notifications
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items with smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit
   extraction using regex, TextField-based editing with focus management, optional drag handle for reordering (using
@@ -221,3 +223,8 @@ The app uses a centralized theming approach with Material Design 3, configured i
 - **smallVertical**: `EdgeInsets.symmetric(vertical: 4.0)` - Small vertical spacing
 - **mediumVertical**: `EdgeInsets.symmetric(vertical: 8.0)` - Medium vertical spacing
 - **Spacing Values**: `small` (8dp), `medium` (16dp), `large` (24dp), `extraSmall` (4dp), `extraLarge` (32dp)
+
+### AppAnimations Constants
+
+- **sectionTransition**: `Duration(milliseconds: 300)` - Duration for section expand/collapse animations
+- **sectionCurve**: `Curves.easeInOut` - Animation curve for smooth section transitions
