@@ -391,6 +391,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
             },
             onDelete: _discardEphemeralItem,
             onCheckChanged: (_) {},
+            onSubmitted: () => _createEphemeralItemAfter(i + 1),
           ),
         );
       }

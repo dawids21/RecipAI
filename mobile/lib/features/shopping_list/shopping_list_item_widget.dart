@@ -53,12 +53,21 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
     super.initState();
     _controller = TextEditingController(text: _formatItem());
     _focusNode = FocusNode();
+
+    // Add focus listener to save changes when field loses focus
     _focusNode.addListener(_onFocusChange);
 
     if (widget.autoFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _focusNode.requestFocus();
       });
+    }
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      // Field lost focus - save changes
+      _parseAndSave();
     }
   }
 
@@ -84,12 +93,6 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
     return widget.item.name;
   }
 
-  void _onFocusChange() {
-    if (!_focusNode.hasFocus) {
-      _parseAndSave();
-    }
-  }
-
   void _parseAndSave() {
     final text = _controller.text.trim();
     if (text.isEmpty) {
@@ -109,11 +112,10 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
         unit: parsed.unit,
       ),
     );
-  }
 
-  void _onSubmitted() {
-    _parseAndSave();
-    widget.onSubmitted?.call();
+    if (widget.autoFocus) {
+      _controller.clear();
+    }
   }
 
   @override
@@ -166,8 +168,16 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
-                onSubmitted: (_) => _onSubmitted(),
-                onTapOutside: (_) => _focusNode.unfocus(),
+                onSubmitted: (text) {
+                  if (text.isNotEmpty) {
+                    _parseAndSave();
+                    widget.onSubmitted?.call();
+                  }
+                  _focusNode.requestFocus();
+                },
+                onTapOutside: (_) {
+                  _focusNode.unfocus();
+                },
               ),
             ),
             IconButton(
