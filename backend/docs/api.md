@@ -28,11 +28,13 @@
       [
         {
           "id": "uuid",
-          "name": "Pizza"
+          "name": "Pizza",
+          "thumbnailUrl": "https://s3.amazonaws.com/..."
         },
         {
           "id": "uuid",
-          "name": "Spaghetti"
+          "name": "Spaghetti",
+          "thumbnailUrl": null
         }
       ]
       ```
@@ -67,21 +69,37 @@
             {
               "step": "Add sauce and toppings"
             }
-          ]
+          ],
+          "sourceUrl": "https://example.com/recipe/pizza"
         },
         "role": "OWNER",
         "collectionId": "550e8400-e29b-41d4-a716-446655440000",
-        "collectionName": "Italian Recipes"
+        "collectionName": "Italian Recipes",
+        "images": [
+          {
+            "id": "image-uuid-1",
+            "url": "https://s3.amazonaws.com/recipes/uuid/image-uuid-1.jpg",
+            "thumbnailUrl": "https://s3.amazonaws.com/recipes/uuid/image-uuid-1-thumb.jpg"
+          },
+          {
+            "id": "image-uuid-2",
+            "url": "https://s3.amazonaws.com/recipes/uuid/image-uuid-2.jpg",
+            "thumbnailUrl": "https://s3.amazonaws.com/recipes/uuid/image-uuid-2-thumb.jpg"
+          }
+        ]
       }
       ```
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
   - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare) or "EDITOR" (can
     view and edit only). Users with access to a collection automatically receive EDITOR access to all recipes in that
-    collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection
-- POST /recipes
-    - Description: Add new recipe
+    collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection. The
+    `sourceUrl` field in `data` is optional and contains the URL of the original recipe source. The `images` array
+    contains presigned S3 URLs that are valid for a limited time (configured by server). Maximum of 2 images per recipe.
+- POST /recipes (JSON)
+    - Description: Add new recipe with JSON data
     - Authenticated: true
+    - Content-Type: application/json
     - Request body:
       ```json
       {
@@ -107,8 +125,10 @@
             {
               "step": "Add sauce and toppings"
             }
-          ]
-        }
+          ],
+          "sourceUrl": "https://example.com/recipe/pizza"
+        },
+        "images": []
       }
       ```
     - Example response:
@@ -136,7 +156,8 @@
             {
               "step": "Add sauce and toppings"
             }
-          ]
+          ],
+          "sourceUrl": "https://example.com/recipe/pizza"
         },
         "role": "OWNER",
         "collectionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -146,8 +167,41 @@
     - Success: 201 Created
   - Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection
     doesn't exist)
-  - Note: `recipesCollectionId` is optional and can be null. When provided, user must have EDITOR or OWNER access to the
-    collection. Response includes `collectionId` and `collectionName` when recipe is assigned to a collection
+      - Note: `recipesCollectionId`, `sourceUrl`, and `images` are optional and can be null or empty. The `images` field
+        is an array of UUIDs (max 2) for image metadata tracking when creating recipes via JSON. When
+        `recipesCollectionId` is provided, user must have EDITOR or OWNER access to the collection. Response includes
+        `collectionId` and `collectionName` when recipe is assigned to a collection
+- POST /recipes (Multipart)
+    - Description: Add new recipe with images
+    - Authenticated: true
+    - Content-Type: multipart/form-data
+    - Request parts:
+        - `data` (JSON, required): Recipe data including `images` array with UUIDs matching image file names
+        - `images` (files, optional): Recipe image files (JPEG/PNG, max 2 images, max 5MB each). Each file must be named
+          with its corresponding UUID from the `images` array (e.g., `550e8400-e29b-41d4-a716-446655440000.jpg`)
+  - Example request data JSON:
+    ```json
+    {
+      "name": "Pizza",
+      "recipesCollectionId": "550e8400-e29b-41d4-a716-446655440000",
+      "data": {
+        "ingredients": [...],
+        "instructions": [...],
+        "sourceUrl": "https://example.com/recipe/pizza"
+      },
+      "images": ["image-uuid-1", "image-uuid-2"]
+    }
+    ```
+    - Example response: Same as JSON endpoint
+    - Success: 201 Created
+    - Errors:
+        - 400 Bad request (invalid data, unsupported image format, image size exceeds 5MB, more than 2 images, or
+          mismatch between image UUIDs and files)
+        - 403 Forbidden (if user lacks access to specified collection)
+        - 404 Not Found (if collection doesn't exist)
+    - Note: Images are stored in S3 and automatically resized to create thumbnails. Maximum of 2 images per recipe. Only
+      JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The
+      extension in the filename is normalized (jpeg → jpg).
 - PUT /recipes/{uuid}
     - Description: Update existing recipe by UUID
   - Authenticated: true
@@ -176,7 +230,8 @@
               {
                 "step": "Add cheese"
               }
-            ]
+            ],
+            "sourceUrl": "https://example.com/recipe/updated-pizza"
           }
         }
         ```
@@ -205,7 +260,8 @@
               {
                 "step": "Add cheese"
               }
-            ]
+            ],
+            "sourceUrl": "https://example.com/recipe/updated-pizza"
           },
           "role": "OWNER",
           "collectionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -216,8 +272,11 @@
       - Errors: 403 Forbidden (if user lacks access to recipe or specified collection), 404 Not Found (if recipe or
         collection doesn't exist), 400 Bad request
     - Note: Both OWNER and EDITOR roles can update recipes. Users with access to a collection automatically receive
-      EDITOR access to all recipes in that collection. `recipesCollectionId` is optional and can be null to remove
-      recipe from collection. When provided, user must have EDITOR or OWNER access to the collection
+      EDITOR access to all recipes in that collection. `recipesCollectionId` and `sourceUrl` are optional and can be
+      null
+      to remove recipe from collection or remove source URL. When `recipesCollectionId` is provided, user must have
+      EDITOR
+      or OWNER access to the collection. Note: This endpoint does not support updating images.
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true

@@ -9,6 +9,12 @@
 - data: JSONB NOT NULL
 - recipes_collection_id: UUID NULL (FK -> recipes_collections.id)
 
+### recipe_images
+
+- id: UUID PRIMARY KEY (FK -> recipes.id)
+- images: JSONB NOT NULL - Structure: `{"imagesMetadata": [{"id": "uuid", "type": "image/jpeg"}]}`
+- version: BIGINT NOT NULL
+
 ### recipe_permission
 
 - email: VARCHAR(255) NOT NULL
@@ -61,6 +67,15 @@
     - **OWNER**: Can view, edit, delete, share, and unshare recipes
     - **EDITOR**: Can view, edit, share, unshare recipes (granted through sharing)
 - **recipe_permission.recipe_id** → **recipes.id**: Foreign key relationship
+- **recipe_images** → **recipes**: One-to-One relationship
+    - One recipe can have one recipe_images record storing metadata about associated images
+  - The `images` JSONB field contains an object with an `imagesMetadata` array:
+    `{"imagesMetadata": [{"id": "uuid", "type": "image/jpeg"}, {"id": "uuid2", "type": "image/png"}]}`
+  - Each image metadata entry contains a UUID and a content type
+  - Image order is determined by the array order (client-controlled via CreateRecipeRequest)
+    - When a recipe is deleted, its recipe_images record is deleted (CASCADE)
+    - Maximum of 2 images per recipe enforced at application level
+- **recipe_images.id** → **recipes.id**: Foreign key relationship with ON DELETE CASCADE
 - **shopping_list_permission** ↔ **shopping_lists**: Many-to-Many relationship through `shopping_list_permission` join
   table with role-based access
     - One user (identified by email) can have many shopping lists with different roles

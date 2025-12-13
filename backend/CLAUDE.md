@@ -19,6 +19,8 @@
 - Lombok 1.18.38
 - PostgreSQL 17.5
 - Flyway
+- AWS SDK for Java 2.40.7 (S3)
+- Thumbnailator 0.4.20 (image processing)
 
 ## Documentation
 

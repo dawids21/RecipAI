@@ -38,7 +38,7 @@ class RecipeIntegrationTest {
     }
 
     private RecipeDto createRecipe(RestClient client, String name, RecipeData data, UUID collectionId) {
-        CreateRecipeRequest request = new CreateRecipeRequest(name, data, collectionId);
+        CreateRecipeRequest request = new CreateRecipeRequest(name, data, collectionId, List.of());
         return client
                 .post()
                 .uri("/recipes")
@@ -152,7 +152,8 @@ class RecipeIntegrationTest {
     private RecipeData createTestRecipeData() {
         return new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
-                List.of(new Instruction("Make dough"))
+                List.of(new Instruction("Make dough")),
+                ""
         );
     }
 
@@ -171,7 +172,8 @@ class RecipeIntegrationTest {
                         new Instruction("Make dough"),
                         new Instruction("Add sauce and toppings"),
                         new Instruction("Bake for 15 minutes")
-                )
+                ),
+                ""
         );
 
         RecipeDto pizzaResponse = createRecipe(client, "Pizza Margherita", pizzaData, null);
@@ -189,7 +191,8 @@ class RecipeIntegrationTest {
                         new Instruction("Cook pasta"),
                         new Instruction("Fry pancetta"),
                         new Instruction("Mix with eggs")
-                )
+                ),
+                ""
         );
 
         RecipeDto pastaResponse = createRecipe(client, "Spaghetti Carbonara", pastaData, null);
@@ -228,7 +231,8 @@ class RecipeIntegrationTest {
                         new Instruction("Make better dough"),
                         new Instruction("Add cheese and tomatoes"),
                         new Instruction("Bake for 20 minutes")
-                )
+                ),
+                ""
         );
 
         RecipeDto updatedRecipe = updateRecipe(client, pizzaResponse.id(), "Updated Pizza Margherita", updatedPizzaData, null);
@@ -276,7 +280,8 @@ class RecipeIntegrationTest {
         RestClient client = restClient();
         RecipeData data = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
-                List.of(new Instruction("Make dough"))
+                List.of(new Instruction("Make dough")),
+                ""
         );
         UUID randomId = UUID.randomUUID();
 
@@ -311,7 +316,8 @@ class RecipeIntegrationTest {
         // User 1 creates a recipe
         RecipeData user1RecipeData = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
-                List.of(new Instruction("Make bread"))
+                List.of(new Instruction("Make bread")),
+                ""
         );
 
         RecipeDto user1Recipe = createRecipe(user1Client, "User 1 Recipe", user1RecipeData, null);
@@ -321,7 +327,8 @@ class RecipeIntegrationTest {
         // User 2 creates a recipe
         RecipeData user2RecipeData = new RecipeData(
                 List.of(new Ingredient("sugar", "200g", null)),
-                List.of(new Instruction("Make cake"))
+                List.of(new Instruction("Make cake")),
+                ""
         );
 
         RecipeDto user2Recipe = createRecipe(user2Client, "User 2 Recipe", user2RecipeData, null);
@@ -359,7 +366,8 @@ class RecipeIntegrationTest {
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
-                List.of(new Instruction("Secret recipe step"))
+                List.of(new Instruction("Secret recipe step")),
+                ""
         );
 
         RecipeDto user1Recipe = createRecipe(user1Client, "Secret Recipe", recipeData, null);
@@ -401,7 +409,8 @@ class RecipeIntegrationTest {
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
-                List.of(new Instruction("Secret recipe step"))
+                List.of(new Instruction("Secret recipe step")),
+                ""
         );
 
         RecipeDto ownerRecipe = createRecipe(user1Client, "Shared Recipe", recipeData, null);
@@ -437,7 +446,8 @@ class RecipeIntegrationTest {
         // User 2 (EDITOR) should be able to update the recipe
         RecipeData updatedData = new RecipeData(
                 List.of(new Ingredient("updated ingredient", "200g", null)),
-                List.of(new Instruction("Updated recipe step"))
+                List.of(new Instruction("Updated recipe step")),
+                ""
         );
 
         RecipeDto updatedRecipe = updateRecipe(user2Client, ownerRecipe.id(), "Updated Shared Recipe", updatedData, null);
@@ -484,7 +494,8 @@ class RecipeIntegrationTest {
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
-                List.of(new Instruction("Step"))
+                List.of(new Instruction("Step")),
+                ""
         );
 
         RecipeDto ownerRecipe = createRecipe(user1Client, "Editor Sharing Test Recipe", recipeData, null);
@@ -534,7 +545,8 @@ class RecipeIntegrationTest {
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
-                List.of(new Instruction("Step"))
+                List.of(new Instruction("Step")),
+                ""
         );
 
         RecipeDto ownerRecipe = createRecipe(user1Client, "Recipe To Be Shared", recipeData, null);

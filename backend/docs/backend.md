@@ -3,15 +3,18 @@
 ## Modules
 
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality, optional collection
-  assignment, collection-based access control within that collection), and filtering capabilities (by collection or
-  unassigned status)
+  assignment, collection-based access control within that collection), filtering capabilities (by collection or
+  unassigned status), and support for recipe images and source URLs
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
   role-based access, sharing functionality with OWNER/EDITOR roles)
+- `recipes.images` - manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and
+  presigned URL generation for secure image access (maximum 2 images per recipe)
 - `extraction` - extracts recipes from text/images using AI
 - `security` - handles OAuth2 Resource Server authentication with JWT tokens
 - `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access,
   optimistic locking with If-Match headers for all item operations, and comprehensive item management including update,
   move, check, and uncheck functionality)
+- `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 
 ## Codebase Structure
 
@@ -19,6 +22,10 @@
 backend/
 ├── src/main/java/xyz/stasiak/recipai/
 │   ├── RecipAiApplication.java          # Main Spring Boot application entry point
+│   ├── config/                          # Configuration modules
+│   │   └── s3/                          # S3 configuration
+│   │       ├── S3Config.java            # S3 client and presigner bean configuration
+│   │       └── S3Properties.java        # S3 configuration properties (bucket name, region, presigned URL expiration)
 │   ├── recipes/                         # "recipes" module
 │   │   ├── Recipe.java                  # Recipe entity
 │   │   ├── RecipePermission.java        # User-Recipe association entity with roles
@@ -26,21 +33,38 @@ backend/
 │   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
 │   │   ├── RecipePermissionRepository.java # Role-based user-recipe data access
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering (all, by collection, unassigned, accessible)
-│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, and collection-based access control
-│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing and filtering support
+│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management
+│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing, filtering, and multipart image upload support
 │   │   ├── RecipeDto.java               # Recipe response DTO with role, collectionId, and collectionName
-│   │   ├── RecipeListDto.java           # Recipe list response DTO
+│   │   ├── RecipeDetailsDto.java        # Recipe details response DTO with images array
+│   │   ├── RecipeListDto.java           # Recipe list response DTO with thumbnail URL
 │   │   ├── CreateRecipeRequest.java     # Create recipe request DTO
 │   │   ├── UpdateRecipeRequest.java     # Update recipe request DTO
 │   │   ├── ShareRecipeRequest.java      # Share recipe request DTO
 │   │   ├── UnshareRecipeRequest.java    # Unshare recipe request DTO
-│   │   ├── RecipeData.java              # Recipe data structure
+│   │   ├── RecipeData.java              # Recipe data structure with optional sourceUrl
 │   │   ├── Ingredient.java              # Ingredient model
 │   │   ├── Instruction.java             # Instruction model
 │   │   ├── RecipeNotFoundException.java # Recipe not found exception
 │   │   ├── RecipeAccessDeniedException.java # Access denied exception
 │   │   ├── ErrorResponse.java           # Error response DTO
 │   │   ├── RecipesExceptionHandler.java # Exception handling (404, 403, 400 errors)
+│   │   ├── images/                      # "images" submodule
+│   │   │   ├── RecipeImages.java        # Recipe images entity (stores image metadata)
+│   │   │   ├── Images.java              # Value object for image metadata list
+│   │   │   ├── RecipeImagesRepository.java # Recipe images data access
+│   │   │   ├── RecipeImagesService.java # Image management service (upload, retrieve, delete)
+│   │   │   ├── S3Service.java           # S3 operations service (upload, presigned URLs, delete)
+│   │   │   ├── ImageProcessingService.java # Image validation and thumbnail generation
+│   │   │   ├── ContentType.java         # Content type value object
+│   │   │   ├── ImageMetadata.java       # Image metadata value object (id and extension)
+│   │   │   ├── dto/                     # Data Transfer Objects
+│   │   │   │   └── RecipeImageDto.java  # Recipe image response DTO with presigned URLs
+│   │   │   └── exception/               # Custom exceptions
+│   │   │       ├── InvalidImageException.java # Invalid image exception
+│   │   │       ├── ImageLimitExceededException.java # Image limit exceeded exception
+│   │   │       ├── S3StorageException.java # S3 storage exception
+│   │   │       └── RecipeImagesExceptionHandler.java # Exception handling for images
 │   │   └── collections/                 # "collections" submodule
 │   │       ├── RecipesCollection.java           # RecipesCollection entity
 │   │       ├── RecipesCollectionPermission.java # Collection permission association entity
@@ -119,6 +143,8 @@ Production deployments require the following environment variables:
 - `SPRING_DATASOURCE_USERNAME` - Database username
 - `SPRING_DATASOURCE_PASSWORD` - Database password
 - `SPRING_AI_API_KEY` - API key for Spring AI Gemini integration
+- `AWS_ACCESS_KEY_ID` - AWS access key ID for S3 operations
+- `AWS_SECRET_ACCESS_KEY` - AWS secret access key for S3 operations
 
 ## Database
 

@@ -15,6 +15,8 @@
 - PostgreSQL 17.5
 - Flyway (core + PostgreSQL)
 - Lombok
+- AWS SDK for Java 2.40.7 (S3)
+- Thumbnailator 0.4.20 (image processing)
 - Testcontainers (JUnit Jupiter, PostgreSQL)
 - Docker Compose integration (Spring Boot Docker Compose, Spring AI Docker Compose)
 - Maven (spring-boot-maven-plugin, compiler with annotation processors)
@@ -38,4 +40,5 @@
 ## Deployment
 
 - Private VPS (Backend)
+- AWS S3 (Recipe image storage)
 - Google Play (Android distribution)

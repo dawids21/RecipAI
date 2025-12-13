@@ -32,3 +32,9 @@ spring:
           issuer-uri: https://securetoken.google.com/recipai-751ae
   jackson:
     default-property-inclusion: non_null
+
+recipai:
+  s3:
+    bucket-name: recipai-data
+    region: eu-central-1
+    presigned-url-expiration-minutes: 10

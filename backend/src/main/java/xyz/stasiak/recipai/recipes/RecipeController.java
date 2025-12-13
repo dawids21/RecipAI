@@ -4,10 +4,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,17 +49,31 @@ class RecipeController {
     }
 
     @GetMapping("/{id}")
-    public RecipeDto getRecipeById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+    public RecipeDetailsDto getRecipeById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Getting recipe by id: {} for user: {}", id, userEmail);
         return recipeService.findById(id, userEmail);
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RecipeDto> createRecipe(@Valid @RequestBody CreateRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Creating recipe with name: {} for user: {}", request.name(), userEmail);
         RecipeDto savedRecipe = recipeService.save(request, userEmail);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(savedRecipe);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RecipeDto> createRecipeWithImages(
+            @RequestPart("data") @Valid CreateRecipeRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Creating recipe with name: {} and {} images for user: {}", request.name(), images != null ? images.size() : 0, userEmail);
+
+        // Image validation is delegated to RecipeImagesService
+        RecipeDto savedRecipe = recipeService.save(request, images, userEmail);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(savedRecipe);
     }

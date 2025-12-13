@@ -2,11 +2,15 @@ package xyz.stasiak.recipai.recipes;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import xyz.stasiak.recipai.recipes.collections.RecipesCollectionService;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
+import xyz.stasiak.recipai.recipes.images.RecipeImagesService;
+import xyz.stasiak.recipai.recipes.images.dto.RecipeImageDto;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +25,7 @@ class RecipeService {
     private final RecipePermissionRepository recipePermissionRepository;
     private final ObjectMapper objectMapper;
     private final RecipesCollectionService recipesCollectionService;
+    private final RecipeImagesService recipeImagesService;
 
     public List<RecipeListDto> findAll(String userEmail) {
         log.debug("Finding all accessible recipes for user {}", userEmail);
@@ -50,7 +55,7 @@ class RecipeService {
                 .toList();
     }
 
-    public RecipeDto findById(UUID id, String userEmail) {
+    public RecipeDetailsDto findById(UUID id, String userEmail) {
         log.debug("Finding recipe with id: {} for user: {}", id, userEmail);
 
         Recipe recipe = recipeRepository.findById(id)
@@ -65,10 +70,18 @@ class RecipeService {
             collectionName = collectionDto.name();
         }
 
-        return toDto(recipe, userRole, collectionName);
+        List<RecipeImageDto> images = recipeImagesService.findImagesById(id);
+
+        return toDetailsDto(recipe, userRole, collectionName, images);
     }
 
+    @Transactional
     public RecipeDto save(CreateRecipeRequest request, String userEmail) {
+        return save(request, null, userEmail);
+    }
+
+    @Transactional
+    public RecipeDto save(CreateRecipeRequest request, List<MultipartFile> images, String userEmail) {
         log.debug("Creating recipe with name: {} for user: {}", request.name(), userEmail);
 
         Recipe recipe = new Recipe();
@@ -95,9 +108,16 @@ class RecipeService {
 
         log.info("Recipe created with id: {}", savedRecipe.getId());
 
+        recipeImagesService.createEmptyRecipeImages(savedRecipe.getId());
+
+        if (request.images() != null && !request.images().isEmpty() && images != null && !images.isEmpty()) {
+            recipeImagesService.uploadImages(savedRecipe.getId(), request.images(), images);
+        }
+
         return toDto(savedRecipe, UserRole.OWNER, collectionDto != null ? collectionDto.name() : null);
     }
 
+    @Transactional
     public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
         log.debug("Updating recipe with id: {} for user: {}", id, userEmail);
 
@@ -131,6 +151,7 @@ class RecipeService {
         return toDto(savedRecipe, userRole, collectionDto != null ? collectionDto.name() : null);
     }
 
+    @Transactional
     public void deleteById(UUID id, String userEmail) {
         log.debug("Deleting recipe with id: {} for user: {}", id, userEmail);
 
@@ -148,6 +169,8 @@ class RecipeService {
 
         // Then delete the recipe itself
         recipeRepository.deleteById(id);
+
+        recipeImagesService.deleteAllImages(id);
     }
 
     private RecipeDto toDto(Recipe recipe, UserRole userRole, String collectionName) {
@@ -155,14 +178,21 @@ class RecipeService {
         return new RecipeDto(recipe.getId(), recipe.getName(), recipeData, userRole, recipe.getRecipesCollectionId(), collectionName);
     }
 
+    private RecipeDetailsDto toDetailsDto(Recipe recipe, UserRole userRole, String collectionName, List<RecipeImageDto> images) {
+        RecipeData recipeData = convertToRecipeData(recipe.getData());
+        return new RecipeDetailsDto(recipe.getId(), recipe.getName(), recipeData, userRole, recipe.getRecipesCollectionId(), collectionName, images);
+    }
+
     private RecipeListDto toRecipeListDto(Recipe recipe) {
-        return new RecipeListDto(recipe.getId(), recipe.getName());
+        String thumbnailUrl = recipeImagesService.getFirstThumbnailUrl(recipe.getId());
+        return new RecipeListDto(recipe.getId(), recipe.getName(), thumbnailUrl);
     }
 
     private RecipeData convertToRecipeData(JsonNode jsonNode) {
         try {
             List<Ingredient> ingredients;
             List<Instruction> instructions;
+            String sourceUrl = null;
 
             if (jsonNode.has("ingredients")) {
                 ingredients = objectMapper.treeToValue(jsonNode.get("ingredients"),
@@ -179,7 +209,11 @@ class RecipeService {
                 instructions = List.of();
             }
 
-            return new RecipeData(ingredients, instructions);
+            if (jsonNode.has("sourceUrl") && !jsonNode.get("sourceUrl").isNull()) {
+                sourceUrl = jsonNode.get("sourceUrl").asText();
+            }
+
+            return new RecipeData(ingredients, instructions, sourceUrl);
         } catch (Exception e) {
             log.error("Failed to convert JsonNode to RecipeData", e);
             throw new RuntimeException("Invalid recipe data format", e);
