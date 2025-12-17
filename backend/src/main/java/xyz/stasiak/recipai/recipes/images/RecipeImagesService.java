@@ -12,6 +12,7 @@ import xyz.stasiak.recipai.recipes.images.exception.S3StorageException;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -81,69 +82,62 @@ public class RecipeImagesService {
                 .orElse(null);
     }
 
-    public void uploadImages(UUID recipeId, List<UUID> imageIds, List<MultipartFile> imageFiles) {
-        if (imageIds == null || imageIds.isEmpty()) {
-            log.debug("No image IDs provided for recipeId={}", recipeId);
-            return;
+    public void uploadImages(UUID recipeId, List<UUID> newImages, List<MultipartFile> newImageFiles) {
+        log.debug("Updating images for recipeId={}, newImages={}", recipeId, newImages);
+
+        for (MultipartFile newImageFile : newImageFiles) {
+            imageProcessingService.validateImageFile(newImageFile);
         }
 
-        if (imageFiles == null || imageFiles.isEmpty()) {
-            log.debug("No image files provided for recipeId={}", recipeId);
-            return;
-        }
-
-        // Match files to metadata
-        List<ImageMetadataWithFile> matchedImages = matchFilesToMetadata(imageIds, imageFiles);
-
-        // Validate all files
-        for (ImageMetadataWithFile image : matchedImages) {
-            imageProcessingService.validateImageFile(image.file());
-        }
-
+        List<ImageMetadata> newImageFilesMetadata = extractMetadata(newImageFiles);
         RecipeImages recipeImages = recipeImagesRepository.findById(recipeId)
                 .orElseGet(() -> createRecipeImages(recipeId));
+        RecipeImagesUpdated result = recipeImages.updateImages(newImages, newImageFilesMetadata);
 
-        for (ImageMetadataWithFile image : matchedImages) {
-            recipeImages.addImage(new ImageMetadata(image.imageId(), image.contentType()));
+        Map<UUID, MultipartFile> imageFilesById = groupFilesById(newImageFiles);
+        for (ImageMetadata imageToAdd : result.toAdd()) {
+            if (!imageFilesById.containsKey(imageToAdd.id())) {
+                throw new InvalidImageException("Image file missing for metadata entry with id: " + imageToAdd.id());
+            }
         }
+        uploadImagesToS3(recipeId, result.toAdd(), newImageFiles);
+        deleteImagesFromS3(recipeId, result.toDelete());
 
         recipeImagesRepository.save(recipeImages);
-
-        uploadImagesToS3(recipeId, matchedImages);
+        log.info("Images updated for recipeId={}", recipeId);
     }
 
-    private List<ImageMetadataWithFile> matchFilesToMetadata(List<UUID> imageIds, List<MultipartFile> files) {
-        List<ImageMetadataWithFile> matched = new ArrayList<>();
+    private List<ImageMetadata> extractMetadata(List<MultipartFile> imageFiles) {
+        return imageFiles.stream()
+                .map(imageFile -> new ImageMetadata(
+                        UUID.fromString(FilenameUtils.getBaseName(imageFile.getOriginalFilename())),
+                        new ContentType(Objects.requireNonNullElse(imageFile.getContentType(), ""))
+                ))
+                .toList();
+    }
 
-        for (UUID imageId : imageIds) {
-            Optional<MultipartFile> matchedFile = files.stream()
-                    .filter(file -> FilenameUtils.getBaseName(file.getOriginalFilename()).equals(imageId.toString()))
-                    .findFirst();
-            if (matchedFile.isEmpty()) {
-                throw new InvalidImageException("Image file missing for metadata entry with id: " + imageId);
+    private Map<UUID, MultipartFile> groupFilesById(List<MultipartFile> imageFiles) {
+        return imageFiles.stream()
+                .collect(Collectors.toMap(file -> UUID.fromString(FilenameUtils.getBaseName(file.getOriginalFilename())), file -> file));
+    }
+
+    private void deleteImagesFromS3(UUID recipeId, Set<ImageMetadata> imagesToDelete) {
+        for (ImageMetadata imageToDelete : imagesToDelete) {
+            try {
+                s3Service.deleteImage(recipeId, imageToDelete.id(), imageToDelete.contentType());
+            } catch (S3StorageException e) {
+                log.error("Failed to delete image from S3, continuing: recipeId={}, imageId={}",
+                        recipeId, imageToDelete.id(), e);
             }
-            MultipartFile imageFile = matchedFile.get();
-            ContentType contentType = new ContentType(Objects.requireNonNullElse(imageFile.getContentType(), ""));
-            matched.add(new ImageMetadataWithFile(imageId, contentType, imageFile));
-        }
-
-        return matched;
-    }
-
-    public void deleteAllImages(UUID recipeId) {
-        log.debug("Deleting all imagesMetadata for recipeId={}", recipeId);
-        try {
-            s3Service.deleteAllRecipeImages(recipeId);
-        } catch (S3StorageException e) {
-            log.error("Failed to delete S3 imagesMetadata for recipe {}, manual cleanup may be required", recipeId, e);
         }
     }
 
-    private void uploadImagesToS3(UUID recipeId, List<ImageMetadataWithFile> images) {
-        for (ImageMetadataWithFile image : images) {
-            UUID imageId = image.imageId();
+    private void uploadImagesToS3(UUID recipeId, Set<ImageMetadata> newImages, List<MultipartFile> newImageFiles) {
+        Map<UUID, MultipartFile> imageFilesById = groupFilesById(newImageFiles);
+        for (ImageMetadata image : newImages) {
+            UUID imageId = image.id();
             ContentType contentType = image.contentType();
-            MultipartFile imageFile = image.file();
+            MultipartFile imageFile = imageFilesById.get(imageId);
 
             try {
                 byte[] imageBytes = imageFile.getBytes();
@@ -162,6 +156,12 @@ public class RecipeImagesService {
         }
     }
 
-    private record ImageMetadataWithFile(UUID imageId, ContentType contentType, MultipartFile file) {
+    public void deleteAllImages(UUID recipeId) {
+        log.debug("Deleting all imagesMetadata for recipeId={}", recipeId);
+        try {
+            s3Service.deleteAllRecipeImages(recipeId);
+        } catch (S3StorageException e) {
+            log.error("Failed to delete S3 imagesMetadata for recipe {}, manual cleanup may be required", recipeId, e);
+        }
     }
 }

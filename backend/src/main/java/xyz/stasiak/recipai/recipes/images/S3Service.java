@@ -13,6 +13,7 @@ import xyz.stasiak.recipai.config.s3.S3Properties;
 import xyz.stasiak.recipai.recipes.images.exception.S3StorageException;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -77,6 +78,29 @@ class S3Service {
         } catch (S3Exception e) {
             log.error("Failed to generate presigned URL for key: {}", objectKey, e);
             throw new S3StorageException("Failed to generate presigned URL", e);
+        }
+    }
+
+    void deleteImage(UUID recipeId, UUID imageId, ContentType contentType) {
+        String imageKey = buildImageKey(recipeId, imageId, contentType.toExtension());
+        String thumbnailKey = buildThumbnailKey(recipeId, imageId, contentType.toExtension());
+
+        try {
+            var objectsToDelete = List.of(
+                    ObjectIdentifier.builder().key(imageKey).build(),
+                    ObjectIdentifier.builder().key(thumbnailKey).build()
+            );
+
+            DeleteObjectsRequest deleteRequest = DeleteObjectsRequest.builder()
+                    .bucket(s3Properties.bucketName())
+                    .delete(Delete.builder().objects(objectsToDelete).build())
+                    .build();
+
+            s3Client.deleteObjects(deleteRequest);
+            log.debug("Deleted image and thumbnail from S3: recipeId={}, imageId={}", recipeId, imageId);
+        } catch (S3Exception e) {
+            log.error("Failed to delete image/thumbnail from S3: recipeId={}, imageId={}", recipeId, imageId, e);
+            throw new S3StorageException("Failed to delete image from S3", e);
         }
     }
 

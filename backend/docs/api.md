@@ -202,9 +202,10 @@
     - Note: Images are stored in S3 and automatically resized to create thumbnails. Maximum of 2 images per recipe. Only
       JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The
       extension in the filename is normalized (jpeg → jpg).
-- PUT /recipes/{uuid}
+- PUT /recipes/{uuid} (JSON)
     - Description: Update existing recipe by UUID
   - Authenticated: true
+  - Content-Type: application/json
       - Request body:
         ```json
         {
@@ -232,7 +233,8 @@
               }
             ],
             "sourceUrl": "https://example.com/recipe/updated-pizza"
-          }
+          },
+          "images": ["existing-uuid-1"]
         }
         ```
       - Example response:
@@ -272,11 +274,49 @@
       - Errors: 403 Forbidden (if user lacks access to recipe or specified collection), 404 Not Found (if recipe or
         collection doesn't exist), 400 Bad request
     - Note: Both OWNER and EDITOR roles can update recipes. Users with access to a collection automatically receive
-      EDITOR access to all recipes in that collection. `recipesCollectionId` and `sourceUrl` are optional and can be
-      null
-      to remove recipe from collection or remove source URL. When `recipesCollectionId` is provided, user must have
-      EDITOR
-      or OWNER access to the collection. Note: This endpoint does not support updating images.
+      EDITOR access to all recipes in that collection. `recipesCollectionId`, `sourceUrl`, and `images` are optional
+      and can be null. When null, no changes are made to those fields. When `recipesCollectionId` is null, recipe is
+      removed from collection. When `images` is null, no image changes are made. When `images` is an empty array [],
+      all images are deleted. When `images` contains UUIDs, images are kept/reordered/deleted to match the list. This
+      JSON endpoint supports delete and reorder operations only (no new image uploads).
+- PUT /recipes/{uuid} (Multipart)
+    - Description: Update existing recipe with images by UUID
+    - Authenticated: true
+    - Content-Type: multipart/form-data
+    - Request parts:
+        - `data` (JSON, required): Recipe data including optional `images` array with UUIDs
+        - `images` (files, optional): New recipe image files (JPEG/PNG, max 2 images total, max 5MB each). Only include
+          files for NEW images being added.
+    - Example request data JSON:
+      ```json
+      {
+        "name": "Updated Pizza",
+        "recipesCollectionId": "550e8400-e29b-41d4-a716-446655440000",
+        "data": {
+          "ingredients": [...],
+          "instructions": [...],
+          "sourceUrl": "https://example.com/recipe/updated-pizza"
+        },
+        "images": ["existing-uuid-1", "new-uuid-2"]
+      }
+      ```
+    - Behavior:
+        - `images` field null: No changes to images
+        - `images` field []: Delete all images
+        - `images` field [uuids]: Keep/add/reorder/delete images based on UUIDs
+        - Images not in the `images` array are DELETED from both S3 and DB
+        - Images in the array matching existing images are RETAINED
+        - Images in the array not matching existing images are ADDED (requires corresponding file in `images` part)
+        - Order in the `images` array determines display order
+    - Example response: Same as JSON PUT endpoint
+    - Success: 200 OK
+    - Errors:
+        - 400 Bad request (invalid data, total image count exceeds 2, missing file for new image UUID, invalid image
+          format/size)
+        - 403 Forbidden (if user lacks OWNER/EDITOR access or lacks access to specified collection)
+        - 404 Not Found (if recipe or collection doesn't exist)
+    - Note: Only files for NEW images should be included in the multipart request. Existing images are referenced by
+      UUID only. Maximum of 2 images total per recipe. Both JPEG and PNG formats supported.
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true

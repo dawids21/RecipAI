@@ -72,17 +72,36 @@ class RecipeController {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Creating recipe with name: {} and {} images for user: {}", request.name(), images != null ? images.size() : 0, userEmail);
 
-        // Image validation is delegated to RecipeImagesService
+        if (images == null) {
+            images = List.of();
+        }
+
         RecipeDto savedRecipe = recipeService.save(request, images, userEmail);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(savedRecipe);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RecipeDto> updateRecipe(@PathVariable UUID id, @Valid @RequestBody UpdateRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Updating recipe with id: {} for user: {}", id, userEmail);
         RecipeDto updatedRecipe = recipeService.updateById(id, request, userEmail);
+        return ResponseEntity.ok(updatedRecipe);
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RecipeDto> updateRecipeWithImages(
+            @PathVariable UUID id,
+            @RequestPart("data") @Valid UpdateRecipeRequest request,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Updating recipe with id: {} and {} images for user: {}", id, images != null ? images.size() : 0, userEmail);
+
+        if (images == null) {
+            images = List.of();
+        }
+        RecipeDto updatedRecipe = recipeService.updateById(id, request, images, userEmail);
         return ResponseEntity.ok(updatedRecipe);
     }
 

@@ -83,7 +83,7 @@ class RecipeIntegrationTest {
     }
 
     private RecipeDto updateRecipe(RestClient client, UUID id, String name, RecipeData data, UUID collectionId) {
-        UpdateRecipeRequest request = new UpdateRecipeRequest(name, data, collectionId);
+        UpdateRecipeRequest request = new UpdateRecipeRequest(name, data, collectionId, List.of());
         return client
                 .put()
                 .uri("/recipes/" + id)

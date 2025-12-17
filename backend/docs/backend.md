@@ -4,7 +4,7 @@
 
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality, optional collection
   assignment, collection-based access control within that collection), filtering capabilities (by collection or
-  unassigned status), and support for recipe images and source URLs
+  unassigned status), and support for recipe images (with update, reorder, and delete operations) and source URLs
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
   role-based access, sharing functionality with OWNER/EDITOR roles)
 - `recipes.images` - manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and
@@ -33,13 +33,13 @@ backend/
 │   │   ├── UserRole.java                # Enum for OWNER/EDITOR roles
 │   │   ├── RecipePermissionRepository.java # Role-based user-recipe data access
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering (all, by collection, unassigned, accessible)
-│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management
-│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing, filtering, and multipart image upload support
+│   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management (upload, update, reorder, delete)
+│   │   ├── RecipeController.java        # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
 │   │   ├── RecipeDto.java               # Recipe response DTO with role, collectionId, and collectionName
 │   │   ├── RecipeDetailsDto.java        # Recipe details response DTO with images array
 │   │   ├── RecipeListDto.java           # Recipe list response DTO with thumbnail URL
 │   │   ├── CreateRecipeRequest.java     # Create recipe request DTO
-│   │   ├── UpdateRecipeRequest.java     # Update recipe request DTO
+│   │   ├── UpdateRecipeRequest.java     # Update recipe request DTO with optional images list
 │   │   ├── ShareRecipeRequest.java      # Share recipe request DTO
 │   │   ├── UnshareRecipeRequest.java    # Unshare recipe request DTO
 │   │   ├── RecipeData.java              # Recipe data structure with optional sourceUrl
@@ -50,11 +50,12 @@ backend/
 │   │   ├── ErrorResponse.java           # Error response DTO
 │   │   ├── RecipesExceptionHandler.java # Exception handling (404, 403, 400 errors)
 │   │   ├── images/                      # "images" submodule
-│   │   │   ├── RecipeImages.java        # Recipe images entity (stores image metadata)
-│   │   │   ├── Images.java              # Value object for image metadata list
+│   │   │   ├── RecipeImages.java        # Recipe images entity (stores image metadata, handles update/reorder/delete operations)
+│   │   │   ├── Images.java              # Value object for image metadata list with add/delete/reorder operations
+│   │   │   ├── RecipeImagesUpdated.java # Value object for tracking image changes (toAdd and toDelete sets)
 │   │   │   ├── RecipeImagesRepository.java # Recipe images data access
-│   │   │   ├── RecipeImagesService.java # Image management service (upload, retrieve, delete)
-│   │   │   ├── S3Service.java           # S3 operations service (upload, presigned URLs, delete)
+│   │   │   ├── RecipeImagesService.java # Image management service (upload, update with add/delete/reorder, retrieve, delete all)
+│   │   │   ├── S3Service.java           # S3 operations service (upload, presigned URLs, delete single/all images)
 │   │   │   ├── ImageProcessingService.java # Image validation and thumbnail generation
 │   │   │   ├── ContentType.java         # Content type value object
 │   │   │   ├── ImageMetadata.java       # Image metadata value object (id and extension)

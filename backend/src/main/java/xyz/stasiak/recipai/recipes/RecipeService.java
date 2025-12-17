@@ -110,7 +110,7 @@ class RecipeService {
 
         recipeImagesService.createEmptyRecipeImages(savedRecipe.getId());
 
-        if (request.images() != null && !request.images().isEmpty() && images != null && !images.isEmpty()) {
+        if (request.images() != null && !request.images().isEmpty()) {
             recipeImagesService.uploadImages(savedRecipe.getId(), request.images(), images);
         }
 
@@ -119,7 +119,12 @@ class RecipeService {
 
     @Transactional
     public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
-        log.debug("Updating recipe with id: {} for user: {}", id, userEmail);
+        return updateById(id, request, List.of(), userEmail);
+    }
+
+    @Transactional
+    public RecipeDto updateById(UUID id, UpdateRecipeRequest request, List<MultipartFile> images, String userEmail) {
+        log.debug("Updating recipe with id: {} and {} images for user: {}", id, images.size(), userEmail);
 
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new RecipeNotFoundException(id));
@@ -145,6 +150,10 @@ class RecipeService {
         existingRecipe.setRecipesCollectionId(request.recipesCollectionId());
 
         Recipe savedRecipe = recipeRepository.save(existingRecipe);
+
+        if (request.images() != null) {
+            recipeImagesService.uploadImages(savedRecipe.getId(), request.images(), images);
+        }
 
         log.info("Recipe updated with id: {}", savedRecipe.getId());
 
