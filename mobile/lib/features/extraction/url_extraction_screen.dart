@@ -5,6 +5,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../shared/loading_widget.dart';
+import '../recipe/initial_recipe_form_data.dart';
 import 'extraction_service.dart';
 import 'web_recipe_extractor.dart';
 
@@ -91,6 +92,9 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
     });
 
     try {
+      // Capture the current URL from WebView
+      final currentUrl = await _controller.currentUrl();
+
       // Extract HTML content from WebView
       final htmlContent = await WebRecipeExtractor.extractHtmlContent(
         _controller,
@@ -108,12 +112,14 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
       // Show success message
       _showSnackBar('Recipe extracted successfully!');
 
-      // Navigate to create recipe screen with extracted data
+      // Navigate to create recipe screen with extracted data and source URL
       if (mounted) {
-        context.goNamed(
-          AppRoute.recipeCreate.name,
-          extra: extractedRecipe.toRecipeDetail(),
+        final formData = InitialRecipeFormData(
+          recipeDetail: extractedRecipe.toRecipeDetail(),
+          sourceUrl: currentUrl,
         );
+
+        context.goNamed(AppRoute.recipeCreate.name, extra: formData);
       }
     } catch (e) {
       _showSnackBar('Failed to extract recipe: ${e.toString()}');

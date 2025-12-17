@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../recipe/initial_recipe_form_data.dart';
 import 'extraction_service.dart';
 
 class ImageExtractionScreen extends StatefulWidget {
@@ -57,10 +58,12 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
       _showSnackBar('Recipe extracted successfully!');
 
       if (mounted) {
-        context.goNamed(
-          AppRoute.recipeCreate.name,
-          extra: extractedRecipe.toRecipeDetail(),
+        final formData = InitialRecipeFormData(
+          recipeDetail: extractedRecipe.toRecipeDetail(),
+          pendingImages: [_selectedImage!],
         );
+
+        context.goNamed(AppRoute.recipeCreate.name, extra: formData);
       }
     } catch (e) {
       _showSnackBar('Failed to extract recipe: ${e.toString()}');

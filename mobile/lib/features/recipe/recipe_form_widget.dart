@@ -8,12 +8,13 @@ import '../../shared/loading_widget.dart';
 import 'collection/recipes_collection.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'ingredient_input_widget.dart';
+import 'initial_recipe_form_data.dart';
 import 'recipe_detail.dart';
 import 'recipe_image_input.dart';
 import 'recipe_image_manager.dart';
 
 class RecipeFormWidget extends StatefulWidget {
-  final RecipeDetail? initialRecipe;
+  final InitialRecipeFormData? initialFormData;
   final RecipesCollection? initialCollection;
   final Future<void> Function(
     RecipeRequest recipeRequest,
@@ -24,7 +25,7 @@ class RecipeFormWidget extends StatefulWidget {
 
   const RecipeFormWidget({
     super.key,
-    this.initialRecipe,
+    this.initialFormData,
     this.initialCollection,
     required this.onSave,
     required this.recipesCollectionListService,
@@ -53,21 +54,31 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
   }
 
   void _initializeForm() {
-    if (widget.initialRecipe != null) {
-      var initialRecipe = widget.initialRecipe!;
+    final initialRecipe = widget.initialFormData?.recipeDetail;
+
+    if (initialRecipe != null) {
       // Pre-populate form with existing recipe data
       _nameController.text = initialRecipe.name;
       _instructionsController.text = initialRecipe.data.instructions
           .map((instruction) => instruction.step)
           .join('\n');
 
-      // Initialize source URL
-      _sourceUrlController.text = initialRecipe.data.sourceUrl ?? '';
+      // Initialize source URL from formData OR from recipe data
+      _sourceUrlController.text = widget.initialFormData?.sourceUrl ?? '';
 
       // Convert existing images to RecipeImageInput
       _imageInputs = initialRecipe.images
           .map((img) => RecipeImageInput.existing(img.id, img.url))
           .toList();
+
+      // Add pending images from extraction
+      if (widget.initialFormData?.pendingImages != null) {
+        _imageInputs.addAll(
+          widget.initialFormData!.pendingImages.map(
+            (xfile) => RecipeImageInput.newImage(xfile),
+          ),
+        );
+      }
 
       // Build selected collection from recipe details
       if (initialRecipe.collectionId != null &&
@@ -214,8 +225,9 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       await widget.onSave(recipeRequest, _imageInputs);
 
       if (mounted) {
-        // Show success message
-        final successMessage = widget.initialRecipe != null
+        final isEditMode =
+            widget.initialFormData?.recipeDetail?.id.isNotEmpty ?? false;
+        final successMessage = isEditMode
             ? 'Recipe updated successfully!'
             : 'Recipe created successfully!';
         ScaffoldMessenger.of(
@@ -246,6 +258,9 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
     if (_isLoading) {
       return const LoadingWidget();
     }
+
+    final isEditMode =
+        widget.initialFormData?.recipeDetail?.id.isNotEmpty ?? false;
 
     return Padding(
       padding: AppSpacing.screenPadding,
@@ -375,7 +390,8 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                     const SizedBox(height: AppSpacing.small),
                     RecipeImageManager(
                       initialImages: _imageInputs,
-                      existingImages: widget.initialRecipe?.images ?? [],
+                      existingImages:
+                          widget.initialFormData?.recipeDetail?.images ?? [],
                       onImagesChanged: (updatedImages) {
                         setState(() {
                           _imageInputs = updatedImages;
@@ -462,9 +478,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                   child: Text(
                     _isLoading
                         ? 'Saving...'
-                        : (widget.initialRecipe != null
-                              ? 'Update Recipe'
-                              : 'Create Recipe'),
+                        : (isEditMode ? 'Update Recipe' : 'Create Recipe'),
                     style: theme.textTheme.titleMedium,
                   ),
                 ),

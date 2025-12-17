@@ -26,6 +26,8 @@
   fields),
   collectionId and collectionName fields for recipe-to-collection assignment
 - Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images during creation/editing.
+- Initial Recipe Form Data (`initial_recipe_form_data.dart`) - Wrapper class for passing recipe data for recipe form
+  widget prefilling
 - Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and UserRole enum
 - User Role (`user_role.dart`) - Enum defining user roles (owner, editor) with API conversion methods for
   uppercase/lowercase handling
@@ -80,6 +82,7 @@ mobile/
 │       │   ├── recipe_image_carousel.dart # Image carousel widget with PageView and pagination
 │       │   ├── recipe_image_input.dart # Data model for managing recipe images (new/existing)
 │       │   ├── recipe_image_manager.dart # Widget for image upload, reordering, and removal
+│       │   ├── initial_recipe_form_data.dart # Wrapper for passing extracted recipe data with images and source URL
 │       │   ├── source_link_widget.dart # Clickable source URL widget with url_launcher integration
 │       │   ├── recipe_to_shopping_list_screen.dart # Add ingredients to shopping list screen
 │       │   ├── recipe_to_shopping_list_service.dart # Service for adding ingredients to shopping list

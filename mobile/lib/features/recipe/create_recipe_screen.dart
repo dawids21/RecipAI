@@ -3,18 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection.dart';
 
 import 'collection/recipes_collection_list_service.dart';
-import 'recipe_detail.dart';
+import 'initial_recipe_form_data.dart';
 import 'recipe_form_widget.dart';
 import 'recipe_list_service.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
-  final RecipeDetail? prefilledRecipe;
+  final InitialRecipeFormData? initialFormData;
   final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
 
   const CreateRecipeScreen({
     super.key,
-    this.prefilledRecipe,
+    this.initialFormData,
     required this.recipeListService,
     required this.recipesCollectionListService,
   });
@@ -58,7 +58,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       body: SafeArea(
         top: false,
         child: RecipeFormWidget(
-          initialRecipe: widget.prefilledRecipe,
+          initialFormData: widget.initialFormData,
           initialCollection: selectedCollection,
           onSave: _createRecipe,
           recipesCollectionListService: widget.recipesCollectionListService,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/theme.dart';
-import 'package:recipai_mobile/features/recipe/recipe_detail.dart';
 
 import '../features/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
@@ -13,6 +12,7 @@ import '../features/recipe/collection/recipes_collection_list_screen.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/create_recipe_screen.dart';
 import '../features/recipe/edit_recipe_screen.dart';
+import '../features/recipe/initial_recipe_form_data.dart';
 import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_service.dart';
@@ -141,9 +141,9 @@ GoRouter createAppRouter() {
             path: AppRoute.recipeCreate.path,
             name: AppRoute.recipeCreate.name,
             builder: (context, state) {
-              final recipeDetail = state.extra as RecipeDetail?;
+              final formData = state.extra as InitialRecipeFormData?;
               return CreateRecipeScreen(
-                prefilledRecipe: recipeDetail,
+                initialFormData: formData,
                 recipeListService: getIt<RecipeListService>(),
                 recipesCollectionListService:
                     getIt<RecipesCollectionListService>(),

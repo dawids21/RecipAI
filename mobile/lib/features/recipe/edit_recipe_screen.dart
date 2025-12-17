@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'collection/recipes_collection_list_service.dart';
+import 'initial_recipe_form_data.dart';
 import 'recipe_detail_service.dart';
 import 'recipe_form_widget.dart';
 
@@ -69,7 +70,10 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
             body: SafeArea(
               top: false,
               child: RecipeFormWidget(
-                initialRecipe: recipeDetail,
+                initialFormData: InitialRecipeFormData(
+                  recipeDetail: recipeDetail,
+                  sourceUrl: recipeDetail.data.sourceUrl,
+                ),
                 onSave: _updateRecipe,
                 recipesCollectionListService:
                     widget.recipesCollectionListService,

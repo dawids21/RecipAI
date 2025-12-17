@@ -123,76 +123,55 @@ class _RecipeImageManagerState extends State<RecipeImageManager> {
           height: 120,
           child: Row(
             children: [
-              if (_images.isEmpty)
-                // Show large add button when no images
-                SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: OutlinedButton(
-                    onPressed: _showImageSourceBottomSheet,
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              Expanded(
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    ReorderableListView(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      onReorder: _reorderImages,
+                      buildDefaultDragHandles: false,
+                      proxyDecorator: (child, index, animation) {
+                        return AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) {
+                            return Material(
+                              elevation: 0,
+                              color: Colors.transparent,
+                              child: child,
+                            );
+                          },
+                          child: child,
+                        );
+                      },
                       children: [
-                        Icon(
-                          Icons.add_photo_alternate,
-                          size: 32,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(height: AppSpacing.extraSmall),
-                        Text('0/$maxImages', style: theme.textTheme.labelSmall),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      ReorderableListView(
-                        scrollDirection: Axis.horizontal,
-                        shrinkWrap: true,
-                        onReorder: _reorderImages,
-                        buildDefaultDragHandles: false,
-                        proxyDecorator: (child, index, animation) {
-                          return AnimatedBuilder(
-                            animation: animation,
-                            builder: (context, child) {
-                              return Material(
-                                elevation: 0,
-                                color: Colors.transparent,
-                                child: child,
-                              );
-                            },
-                            child: child,
-                          );
-                        },
-                        children: [
-                          for (int index = 0; index < _images.length; index++)
-                            Padding(
-                              key: ValueKey(_images[index].uuid),
-                              padding: const EdgeInsets.only(
-                                right: AppSpacing.small,
-                              ),
-                              child: ReorderableDragStartListener(
-                                index: index,
-                                child: _buildImageThumbnail(
-                                  _images[index],
-                                  index,
-                                ),
+                        for (int index = 0; index < _images.length; index++)
+                          Padding(
+                            key: ValueKey(_images[index].uuid),
+                            padding: const EdgeInsets.only(
+                              right: AppSpacing.small,
+                            ),
+                            child: ReorderableDragStartListener(
+                              index: index,
+                              child: _buildImageThumbnail(
+                                _images[index],
+                                index,
                               ),
                             ),
-                        ],
-                      ),
-                      // Small add button next to last image
-                      if (canAddMore)
-                        Center(
+                          ),
+                      ],
+                    ),
+                    // Small add button next to last image
+                    if (canAddMore)
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: theme.colorScheme.outline),
+                        ),
+                        child: Center(
                           child: IconButton(
                             onPressed: _showImageSourceBottomSheet,
                             icon: Icon(
@@ -202,9 +181,10 @@ class _RecipeImageManagerState extends State<RecipeImageManager> {
                             tooltip: 'Add image (${_images.length}/$maxImages)',
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),

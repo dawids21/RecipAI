@@ -28,21 +28,25 @@
 - Source Link Widget (`source_link_widget.dart`) - Clickable widget for opening recipe source URLs using url_launcher
   package. Displays domain name extracted from URL.
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
-  RecipeFormWidget. Automatically prefills collection dropdown when user has an active collection filter, enabling
-  context-aware recipe creation
-- Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
+  RecipeFormWidget. Accepts InitialRecipeFormData parameter for prefilling form data (recipe details, source URL,
+  images).
+  Automatically prefills collection dropdown when user has an active collection filter.
+- Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using
+  RecipeFormWidget.
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
   and instruction inputs, validation, collection dropdown menu for optional collection assignment, image management
-  via RecipeImageManager, and save functionality. Accepts optional initialCollection parameter to prefill collection
+  via RecipeImageManager, and save functionality. Accepts InitialRecipeFormData parameter containing recipeDetail,
+  sourceUrl, and pendingImages for prefilling form. Also accepts optional initialCollection parameter to prefill
+  collection
   dropdown. Dropdown shows loading/error states and all available collections with "None" option to create recipes
-  without collection. Prefill priority: initialRecipe's collection > initialCollection > null. Handles multipart form
-  submission when images are present
+  without collection. Prefill priority: initialFormData's recipeDetail collection > initialCollection > null.
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 - Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images with support for both new
   uploads (XFile) and existing images (URL). Uses UUID for image tracking
+- Initial Recipe Form Data (`initial_recipe_form_data.dart`) - Wrapper class for passing recipe data for prefilling.
 - Recipe Image Manager (`recipe_image_manager.dart`) - Widget for managing recipe images with camera/gallery selection
   via bottom sheet modal, horizontal scrollable thumbnail list with drag-and-drop reordering (ReorderableListView) and
   remove functionality
@@ -100,9 +104,11 @@
 ### Extraction feature
 
 - URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with
-  URL input field and loading states
+  URL input field and loading states. Captures the current URL from WebView and navigates to create screen with
+  InitialRecipeFormData containing extracted recipe detail and source URL
 - Image Extraction Screen (`image_extraction_screen.dart`) - Screen for extracting recipes from images using camera or
-  gallery selection with image preview and upload functionality
+  gallery selection with image preview and upload functionality. Navigates to create screen with InitialRecipeFormData
+  containing extracted recipe detail and the selected image file as a pending image
 - Extraction Dialog (`extraction_dialog.dart`) - Modal dialog for choosing between URL and image extraction methods with
   Material Design buttons
 - Web Recipe Extractor (`web_recipe_extractor.dart`) - Utility class for extracting HTML content from WebView
@@ -193,10 +199,13 @@ All routes except `/login` require user authentication. The app automatically re
    `/recipes/:id/to-shopping-list`) → Select ingredients → Choose shopping list → Items queued for sync → Back to Recipe
    Detail Screen
 7. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
-8. **Successful URL/Image Extraction** → Create Recipe Screen with pre-filled extracted data and collection (if filter
-   active) → Recipe creation → Back to Main Screen
-9. **Successful Manual Creation** → Back to Main Screen (with recipe added to selected collection if filter was active)
-10. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+8. **Successful URL Extraction** → Create Recipe Screen with pre-filled extracted data, source URL, and collection (if
+   filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
+9. **Successful Image Extraction** → Create Recipe Screen with pre-filled extracted data, pending image, and
+   collection (
+   if filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
+10. **Successful Manual Creation** → Back to Main Screen (with recipe added to selected collection if filter was active)
+11. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 #### Recipe Collections Management Flow
 
