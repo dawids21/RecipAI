@@ -60,7 +60,11 @@ class _RecipeImageManagerState extends State<RecipeImageManager> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedFile = await _imagePicker.pickImage(source: source);
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
       if (pickedFile != null) {
         await _addImage(pickedFile);
       }

@@ -25,7 +25,11 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _imagePicker.pickImage(source: source);
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
 
       if (image != null) {
         setState(() {
