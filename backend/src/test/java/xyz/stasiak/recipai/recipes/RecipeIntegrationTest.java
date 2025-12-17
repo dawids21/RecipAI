@@ -37,14 +37,14 @@ class RecipeIntegrationTest {
                 .build();
     }
 
-    private RecipeDto createRecipe(RestClient client, String name, RecipeData data, UUID collectionId) {
+    private RecipeDetailsDto createRecipe(RestClient client, String name, RecipeData data, UUID collectionId) {
         CreateRecipeRequest request = new CreateRecipeRequest(name, data, collectionId, List.of());
         return client
                 .post()
                 .uri("/recipes")
                 .body(request)
                 .retrieve()
-                .body(RecipeDto.class);
+                .body(RecipeDetailsDto.class);
     }
 
     private List<RecipeListDto> getAllRecipes(RestClient client) {
@@ -74,22 +74,22 @@ class RecipeIntegrationTest {
                 });
     }
 
-    private RecipeDto getRecipe(RestClient client, UUID id) {
+    private RecipeDetailsDto getRecipe(RestClient client, UUID id) {
         return client
                 .get()
                 .uri("/recipes/" + id)
                 .retrieve()
-                .body(RecipeDto.class);
+                .body(RecipeDetailsDto.class);
     }
 
-    private RecipeDto updateRecipe(RestClient client, UUID id, String name, RecipeData data, UUID collectionId) {
+    private RecipeDetailsDto updateRecipe(RestClient client, UUID id, String name, RecipeData data, UUID collectionId) {
         UpdateRecipeRequest request = new UpdateRecipeRequest(name, data, collectionId, List.of());
         return client
                 .put()
                 .uri("/recipes/" + id)
                 .body(request)
                 .retrieve()
-                .body(RecipeDto.class);
+                .body(RecipeDetailsDto.class);
     }
 
     private void deleteRecipe(RestClient client, UUID id) {
@@ -176,7 +176,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto pizzaResponse = createRecipe(client, "Pizza Margherita", pizzaData, null);
+        RecipeDetailsDto pizzaResponse = createRecipe(client, "Pizza Margherita", pizzaData, null);
         assertThat(pizzaResponse).isNotNull();
         assertThat(pizzaResponse.name()).isEqualTo("Pizza Margherita");
 
@@ -195,7 +195,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto pastaResponse = createRecipe(client, "Spaghetti Carbonara", pastaData, null);
+        RecipeDetailsDto pastaResponse = createRecipe(client, "Spaghetti Carbonara", pastaData, null);
         assertThat(pastaResponse).isNotNull();
         assertThat(pastaResponse.name()).isEqualTo("Spaghetti Carbonara");
 
@@ -211,7 +211,7 @@ class RecipeIntegrationTest {
                 .contains("Pizza Margherita", "Spaghetti Carbonara");
 
         // READ: Get detailed recipe
-        RecipeDto detailedRecipe = getRecipe(client, pizzaResponse.id());
+        RecipeDetailsDto detailedRecipe = getRecipe(client, pizzaResponse.id());
         assertThat(detailedRecipe).isNotNull();
         assertThat(detailedRecipe.name()).isEqualTo("Pizza Margherita");
         assertThat(detailedRecipe.data().ingredients()).hasSize(3);
@@ -235,7 +235,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto updatedRecipe = updateRecipe(client, pizzaResponse.id(), "Updated Pizza Margherita", updatedPizzaData, null);
+        RecipeDetailsDto updatedRecipe = updateRecipe(client, pizzaResponse.id(), "Updated Pizza Margherita", updatedPizzaData, null);
 
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.id()).isEqualTo(pizzaResponse.id());
@@ -245,7 +245,7 @@ class RecipeIntegrationTest {
         assertThat(updatedRecipe.data().ingredients().getFirst().quantity()).isEqualTo("400g");
 
         // READ: Verify GET shows updated data
-        RecipeDto fetchedUpdatedRecipe = getRecipe(client, pizzaResponse.id());
+        RecipeDetailsDto fetchedUpdatedRecipe = getRecipe(client, pizzaResponse.id());
         assertThat(fetchedUpdatedRecipe).isNotNull();
         assertThat(fetchedUpdatedRecipe.name()).isEqualTo("Updated Pizza Margherita");
         assertThat(fetchedUpdatedRecipe.data().ingredients()).hasSize(3);
@@ -320,7 +320,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto user1Recipe = createRecipe(user1Client, "User 1 Recipe", user1RecipeData, null);
+        RecipeDetailsDto user1Recipe = createRecipe(user1Client, "User 1 Recipe", user1RecipeData, null);
         assertThat(user1Recipe).isNotNull();
         assertThat(user1Recipe.name()).isEqualTo("User 1 Recipe");
 
@@ -331,7 +331,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto user2Recipe = createRecipe(user2Client, "User 2 Recipe", user2RecipeData, null);
+        RecipeDetailsDto user2Recipe = createRecipe(user2Client, "User 2 Recipe", user2RecipeData, null);
         assertThat(user2Recipe).isNotNull();
         assertThat(user2Recipe.name()).isEqualTo("User 2 Recipe");
 
@@ -370,7 +370,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto user1Recipe = createRecipe(user1Client, "Secret Recipe", recipeData, null);
+        RecipeDetailsDto user1Recipe = createRecipe(user1Client, "Secret Recipe", recipeData, null);
         assertThat(user1Recipe).isNotNull();
 
         // User 2 should not be able to access user 1's recipe
@@ -413,7 +413,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto ownerRecipe = createRecipe(user1Client, "Shared Recipe", recipeData, null);
+        RecipeDetailsDto ownerRecipe = createRecipe(user1Client, "Shared Recipe", recipeData, null);
         assertThat(ownerRecipe).isNotNull();
         assertThat(ownerRecipe.role()).isEqualTo(UserRole.OWNER);
 
@@ -429,7 +429,7 @@ class RecipeIntegrationTest {
         shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
 
         // User 2 should now have EDITOR access
-        RecipeDto sharedRecipe = getRecipe(user2Client, ownerRecipe.id());
+        RecipeDetailsDto sharedRecipe = getRecipe(user2Client, ownerRecipe.id());
         assertThat(sharedRecipe).isNotNull();
         assertThat(sharedRecipe.role()).isEqualTo(UserRole.EDITOR);
         assertThat(sharedRecipe.name()).isEqualTo("Shared Recipe");
@@ -450,7 +450,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto updatedRecipe = updateRecipe(user2Client, ownerRecipe.id(), "Updated Shared Recipe", updatedData, null);
+        RecipeDetailsDto updatedRecipe = updateRecipe(user2Client, ownerRecipe.id(), "Updated Shared Recipe", updatedData, null);
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.name()).isEqualTo("Updated Shared Recipe");
         assertThat(updatedRecipe.role()).isEqualTo(UserRole.EDITOR);
@@ -498,7 +498,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto ownerRecipe = createRecipe(user1Client, "Editor Sharing Test Recipe", recipeData, null);
+        RecipeDetailsDto ownerRecipe = createRecipe(user1Client, "Editor Sharing Test Recipe", recipeData, null);
         assertThat(ownerRecipe).isNotNull();
 
         // User 1 shares recipe with User 2 (making User 2 an EDITOR)
@@ -508,7 +508,7 @@ class RecipeIntegrationTest {
         shareRecipe(user2Client, ownerRecipe.id(), "user@example.com");
 
         // Verify the third user now has access
-        RecipeDto thirdUserRecipe = getRecipe(user3Client, ownerRecipe.id());
+        RecipeDetailsDto thirdUserRecipe = getRecipe(user3Client, ownerRecipe.id());
         assertThat(thirdUserRecipe).isNotNull();
         assertThat(thirdUserRecipe.role()).isEqualTo(UserRole.EDITOR);
 
@@ -532,7 +532,7 @@ class RecipeIntegrationTest {
         }
 
         // Verify User 1 (OWNER) still has access
-        RecipeDto ownerStillHasAccess = getRecipe(user1Client, ownerRecipe.id());
+        RecipeDetailsDto ownerStillHasAccess = getRecipe(user1Client, ownerRecipe.id());
         assertThat(ownerStillHasAccess).isNotNull();
         assertThat(ownerStillHasAccess.role()).isEqualTo(UserRole.OWNER);
     }
@@ -549,7 +549,7 @@ class RecipeIntegrationTest {
                 ""
         );
 
-        RecipeDto ownerRecipe = createRecipe(user1Client, "Recipe To Be Shared", recipeData, null);
+        RecipeDetailsDto ownerRecipe = createRecipe(user1Client, "Recipe To Be Shared", recipeData, null);
         assertThat(ownerRecipe).isNotNull();
 
         // User 2 should not see the recipe in their list initially
@@ -585,7 +585,7 @@ class RecipeIntegrationTest {
         // Create a recipe with collection assignment
         RecipeData recipeData = createTestRecipeData();
 
-        RecipeDto response = createRecipe(client, "Pasta", recipeData, collection.id());
+        RecipeDetailsDto response = createRecipe(client, "Pasta", recipeData, collection.id());
 
         assertThat(response).isNotNull();
         assertThat(response.name()).isEqualTo("Pasta");
@@ -600,7 +600,7 @@ class RecipeIntegrationTest {
         // Create a recipe without collection assignment
         RecipeData recipeData = createTestRecipeData();
 
-        RecipeDto response = createRecipe(client, "Standalone Recipe", recipeData, null);
+        RecipeDetailsDto response = createRecipe(client, "Standalone Recipe", recipeData, null);
 
         assertThat(response).isNotNull();
         assertThat(response.name()).isEqualTo("Standalone Recipe");
@@ -615,7 +615,7 @@ class RecipeIntegrationTest {
         // Create a recipe without collection
         RecipeData recipeData = createTestRecipeData();
 
-        RecipeDto createdRecipe = createRecipe(client, "Recipe to Assign", recipeData, null);
+        RecipeDetailsDto createdRecipe = createRecipe(client, "Recipe to Assign", recipeData, null);
 
         assertThat(createdRecipe.collectionId()).isNull();
 
@@ -623,7 +623,7 @@ class RecipeIntegrationTest {
         RecipesCollectionListDto collection = createCollection(client, "My Collection");
 
         // Update recipe to assign it to the collection
-        RecipeDto updatedRecipe = updateRecipe(client, createdRecipe.id(), "Recipe to Assign", recipeData, collection.id());
+        RecipeDetailsDto updatedRecipe = updateRecipe(client, createdRecipe.id(), "Recipe to Assign", recipeData, collection.id());
 
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.collectionId()).isEqualTo(collection.id());
@@ -640,12 +640,12 @@ class RecipeIntegrationTest {
         // Create a recipe in the collection
         RecipeData recipeData = createTestRecipeData();
 
-        RecipeDto createdRecipe = createRecipe(client, "Recipe in Collection", recipeData, collection.id());
+        RecipeDetailsDto createdRecipe = createRecipe(client, "Recipe in Collection", recipeData, collection.id());
 
         assertThat(createdRecipe.collectionId()).isEqualTo(collection.id());
 
         // Update recipe to remove it from the collection (set collectionId to null)
-        RecipeDto updatedRecipe = updateRecipe(client, createdRecipe.id(), "Recipe in Collection", recipeData, null);
+        RecipeDetailsDto updatedRecipe = updateRecipe(client, createdRecipe.id(), "Recipe in Collection", recipeData, null);
 
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.collectionId()).isNull();
@@ -662,10 +662,10 @@ class RecipeIntegrationTest {
         // Create a recipe in the collection
         RecipeData recipeData = createTestRecipeData();
 
-        RecipeDto createdRecipe = createRecipe(client, "Tiramisu", recipeData, collection.id());
+        RecipeDetailsDto createdRecipe = createRecipe(client, "Tiramisu", recipeData, collection.id());
 
         // Fetch the recipe detail via GET endpoint
-        RecipeDto fetchedRecipe = getRecipe(client, createdRecipe.id());
+        RecipeDetailsDto fetchedRecipe = getRecipe(client, createdRecipe.id());
 
         assertThat(fetchedRecipe).isNotNull();
         assertThat(fetchedRecipe.name()).isEqualTo("Tiramisu");
@@ -825,7 +825,7 @@ class RecipeIntegrationTest {
         // Setup: User1 creates collection with recipe
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared Recipes");
         RecipeData testData = createTestRecipeData();
-        RecipeDto createdRecipe = createRecipe(user1Client, "Pasta Carbonara", testData, collection.id());
+        RecipeDetailsDto createdRecipe = createRecipe(user1Client, "Pasta Carbonara", testData, collection.id());
 
         // User2 should not have access initially
         try {
@@ -839,7 +839,7 @@ class RecipeIntegrationTest {
         shareCollection(user1Client, collection.id(), "user2@example.com");
 
         // Test: User2 should now have access to recipe via shared collection
-        RecipeDto recipeForUser2 = getRecipe(user2Client, createdRecipe.id());
+        RecipeDetailsDto recipeForUser2 = getRecipe(user2Client, createdRecipe.id());
 
         // Verify: User2 can access the recipe with EDITOR role (via collection)
         assertThat(recipeForUser2).isNotNull();

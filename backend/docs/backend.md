@@ -35,7 +35,6 @@ backend/
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering (all, by collection, unassigned, accessible)
 │   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management (upload, update, reorder, delete)
 │   │   ├── RecipeController.java        # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
-│   │   ├── RecipeDto.java               # Recipe response DTO with role, collectionId, and collectionName
 │   │   ├── RecipeDetailsDto.java        # Recipe details response DTO with images array
 │   │   ├── RecipeListDto.java           # Recipe list response DTO with thumbnail URL
 │   │   ├── CreateRecipeRequest.java     # Create recipe request DTO

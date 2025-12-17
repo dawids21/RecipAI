@@ -161,7 +161,8 @@
         },
         "role": "OWNER",
         "collectionId": "550e8400-e29b-41d4-a716-446655440000",
-        "collectionName": "Italian Recipes"
+        "collectionName": "Italian Recipes",
+        "images": []
       }
       ```
     - Success: 201 Created
@@ -267,7 +268,14 @@
           },
           "role": "OWNER",
           "collectionId": "550e8400-e29b-41d4-a716-446655440000",
-          "collectionName": "Italian Recipes"
+          "collectionName": "Italian Recipes",
+          "images": [
+            {
+              "id": "existing-uuid-1",
+              "url": "https://s3.amazonaws.com/recipes/uuid/existing-uuid-1.jpg",
+              "thumbnailUrl": "https://s3.amazonaws.com/recipes/uuid/existing-uuid-1-thumb.jpg"
+            }
+          ]
         }
         ```
       - Success: 200 OK

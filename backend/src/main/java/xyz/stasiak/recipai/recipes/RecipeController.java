@@ -56,16 +56,16 @@ class RecipeController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<RecipeDto> createRecipe(@Valid @RequestBody CreateRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<RecipeDetailsDto> createRecipe(@Valid @RequestBody CreateRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Creating recipe with name: {} for user: {}", request.name(), userEmail);
-        RecipeDto savedRecipe = recipeService.save(request, userEmail);
+        RecipeDetailsDto savedRecipe = recipeService.save(request, userEmail);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(savedRecipe);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<RecipeDto> createRecipeWithImages(
+    public ResponseEntity<RecipeDetailsDto> createRecipeWithImages(
             @RequestPart("data") @Valid CreateRecipeRequest request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @AuthenticationPrincipal Jwt jwt) {
@@ -76,21 +76,21 @@ class RecipeController {
             images = List.of();
         }
 
-        RecipeDto savedRecipe = recipeService.save(request, images, userEmail);
+        RecipeDetailsDto savedRecipe = recipeService.save(request, images, userEmail);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(savedRecipe);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<RecipeDto> updateRecipe(@PathVariable UUID id, @Valid @RequestBody UpdateRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<RecipeDetailsDto> updateRecipe(@PathVariable UUID id, @Valid @RequestBody UpdateRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Updating recipe with id: {} for user: {}", id, userEmail);
-        RecipeDto updatedRecipe = recipeService.updateById(id, request, userEmail);
+        RecipeDetailsDto updatedRecipe = recipeService.updateById(id, request, userEmail);
         return ResponseEntity.ok(updatedRecipe);
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<RecipeDto> updateRecipeWithImages(
+    public ResponseEntity<RecipeDetailsDto> updateRecipeWithImages(
             @PathVariable UUID id,
             @RequestPart("data") @Valid UpdateRecipeRequest request,
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
@@ -101,7 +101,7 @@ class RecipeController {
         if (images == null) {
             images = List.of();
         }
-        RecipeDto updatedRecipe = recipeService.updateById(id, request, images, userEmail);
+        RecipeDetailsDto updatedRecipe = recipeService.updateById(id, request, images, userEmail);
         return ResponseEntity.ok(updatedRecipe);
     }
 

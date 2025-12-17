@@ -76,12 +76,12 @@ class RecipeService {
     }
 
     @Transactional
-    public RecipeDto save(CreateRecipeRequest request, String userEmail) {
+    public RecipeDetailsDto save(CreateRecipeRequest request, String userEmail) {
         return save(request, null, userEmail);
     }
 
     @Transactional
-    public RecipeDto save(CreateRecipeRequest request, List<MultipartFile> images, String userEmail) {
+    public RecipeDetailsDto save(CreateRecipeRequest request, List<MultipartFile> images, String userEmail) {
         log.debug("Creating recipe with name: {} for user: {}", request.name(), userEmail);
 
         Recipe recipe = new Recipe();
@@ -114,16 +114,17 @@ class RecipeService {
             recipeImagesService.uploadImages(savedRecipe.getId(), request.images(), images);
         }
 
-        return toDto(savedRecipe, UserRole.OWNER, collectionDto != null ? collectionDto.name() : null);
+        List<RecipeImageDto> recipeImages = recipeImagesService.findImagesById(savedRecipe.getId());
+        return toDetailsDto(savedRecipe, UserRole.OWNER, collectionDto != null ? collectionDto.name() : null, recipeImages);
     }
 
     @Transactional
-    public RecipeDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
+    public RecipeDetailsDto updateById(UUID id, UpdateRecipeRequest request, String userEmail) {
         return updateById(id, request, List.of(), userEmail);
     }
 
     @Transactional
-    public RecipeDto updateById(UUID id, UpdateRecipeRequest request, List<MultipartFile> images, String userEmail) {
+    public RecipeDetailsDto updateById(UUID id, UpdateRecipeRequest request, List<MultipartFile> images, String userEmail) {
         log.debug("Updating recipe with id: {} and {} images for user: {}", id, images.size(), userEmail);
 
         Recipe existingRecipe = recipeRepository.findById(id)
@@ -157,7 +158,8 @@ class RecipeService {
 
         log.info("Recipe updated with id: {}", savedRecipe.getId());
 
-        return toDto(savedRecipe, userRole, collectionDto != null ? collectionDto.name() : null);
+        List<RecipeImageDto> recipeImages = recipeImagesService.findImagesById(savedRecipe.getId());
+        return toDetailsDto(savedRecipe, userRole, collectionDto != null ? collectionDto.name() : null, recipeImages);
     }
 
     @Transactional
@@ -180,11 +182,6 @@ class RecipeService {
         recipeRepository.deleteById(id);
 
         recipeImagesService.deleteAllImages(id);
-    }
-
-    private RecipeDto toDto(Recipe recipe, UserRole userRole, String collectionName) {
-        RecipeData recipeData = convertToRecipeData(recipe.getData());
-        return new RecipeDto(recipe.getId(), recipe.getName(), recipeData, userRole, recipe.getRecipesCollectionId(), collectionName);
     }
 
     private RecipeDetailsDto toDetailsDto(Recipe recipe, UserRole userRole, String collectionName, List<RecipeImageDto> images) {
