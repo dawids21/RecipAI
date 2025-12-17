@@ -12,6 +12,7 @@
 - Image Picker 1.2.0 - Plugin for selecting images from camera and gallery
 - HTTP Parser 4.1.2 - HTTP content type parsing for multipart uploads
 - MIME 2.0.0 - MIME type detection for file uploads
+- URL Launcher 6.3.2 - Plugin for opening URLs in external browser
 - Flutter Lints 5.0.0 (dev dependency)
 - Flutter Test (dev dependency)
 

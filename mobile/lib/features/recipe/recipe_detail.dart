@@ -1,5 +1,29 @@
 import 'package:recipai_mobile/shared/user_role.dart';
 
+class RecipeImage {
+  final String id;
+  final String url;
+  final String thumbnailUrl;
+
+  const RecipeImage({
+    required this.id,
+    required this.url,
+    required this.thumbnailUrl,
+  });
+
+  factory RecipeImage.fromJson(Map<String, dynamic> json) {
+    return RecipeImage(
+      id: json['id'] as String,
+      url: json['url'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'url': url, 'thumbnailUrl': thumbnailUrl};
+  }
+}
+
 class Ingredient {
   final String name;
   final String quantity;
@@ -37,8 +61,13 @@ class Instruction {
 class RecipeData {
   final List<Ingredient> ingredients;
   final List<Instruction> instructions;
+  final String? sourceUrl;
 
-  const RecipeData({required this.ingredients, required this.instructions});
+  const RecipeData({
+    required this.ingredients,
+    required this.instructions,
+    this.sourceUrl,
+  });
 
   factory RecipeData.fromJson(Map<String, dynamic> json) {
     return RecipeData(
@@ -54,6 +83,7 @@ class RecipeData {
                 Instruction.fromJson(instruction as Map<String, dynamic>),
           )
           .toList(),
+      sourceUrl: json['sourceUrl'] as String?,
     );
   }
 
@@ -65,6 +95,7 @@ class RecipeData {
       'instructions': instructions
           .map((instruction) => instruction.toJson())
           .toList(),
+      'sourceUrl': sourceUrl,
     };
   }
 }
@@ -76,6 +107,7 @@ class RecipeDetail {
   final UserRole role;
   final String? collectionId;
   final String? collectionName;
+  final List<RecipeImage> images;
 
   const RecipeDetail({
     required this.id,
@@ -84,6 +116,7 @@ class RecipeDetail {
     required this.role,
     this.collectionId,
     this.collectionName,
+    this.images = const [],
   });
 
   factory RecipeDetail.fromJson(Map<String, dynamic> json) {
@@ -94,6 +127,14 @@ class RecipeDetail {
       role: UserRole.fromApiString(json['role'] as String),
       collectionId: json['collectionId'] as String?,
       collectionName: json['collectionName'] as String?,
+      images: json['images'] != null
+          ? (json['images'] as List<dynamic>)
+                .map(
+                  (image) =>
+                      RecipeImage.fromJson(image as Map<String, dynamic>),
+                )
+                .toList()
+          : [],
     );
   }
 
@@ -104,6 +145,7 @@ class RecipeDetail {
       'data': data.toJson(),
       'role': role.toApiString(),
       'recipesCollectionId': collectionId,
+      'images': images.map((image) => image.toJson()).toList(),
     };
   }
 }

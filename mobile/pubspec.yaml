@@ -58,6 +58,9 @@ dependencies:
   http_parser: ^4.1.2
   mime: ^2.0.0
 
+  # URL launcher for opening URLs in external browser
+  url_launcher: ^6.3.2
+
   # Dependency injection
   get_it: ^8.2.0
 

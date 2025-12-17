@@ -10,7 +10,9 @@ import '../../shared/user_role.dart';
 import 'ingredient_bullet.dart';
 import 'recipe_detail.dart';
 import 'recipe_detail_service.dart';
+import 'recipe_image_carousel.dart';
 import 'recipe_sharing_dialog.dart';
+import 'source_link_widget.dart';
 import 'step_number_badge.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -221,6 +223,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (recipeDetail.images.isNotEmpty) ...[
+                        RecipeImageCarousel(images: recipeDetail.images),
+                        const SizedBox(height: AppSpacing.large),
+                      ],
+
                       // Recipe Name
                       Text(
                         recipeDetail.name,
@@ -233,18 +240,41 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       if (recipeDetail.collectionName != null) ...[
                         const SizedBox(height: AppSpacing.small),
                         Row(
+                          spacing: AppSpacing.extraSmall,
                           children: [
                             Icon(
                               Icons.folder,
                               size: 16,
                               color: theme.colorScheme.primary,
                             ),
-                            const SizedBox(width: AppSpacing.extraSmall),
+                            Text(
+                              'Collection:',
+                              style: theme.textTheme.bodyMedium,
+                            ),
                             Text(
                               '${recipeDetail.collectionName}',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.colorScheme.primary,
                               ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      if (recipeDetail.data.sourceUrl != null &&
+                          recipeDetail.data.sourceUrl!.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.small),
+                        Row(
+                          spacing: AppSpacing.extraSmall,
+                          children: [
+                            Icon(
+                              Icons.link,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
+                            Text('Source:', style: theme.textTheme.bodyMedium),
+                            SourceLinkWidget(
+                              sourceUrl: recipeDetail.data.sourceUrl!,
                             ),
                           ],
                         ),

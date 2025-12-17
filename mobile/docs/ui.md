@@ -13,13 +13,20 @@
 
 - Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with horizontal
   Recipe Filter Bar.
+- Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes with optional
+  thumbnails in a list
 - Recipe Filter Bar (`recipe_filter_bar.dart`) - Self-contained horizontal scrollable chip filter widget using Material
   3
   ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
-- Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including ingredients and instructions
-  with Edit FAB, Share button, and role-based conditional Delete button for recipe management. Shows collection name
-  when recipe is assigned to a collection
+- Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including image carousel (when images
+  available), ingredients, and instructions with Edit FAB, Share button, and role-based conditional Delete button for
+  recipe management. Shows collection name with folder icon when recipe is assigned to a collection. Displays source URL
+  as clickable link with link icon when available.
+- Recipe Image Carousel (`recipe_image_carousel.dart`) - Full-width image carousel widget using PageView with 1:1 aspect
+  ratio.
+- Source Link Widget (`source_link_widget.dart`) - Clickable widget for opening recipe source URLs using url_launcher
+  package. Displays domain name extracted from URL.
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
   RecipeFormWidget. Automatically prefills collection dropdown when user has an active collection filter, enabling
   context-aware recipe creation
@@ -29,7 +36,6 @@
   functionality. Accepts optional initialCollection parameter to prefill collection dropdown. Dropdown shows
   loading/error states and all available collections with "None" option to create recipes without collection. Prefill
   priority: initialRecipe's collection > initialCollection > null
-- Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes in a list
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
