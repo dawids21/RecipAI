@@ -1,4 +1,4 @@
-package xyz.stasiak.recipai.security;
+package xyz.stasiak.recipai.config.security;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +21,9 @@ class SecurityConfig {
 
         return http
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/recipes/**", "/extract/**", "/users/**", "/shopping-lists/**", "/collections/**").authenticated()
-                        .anyRequest().permitAll()
+                        .anyRequest().denyAll()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(Customizer.withDefaults())

@@ -10,11 +10,11 @@
 - `recipes.images` - manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and
   presigned URL generation for secure image access (maximum 2 images per recipe)
 - `extraction` - extracts recipes from text/images using AI
-- `security` - handles OAuth2 Resource Server authentication with JWT tokens
 - `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access,
   optimistic locking with If-Match headers for all item operations, and comprehensive item management including update,
   move, check, and uncheck functionality)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
+- `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 
 ## Codebase Structure
 
@@ -23,9 +23,11 @@ backend/
 ├── src/main/java/xyz/stasiak/recipai/
 │   ├── RecipAiApplication.java          # Main Spring Boot application entry point
 │   ├── config/                          # Configuration modules
-│   │   └── s3/                          # S3 configuration
-│   │       ├── S3Config.java            # S3 client and presigner bean configuration
-│   │       └── S3Properties.java        # S3 configuration properties (bucket name, region, presigned URL expiration)
+│   │   ├── s3/                          # S3 configuration
+│   │   │   ├── S3Config.java            # S3 client and presigner bean configuration
+│   │   │   └── S3Properties.java        # S3 configuration properties (bucket name, region, presigned URL expiration)
+│   │   └── security/                    # Security configuration
+│   │       └── SecurityConfig.java      # OAuth2 Resource Server configuration
 │   ├── recipes/                         # "recipes" module
 │   │   ├── Recipe.java                  # Recipe entity
 │   │   ├── RecipePermission.java        # User-Recipe association entity with roles
@@ -112,8 +114,6 @@ backend/
 │   │       ├── ShoppingListAccessDeniedException.java # Access denied exception
 │   │       ├── ShoppingListItemNotFoundException.java # Item not found exception
 │   │       └── ShoppingListItemVersionMismatchException.java # Item version mismatch exception
-│   └── security/                        # "security" module
-│       └── SecurityConfig.java          # OAuth2 Resource Server configuration
 ├── src/main/resources/
 │   ├── application.yml                  # Common Spring Boot configuration (shared across all profiles)
 │   ├── application-dev.yml              # Development profile configuration
