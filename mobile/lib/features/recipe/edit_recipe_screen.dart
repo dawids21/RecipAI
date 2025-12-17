@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'collection/recipes_collection_list_service.dart';
-import 'recipe_detail.dart';
 import 'recipe_detail_service.dart';
 import 'recipe_form_widget.dart';
 
@@ -24,8 +23,12 @@ class EditRecipeScreen extends StatefulWidget {
 }
 
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
-  Future<void> _updateRecipe(RecipeDetail recipe) async {
-    await widget.recipeDetailService.updateRecipe(widget.recipeId, recipe);
+  Future<void> _updateRecipe(recipeRequest, images) async {
+    await widget.recipeDetailService.updateRecipe(
+      widget.recipeId,
+      recipeRequest,
+      images,
+    );
   }
 
   @override

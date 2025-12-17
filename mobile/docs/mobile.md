@@ -22,9 +22,10 @@
 - Recipe (`recipe.dart`) - Basic recipe data model with id, name, and optional thumbnailUrl
 - Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including ingredients,
   instructions,
-  source url, UserRole enum (owner/editor), and optional imhges (RecipeImage class with id, url, and thumbnailUrl
+  source url, UserRole enum (owner/editor), and optional images (RecipeImage class with id, url, and thumbnailUrl
   fields),
   collectionId and collectionName fields for recipe-to-collection assignment
+- Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images during creation/editing.
 - Shared User (`shared_user.dart`) - Data model for recipe sharing API responses containing email and UserRole enum
 - User Role (`user_role.dart`) - Enum defining user roles (owner, editor) with API conversion methods for
   uppercase/lowercase handling
@@ -77,6 +78,8 @@ mobile/
 │       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
 │       │   ├── recipe_list_item.dart   # Recipe list item widget with thumbnail support
 │       │   ├── recipe_image_carousel.dart # Image carousel widget with PageView and pagination
+│       │   ├── recipe_image_input.dart # Data model for managing recipe images (new/existing)
+│       │   ├── recipe_image_manager.dart # Widget for image upload, reordering, and removal
 │       │   ├── source_link_widget.dart # Clickable source URL widget with url_launcher integration
 │       │   ├── recipe_to_shopping_list_screen.dart # Add ingredients to shopping list screen
 │       │   ├── recipe_to_shopping_list_service.dart # Service for adding ingredients to shopping list

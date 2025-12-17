@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
+import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/app_config.dart';
 import 'recipe.dart';
@@ -96,7 +99,7 @@ class RecipeRepository {
   }
 
   Future<RecipeDetail> createRecipe(
-    RecipeDetail recipe,
+    RecipeRequest recipeRequest,
     String? idToken,
   ) async {
     try {
@@ -104,7 +107,7 @@ class RecipeRepository {
       final response = await _client.post(
         Uri.parse('$_baseUrl/recipes'),
         headers: headers,
-        body: json.encode(recipe.toJson()),
+        body: json.encode(recipeRequest.toJson()),
       );
 
       if (response.statusCode == 201) {
@@ -120,7 +123,7 @@ class RecipeRepository {
 
   Future<RecipeDetail> updateRecipe(
     String id,
-    RecipeDetail recipe,
+    RecipeRequest recipeRequest,
     String? idToken,
   ) async {
     try {
@@ -128,7 +131,7 @@ class RecipeRepository {
       final response = await _client.put(
         Uri.parse('$_baseUrl/recipes/$id'),
         headers: headers,
-        body: json.encode(recipe.toJson()),
+        body: json.encode(recipeRequest.toJson()),
       );
 
       if (response.statusCode == 200) {
@@ -239,6 +242,116 @@ class RecipeRepository {
       }
     } catch (e) {
       throw Exception('Network error while unsharing recipe: $e');
+    }
+  }
+
+  Future<RecipeDetail> createRecipeMultipart(
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+    String? idToken,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_baseUrl/recipes'),
+    );
+
+    if (idToken != null) {
+      request.headers['Authorization'] = 'Bearer $idToken';
+    }
+
+    request.files.add(
+      http.MultipartFile.fromString(
+        'data',
+        json.encode(recipeRequest.toJson()),
+        contentType: MediaType('application', 'json'),
+      ),
+    );
+
+    for (final image in images) {
+      if (image.isExistingImage) {
+        continue;
+      }
+      final imageFile = image.file!;
+      final mimeType = lookupMimeType(imageFile.path);
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'images',
+          imageFile.path,
+          filename: '${image.uuid}.$extension',
+          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+        ),
+      );
+    }
+
+    final response = await request.send();
+    final responseBody = await http.Response.fromStream(response);
+
+    if (responseBody.statusCode == 201) {
+      return RecipeDetail.fromJson(jsonDecode(responseBody.body));
+    } else if (responseBody.statusCode == 400) {
+      throw Exception(
+        'Invalid request. Check file size (max 5MB) and format (JPEG/PNG).',
+      );
+    } else {
+      throw Exception('Failed to create recipe: ${responseBody.statusCode}');
+    }
+  }
+
+  Future<RecipeDetail> updateRecipeMultipart(
+    String id,
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+    String? idToken,
+  ) async {
+    final request = http.MultipartRequest(
+      'PUT',
+      Uri.parse('$_baseUrl/recipes/$id'),
+    );
+
+    if (idToken != null) {
+      request.headers['Authorization'] = 'Bearer $idToken';
+    }
+
+    // Add JSON data as multipart file with correct content type
+    request.files.add(
+      http.MultipartFile.fromString(
+        'data',
+        json.encode(recipeRequest.toJson()),
+        contentType: MediaType('application', 'json'),
+      ),
+    );
+
+    for (final image in images) {
+      if (image.isExistingImage) {
+        continue;
+      }
+      final imageFile = image.file!;
+      final mimeType = lookupMimeType(imageFile.path);
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'images',
+          imageFile.path,
+          filename: '${image.uuid}.$extension',
+          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
+        ),
+      );
+    }
+
+    final response = await request.send();
+    final responseBody = await http.Response.fromStream(response);
+
+    if (responseBody.statusCode == 200) {
+      return RecipeDetail.fromJson(jsonDecode(responseBody.body));
+    } else if (responseBody.statusCode == 400) {
+      throw Exception(
+        'Invalid request. Check file size (max 5MB) and format (JPEG/PNG).',
+      );
+    } else if (responseBody.statusCode == 404) {
+      throw Exception('Recipe not found');
+    } else {
+      throw Exception('Failed to update recipe: ${responseBody.statusCode}');
     }
   }
 }

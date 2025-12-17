@@ -149,3 +149,26 @@ class RecipeDetail {
     };
   }
 }
+
+class RecipeRequest {
+  final String name;
+  final String? recipesCollectionId;
+  final RecipeData data;
+  final List<String> images;
+
+  const RecipeRequest({
+    required this.name,
+    this.recipesCollectionId,
+    required this.data,
+    required this.images,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'recipesCollectionId': recipesCollectionId,
+      'data': data.toJson(),
+      'images': images,
+    };
+  }
+}

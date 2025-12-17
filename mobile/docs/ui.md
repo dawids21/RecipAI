@@ -32,14 +32,20 @@
   context-aware recipe creation
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
-  and instruction inputs, validation, collection dropdown menu for optional collection assignment, and save
-  functionality. Accepts optional initialCollection parameter to prefill collection dropdown. Dropdown shows
-  loading/error states and all available collections with "None" option to create recipes without collection. Prefill
-  priority: initialRecipe's collection > initialCollection > null
+  and instruction inputs, validation, collection dropdown menu for optional collection assignment, image management
+  via RecipeImageManager, and save functionality. Accepts optional initialCollection parameter to prefill collection
+  dropdown. Dropdown shows loading/error states and all available collections with "None" option to create recipes
+  without collection. Prefill priority: initialRecipe's collection > initialCollection > null. Handles multipart form
+  submission when images are present
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
+- Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images with support for both new
+  uploads (XFile) and existing images (URL). Uses UUID for image tracking
+- Recipe Image Manager (`recipe_image_manager.dart`) - Widget for managing recipe images with camera/gallery selection
+  via bottom sheet modal, horizontal scrollable thumbnail list with drag-and-drop reordering (ReorderableListView) and
+  remove functionality
 - Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Modal dialog for sharing recipes with other users, featuring
   email input with validation, shared users list with UserRole enum display, and unshare functionality with Material
   Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current user

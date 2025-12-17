@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:recipai_mobile/core/widgets/sharing_dialog.dart';
+import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
@@ -49,13 +50,27 @@ class RecipeDetailService {
     _isLoadRecipeDetailRunning = false;
   }
 
-  Future<void> updateRecipe(String id, RecipeDetail recipe) async {
+  Future<void> updateRecipe(
+    String id,
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+  ) async {
     if (_isUpdateRecipeRunning) return;
     _isUpdateRecipeRunning = true;
 
     final result = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      return _recipeRepository.updateRecipe(id, recipe, token);
+
+      if (images.isNotEmpty) {
+        return _recipeRepository.updateRecipeMultipart(
+          id,
+          recipeRequest,
+          images,
+          token,
+        );
+      } else {
+        return _recipeRepository.updateRecipe(id, recipeRequest, token);
+      }
     });
 
     if (result is AsyncData) {

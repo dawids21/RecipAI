@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
@@ -55,13 +56,26 @@ class RecipeListService {
     _isLoadRecipesRunning = false;
   }
 
-  Future<void> createRecipe(RecipeDetail recipe) async {
+  Future<void> createRecipe(
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+  ) async {
     if (_isCreateRecipeRunning) return;
     _isCreateRecipeRunning = true;
 
     final result = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      return _recipeRepository.createRecipe(recipe, token);
+
+      // Use multipart if images present, otherwise JSON
+      if (images.isNotEmpty) {
+        return _recipeRepository.createRecipeMultipart(
+          recipeRequest,
+          images,
+          token,
+        );
+      } else {
+        return _recipeRepository.createRecipe(recipeRequest, token);
+      }
     });
 
     if (result is AsyncData) {

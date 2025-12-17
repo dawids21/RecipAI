@@ -40,8 +40,8 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     return selectedCollection;
   }
 
-  Future<void> _createRecipe(RecipeDetail recipe) async {
-    return widget.recipeListService.createRecipe(recipe);
+  Future<void> _createRecipe(recipeRequest, images) async {
+    return widget.recipeListService.createRecipe(recipeRequest, images);
   }
 
   @override

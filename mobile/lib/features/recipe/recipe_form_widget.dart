@@ -5,16 +5,21 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../shared/error_message_widget.dart';
 import '../../shared/loading_widget.dart';
-import '../../shared/user_role.dart';
 import 'collection/recipes_collection.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'ingredient_input_widget.dart';
 import 'recipe_detail.dart';
+import 'recipe_image_input.dart';
+import 'recipe_image_manager.dart';
 
 class RecipeFormWidget extends StatefulWidget {
   final RecipeDetail? initialRecipe;
   final RecipesCollection? initialCollection;
-  final Future<void> Function(RecipeDetail recipe) onSave;
+  final Future<void> Function(
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+  )
+  onSave;
   final RecipesCollectionListService recipesCollectionListService;
 
   const RecipeFormWidget({
@@ -33,8 +38,10 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _instructionsController = TextEditingController();
+  final _sourceUrlController = TextEditingController();
   final List<GlobalKey<State>> _ingredientKeys = [];
   final List<Ingredient?> _ingredients = [];
+  List<RecipeImageInput> _imageInputs = [];
   bool _isLoading = false;
   String? _errorMessage;
   RecipesCollection? _selectedCollection;
@@ -53,6 +60,14 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       _instructionsController.text = initialRecipe.data.instructions
           .map((instruction) => instruction.step)
           .join('\n');
+
+      // Initialize source URL
+      _sourceUrlController.text = initialRecipe.data.sourceUrl ?? '';
+
+      // Convert existing images to RecipeImageInput
+      _imageInputs = initialRecipe.images
+          .map((img) => RecipeImageInput.existing(img.id, img.url))
+          .toList();
 
       // Build selected collection from recipe details
       if (initialRecipe.collectionId != null &&
@@ -98,6 +113,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
   void dispose() {
     _nameController.dispose();
     _instructionsController.dispose();
+    _sourceUrlController.dispose();
     super.dispose();
   }
 
@@ -183,19 +199,19 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       final recipeData = RecipeData(
         ingredients: validIngredients,
         instructions: validInstructions,
+        sourceUrl: _sourceUrlController.text.trim().isNotEmpty
+            ? _sourceUrlController.text.trim()
+            : null,
       );
 
-      final recipe = RecipeDetail(
-        id: widget.initialRecipe?.id ?? '',
-        // Keep existing ID for updates
+      final recipeRequest = RecipeRequest(
         name: _nameController.text.trim(),
+        recipesCollectionId: _selectedCollection?.id,
         data: recipeData,
-        role: widget.initialRecipe?.role ?? UserRole.owner,
-        collectionId: _selectedCollection?.id,
-        collectionName: _selectedCollection?.name,
+        images: _imageInputs.map((img) => img.uuid).toList(),
       );
 
-      await widget.onSave(recipe);
+      await widget.onSave(recipeRequest, _imageInputs);
 
       if (mounted) {
         // Show success message
@@ -326,6 +342,44 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                             );
                           },
                         );
+                      },
+                    ),
+
+                    // Source URL field
+                    const SizedBox(height: AppSpacing.medium),
+                    TextFormField(
+                      controller: _sourceUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'Source URL (optional)',
+                      ),
+                      keyboardType: TextInputType.url,
+                      validator: (value) {
+                        if (value != null && value.trim().isNotEmpty) {
+                          final uri = Uri.tryParse(value.trim());
+                          if (uri == null ||
+                              !uri.hasScheme ||
+                              (uri.scheme != 'http' && uri.scheme != 'https')) {
+                            return 'Please enter a valid URL';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+
+                    // Images section
+                    const SizedBox(height: AppSpacing.large),
+                    Text(
+                      'Images (optional)',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    RecipeImageManager(
+                      initialImages: _imageInputs,
+                      existingImages: widget.initialRecipe?.images ?? [],
+                      onImagesChanged: (updatedImages) {
+                        setState(() {
+                          _imageInputs = updatedImages;
+                        });
                       },
                     ),
 
