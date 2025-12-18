@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 import 'recipe_detail.dart';
+import 'recipe_image_fullscreen_viewer.dart';
 
 class RecipeImageCarousel extends StatefulWidget {
   final List<RecipeImage> images;
@@ -28,46 +29,58 @@ class _RecipeImageCarouselState extends State<RecipeImageCarousel> {
     super.dispose();
   }
 
+  void _openFullScreenViewer(RecipeImage image) {
+    showDialog(
+      context: context,
+      builder: (context) => RecipeImageFullscreenViewer(image: image),
+      useSafeArea: false,
+    );
+  }
+
   Widget _buildImagePage(RecipeImage image) {
-    return Container(
-      color: Colors.black,
-      child: Image.network(
-        image.url,
-        fit: BoxFit.contain,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                  : null,
-              color: Colors.white,
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Colors.grey.shade800,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.broken_image,
-                    size: 64,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: AppSpacing.small),
-                  Text(
-                    'Failed to load image',
-                    style: TextStyle(color: Colors.grey.shade400),
-                  ),
-                ],
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: () => _openFullScreenViewer(image),
+      child: Container(
+        color: theme.colorScheme.surfaceContainer,
+        child: Image.network(
+          image.url,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                    : null,
+                color: Colors.white,
               ),
-            ),
-          );
-        },
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              color: Colors.grey.shade800,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.broken_image,
+                      size: 64,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    Text(
+                      'Failed to load image',
+                      style: TextStyle(color: Colors.grey.shade400),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

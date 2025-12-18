@@ -79,7 +79,8 @@ mobile/
 │       │   ├── recipe_list.dart        # Reusable recipe list body widget with filter bar integration
 │       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
 │       │   ├── recipe_list_item.dart   # Recipe list item widget with thumbnail support
-│       │   ├── recipe_image_carousel.dart # Image carousel widget with PageView and pagination
+│       │   ├── recipe_image_carousel.dart # Image carousel widget with PageView, pagination, and tap-to-zoom
+│       │   ├── recipe_image_fullscreen_viewer.dart # Fullscreen zoomable image viewer using photo_view package
 │       │   ├── recipe_image_input.dart # Data model for managing recipe images (new/existing)
 │       │   ├── recipe_image_manager.dart # Widget for image upload, reordering, and removal
 │       │   ├── initial_recipe_form_data.dart # Wrapper for passing extracted recipe data with images and source URL

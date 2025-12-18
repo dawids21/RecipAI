@@ -30,7 +30,7 @@
 - Logging: logging 1.2.0
 - Web content: webview_flutter 4.13.0
 - UI: flutter_speed_dial 7.0.0, cupertino_icons 1.0.8
-- Media: image_picker 1.2.0
+- Media: image_picker 1.2.0, photo_view 0.15.0
 - Platform integration: url_launcher 6.3.2
 - HTTP multipart utils: http_parser 4.1.2, mime 2.0.0
 - Firebase: firebase_core 4.1.0, firebase_auth 6.0.2, google_sign_in 7.1.1

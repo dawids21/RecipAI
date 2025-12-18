@@ -24,7 +24,10 @@
   recipe management. Shows collection name with folder icon when recipe is assigned to a collection. Displays source URL
   as clickable link with link icon when available.
 - Recipe Image Carousel (`recipe_image_carousel.dart`) - Full-width image carousel widget using PageView with 1:1 aspect
-  ratio.
+  ratio. Tapping an image opens a fullscreen zoomable viewer.
+- Recipe Image Fullscreen Viewer (`recipe_image_fullscreen_viewer.dart`) - Fullscreen dialog-based image viewer widget
+  using photo_view package. Features pinch-to-zoom (1x to 4x), pan when zoomed, double-tap to zoom, tap-to-dismiss, and
+  close button. Uses PhotoViewComputedScale for responsive scaling with transparent background.
 - Source Link Widget (`source_link_widget.dart`) - Clickable widget for opening recipe source URLs using url_launcher
   package. Displays domain name extracted from URL.
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
