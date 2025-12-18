@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/firebase_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_config.dart';
+import 'core/preferences_service.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_service.dart';
@@ -20,6 +22,9 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GoogleSignIn.instance.initialize();
   await AppConfig.loadConfig();
+
+  final prefs = await SharedPreferences.getInstance();
+  getIt.registerSingleton(PreferencesService(prefs));
 
   // DI
   setupAuth();

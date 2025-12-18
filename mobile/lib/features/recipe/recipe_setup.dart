@@ -1,4 +1,5 @@
 import 'package:recipai_mobile/core/get_it.dart';
+import 'package:recipai_mobile/core/preferences_service.dart';
 
 import '../auth/auth_service.dart';
 import 'recipe_detail_service.dart';
@@ -11,6 +12,7 @@ void setupRecipe() {
     () => RecipeListService(
       recipeRepository: getIt<RecipeRepository>(),
       authService: getIt<AuthService>(),
+      preferencesService: getIt<PreferencesService>(),
     ),
   );
   getIt.registerLazySingleton(

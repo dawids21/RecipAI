@@ -17,7 +17,8 @@
   thumbnails in a list
 - Recipe Filter Bar (`recipe_filter_bar.dart`) - Self-contained horizontal scrollable chip filter widget using Material
   3
-  ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips.
+  ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips. Selected filter
+  persists across app restarts using SharedPreferences.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including image carousel (when images
   available), ingredients, and instructions with Edit FAB, Share button, and role-based conditional Delete button for

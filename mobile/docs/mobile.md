@@ -55,6 +55,7 @@ mobile/
 │   │   ├── async_value.dart           # AsyncValue sealed class (Loading/Data/Error)
 │   │   ├── get_it.dart                # Global GetIt instance
 │   │   ├── feature_flags.dart         # Feature flags configuration using environment variables
+│   │   ├── preferences_service.dart   # SharedPreferences wrapper for local storage (recipe filter persistence)
 │   │   ├── theme.dart                 # App theme and spacing constants
 │   │   └── widgets/                    # Reusable widgets shared across features
 │   │       └── sharing_dialog.dart    # Generic sharing dialog with SharedUser DTO
@@ -130,6 +131,43 @@ mobile/
 ```
 
 ## Usage Patterns
+
+### Using Preferences Service
+
+`PreferencesService` provides a type-safe wrapper around SharedPreferences for local data persistence. It's registered
+as
+a singleton in `main.dart` and available via GetIt dependency injection.
+
+**Current supported preferences:**
+
+- Recipe filter collection ID - Persists the selected collection filter across app restarts
+
+**Usage example in services:**
+
+```dart
+class MyService {
+  final PreferencesService _preferencesService;
+
+  MyService({required PreferencesService preferencesService})
+          : _preferencesService = preferencesService;
+
+  void loadSavedState() {
+    // Read preference (synchronous - SharedPreferences caches values)
+    final savedFilter = _preferencesService.getRecipeFilterCollectionId();
+  }
+
+  Future<void> saveState(String? filterId) async {
+    // Write preference (asynchronous)
+    await _preferencesService.setRecipeFilterCollectionId(filterId);
+  }
+}
+```
+
+**Adding new preferences:**
+
+1. Add a constant key to `PreferencesService` (e.g., `static const String _myKey = 'my_preference_key';`)
+2. Add getter/setter methods following the existing pattern
+3. Inject `PreferencesService` into services that need the preference
 
 ### Using Feature Flags
 

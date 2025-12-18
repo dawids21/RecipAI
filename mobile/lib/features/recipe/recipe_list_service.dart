@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/async_value.dart';
+import '../../core/preferences_service.dart';
 import '../auth/auth_service.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
@@ -10,12 +11,17 @@ import 'recipe_repository.dart';
 class RecipeListService {
   final RecipeRepository _recipeRepository;
   final AuthService _authService;
+  final PreferencesService _preferencesService;
 
   RecipeListService({
     required RecipeRepository recipeRepository,
     required AuthService authService,
+    required PreferencesService preferencesService,
   }) : _recipeRepository = recipeRepository,
-       _authService = authService;
+       _authService = authService,
+       _preferencesService = preferencesService {
+    _loadSavedFilter();
+  }
 
   static const String unassignedFilterId = '__UNASSIGNED__';
 
@@ -32,8 +38,16 @@ class RecipeListService {
   bool _isLoadRecipesRunning = false;
   bool _isCreateRecipeRunning = false;
 
+  void _loadSavedFilter() {
+    final savedFilter = _preferencesService.getRecipeFilterCollectionId();
+    if (savedFilter != null) {
+      _selectedCollectionId.value = savedFilter;
+    }
+  }
+
   Future<void> setFilter(String? collectionId) async {
     _selectedCollectionId.value = collectionId;
+    _preferencesService.setRecipeFilterCollectionId(collectionId);
     await loadRecipes();
   }
 
