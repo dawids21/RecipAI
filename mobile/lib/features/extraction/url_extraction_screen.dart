@@ -36,6 +36,13 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onNavigationRequest: (request) {
+            final uri = Uri.parse(request.url);
+            if (uri.scheme == 'http' || uri.scheme == 'https') {
+              return NavigationDecision.navigate;
+            }
+            return NavigationDecision.prevent;
+          },
           onProgress: (progress) {
             setState(() {
               _isLoading = progress < 100;
