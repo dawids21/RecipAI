@@ -8,6 +8,7 @@
 - name: VARCHAR(255) NOT NULL
 - data: JSONB NOT NULL
 - recipes_collection_id: UUID NULL (FK -> recipes_collections.id)
+- created_at: TIMESTAMP NOT NULL
 
 ### recipe_images
 
@@ -26,6 +27,7 @@
 
 - id: UUID PRIMARY KEY
 - name: VARCHAR(255) NOT NULL
+- created_at: TIMESTAMP NOT NULL
 
 ### shopping_list_permission
 
@@ -50,6 +52,7 @@
 
 - id: UUID PRIMARY KEY
 - name: VARCHAR(255) NOT NULL
+- created_at: TIMESTAMP NOT NULL
 
 ### recipes_collection_permission
 
@@ -106,3 +109,6 @@
 - Composite primary key index on `recipe_permission(email, recipe_id)`
 - Composite primary key index on `shopping_list_permission(email, shopping_list_id)`
 - Composite primary key index on `recipes_collection_permission(email, recipes_collection_id)`
+- Index on `recipes(created_at)` - for ordering recipes by creation date
+- Index on `shopping_lists(created_at)` - for ordering shopping lists by creation date
+- Index on `recipes_collections(created_at)` - for ordering collections by creation date

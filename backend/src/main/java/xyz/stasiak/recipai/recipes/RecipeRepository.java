@@ -15,16 +15,18 @@ interface RecipeRepository extends JpaRepository<Recipe, UUID> {
             LEFT JOIN xyz.stasiak.recipai.recipes.collections.RecipesCollectionPermission cp ON cp.id.recipesCollectionId = r.recipesCollectionId
             WHERE rp.id.email = :email
             OR cp.id.email = :email
+            ORDER BY r.createdAt
             """)
     List<Recipe> findAllByUserEmail(@Param("email") String email);
 
-    List<Recipe> findAllByRecipesCollectionId(UUID recipesCollectionId);
+    List<Recipe> findAllByRecipesCollectionIdOrderByCreatedAt(UUID recipesCollectionId);
 
     @Query("""
             SELECT r FROM Recipe r
             INNER JOIN RecipePermission rp ON rp.id.recipeId = r.id
             WHERE rp.id.email = :email
             AND r.recipesCollectionId IS NULL
+            ORDER BY r.createdAt
             """)
     List<Recipe> findAllUnassignedByUserEmail(@Param("email") String email);
 }

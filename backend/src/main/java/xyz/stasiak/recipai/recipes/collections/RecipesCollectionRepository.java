@@ -7,6 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 interface RecipesCollectionRepository extends JpaRepository<RecipesCollection, UUID> {
-    @Query("SELECT c FROM RecipesCollection c INNER JOIN RecipesCollectionPermission cp ON cp.id.recipesCollectionId = c.id WHERE cp.id.email = :email")
+    @Query("SELECT c FROM RecipesCollection c INNER JOIN RecipesCollectionPermission cp ON cp.id.recipesCollectionId = c.id WHERE cp.id.email = :email ORDER BY c.createdAt")
     List<RecipesCollection> findAllByUserEmail(String email);
 }

@@ -11,7 +11,8 @@
 ### Recipes
 
 - GET /recipes
-    - Description: Get recipes as list with basic info, with optional filtering by collection or unassigned status
+    - Description: Get recipes as list with basic info, with optional filtering by collection or unassigned status.
+      Results are ordered by creation date (oldest first).
     - Authenticated: true
     - Query parameters:
         - `collectionId` (UUID, optional): Filter recipes by collection ID
@@ -23,6 +24,7 @@
         - With `collectionId`: Returns only recipes in the specified collection (requires user to have access to the
           collection)
         - With `unassigned=true`: Returns only recipes not assigned to any collection
+      - All results are ordered by creation date in ascending order (oldest first)
     - Example response:
       ```json
       [
@@ -461,7 +463,7 @@
 ### Shopping Lists
 
 - GET /shopping-lists
-    - Description: Get all shopping lists
+    - Description: Get all shopping lists ordered by creation date (oldest first)
     - Authenticated: true
     - Example response:
       ```json
@@ -817,7 +819,8 @@
 ### Recipe Collections
 
 - GET /collections
-    - Description: Get all recipes collections accessible by the authenticated user
+    - Description: Get all recipes collections accessible by the authenticated user, ordered by creation date (oldest
+      first)
     - Authenticated: true
     - Example response:
       ```json

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,6 +24,9 @@ class RecipesCollection {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 
     RecipesCollection(String name) {
         this.name = name;

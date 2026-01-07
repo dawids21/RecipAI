@@ -9,6 +9,7 @@ import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -33,6 +34,9 @@ class Recipe {
 
     @Column(name = "recipes_collection_id")
     private UUID recipesCollectionId;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 
     @Override
     public boolean equals(Object o) {

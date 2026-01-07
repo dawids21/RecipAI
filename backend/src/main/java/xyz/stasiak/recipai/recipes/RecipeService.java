@@ -42,7 +42,7 @@ class RecipeService {
         recipesCollectionService.findById(collectionId, userEmail);
 
         // If validation passes, fetch recipes in this collection
-        return recipeRepository.findAllByRecipesCollectionId(collectionId).stream()
+        return recipeRepository.findAllByRecipesCollectionIdOrderByCreatedAt(collectionId).stream()
                 .map(this::toRecipeListDto)
                 .toList();
     }
