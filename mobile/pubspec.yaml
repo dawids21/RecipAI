@@ -76,6 +76,9 @@ dependencies:
   # Local storage for preferences
   shared_preferences: ^2.2.2
 
+  # Fuzzy search
+  fuzzy: ^0.5.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

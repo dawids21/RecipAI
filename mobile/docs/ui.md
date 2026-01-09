@@ -12,13 +12,16 @@
 ### Recipe feature
 
 - Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with horizontal
-  Recipe Filter Bar.
+  Recipe Filter Bar and fuzzy search bar. Results are filtered by collection (server-side) and search query
+  (client-side with fuzzy matching).
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes with optional
   thumbnails in a list
 - Recipe Filter Bar (`recipe_filter_bar.dart`) - Self-contained horizontal scrollable chip filter widget using Material
   3
   ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips. Selected filter
   persists across app restarts using SharedPreferences.
+- Recipe Search Bar (`recipe_search_bar.dart`) - Search input widget with fuzzy matching for filtering recipes by name.
+  Updates results in real-time as user types. Results are ranked by fuzzy match score with best matches at top.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including image carousel (when images
   available), ingredients, and instructions with Edit FAB, Share button, and role-based conditional Delete button for

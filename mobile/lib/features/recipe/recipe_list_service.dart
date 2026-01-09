@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:fuzzy/fuzzy.dart';
 import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/async_value.dart';
@@ -29,11 +30,19 @@ class RecipeListService {
     const AsyncValue.loading(),
   );
 
-  ValueListenable<AsyncValue<List<Recipe>>> get recipes => _recipes;
-
   final ValueNotifier<String?> _selectedCollectionId = ValueNotifier(null);
 
   ValueListenable<String?> get selectedCollectionId => _selectedCollectionId;
+
+  final ValueNotifier<String> _searchQuery = ValueNotifier('');
+
+  ValueListenable<String> get searchQuery => _searchQuery;
+
+  final ValueNotifier<AsyncValue<List<Recipe>>> _filteredRecipes =
+      ValueNotifier(const AsyncValue.loading());
+
+  ValueListenable<AsyncValue<List<Recipe>>> get filteredRecipes =>
+      _filteredRecipes;
 
   bool _isLoadRecipesRunning = false;
   bool _isCreateRecipeRunning = false;
@@ -67,7 +76,51 @@ class RecipeListService {
         return _recipeRepository.fetchRecipesByCollectionId(filterValue, token);
       }
     });
+    _applySearchFilter();
     _isLoadRecipesRunning = false;
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery.value = query;
+    _applySearchFilter();
+  }
+
+  void _applySearchFilter() {
+    final currentRecipes = _recipes.value;
+    final query = _searchQuery.value.trim();
+
+    if (query.isEmpty) {
+      _filteredRecipes.value = currentRecipes;
+      return;
+    }
+
+    _filteredRecipes.value = currentRecipes.when(
+      loading: () => const AsyncValue.loading(),
+      error: (error) => AsyncValue.error(error),
+      data: (recipes) {
+        if (recipes.isEmpty) {
+          return const AsyncValue.data([]);
+        }
+
+        final fuse = Fuzzy(
+          recipes,
+          options: FuzzyOptions(
+            keys: [
+              WeightedKey(
+                name: 'name',
+                getter: (Recipe recipe) => recipe.name,
+                weight: 1.0,
+              ),
+            ],
+            threshold: 0.6,
+            shouldSort: true,
+          ),
+        );
+
+        final results = fuse.search(query);
+        return AsyncValue.data(results.map((result) => result.item).toList());
+      },
+    );
   }
 
   Future<void> createRecipe(
@@ -106,5 +159,7 @@ class RecipeListService {
   void dispose() {
     _recipes.dispose();
     _selectedCollectionId.dispose();
+    _searchQuery.dispose();
+    _filteredRecipes.dispose();
   }
 }

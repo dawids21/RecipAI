@@ -9,6 +9,7 @@ import 'recipe.dart';
 import 'recipe_filter_bar.dart';
 import 'recipe_list_item.dart';
 import 'recipe_list_service.dart';
+import 'recipe_search_bar.dart';
 
 class RecipeList extends StatefulWidget {
   final RecipeListService recipeListService;
@@ -47,11 +48,16 @@ class _RecipeListState extends State<RecipeList> {
           selectedCollectionId: widget.recipeListService.selectedCollectionId,
           onFilterChanged: (id) => widget.recipeListService.setFilter(id),
         ),
+        RecipeSearchBar(
+          searchQuery: widget.recipeListService.searchQuery,
+          onSearchChanged: (query) =>
+              widget.recipeListService.setSearchQuery(query),
+        ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
             child: ValueListenableBuilder(
-              valueListenable: widget.recipeListService.recipes,
+              valueListenable: widget.recipeListService.filteredRecipes,
               builder: (context, asyncValueRecipes, child) {
                 return asyncValueRecipes.when(
                   loading: () => const LoadingWidget(),

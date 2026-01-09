@@ -4,7 +4,7 @@
 
 - `recipe` - Contains recipe data models, UI screens, and widgets for displaying recipe lists and details. Includes
   horizontal scrollable chip-based filtering to view recipes by collection: "All Recipes" (default), "Unassigned", or
-  specific collection.
+  specific collection. Features client-side fuzzy search bar for filtering recipes by name.
 - `recipe/collection` - Recipe collections management for organizing recipes into collections. Uses
   Repository-Service-View architecture with RecipesCollectionRepository and RecipesCollectionListService
 - `extraction` - Recipe extraction functionality supporting both URL extraction via WebView and image extraction via
@@ -75,6 +75,7 @@ mobile/
 │       │   ├── recipe_repository.dart  # Recipe data access layer with sharing operations
 │       │   ├── recipe_list_service.dart # Recipe list business logic with ValueNotifier
 │       │   ├── recipe_filter_bar.dart  # Horizontal chip-based filter widget for collections
+│       │   ├── recipe_search_bar.dart  # Search bar widget with fuzzy matching
 │       │   ├── recipe_detail_service.dart # Recipe detail and sharing business logic with ValueNotifier
 │       │   ├── recipe_setup.dart       # Dependency injection setup for recipe module
 │       │   ├── recipe_list.dart        # Reusable recipe list body widget with filter bar integration
