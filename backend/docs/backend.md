@@ -6,7 +6,8 @@
   assignment, collection-based access control within that collection), filtering capabilities (by collection or
   unassigned status), and support for recipe images (with update, reorder, and delete operations) and source URLs
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
-  role-based access, sharing functionality with OWNER/EDITOR roles)
+  role-based access, sharing functionality with OWNER/EDITOR roles, automatic removal of user-owned recipes from
+  collection when unshared)
 - `recipes.images` - manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and
   presigned URL generation for secure image access (maximum 2 images per recipe)
 - `extraction` - extracts recipes from text/images using AI
@@ -74,7 +75,7 @@ backend/
 │   │       ├── UserRole.java             # Enum for OWNER/EDITOR roles
 │   │       ├── RecipesCollectionRepository.java # Collection data access
 │   │       ├── RecipesCollectionPermissionRepository.java # Collection permission data access
-│   │       ├── RecipesCollectionService.java    # Collection business logic
+│   │       ├── RecipesCollectionService.java    # Collection business logic with automatic removal of user-owned recipes when unshared
 │   │       ├── RecipesCollectionController.java # Collection REST endpoints
 │   │       ├── RecipesCollectionsExceptionHandler.java # Exception handling
 │   │       ├── dto/                      # Data Transfer Objects

@@ -3,11 +3,9 @@ package xyz.stasiak.recipai.recipes.collections;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
-import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
-import xyz.stasiak.recipai.recipes.collections.dto.SharedUserDto;
-import xyz.stasiak.recipai.recipes.collections.dto.UpdateRecipesCollectionRequest;
+import xyz.stasiak.recipai.recipes.collections.dto.*;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionNotFoundException;
 
@@ -21,6 +19,7 @@ public class RecipesCollectionService {
 
     private final RecipesCollectionRepository recipesCollectionRepository;
     private final RecipesCollectionPermissionRepository permissionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     List<RecipesCollectionListDto> findAll(String userEmail) {
         log.debug("Fetching all recipes collections for user: {}", userEmail);
@@ -129,6 +128,7 @@ public class RecipesCollectionService {
         log.info("Recipes collection {} shared from {} to {}", recipesCollectionId, requesterEmail, targetEmail);
     }
 
+    @Transactional
     void unshareRecipesCollection(String targetEmail, UUID recipesCollectionId, String requesterEmail) {
         log.debug("Unsharing recipes collection {} from {} for {}", recipesCollectionId, requesterEmail, targetEmail);
 
@@ -158,6 +158,8 @@ public class RecipesCollectionService {
 
         // Remove EDITOR permission (deleteById is no-op if record doesn't exist)
         permissionRepository.deleteById(targetPermissionId);
+
+        eventPublisher.publishEvent(new RecipesCollectionUnshared(recipesCollectionId, targetEmail));
 
         log.info("Recipes collection {} unshared from {} for {}", recipesCollectionId, requesterEmail, targetEmail);
     }

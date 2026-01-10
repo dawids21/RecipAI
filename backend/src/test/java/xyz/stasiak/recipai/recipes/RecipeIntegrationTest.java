@@ -12,6 +12,7 @@ import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 import xyz.stasiak.recipai.recipes.collections.dto.ShareRecipesCollectionRequest;
+import xyz.stasiak.recipai.recipes.collections.dto.UnshareRecipesCollectionRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -848,5 +849,110 @@ class RecipeIntegrationTest {
         assertThat(recipeForUser2.role()).isEqualTo(UserRole.EDITOR);
         assertThat(recipeForUser2.collectionId()).isEqualTo(collection.id());
         assertThat(recipeForUser2.collectionName()).isEqualTo("Shared Recipes");
+    }
+
+    @Test
+    void shouldIgnoreCollectionAssignmentChangeByEditor() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates a recipe without a collection
+        RecipeData recipeData = createTestRecipeData();
+        RecipeDetailsDto recipe = createRecipe(user1Client, "Pizza", recipeData, null);
+
+        // User 1 shares recipe with User 2 (making User 2 an EDITOR)
+        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+
+        // User 1 creates a collection
+        RecipesCollectionListDto collection = createCollection(user1Client, "Italian Recipes");
+
+        // User 1 shares collection with User 2
+        shareCollection(user1Client, collection.id(), "user2@example.com");
+
+        // User 2 (EDITOR) tries to assign the recipe to the collection - should succeed but ignore the change
+        RecipeDetailsDto updatedRecipe = updateRecipe(user2Client, recipe.id(), "Updated Pizza", recipeData, collection.id());
+
+        // Verify the recipe name was updated but collection assignment was ignored
+        assertThat(updatedRecipe).isNotNull();
+        assertThat(updatedRecipe.name()).isEqualTo("Updated Pizza");
+        assertThat(updatedRecipe.collectionId()).isNull(); // Collection assignment ignored
+
+        // Verify via GET request
+        RecipeDetailsDto verifyRecipe = getRecipe(user1Client, recipe.id());
+        assertThat(verifyRecipe.name()).isEqualTo("Updated Pizza");
+        assertThat(verifyRecipe.collectionId()).isNull();
+    }
+
+    @Test
+    void shouldReturnNullCollectionNameWhenUserLacksCollectionAccess() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates a collection
+        RecipesCollectionListDto collection = createCollection(user1Client, "Secret Collection");
+
+        // User 1 creates a recipe in the collection
+        RecipeData recipeData = createTestRecipeData();
+        RecipeDetailsDto recipe = createRecipe(user1Client, "Secret Recipe", recipeData, collection.id());
+
+        // User 1 shares the recipe (but NOT the collection) with User 2
+        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+
+        // User 2 should be able to access the recipe but not see the collection name
+        RecipeDetailsDto recipeForUser2 = getRecipe(user2Client, recipe.id());
+
+        assertThat(recipeForUser2).isNotNull();
+        assertThat(recipeForUser2.id()).isEqualTo(recipe.id());
+        assertThat(recipeForUser2.name()).isEqualTo("Secret Recipe");
+        assertThat(recipeForUser2.role()).isEqualTo(UserRole.EDITOR);
+        assertThat(recipeForUser2.collectionId()).isNull(); // User doesn't see collection assignment
+        assertThat(recipeForUser2.collectionName()).isNull();
+    }
+
+    @Test
+    void shouldRemoveOwnedRecipesFromCollectionWhenUnshared() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 1 creates a collection
+        CreateRecipesCollectionRequest collectionRequest = new CreateRecipesCollectionRequest("Shared Collection");
+        RecipesCollectionListDto collection = user1Client
+                .post()
+                .uri("/collections")
+                .body(collectionRequest)
+                .retrieve()
+                .body(RecipesCollectionListDto.class);
+
+        // User 1 shares collection with User 2
+        ShareRecipesCollectionRequest shareRequest = new ShareRecipesCollectionRequest("user2@example.com");
+        user1Client
+                .post()
+                .uri("/collections/" + collection.id() + "/share")
+                .body(shareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // User 2 creates a recipe in the shared collection
+        RecipeData recipeData = createTestRecipeData();
+        RecipeDetailsDto recipe = createRecipe(user2Client, "User 2 Recipe", recipeData, collection.id());
+
+        assertThat(recipe).isNotNull();
+        assertThat(recipe.collectionId()).isEqualTo(collection.id());
+
+        // User 1 unshares the collection from User 2
+        UnshareRecipesCollectionRequest unshareRequest = new UnshareRecipesCollectionRequest("user2@example.com");
+        user1Client
+                .post()
+                .uri("/collections/" + collection.id() + "/unshare")
+                .body(unshareRequest)
+                .retrieve()
+                .toBodilessEntity();
+
+        // User 2's recipe should now be removed from the collection
+        RecipeDetailsDto updatedRecipe = getRecipe(user2Client, recipe.id());
+
+        assertThat(updatedRecipe).isNotNull();
+        assertThat(updatedRecipe.collectionId()).isNull();
+        assertThat(updatedRecipe.collectionName()).isNull();
     }
 }

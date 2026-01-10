@@ -93,11 +93,13 @@
       ```
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
-  - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare) or "EDITOR" (can
-    view and edit only). Users with access to a collection automatically receive EDITOR access to all recipes in that
-    collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection. The
-    `sourceUrl` field in `data` is optional and contains the URL of the original recipe source. The `images` array
-    contains presigned S3 URLs that are valid for a limited time (configured by server). Maximum of 2 images per recipe.
+  - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare, and change
+    collection assignment) or "EDITOR" (can view and edit only, cannot change collection assignment - attempts to change
+    it are silently ignored). Users with access to a collection automatically receive EDITOR access to all recipes in
+    that collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection or
+    when the user does not have access to the assigned collection. The `sourceUrl` field in `data` is
+    optional and contains the URL of the original recipe source. The `images` array contains presigned S3 URLs that are
+    valid for a limited time (configured by server). Maximum of 2 images per recipe.
 - POST /recipes (JSON)
     - Description: Add new recipe with JSON data
     - Authenticated: true
@@ -283,12 +285,14 @@
       - Success: 200 OK
       - Errors: 403 Forbidden (if user lacks access to recipe or specified collection), 404 Not Found (if recipe or
         collection doesn't exist), 400 Bad request
-    - Note: Both OWNER and EDITOR roles can update recipes. Users with access to a collection automatically receive
-      EDITOR access to all recipes in that collection. `recipesCollectionId`, `sourceUrl`, and `images` are optional
-      and can be null. When null, no changes are made to those fields. When `recipesCollectionId` is null, recipe is
-      removed from collection. When `images` is null, no image changes are made. When `images` is an empty array [],
-      all images are deleted. When `images` contains UUIDs, images are kept/reordered/deleted to match the list. This
-      JSON endpoint supports delete and reorder operations only (no new image uploads).
+    - Note: Both OWNER and EDITOR roles can update recipes, but only OWNER can change the `recipesCollectionId` field.
+      If an EDITOR attempts to change `recipesCollectionId`, the request succeeds (200 OK) but the collection assignment
+      remains unchanged. Users with access to a collection automatically receive EDITOR access to all recipes in that
+      collection. `recipesCollectionId`, `sourceUrl`, and `images` are optional and can be null. When null, no changes
+      are made to those fields. When `recipesCollectionId` is null, recipe is removed from
+      collection. When `images` is null, no image changes are made. When `images` is an empty array [], all images are
+      deleted. When `images` contains UUIDs, images are kept/reordered/deleted to match the list. This JSON endpoint
+      supports delete and reorder operations only (no new image uploads).
 - PUT /recipes/{uuid} (Multipart)
     - Description: Update existing recipe with images by UUID
     - Authenticated: true
@@ -326,7 +330,9 @@
         - 403 Forbidden (if user lacks OWNER/EDITOR access or lacks access to specified collection)
         - 404 Not Found (if recipe or collection doesn't exist)
     - Note: Only files for NEW images should be included in the multipart request. Existing images are referenced by
-      UUID only. Maximum of 2 images total per recipe. Both JPEG and PNG formats supported.
+      UUID only. Maximum of 2 images total per recipe. Both JPEG and PNG formats supported. Only OWNER can change
+      `recipesCollectionId`; if EDITOR attempts to change it, the request succeeds but the collection assignment remains
+      unchanged.
 - DELETE /recipes/{uuid}
     - Description: Delete recipe by UUID
   - Authenticated: true
@@ -939,4 +945,6 @@
     - Success: 204 No Content
     - Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden (if user has no access, or trying
       to unshare OWNER), 404 Not Found
-    - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
+  - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves. When
+    a collection is unshared from a user, all recipes owned by that user in the collection are automatically removed
+    from the collection (recipesCollectionId set to null).

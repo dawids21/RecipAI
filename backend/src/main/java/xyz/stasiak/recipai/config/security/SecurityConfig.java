@@ -1,5 +1,6 @@
 package xyz.stasiak.recipai.config.security;
 
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ class SecurityConfig {
 
         return http
                 .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/recipes/**", "/extract/**", "/users/**", "/shopping-lists/**", "/collections/**").authenticated()
                         .anyRequest().denyAll()

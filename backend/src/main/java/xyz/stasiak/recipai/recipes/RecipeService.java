@@ -6,9 +6,13 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
 import xyz.stasiak.recipai.recipes.collections.RecipesCollectionService;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
+import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionUnshared;
+import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
 import xyz.stasiak.recipai.recipes.images.RecipeImagesService;
 import xyz.stasiak.recipai.recipes.images.dto.RecipeImageDto;
 
@@ -63,11 +67,14 @@ class RecipeService {
 
         UserRole userRole = validateRecipeAccess(userEmail, recipe);
 
-        // Get collection name if recipe is in a collection
         String collectionName = null;
         if (recipe.getRecipesCollectionId() != null) {
-            RecipesCollectionListDto collectionDto = recipesCollectionService.findById(recipe.getRecipesCollectionId(), userEmail);
-            collectionName = collectionDto.name();
+            try {
+                RecipesCollectionListDto collectionDto = recipesCollectionService.findById(recipe.getRecipesCollectionId(), userEmail);
+                collectionName = collectionDto.name();
+            } catch (RecipesCollectionAccessDeniedException _) {
+                // we don't show collection name if user has no access
+            }
         }
 
         List<RecipeImageDto> images = recipeImagesService.findImagesById(id);
@@ -138,19 +145,27 @@ class RecipeService {
         }
 
         // Validate collection if provided
-        RecipesCollectionListDto collectionDto = null;
-        if (request.recipesCollectionId() != null) {
-            collectionDto = recipesCollectionService.findById(request.recipesCollectionId(), userEmail);
-            log.debug("Recipe will be moved to collection: {}", request.recipesCollectionId());
-        } else {
-            log.debug("Recipe will be removed from collection");
+        if (request.recipesCollectionId() != null && existingRecipe.getRecipesCollectionId() != request.recipesCollectionId()) {
+            recipesCollectionService.findById(request.recipesCollectionId(), userEmail);
         }
 
         existingRecipe.setName(request.name());
         existingRecipe.setData(convertToJsonNode(request.data()));
-        existingRecipe.setRecipesCollectionId(request.recipesCollectionId());
+        if (userRole == UserRole.OWNER) {
+            existingRecipe.setRecipesCollectionId(request.recipesCollectionId());
+        }
 
         Recipe savedRecipe = recipeRepository.save(existingRecipe);
+
+        String collectionName = null;
+        if (savedRecipe.getRecipesCollectionId() != null) {
+            try {
+                RecipesCollectionListDto collectionDto = recipesCollectionService.findById(savedRecipe.getRecipesCollectionId(), userEmail);
+                collectionName = collectionDto.name();
+            } catch (RecipesCollectionAccessDeniedException _) {
+                // we don't show collection name if user has no access
+            }
+        }
 
         if (request.images() != null) {
             recipeImagesService.uploadImages(savedRecipe.getId(), request.images(), images);
@@ -159,7 +174,7 @@ class RecipeService {
         log.info("Recipe updated with id: {}", savedRecipe.getId());
 
         List<RecipeImageDto> recipeImages = recipeImagesService.findImagesById(savedRecipe.getId());
-        return toDetailsDto(savedRecipe, userRole, collectionDto != null ? collectionDto.name() : null, recipeImages);
+        return toDetailsDto(savedRecipe, userRole, collectionName, recipeImages);
     }
 
     @Transactional
@@ -319,5 +334,21 @@ class RecipeService {
         }
 
         throw new RecipeAccessDeniedException(recipe.getId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    void handleRecipesCollectionUnshared(RecipesCollectionUnshared event) {
+        log.debug("Handling RecipesCollectionUnshared event for collection {} and user {}",
+                event.recipesCollectionId(), event.userEmail());
+
+        List<Recipe> recipes = recipeRepository.findAllByRecipesCollectionIdOrderByCreatedAt(event.recipesCollectionId());
+
+        for (Recipe recipe : recipes) {
+            Optional<UserRole> role = recipePermissionRepository.getUserRole(event.userEmail(), recipe.getId());
+            if (role.isPresent() && role.get() == UserRole.OWNER) {
+                recipe.setRecipesCollectionId(null);
+                recipeRepository.save(recipe);
+            }
+        }
     }
 }
