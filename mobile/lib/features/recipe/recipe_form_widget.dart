@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../shared/error_message_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../../shared/user_role.dart';
 import 'collection/recipes_collection.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'ingredient_input_widget.dart';
@@ -126,6 +127,11 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
     _instructionsController.dispose();
     _sourceUrlController.dispose();
     super.dispose();
+  }
+
+  bool get _isOwner {
+    final role = widget.initialFormData?.recipeDetail?.role;
+    return role == null || role == UserRole.owner;
   }
 
   void _addIngredient() {
@@ -292,74 +298,77 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                       },
                     ),
 
-                    // Collection dropdown
-                    const SizedBox(height: AppSpacing.medium),
-                    ValueListenableBuilder(
-                      valueListenable: widget
-                          .recipesCollectionListService
-                          .recipesCollections,
-                      builder: (context, collectionsAsync, _) {
-                        return collectionsAsync.when(
-                          loading: () =>
-                              DropdownButtonFormField<RecipesCollection?>(
+                    // Collection dropdown (only visible to owners)
+                    if (_isOwner) ...[
+                      const SizedBox(height: AppSpacing.medium),
+                      ValueListenableBuilder(
+                        valueListenable: widget
+                            .recipesCollectionListService
+                            .recipesCollections,
+                        builder: (context, collectionsAsync, _) {
+                          return collectionsAsync.when(
+                            loading: () =>
+                                DropdownButtonFormField<RecipesCollection?>(
+                                  decoration: const InputDecoration(
+                                    labelText: 'Collection',
+                                  ),
+                                  items: const [],
+                                  onChanged: null, // Disabled while loading
+                                ),
+                            error: (error) =>
+                                DropdownButtonFormField<RecipesCollection?>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Collection',
+                                    errorText: 'Failed to load collections',
+                                    errorStyle: TextStyle(
+                                      color: theme.colorScheme.error,
+                                    ),
+                                  ),
+                                  items: const [],
+                                  onChanged: null, // Disabled on error
+                                ),
+                            data: (collections) {
+                              // Find matching collection from loaded list by ID
+                              final currentValue = _selectedCollection != null
+                                  ? collections.firstWhereOrNull(
+                                      (c) => c.id == _selectedCollection!.id,
+                                    )
+                                  : null;
+
+                              return DropdownButtonFormField<
+                                RecipesCollection?
+                              >(
+                                initialValue: currentValue,
                                 decoration: const InputDecoration(
                                   labelText: 'Collection',
                                 ),
-                                items: const [],
-                                onChanged: null, // Disabled while loading
-                              ),
-                          error: (error) =>
-                              DropdownButtonFormField<RecipesCollection?>(
-                                decoration: InputDecoration(
-                                  labelText: 'Collection',
-                                  errorText: 'Failed to load collections',
-                                  errorStyle: TextStyle(
-                                    color: theme.colorScheme.error,
+                                style: theme.textTheme.bodyLarge,
+                                items: [
+                                  // "None" option
+                                  const DropdownMenuItem<RecipesCollection?>(
+                                    value: null,
+                                    child: Text('None'),
                                   ),
-                                ),
-                                items: const [],
-                                onChanged: null, // Disabled on error
-                              ),
-                          data: (collections) {
-                            // Find matching collection from loaded list by ID
-                            final currentValue = _selectedCollection != null
-                                ? collections.firstWhereOrNull(
-                                    (c) => c.id == _selectedCollection!.id,
-                                  )
-                                : null;
-
-                            return DropdownButtonFormField<RecipesCollection?>(
-                              initialValue: currentValue,
-                              decoration: const InputDecoration(
-                                labelText: 'Collection',
-                              ),
-                              style: theme.textTheme.bodyLarge,
-                              items: [
-                                // "None" option
-                                const DropdownMenuItem<RecipesCollection?>(
-                                  value: null,
-                                  child: Text('None'),
-                                ),
-                                // Collection options
-                                ...collections.map(
-                                  (collection) =>
-                                      DropdownMenuItem<RecipesCollection?>(
-                                        value: collection,
-                                        child: Text(collection.name),
-                                      ),
-                                ),
-                              ],
-                              onChanged: (RecipesCollection? newValue) {
-                                setState(() {
-                                  _selectedCollection = newValue;
-                                });
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
-
+                                  // Collection options
+                                  ...collections.map(
+                                    (collection) =>
+                                        DropdownMenuItem<RecipesCollection?>(
+                                          value: collection,
+                                          child: Text(collection.name),
+                                        ),
+                                  ),
+                                ],
+                                onChanged: (RecipesCollection? newValue) {
+                                  setState(() {
+                                    _selectedCollection = newValue;
+                                  });
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
                     // Source URL field
                     const SizedBox(height: AppSpacing.medium),
                     TextFormField(
