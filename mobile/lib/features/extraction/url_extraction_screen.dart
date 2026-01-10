@@ -24,11 +24,20 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
   bool _isLoading = false;
   bool _isExtracting = false;
   String? _errorMessage;
+  bool _isCurrentInputUrl = false;
 
   @override
   void initState() {
     super.initState();
     _initializeWebView();
+    _urlController.addListener(() {
+      final newValue = _isUrl(_urlController.text.trim());
+      if (newValue != _isCurrentInputUrl) {
+        setState(() {
+          _isCurrentInputUrl = newValue;
+        });
+      }
+    });
   }
 
   void _initializeWebView() {
@@ -69,23 +78,54 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
       );
   }
 
+  bool _isUrl(String input) {
+    final trimmed = input.trim();
+
+    // If it has a scheme, validate with Uri.parse
+    if (trimmed.startsWith(RegExp(r'https?://'))) {
+      try {
+        final uri = Uri.parse(trimmed);
+        return uri.hasScheme && uri.host.isNotEmpty;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Check for domain-like pattern without scheme
+    // Pattern: optional subdomain(s) + domain + TLD or localhost
+    final domainPattern = RegExp(
+      r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost(:\d+)?$',
+      caseSensitive: false,
+    );
+
+    return domainPattern.hasMatch(trimmed);
+  }
+
   void _loadUrl() {
-    final url = _urlController.text.trim();
-    if (url.isEmpty) {
-      _showSnackBar('Please enter a URL');
+    final input = _urlController.text.trim();
+    if (input.isEmpty) {
+      _showSnackBar('Please enter a URL or search terms');
       return;
     }
 
-    // Add https:// if no protocol is specified
-    String formattedUrl = url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      formattedUrl = 'https://$url';
+    String urlToLoad;
+
+    if (_isUrl(input)) {
+      // Handle as URL
+      if (!input.startsWith('http://') && !input.startsWith('https://')) {
+        urlToLoad = 'https://$input';
+      } else {
+        urlToLoad = input;
+      }
+    } else {
+      // Handle as search query - construct Google search URL
+      final encodedQuery = Uri.encodeQueryComponent(input);
+      urlToLoad = 'https://www.google.com/search?q=$encodedQuery';
     }
 
     try {
-      _controller.loadRequest(Uri.parse(formattedUrl));
-      // Hide keyboard
-      FocusScope.of(context).unfocus();
+      _controller.loadRequest(Uri.parse(urlToLoad));
+      FocusScope.of(context).unfocus(); // Hide keyboard
     } catch (e) {
       _showSnackBar('Invalid URL format');
     }
@@ -177,7 +217,7 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
                         child: TextField(
                           controller: _urlController,
                           decoration: const InputDecoration(
-                            hintText: 'Enter recipe URL',
+                            hintText: 'Enter recipe URL or search terms',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.link),
                           ),
@@ -189,7 +229,7 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
                       const SizedBox(width: AppSpacing.small),
                       ElevatedButton(
                         onPressed: _loadUrl,
-                        child: const Text('Load'),
+                        child: Text(_isCurrentInputUrl ? 'Load' : 'Search'),
                       ),
                     ],
                   ),

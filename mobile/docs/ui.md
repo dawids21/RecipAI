@@ -111,7 +111,9 @@
 ### Extraction feature
 
 - URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with
-  URL input field and loading states. Captures the current URL from WebView and navigates to create screen with
+  smart input field that automatically detects URLs vs search queries. Supports domain patterns (example.com,
+  sub.example.co.uk, localhost:3000) and full URLs (https://example.com). Non-URL inputs trigger Google search with
+  encoded query parameters. Captures the current URL from WebView and navigates to create screen with
   InitialRecipeFormData containing extracted recipe detail and source URL
 - Image Extraction Screen (`image_extraction_screen.dart`) - Screen for extracting recipes from images using camera or
   gallery selection with image preview and upload functionality. Navigates to create screen with InitialRecipeFormData

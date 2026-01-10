@@ -8,7 +8,8 @@
 - `recipe/collection` - Recipe collections management for organizing recipes into collections. Uses
   Repository-Service-View architecture with RecipesCollectionRepository and RecipesCollectionListService
 - `extraction` - Recipe extraction functionality supporting both URL extraction via WebView and image extraction via
-  camera/gallery. Uses Repository-Service-View architecture with ExtractionRepository and ExtractionService
+  camera/gallery. URL extraction screen intelligently detects domain patterns and performs Google searches for
+  non-URL inputs. Uses Repository-Service-View architecture with ExtractionRepository and ExtractionService
 - `auth` - User authentication using Firebase Authentication with Google Sign-In
 - `shopping_list` - Shopping list management with list creation, display, item management, and optimistic UI updates.
   Uses Repository-Service-View architecture with ShoppingListRepository, ShoppingListListService,
