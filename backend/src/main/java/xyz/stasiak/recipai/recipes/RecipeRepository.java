@@ -25,7 +25,10 @@ interface RecipeRepository extends JpaRepository<Recipe, UUID> {
             SELECT r FROM Recipe r
             INNER JOIN RecipePermission rp ON rp.id.recipeId = r.id
             WHERE rp.id.email = :email
-            AND r.recipesCollectionId IS NULL
+            AND (r.recipesCollectionId IS NULL
+                 OR NOT EXISTS (SELECT 1 FROM RecipesCollectionPermission rcp
+                               WHERE rcp.id.recipesCollectionId = r.recipesCollectionId
+                               AND rcp.id.email = :email))
             ORDER BY r.createdAt
             """)
     List<Recipe> findAllUnassignedByUserEmail(@Param("email") String email);

@@ -23,7 +23,8 @@
           permission)
         - With `collectionId`: Returns only recipes in the specified collection (requires user to have access to the
           collection)
-        - With `unassigned=true`: Returns only recipes not assigned to any collection
+        - With `unassigned=true`: Returns recipes that the user has direct permission to access and are either: (1) not
+          assigned to any collection, or (2) assigned to a collection the user does not have access to
       - All results are ordered by creation date in ascending order (oldest first)
     - Example response:
       ```json
