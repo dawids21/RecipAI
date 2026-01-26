@@ -58,73 +58,10 @@ The MVP should include:
 - User can tick list items as completed
 - User can share shopping lists with other users
 
-**Excluded from MVP:**
-- Meal planning functionality will not be included in this phase
+**Meal Planning:**
 
-## 5. User Stories
-
-### US-001
-
-- Title: Save recipe from link
-- Description: As a user, I want to paste a link to a recipe into the app and save it, extracting all useful
-  information.
-- Acceptance Criteria:
-    - A form to input a link to a recipe
-    - A button to save recipe information
-    - A list with all recipes saved by the user
-
-### US-002
-
-- Title: Create recipe manually
-- Description: As a user, I want to create a recipe manually by entering all the details myself.
-- Acceptance Criteria:
-    - A form to input recipe name, serving size, ingredients, and preparation steps
-    - Optional field for reference link
-    - A button to save the manually created recipe
-    - Recipe appears in the user's recipe list after saving
-
-### US-003
-
-- Title: Update and delete recipes
-- Description: As a user, I want to edit existing recipes and delete recipes I no longer need.
-- Acceptance Criteria:
-    - An edit button on each recipe that opens the recipe form with pre-filled data
-    - Ability to modify any recipe field (name, serving size, ingredients, preparation steps, reference link)
-    - A save button to commit changes
-    - A delete button with confirmation dialog
-    - Updated/deleted recipes reflect changes immediately in the recipe list
-
-### US-004
-
-- Title: Share recipe with other users
-- Description: As a user, I want to share my saved recipes with other users so they can access and use them.
-- Acceptance Criteria:
-    - A share button available on each recipe
-    - Ability to select or input other users to share with
-    - Shared recipes appear in the recipient's recipe list
-    - Shared recipes can be updated by the recipient but cannot be deleted
-    - Clear indication of which recipes are shared vs. owned
-
-### US-005
-
-- Title: Create shopping list and add items
-- Description: As a user, I want to create shopping lists and add items to them, either manually or from my saved recipes.
-- Acceptance Criteria:
-    - Ability to create a new shopping list with a name
-    - Option to add items manually with quantity
-    - Option to add all ingredients from a selected recipe
-    - If an item already exists on the list, quantities should be combined
-    - View all created shopping lists
-    - View individual shopping list with all items
-
-### US-006
-
-- Title: Share shopping list and track completion
-- Description: As a user, I want to share shopping lists with other users and track completion status when both users are using the shared list.
-- Acceptance Criteria:
-    - A share button available on each shopping list
-    - Ability to select or input other users to share with
-    - Both users can add items to the shared shopping list
-    - Both users can tick items as completed
-    - Real-time synchronization of changes between all users with access
-    - Clear indication of which items have been completed
+- User can create multiple distinct meal plans
+- User can view a calendar with meal entries
+- User can add recipes or placeholders to the calendar
+- User can share meal plans with other users
+- User can generate shopping lists from meal plans
