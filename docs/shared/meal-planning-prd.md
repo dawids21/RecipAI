@@ -31,6 +31,7 @@ and disconnected. Users face the following challenges:
 1. Users must be able to create multiple distinct meal plans (e.g., Home, Work, Diet).
 2. Users can assign a specific color to each plan for visual distinction.
 3. Users can toggle the visibility of individual plans on the calendar view.
+    - **Note:** Visibility state is stored locally on the user's device and does not sync across sessions or devices.
 4. Plan Owners can delete plans.
 
 ### 3.2 Calendar and Visualization
@@ -49,8 +50,10 @@ and disconnected. Users face the following challenges:
 2. Users can add a Placeholder Entry to a specific date.
     - Consists of free-text (e.g., Leftovers or Pizza Night).
     - Does not link to a recipe ID.
-3. If a recipe is deleted from the database, any calendar entries linking to it must remain as Soft Links (converting to
-   a text-only state preventing errors).
+3. If a recipe is deleted from the database, any calendar entries linking to it must remain as **Text Placeholders**.
+    - The entry loses its link to the recipe ID.
+    - The entry retains the original recipe name as its description.
+    - Visually, it becomes indistinguishable from a manually added Placeholder.
 4. Users can edit the date, plan assignment, serving size, or text of an entry.
 
 ### 3.4 Sharing and Access Control
@@ -72,7 +75,7 @@ and disconnected. Users face the following challenges:
 2. Flow requires: Selection of Source Plan -> Selection of specific days (via checkboxes) -> Selection of Target
    Shopping List.
 3. Aggregation Logic:
-    - Recipe Entries: Ingredients are scaled by the entry's Yield Multiplier and added to the list.
+    - Recipe Entries: Ingredients are scaled by the entry's Yield Multiplier and prepared for addition.
     - Placeholder Entries: The text title is added as a single line item.
     - Restricted Recipes: Ingredients are skipped. A summary warning is displayed to the user indicating which meals
       could not be processed due to lack of recipe ownership.
@@ -98,6 +101,7 @@ and disconnected. Users face the following challenges:
 - Printing or PDF export of the calendar.
 - Real-time socket-based collaboration (sync happens on load/refresh).
 - Quick Create recipe modal from the calendar view.
+- Syncing "Visible" plan settings across devices.
 
 ## 5. User Stories
 
@@ -108,7 +112,7 @@ and disconnected. Users face the following challenges:
 - Acceptance Criteria:
     - A section exists to view all My Plans and Shared with Me plans.
     - Button to create a new plan requiring a Name and Color selection.
-    - Option to toggle a Visible checkbox for each plan.
+  - Option to toggle a Visible checkbox for each plan (setting saved to local storage).
     - Option to delete a plan (only if the user is the Owner).
     - Deleted plans remove all associated calendar entries.
 
@@ -195,8 +199,8 @@ and disconnected. Users face the following challenges:
 - Acceptance Criteria:
     - If a user deletes a recipe that is used in a Meal Plan:
     - The Calendar Entry remains visible.
-    - The Entry converts to a Soft Link (effectively a text placeholder).
-    - Clicking the entry shows the name but indicates the source recipe is deleted.
+  - The Entry converts to a Text Placeholder.
+  - Clicking the entry shows the name as a standard text placeholder.
     - Shopping list generation treats it as a Placeholder (adds Name to list, no ingredients).
 
 ## 6. Success Metrics
