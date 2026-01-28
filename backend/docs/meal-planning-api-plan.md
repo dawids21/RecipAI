@@ -104,13 +104,15 @@ recipe ownership and privacy rules.
 #### Update Entry
 
 * **Path**: `PUT /meal-plans/{planId}/entries/{entryId}`
-* **Purpose**: Edit an existing entry (change date, serving size, or text).
+* **Purpose**: Edit an existing entry (change date, serving size, text, or associated recipe).
 * **Authentication**: User (JWT) - Owner or Editor
 * **Request Parameters**:
     - **Path**: `planId`, `entryId`
     - **Body**: Same structure as Create Entry.
 * **Response**:
     - **Success (200)**: Updated `MealPlanEntry` object.
+* **Notes**: Users are permitted to change the `recipeId` of an entry, even if they do not have access to the
+  *currently* associated recipe details (Restricted Access), provided they have Editor permissions on the Plan.
 
 #### Delete Entry
 
@@ -174,6 +176,9 @@ recipe ownership and privacy rules.
       subsequently call the `POST /shopping-lists/{id}/items` endpoint to add them to a specific list.
     - **Privacy**: If a user selects a date containing a restricted recipe (unowned), those ingredients are **skipped**.
       The response `warnings` list will indicate which meals were excluded.
+  - **No Aggregation**: The API DOES NOT merge ingredients (e.g., if two recipes call for "Salt", two "Salt" entries
+    are returned).
+  - **Sorting**: Items are sorted by Name (A-Z) to help the user manually review and deduplicate on the frontend.
 
 ## Data Models
 

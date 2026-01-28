@@ -36,9 +36,11 @@ and disconnected. Users face the following challenges:
 
 ### 3.2 Calendar and Visualization
 
-1. Provide a calendar interface allowing switching between Weekly and Daily views.
-2. Support Calendar Layering: Entries from all visible plans are displayed simultaneously on the calendar dates,
-   color-coded by their respective plan.
+1. Provide a **Weekly Agenda** interface.
+    - A navigation strip allows users to switch between weeks.
+    - The main view displays a vertical list of all 7 days for the selected week (e.g., Monday to Sunday).
+    - Under each day header, meal entries from all visible plans are displayed, color-coded by their respective plan.
+2. Support Calendar Layering: Entries from all visible plans are displayed simultaneously.
 3. Users can view details of a planned meal by clicking the entry.
 
 ### 3.3 Meal Entry and Editing
@@ -55,6 +57,7 @@ and disconnected. Users face the following challenges:
     - The entry retains the original recipe name as its description.
     - Visually, it becomes indistinguishable from a manually added Placeholder.
 4. Users can edit the date, plan assignment, serving size, or text of an entry.
+5. Users can change the associated recipe of an entry, even if the current entry is a "Restricted Recipe" (see 3.4).
 
 ### 3.4 Sharing and Access Control
 
@@ -72,11 +75,13 @@ and disconnected. Users face the following challenges:
 ### 3.5 Shopping List Integration
 
 1. Users can initiate a Generate Shopping List flow from the calendar.
-2. Flow requires: Selection of Source Plan -> Selection of specific days (via checkboxes) -> Selection of Target
-   Shopping List.
+2. Flow requires: Selection of Source Plan -> Selection of specific days (via a **multi-select calendar view**) ->
+   Selection of Target Shopping List.
 3. Aggregation Logic:
-    - Recipe Entries: Ingredients are scaled by the entry's Yield Multiplier and prepared for addition.
+    - Recipe Entries: Ingredients are scaled by the entry's Yield Multiplier.
     - Placeholder Entries: The text title is added as a single line item.
+    - **No Merging:** Items are not aggregated or merged server-side (e.g., if "Salt" appears twice, it remains two
+      separate items). Items are sorted by name to assist the user.
     - Restricted Recipes: Ingredients are skipped. A summary warning is displayed to the user indicating which meals
       could not be processed due to lack of recipe ownership.
 
@@ -96,7 +101,9 @@ and disconnected. Users face the following challenges:
 
 - Monthly calendar view.
 - Drag-and-drop rescheduling (standard edit forms will be used).
-- Automated conflict resolution for shopping lists (users manually handle duplicates).
+- Automated conflict resolution for shopping lists (no server-side merging of ingredients).
+- Editing item details (name/quantity) during the shopping list generation review step (users can only check/uncheck
+  items).
 - Nutritional calculation based on plans.
 - Printing or PDF export of the calendar.
 - Real-time socket-based collaboration (sync happens on load/refresh).
@@ -110,29 +117,31 @@ and disconnected. Users face the following challenges:
 - Description: As a user, I want to create distinct meal plans with specific names and colors so that I can organize
   different aspects of my cooking life (e.g., personal vs. family).
 - Acceptance Criteria:
-    - A section exists to view all My Plans and Shared with Me plans.
+    - A single unified list displays all available plans (both "My Plans" and "Shared Plans").
     - Button to create a new plan requiring a Name and Color selection.
-  - Option to toggle a Visible checkbox for each plan (setting saved to local storage).
+    - Option to toggle a Visible checkbox for each plan (setting saved to local storage).
     - Option to delete a plan (only if the user is the Owner).
     - Deleted plans remove all associated calendar entries.
 
-### US-MP-002 - View Calendar Layers
+### US-MP-002 - View Weekly Agenda
 
-- Description: As a user, I want to view a calendar that shows meals from all my toggled-on plans so that I can see my
-  complete schedule at a glance.
+- Description: As a user, I want to see a list of all meals planned for the current week, grouped by day, so I can
+  understand the week's schedule without clicking individual dates.
 - Acceptance Criteria:
-    - Weekly and Daily view toggles.
-    - Days display meal entries as chips/cards.
+    - Week Strip navigation allows changing the visible week.
+    - The main view displays a vertical list of days (Monday - Sunday).
+    - Each day section lists the meals scheduled for that date.
     - Each entry has a background color matching its parent Plan.
     - Entries show the Recipe Name or Placeholder Text.
-    - Non-visible plans do not show entries on the calendar.
+    - Non-visible plans do not show entries.
 
 ### US-MP-003 - Add Recipe to Plan with Custom Yield
 
 - Description: As a user, I want to schedule a recipe for a specific day and define how many people I am cooking for, so
   that the shopping list will reflect the correct amounts.
 - Acceptance Criteria:
-    - Clicking a date or Add Meal button opens a creation modal.
+    - Clicking an "Add" button opens a creation modal.
+    - The date defaults to the start date of the currently viewed week.
     - User selects the target Plan (e.g., Family).
     - User selects Recipe type and searches their library.
     - User inputs a Serving Size for this specific meal (defaults to recipe's original size).
@@ -154,7 +163,7 @@ and disconnected. Users face the following challenges:
 - Acceptance Criteria:
     - Share button on the Plan settings.
     - Input field for recipient User Email.
-    - Recipient sees the plan in their Shared with Me section.
+  - Recipient sees the plan in their Plan list.
     - Recipient has Editor rights: they can add/remove meals, rename the plan, and change the plan color.
     - Recipient cannot delete the Plan itself.
 
@@ -164,8 +173,8 @@ and disconnected. Users face the following challenges:
   ensuring the owner's privacy settings are respected.
 - Acceptance Criteria:
     - When viewing a shared plan on the calendar, entries for unowned recipes are visible.
-    - Clicking an unowned recipe entry DOES NOT open the recipe detail view.
-    - Clicking an unowned recipe entry triggers a notification: Recipe details not shared.
+  - Clicking an unowned recipe entry DOES NOT open the recipe detail view (Toast notification only).
+  - Users CAN edit the entry to change the date, yield, or replace the restricted recipe with a different one.
     - Ingredients from these recipes are not accessible via API responses for the viewer.
 
 ### US-MP-007 - Generate Shopping List from Plan
@@ -175,8 +184,7 @@ and disconnected. Users face the following challenges:
 - Acceptance Criteria:
     - Button Generate Shopping List.
     - Step 1: User selects which visible Plans to include.
-    - Step 2: User is presented with a list of days containing meals and must check boxes to select which days to
-      export.
+  - Step 2: User is presented with a month-view calendar to multi-select specific days.
     - Step 3: User selects a target Shopping List (new or existing).
     - System calculates total ingredients based on the Yield Multiplier set in the plan.
     - System adds Placeholder titles as single-line items.
