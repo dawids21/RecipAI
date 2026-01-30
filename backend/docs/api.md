@@ -949,3 +949,155 @@
   - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves. When
     a collection is unshared from a user, all recipes owned by that user in the collection are automatically removed
     from the collection (recipesCollectionId set to null).
+
+### Meal Plans
+
+- GET /meal-plans
+    - Description: Get all meal plans accessible by the authenticated user, ordered by creation date (oldest first)
+    - Authenticated: true
+    - Example response:
+      ```json
+      [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Weekly Plan",
+          "color": "#FF5733",
+          "role": "OWNER",
+          "createdAt": "2026-01-29T10:00:00Z"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 401 Unauthorized
+- POST /meal-plans
+    - Description: Create a new meal plan and grant OWNER permission to the authenticated user
+    - Authenticated: true
+    - Note: Automatically creates a permission record with OWNER role. There is a max number of plans owned per user.
+    - Request body:
+      ```json
+      {
+        "name": "Weekly Plan",
+        "color": "#FF5733"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Weekly Plan",
+        "color": "#FF5733",
+        "role": "OWNER",
+        "createdAt": "2026-01-29T10:00:00Z"
+      }
+      ```
+    - Success: 201 Created
+    - Errors: 400 Bad Request (blank name, invalid color format), 409 Conflict (plan limit exceeded), 401 Unauthorized
+    - Note: Color must be a valid hex color in format `#RRGGBB` (e.g., `#FF5733`)
+- PUT /meal-plans/{id}
+    - Description: Update the name and color of an existing meal plan
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Meal plan ID
+    - Roles: OWNER and EDITOR can update
+    - Request body:
+      ```json
+      {
+        "name": "Updated Plan",
+        "color": "#00FF00"
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Updated Plan",
+        "color": "#00FF00",
+        "role": "OWNER",
+        "createdAt": "2026-01-29T10:00:00Z"
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
+- DELETE /meal-plans/{id}
+    - Description: Delete a meal plan and all associated entries and permissions
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Meal plan ID
+    - Roles: Only OWNER can delete
+    - Example response: No content
+    - Success: 204 No Content
+    - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
+    - Note: Deletes the meal plan, all entries (via database CASCADE), and all permissions
+- POST /meal-plans/{planId}/entries
+    - Description: Create a new entry in a meal plan
+    - Authenticated: true
+    - Path parameters:
+        - `planId` (UUID): Meal plan ID
+    - Roles: OWNER and EDITOR can create entries
+    - Request body:
+      ```json
+      {
+        "date": "2026-01-29",
+        "recipeId": "660e8400-e29b-41d4-a716-446655440001",
+        "placeholderText": null,
+        "servingSize": 4
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": 1,
+        "planId": "550e8400-e29b-41d4-a716-446655440000",
+        "date": "2026-01-29",
+        "recipeId": "660e8400-e29b-41d4-a716-446655440001",
+        "placeholderText": null,
+        "servingSize": 4,
+        "createdAt": "2026-01-29T10:00:00Z"
+      }
+      ```
+    - Success: 201 Created
+    - Errors: 400 Bad Request (validation errors), 401 Unauthorized, 403 Forbidden, 404 Not Found
+    - Note: Entry must have either `recipeId` or `placeholderText`, not both and not neither. When `recipeId` is
+      provided, `servingSize` is required. `servingSize` must be positive.
+- PUT /meal-plans/{planId}/entries/{entryId}
+    - Description: Update an existing meal plan entry
+    - Authenticated: true
+    - Path parameters:
+        - `planId` (UUID): Meal plan ID
+        - `entryId` (Long): Entry ID
+    - Roles: OWNER and EDITOR can update entries
+    - Request body:
+      ```json
+      {
+        "date": "2026-02-01",
+        "recipeId": null,
+        "placeholderText": "Leftovers",
+        "servingSize": null
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "id": 1,
+        "planId": "550e8400-e29b-41d4-a716-446655440000",
+        "date": "2026-02-01",
+        "recipeId": null,
+        "placeholderText": "Leftovers",
+        "servingSize": null,
+        "createdAt": "2026-01-29T10:00:00Z"
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found or belongs to different
+      plan)
+    - Note: Same validation rules as create (recipeId XOR placeholderText, servingSize required with recipeId)
+- DELETE /meal-plans/{planId}/entries/{entryId}
+    - Description: Delete a meal plan entry
+    - Authenticated: true
+    - Path parameters:
+        - `planId` (UUID): Meal plan ID
+        - `entryId` (Long): Entry ID
+    - Roles: OWNER and EDITOR can delete entries
+    - Example response: No content
+    - Success: 204 No Content
+    - Errors: 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found or belongs to different plan)

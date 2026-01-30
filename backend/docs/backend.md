@@ -14,6 +14,8 @@
 - `shoppinglists` - manages shopping lists with user-based permission control (CRUD operations with role-based access,
   optimistic locking with If-Match headers for all item operations, and comprehensive item management including update,
   move, check, and uncheck functionality)
+- `planning` - manages meal plans with user-based permission control (CRUD operations with role-based access, meal plan
+  entries with recipe or placeholder support, limit for owner plans)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 - `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 
@@ -88,6 +90,20 @@ backend/
 │   │       └── exception/                # Custom exceptions
 │   │           ├── RecipesCollectionNotFoundException.java # Collection not found exception
 │   │           └── RecipesCollectionAccessDeniedException.java # Access denied exception
+│   ├── planning/                        # "planning" module
+│   │   ├── MealPlan.java              # Meal plan entity
+│   │   ├── MealPlanEntry.java         # Meal plan entry entity
+│   │   ├── MealPlanPermission.java    # Meal plan permission association entity
+│   │   ├── MealPlanPermissionId.java  # Composite key for meal plan permissions
+│   │   ├── UserRole.java             # Enum for OWNER/EDITOR roles
+│   │   ├── MealPlanRepository.java   # Meal plan data access
+│   │   ├── MealPlanEntryRepository.java # Meal plan entry data access
+│   │   ├── MealPlanPermissionRepository.java # Permission queries repository
+│   │   ├── MealPlanService.java      # Meal plan business logic with entries and permissions
+│   │   ├── MealPlanController.java   # Meal plan REST endpoints with JWT authentication
+│   │   ├── PlanningExceptionHandler.java # Exception handling with ProblemDetail
+│   │   ├── dto/                       # Meal Planning Data Transfer Objects
+│   │   └── exception/                 # Meal Planning custom exceptions
 │   ├── extraction/                      # "extraction" module
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
