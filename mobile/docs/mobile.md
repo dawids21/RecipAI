@@ -177,8 +177,8 @@ Feature flags are defined in `core/feature_flags.dart` using `bool.fromEnvironme
 
 Available feature flags:
 
-- `recipesCollectionsEnabled` - Controls visibility of recipe collections feature in the app (environment variable:
-  `RECIPES_COLLECTIONS`, default: `false`)
+- `mealPlanningEnabled` - Controls visibility of meal planning feature in the app (environment variable:
+  `MEAL_PLANNING`, default: `false`)
 
 ```dart
 import 'package:mobile/core/feature_flags.dart';
