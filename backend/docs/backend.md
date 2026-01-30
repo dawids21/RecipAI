@@ -4,7 +4,8 @@
 
 - `recipes` - manages user-scoped recipe CRUD operations with role-based sharing functionality, optional collection
   assignment, collection-based access control within that collection), filtering capabilities (by collection or
-  unassigned status), and support for recipe images (with update, reorder, and delete operations) and source URLs
+  unassigned status), support for recipe images (with update, reorder, and delete operations), source URLs, and
+  publishes a `RecipeDeleted` event when a recipe is deleted
 - `recipes.collections` - manages recipes collections with user-based permission control (CRUD operations with
   role-based access, sharing functionality with OWNER/EDITOR roles, automatic removal of user-owned recipes from
   collection when unshared)
@@ -15,7 +16,8 @@
   optimistic locking with If-Match headers for all item operations, and comprehensive item management including update,
   move, check, and uncheck functionality)
 - `planning` - manages meal plans with user-based permission control (CRUD operations with role-based access, meal plan
-  entries with recipe or placeholder support, limit for owner plans)
+  entries with recipe or placeholder support, limit for owner plans, automatic conversion of recipe entries to
+  placeholders when a recipe is deleted via `RecipeDeleted` event)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 - `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 
@@ -49,6 +51,7 @@ backend/
 │   │   ├── RecipeData.java              # Recipe data structure with optional sourceUrl
 │   │   ├── Ingredient.java              # Ingredient model
 │   │   ├── Instruction.java             # Instruction model
+│   │   ├── RecipeDeleted.java           # Recipe deleted event record
 │   │   ├── RecipeNotFoundException.java # Recipe not found exception
 │   │   ├── RecipeAccessDeniedException.java # Access denied exception
 │   │   ├── ErrorResponse.java           # Error response DTO

@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.planning.dto.*;
+import xyz.stasiak.recipai.recipes.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -97,6 +98,30 @@ class MealPlanIntegrationTest {
         client
                 .delete()
                 .uri("/meal-plans/" + id)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private RecipeDetailsDto createRecipe(RestClient client, String name) {
+        RecipeData data = new RecipeData(
+                List.of(new Ingredient("flour", "300", "g")),
+                List.of(new Instruction("Mix")),
+                null
+        );
+        CreateRecipeRequest request = new CreateRecipeRequest(name, data, null, List.of());
+        return client
+                .post()
+                .uri("/recipes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(RecipeDetailsDto.class);
+    }
+
+    private void deleteRecipe(RestClient client, UUID id) {
+        client
+                .delete()
+                .uri("/recipes/" + id)
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -429,6 +454,30 @@ class MealPlanIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         }
+    }
+
+    @Test
+    void shouldConvertEntryToPlaceholderWhenRecipeIsDeleted() {
+        RestClient client = restClient();
+
+        // Create a recipe
+        RecipeDetailsDto recipe = createRecipe(client, "Test Recipe");
+
+        // Create a meal plan with an entry referencing the recipe
+        MealPlanDto plan = createMealPlan(client, "Recipe Delete Test", "#FF5733");
+        CreateMealPlanEntryRequest entryRequest = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 1, 29), recipe.id(), null, 4
+        );
+        MealPlanEntryDto entry = createEntry(client, plan.id(), entryRequest);
+
+        assertThat(entry.recipeId()).isEqualTo(recipe.id());
+        assertThat(entry.servingSize()).isEqualTo(4);
+        assertThat(entry.placeholderText()).isNull();
+
+        // Delete the recipe
+        deleteRecipe(client, recipe.id());
+
+        // TODO: verify entry was converted to placeholder when calendar endpoint is ready
     }
 
     @Test

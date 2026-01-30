@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -30,6 +31,7 @@ class RecipeService {
     private final ObjectMapper objectMapper;
     private final RecipesCollectionService recipesCollectionService;
     private final RecipeImagesService recipeImagesService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public List<RecipeListDto> findAll(String userEmail) {
         log.debug("Finding all accessible recipes for user {}", userEmail);
@@ -189,6 +191,8 @@ class RecipeService {
         if (userRole != UserRole.OWNER) {
             throw new RecipeAccessDeniedException(id);
         }
+
+        eventPublisher.publishEvent(new RecipeDeleted(recipe.getId(), recipe.getName()));
 
         // Delete ALL RecipePermission associations first (including shared users)
         recipePermissionRepository.deleteAllByRecipeId(id);

@@ -4,8 +4,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.exception.*;
+import xyz.stasiak.recipai.recipes.RecipeDeleted;
 
 import java.util.List;
 import java.util.UUID;
@@ -169,6 +172,19 @@ class MealPlanService {
         }
 
         entryRepository.deleteById(entryId);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    void handleRecipeDeleted(RecipeDeleted event) {
+        log.debug("Handling RecipeDeleted event for recipe {} ({})", event.recipeId(), event.recipeName());
+
+        List<MealPlanEntry> entries = entryRepository.findAllByRecipeId(event.recipeId());
+        for (MealPlanEntry entry : entries) {
+            entry.setPlaceholderText(event.recipeName());
+            entry.setRecipeId(null);
+            entry.setServingSize(null);
+            entryRepository.save(entry);
+        }
     }
 
     private void validateEntry(UUID recipeId, String placeholderText, Integer servingSize) {

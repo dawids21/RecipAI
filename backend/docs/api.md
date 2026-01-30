@@ -351,7 +351,8 @@
       - Example response: No content
       - Success: 204 No Content
       - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-      - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes
+    - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes.
+      When a recipe is deleted, a `RecipeDeleted` event is published.
 - GET /recipes/{uuid}/shared_users
     - Description: Get all users that a recipe is shared with, including their roles
     - Authenticated: true
