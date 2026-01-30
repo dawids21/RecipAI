@@ -905,7 +905,7 @@ class RecipeIntegrationTest {
         assertThat(recipeForUser2.id()).isEqualTo(recipe.id());
         assertThat(recipeForUser2.name()).isEqualTo("Secret Recipe");
         assertThat(recipeForUser2.role()).isEqualTo(UserRole.EDITOR);
-        assertThat(recipeForUser2.collectionId()).isNull(); // User doesn't see collection assignment
+        assertThat(recipeForUser2.collectionId()).isEqualTo(collection.id());
         assertThat(recipeForUser2.collectionName()).isNull();
     }
 

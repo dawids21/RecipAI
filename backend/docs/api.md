@@ -97,10 +97,12 @@
   - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare, and change
     collection assignment) or "EDITOR" (can view and edit only, cannot change collection assignment - attempts to change
     it are silently ignored). Users with access to a collection automatically receive EDITOR access to all recipes in
-    that collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection or
-    when the user does not have access to the assigned collection. The `sourceUrl` field in `data` is
-    optional and contains the URL of the original recipe source. The `images` array contains presigned S3 URLs that are
-    valid for a limited time (configured by server). Maximum of 2 images per recipe.
+    that collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a
+    collection.                                                      
+    When the user does not have access to the assigned collection, `collectionId` is still returned
+    but `collectionName` is null. The `sourceUrl` field in `data` is optional and contains the URL of
+    the original recipe source. The `images` array contains presigned S3 URLs that are valid for a limited time
+    (configured by server). Maximum of 2 images per recipe.
 - POST /recipes (JSON)
     - Description: Add new recipe with JSON data
     - Authenticated: true
