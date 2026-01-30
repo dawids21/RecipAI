@@ -38,3 +38,5 @@ recipai:
     bucket-name: recipai-data
     region: eu-central-1
     presigned-url-expiration-minutes: 10
+  meal-plan:
+    max-owned-plans: 5

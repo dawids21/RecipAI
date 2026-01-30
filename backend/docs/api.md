@@ -95,7 +95,8 @@
     - Success: 200 OK
     - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
   - Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare, and change
-    collection assignment) or "EDITOR" (can view and edit only, cannot change collection assignment - attempts to change
+    collection assignment) or "EDITOR" (can view and edit only, cannot change collection assignment - attempts to
+    change
     it are silently ignored). Users with access to a collection automatically receive EDITOR access to all recipes in
     that collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a
     collection.                                                      
@@ -173,9 +174,11 @@
       }
       ```
     - Success: 201 Created
-  - Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection
+  - Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if
+    collection
     doesn't exist)
-      - Note: `recipesCollectionId`, `sourceUrl`, and `images` are optional and can be null or empty. The `images` field
+      - Note: `recipesCollectionId`, `sourceUrl`, and `images` are optional and can be null or empty. The `images`
+        field
         is an array of UUIDs (max 2) for image metadata tracking when creating recipes via JSON. When
         `recipesCollectionId` is provided, user must have EDITOR or OWNER access to the collection. Response includes
         `collectionId` and `collectionName` when recipe is assigned to a collection
@@ -200,16 +203,17 @@
       "images": ["image-uuid-1", "image-uuid-2"]
     }
     ```
-    - Example response: Same as JSON endpoint
-    - Success: 201 Created
-    - Errors:
-        - 400 Bad request (invalid data, unsupported image format, image size exceeds 5MB, more than 2 images, or
-          mismatch between image UUIDs and files)
-        - 403 Forbidden (if user lacks access to specified collection)
-        - 404 Not Found (if collection doesn't exist)
-    - Note: Images are stored in S3 and automatically resized to create thumbnails. Maximum of 2 images per recipe. Only
-      JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The
-      extension in the filename is normalized (jpeg → jpg).
+      - Example response: Same as JSON endpoint
+      - Success: 201 Created
+      - Errors:
+          - 400 Bad request (invalid data, unsupported image format, image size exceeds 5MB, more than 2 images, or
+            mismatch between image UUIDs and files)
+          - 403 Forbidden (if user lacks access to specified collection)
+          - 404 Not Found (if collection doesn't exist)
+      - Note: Images are stored in S3 and automatically resized to create thumbnails. Maximum of 2 images per recipe.
+        Only
+        JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The
+        extension in the filename is normalized (jpeg → jpg).
 - PUT /recipes/{uuid} (JSON)
     - Description: Update existing recipe by UUID
   - Authenticated: true
@@ -288,14 +292,19 @@
       - Success: 200 OK
       - Errors: 403 Forbidden (if user lacks access to recipe or specified collection), 404 Not Found (if recipe or
         collection doesn't exist), 400 Bad request
-    - Note: Both OWNER and EDITOR roles can update recipes, but only OWNER can change the `recipesCollectionId` field.
-      If an EDITOR attempts to change `recipesCollectionId`, the request succeeds (200 OK) but the collection assignment
-      remains unchanged. Users with access to a collection automatically receive EDITOR access to all recipes in that
-      collection. `recipesCollectionId`, `sourceUrl`, and `images` are optional and can be null. When null, no changes
-      are made to those fields. When `recipesCollectionId` is null, recipe is removed from
-      collection. When `images` is null, no image changes are made. When `images` is an empty array [], all images are
-      deleted. When `images` contains UUIDs, images are kept/reordered/deleted to match the list. This JSON endpoint
-      supports delete and reorder operations only (no new image uploads).
+      - Note: Both OWNER and EDITOR roles can update recipes, but only OWNER can change the `recipesCollectionId`
+        field.
+        If an EDITOR attempts to change `recipesCollectionId`, the request succeeds (200 OK) but the collection
+        assignment
+        remains unchanged. Users with access to a collection automatically receive EDITOR access to all recipes in
+        that
+        collection. `recipesCollectionId`, `sourceUrl`, and `images` are optional and can be null. When null, no
+        changes
+        are made to those fields. When `recipesCollectionId` is null, recipe is removed from
+        collection. When `images` is null, no image changes are made. When `images` is an empty array [], all images
+        are
+        deleted. When `images` contains UUIDs, images are kept/reordered/deleted to match the list. This JSON endpoint
+        supports delete and reorder operations only (no new image uploads).
 - PUT /recipes/{uuid} (Multipart)
     - Description: Update existing recipe with images by UUID
     - Authenticated: true
@@ -341,8 +350,8 @@
   - Authenticated: true
       - Example response: No content
       - Success: 204 No Content
-    - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-    - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes
+      - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
+      - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes
 - GET /recipes/{uuid}/shared_users
     - Description: Get all users that a recipe is shared with, including their roles
     - Authenticated: true
@@ -632,17 +641,18 @@
         - `id` (UUID): Item ID
   - Headers:
       - `If-Match` (required): Version number of the item (obtained from GET request)
-    - Roles: OWNER and EDITOR can delete items
-    - Example response: No content
-    - Success: 204 No Content
+      - Roles: OWNER and EDITOR can delete items
+      - Example response: No content
+      - Success: 204 No Content
   - Errors:
       - 401 Unauthorized
       - 403 Forbidden (user lacks EDITOR/OWNER permission)
       - 404 Not Found (item not found or doesn't belong to the shopping list)
       - 412 Precondition Failed (version mismatch - item was modified by another user)
-    - Note: EDITOR role is sufficient to delete items. Deleting an item does not renumber remaining items (gaps are
-      allowed in positions). The `If-Match` header must contain the current version of the item to prevent concurrent
-      modification conflicts.
+      - Note: EDITOR role is sufficient to delete items. Deleting an item does not renumber remaining items (gaps are
+        allowed in positions). The `If-Match` header must contain the current version of the item to prevent
+        concurrent
+        modification conflicts.
 - PUT /shopping-lists/{shopping_list_id}/item/{id}
     - Description: Update an item's name, quantity, and unit
     - Authenticated: true
@@ -948,7 +958,8 @@
     - Success: 204 No Content
     - Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden (if user has no access, or trying
       to unshare OWNER), 404 Not Found
-  - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves. When
+  - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
+    When
     a collection is unshared from a user, all recipes owned by that user in the collection are automatically removed
     from the collection (recipesCollectionId set to null).
 
@@ -974,7 +985,8 @@
 - POST /meal-plans
     - Description: Create a new meal plan and grant OWNER permission to the authenticated user
     - Authenticated: true
-    - Note: Automatically creates a permission record with OWNER role. There is a max number of plans owned per user.
+  - Note: Automatically creates a permission record with OWNER role. There is a max number of plans owned per user (
+    configured via `recipai.meal-plan.max-owned-plans`).
     - Request body:
       ```json
       {

@@ -2,6 +2,7 @@ package xyz.stasiak.recipai.planning;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -28,6 +29,9 @@ class MealPlanIntegrationTest {
 
     @LocalServerPort
     private int port;
+
+    @Value("${recipai.meal-plan.max-owned-plans}")
+    private int maxOwnedPlans;
 
     private RestClient restClient() {
         return restClient(TestSecurityConfiguration.AUTH_TOKEN);
@@ -245,15 +249,15 @@ class MealPlanIntegrationTest {
     }
 
     @Test
-    void shouldEnforce10PlanLimit() {
+    void shouldEnforcePlanLimit() {
         RestClient client = restClient();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < maxOwnedPlans; i++) {
             createMealPlan(client, "Plan " + i, "#FF5733");
         }
 
         try {
-            createMealPlan(client, "Plan 11", "#FF5733");
+            createMealPlan(client, "Plan over limit", "#FF5733");
             fail("Should have thrown exception");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.CONFLICT.value());

@@ -15,8 +15,7 @@ import java.util.UUID;
 @Slf4j
 class MealPlanService {
 
-    private static final int MAX_OWNED_PLANS = 10;
-
+    private final MealPlanProperties properties;
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanPermissionRepository permissionRepository;
     private final MealPlanEntryRepository entryRepository;
@@ -37,8 +36,8 @@ class MealPlanService {
         log.debug("Creating meal plan with name: {} for user: {}", request.name(), userEmail);
 
         long ownedCount = permissionRepository.countOwnedByEmail(userEmail);
-        if (ownedCount >= MAX_OWNED_PLANS) {
-            throw new MealPlanLimitExceededException();
+        if (ownedCount >= properties.maxOwnedPlans()) {
+            throw new MealPlanLimitExceededException(properties.maxOwnedPlans());
         }
 
         MealPlan mealPlan = new MealPlan(request.name(), request.color());

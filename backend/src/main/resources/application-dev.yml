@@ -12,3 +12,9 @@ logging:
     xyz.stasiak: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
+
+recipai:
+  meal-plan:
+    max-owned-plans: 50
+  s3:
+    presigned-url-expiration-minutes: 60
