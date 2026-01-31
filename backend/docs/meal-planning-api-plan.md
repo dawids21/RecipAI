@@ -212,8 +212,8 @@ recipe ownership and privacy rules.
 }
 ```
 
-* **Validation Rules**: `servingSize` required if `recipeId` is present. `recipeId` and `placeholderText` are mutually
-  exclusive.
+* **Validation Rules**: `servingSize` required if `recipeId` is present. `servingSize` cannot be provided if
+  `placeholderText` is present. `recipeId` and `placeholderText` are mutually exclusive.
 
 ### ShoppingListGeneratedItems
 

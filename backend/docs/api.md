@@ -1073,7 +1073,8 @@
     - Success: 201 Created
     - Errors: 400 Bad Request (validation errors), 401 Unauthorized, 403 Forbidden, 404 Not Found
     - Note: Entry must have either `recipeId` or `placeholderText`, not both and not neither. When `recipeId` is
-      provided, `servingSize` is required. `servingSize` must be positive.
+      provided, `servingSize` is required. When `placeholderText` is provided, `servingSize` cannot be provided.
+      `servingSize` must be positive.
 - PUT /meal-plans/{planId}/entries/{entryId}
     - Description: Update an existing meal plan entry
     - Authenticated: true
@@ -1105,7 +1106,8 @@
     - Success: 200 OK
     - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found or belongs to different
       plan)
-    - Note: Same validation rules as create (recipeId XOR placeholderText, servingSize required with recipeId)
+  - Note: Same validation rules as create (recipeId XOR placeholderText, servingSize required with recipeId,
+    servingSize cannot be provided with placeholderText)
 - DELETE /meal-plans/{planId}/entries/{entryId}
     - Description: Delete a meal plan entry
     - Authenticated: true

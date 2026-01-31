@@ -202,6 +202,10 @@ class MealPlanService {
         if (hasRecipe && servingSize == null) {
             throw new InvalidMealPlanEntryException("servingSize is required when recipeId is provided");
         }
+
+        if (hasPlaceholder && servingSize != null) {
+            throw new InvalidMealPlanEntryException("servingSize cannot be provided when placeholderText is provided");
+        }
     }
 
     private MealPlanDto toDto(MealPlan plan, UserRole role) {

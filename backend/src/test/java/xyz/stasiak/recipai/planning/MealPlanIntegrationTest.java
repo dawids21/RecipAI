@@ -503,6 +503,23 @@ class MealPlanIntegrationTest {
     }
 
     @Test
+    void shouldRejectEntryWithPlaceholderTextAndServingSize() {
+        RestClient client = restClient();
+        MealPlanDto plan = createMealPlan(client, "Placeholder With Serving Size Test", "#FF5733");
+
+        CreateMealPlanEntryRequest request = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 1, 29), null, "Leftovers", 4
+        );
+
+        try {
+            createEntry(client, plan.id(), request);
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        }
+    }
+
+    @Test
     void shouldConvertEntryToPlaceholderWhenRecipeIsDeleted() {
         RestClient client = restClient();
 

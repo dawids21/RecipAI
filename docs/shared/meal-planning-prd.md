@@ -52,6 +52,7 @@ and disconnected. Users face the following challenges:
 2. Users can add a Placeholder Entry to a specific date.
     - Consists of free-text (e.g., Leftovers or Pizza Night).
     - Does not link to a recipe ID.
+   - Does not have a serving size (text-only entry).
 3. If a recipe is deleted from the database, any calendar entries linking to it must remain as **Text Placeholders**.
     - The entry loses its link to the recipe ID.
     - The entry retains the original recipe name as its description.
