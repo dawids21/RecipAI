@@ -3,6 +3,7 @@ package xyz.stasiak.recipai.planning;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -10,7 +11,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import xyz.stasiak.recipai.planning.dto.*;
 
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +24,7 @@ import java.util.UUID;
 class MealPlanController {
 
     private final MealPlanService mealPlanService;
+    private final MealPlanCalendarService calendarService;
 
     @GetMapping
     List<MealPlanDto> getAllMealPlans(@AuthenticationPrincipal Jwt jwt) {
@@ -117,5 +122,32 @@ class MealPlanController {
         log.debug("Unsharing meal plan {} by user {} from {}", id, userEmail, request.email());
         mealPlanService.unshareMealPlan(request.email(), id, userEmail);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/calendar")
+    Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String planIds,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting calendar view for user: {} from {} to {}", userEmail, startDate, endDate);
+
+        List<UUID> planIdList = parsePlanIds(planIds);
+
+        return calendarService.getCalendarView(userEmail, startDate, endDate, planIdList);
+    }
+
+    private List<UUID> parsePlanIds(String planIds) {
+        if (planIds == null || planIds.isBlank()) {
+            return null;
+        }
+
+        return Arrays.stream(planIds.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(UUID::fromString)
+                .toList();
     }
 }

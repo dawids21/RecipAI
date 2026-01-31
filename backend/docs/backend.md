@@ -17,7 +17,8 @@
   move, check, and uncheck functionality)
 - `planning` - manages meal plans with user-based permission control (CRUD operations with role-based access, sharing
   functionality with OWNER/EDITOR roles, meal plan entries with recipe or placeholder support, limit for owner plans,
-  automatic conversion of recipe entries to placeholders when a recipe is deleted via `RecipeDeleted` event)
+  automatic conversion of recipe entries to placeholders when a recipe is deleted via `RecipeDeleted` event, calendar
+  view for retrieving entries grouped by date with recipe names and access flags populated in a single efficient query)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 - `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 
@@ -100,10 +101,12 @@ backend/
 │   │   ├── MealPlanPermissionId.java  # Composite key for meal plan permissions
 │   │   ├── UserRole.java             # Enum for OWNER/EDITOR roles
 │   │   ├── MealPlanRepository.java   # Meal plan data access
-│   │   ├── MealPlanEntryRepository.java # Meal plan entry data access
+│   │   ├── MealPlanEntryRepository.java # Meal plan entry data access with calendar view query (JPQL projection)
+│   │   ├── MealPlanCalendarEntryProjection.java # Projection interface for calendar entries
 │   │   ├── MealPlanPermissionRepository.java # Permission queries repository
 │   │   ├── MealPlanService.java      # Meal plan business logic with entries, permissions and sharing
-│   │   ├── MealPlanController.java   # Meal plan REST endpoints with JWT authentication and sharing endpoints
+│   │   ├── MealPlanCalendarService.java # Calendar view service with date range validation and grouping by date
+│   │   ├── MealPlanController.java   # Meal plan REST endpoints with JWT authentication, sharing, and calendar endpoints
 │   │   ├── MealPlanConfig.java       # Configuration for meal plan limits
 │   │   ├── MealPlanProperties.java   # Configuration properties
 │   │   ├── PlanningExceptionHandler.java # Exception handling with ProblemDetail

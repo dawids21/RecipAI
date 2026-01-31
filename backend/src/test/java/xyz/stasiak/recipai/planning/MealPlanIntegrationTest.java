@@ -19,12 +19,12 @@ import xyz.stasiak.recipai.recipes.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-@SuppressWarnings("ResultOfMethodCallIgnored")
 @Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class MealPlanIntegrationTest {
@@ -184,6 +184,20 @@ class MealPlanIntegrationTest {
                 .body(request)
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    private Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
+            RestClient client, LocalDate startDate, LocalDate endDate, String planIds) {
+        String uri = "/meal-plans/calendar?startDate=" + startDate + "&endDate=" + endDate;
+        if (planIds != null) {
+            uri += "&planIds=" + planIds;
+        }
+        return client
+                .get()
+                .uri(uri)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
     }
 
     @Test
@@ -492,10 +506,8 @@ class MealPlanIntegrationTest {
     void shouldConvertEntryToPlaceholderWhenRecipeIsDeleted() {
         RestClient client = restClient();
 
-        // Create a recipe
         RecipeDetailsDto recipe = createRecipe(client, "Test Recipe");
 
-        // Create a meal plan with an entry referencing the recipe
         MealPlanDto plan = createMealPlan(client, "Recipe Delete Test", "#FF5733");
         CreateMealPlanEntryRequest entryRequest = new CreateMealPlanEntryRequest(
                 LocalDate.of(2026, 1, 29), recipe.id(), null, 4
@@ -506,10 +518,20 @@ class MealPlanIntegrationTest {
         assertThat(entry.servingSize()).isEqualTo(4);
         assertThat(entry.placeholderText()).isNull();
 
-        // Delete the recipe
         deleteRecipe(client, recipe.id());
 
-        // TODO: verify entry was converted to placeholder when calendar endpoint is ready
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
+                client, LocalDate.of(2026, 1, 29), LocalDate.of(2026, 1, 29), null);
+
+        assertThat(calendar).hasSize(1);
+        List<MealPlanCalendarViewDto> entries = calendar.get(LocalDate.of(2026, 1, 29));
+        assertThat(entries).hasSize(1);
+
+        MealPlanCalendarViewDto calendarEntry = entries.getFirst();
+        assertThat(calendarEntry.recipeId()).isNull();
+        assertThat(calendarEntry.recipeName()).isNull();
+        assertThat(calendarEntry.placeholderText()).isEqualTo(recipe.name());
+        assertThat(calendarEntry.hasRecipeAccess()).isTrue();
     }
 
     @Test
@@ -740,5 +762,117 @@ class MealPlanIntegrationTest {
         assertThat(users).hasSize(3);
         assertThat(users).extracting(SharedUserDto::email)
                 .contains("user1@example.com", "user2@example.com", "user@example.com");
+    }
+
+    @Test
+    void shouldGetCalendarView() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
+        MealPlanDto plan2 = createMealPlan(client, "Plan 2", "#33FF57");
+
+        RecipeDetailsDto recipe = createRecipe(client, "Calendar Recipe");
+
+        LocalDate date1 = LocalDate.of(2026, 2, 1);
+        LocalDate date2 = LocalDate.of(2026, 2, 2);
+
+        CreateMealPlanEntryRequest entry1 = new CreateMealPlanEntryRequest(date1, recipe.id(), null, 2);
+        CreateMealPlanEntryRequest entry2 = new CreateMealPlanEntryRequest(date1, null, "Placeholder", 4);
+        CreateMealPlanEntryRequest entry3 = new CreateMealPlanEntryRequest(date2, recipe.id(), null, 1);
+
+        createEntry(client, plan1.id(), entry1);
+        createEntry(client, plan2.id(), entry2);
+        createEntry(client, plan1.id(), entry3);
+
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
+                client, date1, date2, null);
+
+        assertThat(calendar).hasSize(2);
+
+        List<MealPlanCalendarViewDto> date1Entries = calendar.get(date1);
+        assertThat(date1Entries).hasSize(2);
+
+        MealPlanCalendarViewDto recipeEntry = date1Entries.stream()
+                .filter(e -> e.recipeId() != null)
+                .findFirst()
+                .orElseThrow();
+        assertThat(recipeEntry.planId()).isEqualTo(plan1.id());
+        assertThat(recipeEntry.planColor()).isEqualTo("#FF5733");
+        assertThat(recipeEntry.recipeId()).isEqualTo(recipe.id());
+        assertThat(recipeEntry.recipeName()).isEqualTo("Calendar Recipe");
+        assertThat(recipeEntry.placeholderText()).isNull();
+        assertThat(recipeEntry.servingSize()).isEqualTo(2);
+        assertThat(recipeEntry.hasRecipeAccess()).isTrue();
+
+        MealPlanCalendarViewDto placeholderEntry = date1Entries.stream()
+                .filter(e -> e.recipeId() == null)
+                .findFirst()
+                .orElseThrow();
+        assertThat(placeholderEntry.planId()).isEqualTo(plan2.id());
+        assertThat(placeholderEntry.planColor()).isEqualTo("#33FF57");
+        assertThat(placeholderEntry.recipeId()).isNull();
+        assertThat(placeholderEntry.recipeName()).isNull();
+        assertThat(placeholderEntry.placeholderText()).isEqualTo("Placeholder");
+        assertThat(placeholderEntry.servingSize()).isEqualTo(4);
+        assertThat(placeholderEntry.hasRecipeAccess()).isTrue();
+
+        List<MealPlanCalendarViewDto> date2Entries = calendar.get(date2);
+        assertThat(date2Entries).hasSize(1);
+        assertThat(date2Entries.getFirst().recipeId()).isEqualTo(recipe.id());
+
+        Map<LocalDate, List<MealPlanCalendarViewDto>> filteredCalendar = getCalendarView(
+                client, date1, date2, plan1.id().toString());
+
+        assertThat(filteredCalendar).hasSize(2);
+        assertThat(filteredCalendar.get(date1)).hasSize(1);
+        assertThat(filteredCalendar.get(date1).getFirst().planId()).isEqualTo(plan1.id());
+    }
+
+    @Test
+    void shouldIndicateRestrictedRecipeAccess() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Shared Plan", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        RecipeDetailsDto recipe = createRecipe(client1, "Private Recipe");
+
+        CreateMealPlanEntryRequest entry = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), recipe.id(), null, 2);
+        createEntry(client1, plan.id(), entry);
+
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
+                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), null);
+
+        assertThat(calendar).hasSize(1);
+        List<MealPlanCalendarViewDto> entries = calendar.get(LocalDate.of(2026, 2, 1));
+        assertThat(entries).hasSize(1);
+
+        MealPlanCalendarViewDto calendarEntry = entries.getFirst();
+        assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
+        assertThat(calendarEntry.recipeName()).isEqualTo("Private Recipe");
+        assertThat(calendarEntry.hasRecipeAccess()).isFalse();
+    }
+
+    @Test
+    void shouldValidateDateRangeInCalendarView() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        try {
+            getCalendarView(client, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 1), null);
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+            assertThat(ex.getResponseBodyAsString()).contains("startDate must be before or equal to endDate");
+        }
+
+        try {
+            getCalendarView(client, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 5, 1), null);
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+            assertThat(ex.getResponseBodyAsString()).contains("Date range cannot exceed 3 months");
+        }
     }
 }

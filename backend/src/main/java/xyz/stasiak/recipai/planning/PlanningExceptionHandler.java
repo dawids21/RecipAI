@@ -58,4 +58,14 @@ class PlanningExceptionHandler {
         problemDetail.setTitle("Invalid Meal Plan Entry");
         return problemDetail;
     }
+
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ProblemDetail handleInvalidDateRange(InvalidDateRangeException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage()
+        );
+        problemDetail.setTitle("Invalid Date Range");
+        return problemDetail;
+    }
 }

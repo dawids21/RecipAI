@@ -1172,3 +1172,69 @@
       OWNER, or OWNER tries to unshare themselves), 404 Not Found
     - Note: EDITOR can unshare EDITORs (including themselves); EDITOR cannot remove OWNER; OWNER cannot remove
       themselves.
+- GET /meal-plans/calendar
+    - Description: Get meal plan entries grouped by date for calendar view. Returns entries from all accessible meal
+      plans within the specified date range, with recipe names and access flags populated.
+    - Authenticated: true
+    - Query parameters:
+        - `startDate` (required, ISO 8601 date format): Start of date range (inclusive)
+        - `endDate` (required, ISO 8601 date format): End of date range (inclusive)
+        - `planIds` (optional, comma-separated UUIDs): Filter entries by specific meal plan IDs
+    - Example request:
+      `GET /meal-plans/calendar?startDate=2026-02-01&endDate=2026-02-28&planIds=550e8400-e29b-41d4-a716-446655440000,660e8400-e29b-41d4-a716-446655440001`
+    - Example response:
+      ```json
+      {
+        "2026-02-01": [
+          {
+            "id": 1,
+            "planId": "550e8400-e29b-41d4-a716-446655440000",
+            "planColor": "#FF5733",
+            "date": "2026-02-01",
+            "recipeId": "770e8400-e29b-41d4-a716-446655440002",
+            "recipeName": "Pasta Carbonara",
+            "placeholderText": null,
+            "servingSize": 4,
+            "hasRecipeAccess": true
+          },
+          {
+            "id": 2,
+            "planId": "660e8400-e29b-41d4-a716-446655440001",
+            "planColor": "#33FF57",
+            "date": "2026-02-01",
+            "recipeId": null,
+            "recipeName": null,
+            "placeholderText": "Lunch with friends",
+            "servingSize": 2,
+            "hasRecipeAccess": true
+          }
+        ],
+        "2026-02-02": [
+          {
+            "id": 3,
+            "planId": "550e8400-e29b-41d4-a716-446655440000",
+            "planColor": "#FF5733",
+            "date": "2026-02-02",
+            "recipeId": "880e8400-e29b-41d4-a716-446655440003",
+            "recipeName": "Chicken Curry",
+            "placeholderText": null,
+            "servingSize": 3,
+            "hasRecipeAccess": false
+          }
+        ]
+      }
+      ```
+    - Success: 200 OK
+    - Errors:
+        - 400 Bad Request (invalid date format, startDate after endDate, or date range exceeds 3 months)
+        - 401 Unauthorized
+    - Notes:
+        - Entries are grouped by date and sorted by date (ascending), then by creation time within each date
+        - `hasRecipeAccess` is `true` if the user has permission to view the recipe (either direct permission or via
+          recipe collection), or if the entry is a placeholder (no recipeId)
+        - `hasRecipeAccess` is `false` if the entry references a recipe the user cannot access
+        - When a recipe is deleted, the entry is converted to a placeholder: `recipeId` and `recipeName` become null,
+          `placeholderText` is set to the original recipe name
+        - Date range cannot exceed 3 months
+        - Returns empty object `{}` if no entries exist in the date range
+        - If `planIds` is provided, only entries from those specific plans are returned
