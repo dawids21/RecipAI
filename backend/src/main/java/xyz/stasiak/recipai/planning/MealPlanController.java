@@ -88,4 +88,34 @@ class MealPlanController {
         mealPlanService.deleteEntry(planId, entryId, userEmail);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/{id}/users")
+    ResponseEntity<List<SharedUserDto>> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting shared users for meal plan: {} by user: {}", id, userEmail);
+        List<SharedUserDto> users = mealPlanService.getSharedUsers(id, userEmail);
+        return ResponseEntity.ok(users);
+    }
+
+    @PostMapping("/{id}/share")
+    ResponseEntity<Void> shareMealPlan(
+            @PathVariable UUID id,
+            @Valid @RequestBody ShareMealPlanRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Sharing meal plan {} by user {} with {}", id, userEmail, request.email());
+        mealPlanService.shareMealPlan(request.email(), id, userEmail);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/unshare")
+    ResponseEntity<Void> unshareMealPlan(
+            @PathVariable UUID id,
+            @Valid @RequestBody UnshareMealPlanRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Unsharing meal plan {} by user {} from {}", id, userEmail, request.email());
+        mealPlanService.unshareMealPlan(request.email(), id, userEmail);
+        return ResponseEntity.noContent().build();
+    }
 }

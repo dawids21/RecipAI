@@ -208,6 +208,83 @@ class MealPlanService {
         return new MealPlanDto(plan.getId(), plan.getName(), plan.getColor(), role, plan.getCreatedAt());
     }
 
+    void shareMealPlan(String targetEmail, UUID planId, String requesterEmail) {
+        log.debug("Sharing meal plan {} from {} to {}", planId, requesterEmail, targetEmail);
+
+        if (!mealPlanRepository.existsById(planId)) {
+            throw new MealPlanNotFoundException(planId);
+        }
+
+        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(requesterEmail, planId))
+                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+
+        if (!permission.hasEditorRights()) {
+            throw new MealPlanAccessDeniedException(planId);
+        }
+
+        MealPlanPermissionId targetPermissionId = new MealPlanPermissionId(targetEmail, planId);
+        if (permissionRepository.findById(targetPermissionId).isPresent()) {
+            log.warn("Meal plan {} is already shared with user {}", planId, targetEmail);
+            return;
+        }
+
+        MealPlanPermission newPermission = new MealPlanPermission(targetPermissionId, UserRole.EDITOR);
+        permissionRepository.save(newPermission);
+
+        log.info("Meal plan {} shared from {} to {}", planId, requesterEmail, targetEmail);
+    }
+
+    void unshareMealPlan(String targetEmail, UUID planId, String requesterEmail) {
+        log.debug("Unsharing meal plan {} from {} for {}", planId, requesterEmail, targetEmail);
+
+        if (!mealPlanRepository.existsById(planId)) {
+            throw new MealPlanNotFoundException(planId);
+        }
+
+        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(requesterEmail, planId))
+                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+
+        if (!permission.hasEditorRights()) {
+            throw new MealPlanAccessDeniedException(planId);
+        }
+
+        MealPlanPermissionId targetPermissionId = new MealPlanPermissionId(targetEmail, planId);
+        MealPlanPermission targetPermission = permissionRepository.findById(targetPermissionId)
+                .orElse(null);
+
+        if (targetPermission != null && targetPermission.hasOwnerRights()) {
+            if (targetEmail.equals(requesterEmail)) {
+                log.warn("OWNER {} cannot unshare themselves from meal plan {}", requesterEmail, planId);
+            } else {
+                log.warn("Cannot unshare OWNER {} from meal plan {}", targetEmail, planId);
+            }
+            throw new MealPlanAccessDeniedException(planId);
+        }
+
+        permissionRepository.deleteById(targetPermissionId);
+
+        log.info("Meal plan {} unshared from {} for {}", planId, requesterEmail, targetEmail);
+    }
+
+    List<SharedUserDto> getSharedUsers(UUID planId, String userEmail) {
+        log.debug("Getting shared users for meal plan: {} by user: {}", planId, userEmail);
+
+        if (!mealPlanRepository.existsById(planId)) {
+            throw new MealPlanNotFoundException(planId);
+        }
+
+        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
+                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+
+        if (!permission.hasEditorRights()) {
+            throw new MealPlanAccessDeniedException(planId);
+        }
+
+        return permissionRepository.findAllByPlanId(planId).stream()
+                .map(perm -> new SharedUserDto(perm.getId().email(), perm.getRole()))
+                .toList();
+    }
+
     private MealPlanEntryDto toEntryDto(MealPlanEntry entry) {
         return new MealPlanEntryDto(
                 entry.getId(),

@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.planning.dto.*;
+import xyz.stasiak.recipai.planning.dto.SharedUserDto;
 import xyz.stasiak.recipai.recipes.*;
 
 import java.time.LocalDate;
@@ -150,6 +151,37 @@ class MealPlanIntegrationTest {
         client
                 .delete()
                 .uri("/meal-plans/" + planId + "/entries/" + entryId)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private List<SharedUserDto> getSharedUsers(RestClient client, UUID planId) {
+        return client
+                .get()
+                .uri("/meal-plans/" + planId + "/users")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private void shareMealPlan(RestClient client, UUID planId, String email) {
+        ShareMealPlanRequest request = new ShareMealPlanRequest(email);
+        client
+                .post()
+                .uri("/meal-plans/" + planId + "/share")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void unshareMealPlan(RestClient client, UUID planId, String email) {
+        UnshareMealPlanRequest request = new UnshareMealPlanRequest(email);
+        client
+                .post()
+                .uri("/meal-plans/" + planId + "/unshare")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -501,5 +533,212 @@ class MealPlanIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
         }
+    }
+
+    @Test
+    void shouldListSharedUsersForOwnPlan() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        MealPlanDto plan = createMealPlan(client, "Shared Users Test", "#FF5733");
+
+        List<SharedUserDto> users = getSharedUsers(client, plan.id());
+
+        assertThat(users).hasSize(1);
+        assertThat(users.getFirst().email()).isEqualTo("user1@example.com");
+        assertThat(users.getFirst().role()).isEqualTo(UserRole.OWNER);
+    }
+
+    @Test
+    void shouldShareMealPlanWithAnotherUser() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Shared Plan", "#FF5733");
+
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        List<SharedUserDto> users = getSharedUsers(client1, plan.id());
+        assertThat(users).hasSize(2);
+        assertThat(users.get(0).email()).isEqualTo("user1@example.com");
+        assertThat(users.get(0).role()).isEqualTo(UserRole.OWNER);
+        assertThat(users.get(1).email()).isEqualTo("user2@example.com");
+        assertThat(users.get(1).role()).isEqualTo(UserRole.EDITOR);
+
+        List<MealPlanDto> user2Plans = getAllMealPlans(client2);
+        assertThat(user2Plans).extracting(MealPlanDto::id).contains(plan.id());
+        assertThat(user2Plans.stream().filter(p -> p.id().equals(plan.id())).findFirst().orElseThrow().role())
+                .isEqualTo(UserRole.EDITOR);
+    }
+
+    @Test
+    void shouldBeIdempotentWhenSharingTwice() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        MealPlanDto plan = createMealPlan(client1, "Idempotent Share Test", "#FF5733");
+
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+        List<SharedUserDto> users1 = getSharedUsers(client1, plan.id());
+
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+        List<SharedUserDto> users2 = getSharedUsers(client1, plan.id());
+
+        assertThat(users1).hasSize(2);
+        assertThat(users2).hasSize(2);
+        assertThat(users1).isEqualTo(users2);
+    }
+
+    @Test
+    void shouldAllowEditorToEditSharedPlan() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Editor Test", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        MealPlanDto updated = updateMealPlan(client2, plan.id(), "Updated by Editor", "#00FF00");
+
+        assertThat(updated.name()).isEqualTo("Updated by Editor");
+        assertThat(updated.color()).isEqualTo("#00FF00");
+        assertThat(updated.role()).isEqualTo(UserRole.EDITOR);
+    }
+
+    @Test
+    void shouldAllowEditorToCreateEntries() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Editor Entry Test", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        CreateMealPlanEntryRequest request = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Entry by Editor", null
+        );
+        MealPlanEntryDto entry = createEntry(client2, plan.id(), request);
+
+        assertThat(entry.planId()).isEqualTo(plan.id());
+        assertThat(entry.placeholderText()).isEqualTo("Entry by Editor");
+    }
+
+    @Test
+    void shouldPreventEditorFromDeletingPlan() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Editor Delete Test", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        try {
+            deleteMealPlan(client2, plan.id());
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        }
+    }
+
+    @Test
+    void shouldUnshareMealPlan() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Unshare Test", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        List<MealPlanDto> user2Plans = getAllMealPlans(client2);
+        assertThat(user2Plans).extracting(MealPlanDto::id).contains(plan.id());
+
+        unshareMealPlan(client1, plan.id(), "user2@example.com");
+
+        List<SharedUserDto> users = getSharedUsers(client1, plan.id());
+        assertThat(users).hasSize(1);
+        assertThat(users.get(0).email()).isEqualTo("user1@example.com");
+
+        List<MealPlanDto> user2PlansAfter = getAllMealPlans(client2);
+        assertThat(user2PlansAfter).extracting(MealPlanDto::id).doesNotContain(plan.id());
+    }
+
+    @Test
+    void shouldPreventUnsharingOwner() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Unshare Owner Test", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        try {
+            unshareMealPlan(client2, plan.id(), "user1@example.com");
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        }
+
+        try {
+            unshareMealPlan(client1, plan.id(), "user1@example.com");
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        }
+    }
+
+    @Test
+    void shouldReturn404WhenSharingNonexistentPlan() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        UUID nonexistent = UUID.randomUUID();
+
+        try {
+            shareMealPlan(client, nonexistent, "user2@example.com");
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenUnauthorizedUserTriesToShare() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Unauthorized Share Test", "#FF5733");
+
+        try {
+            shareMealPlan(client2, plan.id(), "other@example.com");
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        }
+    }
+
+    @Test
+    void shouldValidateEmailFormatInShareRequest() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        MealPlanDto plan = createMealPlan(client, "Email Validation Test", "#FF5733");
+
+        ShareMealPlanRequest request = new ShareMealPlanRequest("invalid-email");
+        try {
+            client
+                    .post()
+                    .uri("/meal-plans/" + plan.id() + "/share")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .toBodilessEntity();
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        }
+    }
+
+    @Test
+    void shouldAllowEditorToShareMealPlan() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Editor Share Test", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        shareMealPlan(client2, plan.id(), "user@example.com");
+
+        List<SharedUserDto> users = getSharedUsers(client1, plan.id());
+        assertThat(users).hasSize(3);
+        assertThat(users).extracting(SharedUserDto::email)
+                .contains("user1@example.com", "user2@example.com", "user@example.com");
     }
 }

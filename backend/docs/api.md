@@ -1116,3 +1116,59 @@
     - Example response: No content
     - Success: 204 No Content
     - Errors: 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found or belongs to different plan)
+
+#### Sharing & Permissions
+
+- GET /meal-plans/{id}/users
+    - Description: Get all users that a meal plan is shared with, including their roles
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Meal plan ID
+    - Example response:
+      ```json
+      [
+        {
+          "email": "owner@example.com",
+          "role": "OWNER"
+        },
+        {
+          "email": "editor@example.com",
+          "role": "EDITOR"
+        }
+      ]
+      ```
+    - Success: 200 OK
+    - Errors: 403 Forbidden (if user lacks access), 404 Not Found
+    - Note: OWNER appears first in the returned list, followed by EDITOR roles
+- POST /meal-plans/{id}/share
+    - Description: Share meal plan with another user (grants EDITOR access)
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Meal plan ID
+    - Roles: OWNER and EDITOR can share
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 204 No Content
+    - Errors: 400 Bad Request (invalid email format), 403 Forbidden (if user has no access), 404 Not Found
+    - Note: Shared user receives EDITOR access. Duplicate shares are silently ignored (idempotent).
+- POST /meal-plans/{id}/unshare
+    - Description: Remove shared access from a user
+    - Authenticated: true
+    - Path parameters:
+        - `id` (UUID): Meal plan ID
+    - Roles: OWNER and EDITOR can unshare (except EDITOR cannot unshare OWNER)
+    - Request body:
+      ```json
+      {
+        "email": "user@example.com"
+      }
+      ```
+    - Success: 204 No Content
+    - Errors: 400 Bad Request (invalid email format), 403 Forbidden (if user has no access, or EDITOR tries to unshare
+      OWNER, or OWNER tries to unshare themselves), 404 Not Found
+    - Note: EDITOR can unshare EDITORs (including themselves); EDITOR cannot remove OWNER; OWNER cannot remove
+      themselves.

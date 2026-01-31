@@ -138,21 +138,23 @@ recipe ownership and privacy rules.
 
 * **Path**: `POST /meal-plans/{id}/share`
 * **Purpose**: Grant Editor access to another user.
-* **Authentication**: User (JWT) - Owner only
+* **Authentication**: User (JWT) - Owner or Editor
 * **Request Parameters**:
     - **Body**: `{ "email": "String" }`
 * **Response**:
-    - **Success (200)**: Updated user list.
+  - **Success (204)**: No Content.
+* **Notes**: Duplicate shares are silently ignored (idempotent).
 
 #### Unshare Meal Plan
 
 * **Path**: `POST /meal-plans/{id}/unshare`
 * **Purpose**: Revoke access from a user.
-* **Authentication**: User (JWT) - Owner only
+* **Authentication**: User (JWT) - Owner or Editor
 * **Request Parameters**:
     - **Body**: `{ "email": "String" }`
 * **Response**:
-    - **Success (200)**: Updated user list.
+  - **Success (204)**: No Content.
+* **Notes**: EDITOR cannot unshare OWNER. OWNER cannot unshare themselves.
 
 ### Shopping List Integration
 
