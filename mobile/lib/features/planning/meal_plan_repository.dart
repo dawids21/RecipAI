@@ -1,0 +1,56 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:recipai_mobile/shared/extensions.dart';
+
+import '../../core/app_config.dart';
+import 'meal_plan_calendar_data.dart';
+
+class MealPlanRepository {
+  final http.Client _client = http.Client();
+  final String _baseUrl = AppConfig.apiBaseUrl;
+
+  MealPlanRepository();
+
+  Map<String, String> _getAuthHeaders(String? idToken) {
+    return {
+      'Content-Type': 'application/json',
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
+    };
+  }
+
+  Future<MealPlanCalendarData> fetchCalendar({
+    required DateTime startDate,
+    required DateTime endDate,
+    List<String>? planIds,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+
+    final queryParameters = <String, String>{
+      'startDate': startDate.toIso8601DateString(),
+      'endDate': endDate.toIso8601DateString(),
+    };
+
+    if (planIds != null && planIds.isNotEmpty) {
+      queryParameters['planIds'] = planIds.join(',');
+    }
+
+    final uri = Uri.parse(
+      '$_baseUrl/meal-plans/calendar',
+    ).replace(queryParameters: queryParameters);
+
+    final response = await _client.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+      return MealPlanCalendarData.fromJson(json);
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid request parameters');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else {
+      throw Exception('Failed to load calendar: ${response.statusCode}');
+    }
+  }
+}

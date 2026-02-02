@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_service.dart';
+import '../features/planning/meal_plan_calendar_screen.dart';
+import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/recipe_list.dart';
 import '../features/recipe/recipe_list_fab.dart';
@@ -9,6 +11,7 @@ import '../features/recipe/recipe_list_service.dart';
 import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
+import 'feature_flags.dart';
 import 'get_it.dart';
 import 'routes.dart';
 import 'theme.dart';
@@ -18,6 +21,7 @@ class MainScreen extends StatefulWidget {
   final RecipesCollectionListService recipesCollectionListService;
   final ShoppingListListService shoppingListListService;
   final AuthService authService;
+  final MealPlanCalendarService? mealPlanCalendarService;
 
   const MainScreen({
     super.key,
@@ -25,6 +29,7 @@ class MainScreen extends StatefulWidget {
     required this.recipesCollectionListService,
     required this.shoppingListListService,
     required this.authService,
+    required this.mealPlanCalendarService,
   });
 
   @override
@@ -40,6 +45,11 @@ class _MainScreenState extends State<MainScreen> {
     widget.recipeListService.loadRecipes();
     widget.recipesCollectionListService.loadRecipesCollections();
     widget.shoppingListListService.loadShoppingLists();
+
+    if (FeatureFlags.mealPlanningEnabled &&
+        widget.mealPlanCalendarService != null) {
+      widget.mealPlanCalendarService!.loadCalendar();
+    }
   }
 
   @override
@@ -53,6 +63,10 @@ class _MainScreenState extends State<MainScreen> {
     }
     if (getIt.isRegistered<ShoppingListListService>()) {
       getIt.resetLazySingleton<ShoppingListListService>();
+    }
+    if (FeatureFlags.mealPlanningEnabled &&
+        getIt.isRegistered<MealPlanCalendarService>()) {
+      getIt.resetLazySingleton<MealPlanCalendarService>();
     }
     super.dispose();
   }
@@ -106,6 +120,16 @@ class _MainScreenState extends State<MainScreen> {
         title: const Text('RecipAI'),
         backgroundColor: theme.colorScheme.inversePrimary,
         actions: [
+          if (FeatureFlags.mealPlanningEnabled && _selectedIndex == 2)
+            IconButton(
+              icon: const Icon(Icons.calendar_month),
+              tooltip: 'Manage Plans',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Plan management coming soon')),
+                );
+              },
+            ),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'recipes_collections') {
@@ -158,13 +182,30 @@ class _MainScreenState extends State<MainScreen> {
           ShoppingListList(
             shoppingListListService: widget.shoppingListListService,
           ),
+          if (FeatureFlags.mealPlanningEnabled &&
+              widget.mealPlanCalendarService != null)
+            MealPlanCalendarScreen(
+              calendarService: widget.mealPlanCalendarService!,
+            ),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
           ? RecipeListFab(recipeListService: widget.recipeListService)
-          : ShoppingListListFab(
+          : _selectedIndex == 1
+          ? ShoppingListListFab(
               shoppingListListService: widget.shoppingListListService,
-            ),
+            )
+          : FeatureFlags.mealPlanningEnabled && _selectedIndex == 2
+          ? FloatingActionButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Add meal feature coming soon')),
+                );
+              },
+              tooltip: 'Add meal',
+              child: const Icon(Icons.add),
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
@@ -178,6 +219,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.shopping_cart),
             label: 'Shopping',
           ),
+          if (FeatureFlags.mealPlanningEnabled)
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Planning',
+            ),
         ],
       ),
     );

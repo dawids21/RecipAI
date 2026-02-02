@@ -15,6 +15,8 @@
   Uses Repository-Service-View architecture with ShoppingListRepository, ShoppingListListService,
   ShoppingListDetailService (with bulk operations: deleteAllCheckedItems, uncheckAllItems), and
   ShoppingListSyncService for background syncing and conflict resolution
+- `planning` - Meal planning calendar management with weekly agenda view for viewing meal plan entries across multiple
+  plans.
 
 ## Data Models
 
@@ -42,6 +44,14 @@
 - Shopping List Operation (`shopping_list_operation.dart`) - Sealed class hierarchy for operation queue (
   AddItemOperation, DeleteItemOperation, MoveItemOperation, CheckItemOperation, UncheckItemOperation,
   UpdateItemOperation) with UUID-based temporary IDs
+
+### Meal Planning module
+
+- Meal Plan Calendar Entry (`planning/meal_plan_calendar_entry.dart`) - Data model for individual calendar entries with
+  plan metadata,
+  recipe information, or placeholder text
+- Meal Plan Calendar Data (`planning/meal_plan_calendar_data.dart`) - Data model for grouped calendar entries organized
+  by date
 
 ## Codebase Structure
 
@@ -113,6 +123,16 @@ mobile/
 │       │   ├── shopping_list_item_widget.dart # Reusable inline-editable item widget for existing items
 │       │   ├── shopping_list_item_add_widget.dart # Dedicated widget for adding new items
 │       │   └── shopping_list_detail_screen.dart # Shopping list detail screen
+│       ├── planning/                    # "meal planning" feature
+│       │   ├── meal_plan_calendar_entry.dart # Meal plan entry data model
+│       │   ├── meal_plan_calendar_data.dart # Calendar data model
+│       │   ├── meal_plan_repository.dart # Meal plan data access layer
+│       │   ├── meal_plan_calendar_service.dart # Calendar business logic with week navigation
+│       │   ├── meal_plan_setup.dart     # Dependency injection setup for planning module
+│       │   ├── meal_plan_calendar_screen.dart # Agenda view screen
+│       │   ├── week_strip.dart          # Week navigation header widget with tappable label to jump to today
+│       │   ├── day_section.dart         # Day section widget with entry list
+│       │   └── meal_entry_calendar_card.dart # Individual meal entry card widget
 │       └── extraction/                 # "extraction" feature
 │           ├── extraction_repository.dart # API communication layer for extraction endpoints
 │           ├── extraction_service.dart # Business logic layer for extraction operations

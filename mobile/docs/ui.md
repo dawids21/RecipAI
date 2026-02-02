@@ -4,10 +4,12 @@
 
 ### Core feature
 
-- Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing both recipe and
-  shopping list tabs. Displays RecipeList or ShoppingListList widgets based on selected tab, with corresponding FABs (
-  RecipeListFab or ShoppingListListFab). Features PopupMenuButton in AppBar with "Recipes collections" option (when
-  feature flag is enabled) and logout functionality
+- Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing recipe,
+  shopping list, and planning tabs. Displays RecipeList, ShoppingListList, or MealPlanCalendarScreen widgets based on
+  selected tab, with corresponding FABs (
+  RecipeListFab, ShoppingListListFab, or placeholder Planning FAB). Features PopupMenuButton in AppBar with "Recipes
+  collections" and logout options. When Planning tab is active and meal planning feature flag is enabled, shows "Manage
+  Plans" IconButton before the overflow menu
 
 ### Recipe feature
 
@@ -108,6 +110,19 @@
 - Shopping List Rename Dialog (`shopping_list_rename_dialog.dart`) - Stateful dialog widget for renaming shopping lists
   with TextField input, proper TextEditingController lifecycle management, and validation to prevent empty names
 
+### Meal Planning feature
+
+- Meal Plan Calendar Screen (`meal_plan_calendar_screen.dart`) - Agenda view displaying weekly meal plan entries with
+  week navigation strip, 7 vertical day sections (locale-aware first day of week), pull-to-refresh, and entry tap
+  handling. All dates formatted according to user locale.
+- Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
+  navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
+- Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
+  entries, or "No meals planned" empty state. Day header formatted according to user locale.
+- Meal Entry Calendar Card (`meal_entry_calendar_card.dart`) - Card widget for individual meal entries with background
+  color from plan color, recipe name or placeholder text, serving size, and placeholder overflow menu for edit/delete
+  actions. Text color adapts to background luminance for readability.
+
 ### Extraction feature
 
 - URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with
@@ -151,6 +166,7 @@
 The app uses a simple GoRoute structure with embedded bottom navigation in MainScreen:
 
 #### Authentication Routes
+
 - `/login` - Authentication screen with Google Sign-In (only accessible when unauthenticated)
 
 #### Main App Routes
@@ -158,6 +174,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 - `/` - Main screen with embedded bottom navigation (AppRoute.main)
     - Tab 1: Recipes (default) - Displays RecipeList widget
     - Tab 2: Shopping - Displays ShoppingListList widget
+  - Tab 3: Planning - Displays MealPlanCalendarScreen widget
     - `/recipes/url-extraction` - URL extraction screen (nested route)
     - `/recipes/image-extraction` - Image extraction screen (nested route)
     - `/recipes/create` - Recipe creation screen (nested route)
@@ -170,10 +187,11 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 
 ### Bottom Navigation Bar
 
-The app features an embedded bottom navigation bar (part of MainScreen) with two tabs:
+The app features an embedded bottom navigation bar (part of MainScreen) with tabs:
 
 - **Recipes** (restaurant_menu icon) - Access recipe management features
 - **Shopping** (shopping_cart icon) - Access shopping list features
+- **Planning** (calendar_today icon) - Access meal planning agenda view
 
 Tab state is ephemeral and not preserved across app restarts. Navigation to sub-routes (like recipe detail) pushes a new
 screen on top of MainScreen.

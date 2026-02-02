@@ -8,6 +8,7 @@ import '../features/auth/login_screen.dart';
 import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
 import '../features/extraction/url_extraction_screen.dart';
+import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/recipe/collection/recipes_collection_list_screen.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/create_recipe_screen.dart';
@@ -22,6 +23,7 @@ import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import '../features/shopping_list/shopping_list_sync_service.dart';
+import 'feature_flags.dart';
 import 'main_screen.dart';
 
 /// Route definitions with enum for type-safe navigation
@@ -121,6 +123,9 @@ GoRouter createAppRouter() {
           recipesCollectionListService: getIt<RecipesCollectionListService>(),
           shoppingListListService: getIt<ShoppingListListService>(),
           authService: getIt<AuthService>(),
+          mealPlanCalendarService: FeatureFlags.mealPlanningEnabled
+              ? getIt<MealPlanCalendarService>()
+              : null,
         ),
         routes: [
           GoRoute(

@@ -79,6 +79,11 @@ dependencies:
   # Fuzzy search
   fuzzy: ^0.5.1
 
+  # Internationalization and localization
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

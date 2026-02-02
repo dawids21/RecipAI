@@ -37,7 +37,9 @@
 - Firebase: firebase_core 4.1.0, firebase_auth 6.0.2, google_sign_in 7.1.1
 - Dependency injection: get_it 8.2.0
 - UUID generation: uuid 4.0.0
+- Collection utilities: collection 1.19.1
 - Search: fuzzy 0.5.1
+- Internationalization: flutter_localizations (SDK), intl
 - Dev tooling: flutter_lints 5.0.0, flutter_test, flutter_launcher_icons 0.14.4
 
 ## Deployment

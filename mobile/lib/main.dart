@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recipai_mobile/core/get_it.dart';
@@ -7,12 +8,14 @@ import 'package:recipai_mobile/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_config.dart';
+import 'core/feature_flags.dart';
 import 'core/preferences_service.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/auth_setup.dart';
 import 'features/extraction/extraction_setup.dart';
+import 'features/planning/meal_plan_setup.dart';
 import 'features/recipe/collection/recipes_collection_setup.dart';
 import 'features/recipe/recipe_setup.dart';
 import 'features/shopping_list/shopping_list_setup.dart';
@@ -32,6 +35,9 @@ void main() async {
   setupRecipesCollection();
   setupShoppingList();
   setupExtraction();
+  if (FeatureFlags.mealPlanningEnabled) {
+    setupMealPlan();
+  }
 
   final appRouter = createAppRouter();
 
@@ -59,7 +65,13 @@ class _RecipAIAppState extends State<RecipAIApp> {
     return MaterialApp.router(
       title: 'RecipAI',
       theme: AppTheme.theme,
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: widget.appRouter,
+      supportedLocales: [Locale('en')],
     );
   }
 }
