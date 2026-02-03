@@ -68,8 +68,7 @@ class MealPlanDrawer extends StatelessWidget {
                                 onShare: () =>
                                     _handlePlaceholder(context, 'Share'),
                                 onDelete: plan.role == UserRole.owner
-                                    ? () =>
-                                          _handlePlaceholder(context, 'Delete')
+                                    ? () => _handleDeletePlan(context, plan)
                                     : null,
                               );
                             },
@@ -157,6 +156,48 @@ class MealPlanDrawer extends StatelessWidget {
         SnackBar(
           content: Text(
             'Failed to update plan: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleDeletePlan(BuildContext context, MealPlan plan) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Plan'),
+        content: Text(
+          'Are you sure you want to delete "${plan.name}"? This will remove all scheduled meals in this plan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await mealPlanListService.deleteMealPlan(id: plan.id);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plan deleted successfully')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to delete plan: ${e.toString().replaceFirst('Exception: ', '')}',
           ),
         ),
       );

@@ -60,7 +60,7 @@
 - **Navigation**:
     - Create/Edit → `PlanFormDialog`.
     - Share → `SharingDialog` (Generic).
-- **Components Required**: `Drawer`, `PlanListTile`.
+- **Components Required**: `Drawer`, `PlanListTile`, `AlertDialog` (for delete confirmation).
 - **API Endpoints Used**: `GET /meal-plans`, `DELETE /meal-plans/{id}`.
 
 ### View 3: Meal Entry Dialog
@@ -149,6 +149,9 @@
 
 - **Editing a Plan**: User opens Drawer. Sees list of plans. Taps "Edit" menu item on "Personal". Changes color to
   Blue → Saves. Calendar updates immediately.
+- **Deleting a Plan**: User opens Drawer. Taps "Delete" menu item on owned plan. Confirmation dialog appears: "Are you
+  sure you want to delete...?". User taps "Delete" → Plan and all entries are deleted. SnackBar confirms success.
+  Drawer and calendar refresh.
 - **Handling Restricted Access**: User taps a meal entry with a lock icon → Toast appears "Recipe details not shared".
   User opens "Edit" menu → Selects a new recipe they own → Saves. The entry is updated.
 

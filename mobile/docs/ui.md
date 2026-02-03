@@ -118,9 +118,9 @@
   Planning tab is active. All dates formatted according to user locale.
 - Meal Plan Drawer (`meal_plan_drawer.dart`) - Side drawer for managing meal plans with unified list of all plans
   (personal and shared), visibility checkboxes for filtering calendar display, and three-dot menu per plan for
-  Edit/Share/Delete actions (Delete only visible to owners). Includes "Create New Plan" button with integrated form
-  dialog, pull-to-refresh functionality, and comprehensive error handling with user-friendly messages including special
-  handling for plan limit exceeded (409 Conflict).
+  Edit/Share/Delete actions (Delete only visible to owners, requires confirmation dialog). Includes "Create New Plan"
+  button with integrated form dialog, pull-to-refresh functionality, and comprehensive error handling with user-friendly
+  messages including special handling for plan limit exceeded (409 Conflict).
 - Plan Form Dialog (`plan_form_dialog.dart`) - Unified modal dialog for creating and editing meal plans with name input
   field (autofocus, validation) and color picker.
 - Plan Color Picker (`plan_color_picker.dart`) - Reusable grid-based color picker widget with 12 predefined
@@ -273,15 +273,18 @@ All routes except `/login` require user authentication. The app automatically re
 3. **Pull to Refresh** (in drawer) → Meal plans reloaded from API
 4. **Visibility Checkbox Tap** (in drawer) → Toggle plan visibility → Calendar refreshes automatically to show/hide plan
    entries
-5. **Plan Menu → Delete** (owners only) → SnackBar "Delete feature coming soon" (placeholder)
+5. **Plan Menu → Delete** (owners only) → Confirmation dialog "Are you sure you want to delete...?" → Tap "Delete" →
+   Plan
+   deleted (with all entries) → SnackBar "Plan deleted successfully" → Drawer list refreshes → Calendar refreshes to
+   remove deleted plan entries
 6. **Plan Menu → Edit** → PlanFormDialog opens with pre-filled name and color → Edit fields → Tap "Save" → Plan updated
    → SnackBar "Plan updated successfully" → Drawer list refreshes
 7. **Plan Menu → Share** → SnackBar "Share feature coming soon" (placeholder)
 8. **Create New Plan Button** (bottom of drawer) → PlanFormDialog opens → Enter name and select color → Tap "Create" →
    Plan created → SnackBar "Plan created successfully" → New plan appears in drawer list
 9. **Create/Edit Validation Errors** → Name required, color required → Error messages displayed inline
-10. **Create/Edit API Errors** → Network failures, plan limit exceeded (409), permission errors → User-friendly error
-    messages in SnackBars
+10. **Create/Edit/Delete API Errors** → Network failures, plan limit exceeded (409), permission errors (403 for
+    delete), plan not found (404) → User-friendly error messages in SnackBars
 11. **Close Drawer** → Swipe left or tap outside drawer → Returns to calendar view
 12. **Switch Tabs** → Drawer closes automatically
 

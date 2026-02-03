@@ -16,10 +16,10 @@
   ShoppingListDetailService (with bulk operations: deleteAllCheckedItems, uncheckAllItems), and
   ShoppingListSyncService for background syncing and conflict resolution
 - `planning` - Meal planning calendar management with weekly agenda view for viewing meal plan entries across multiple
-  plans. Includes plan management drawer with create/edit functionality via unified PlanFormDialog, role-based actions,
-  and local visibility toggles for filtering calendar display. Uses Repository-Service-View architecture with
-  MealPlanRepository (create/update/fetch operations), MealPlanListService, MealPlanVisibilityService, and
-  MealPlanCalendarService.
+  plans. Includes plan management drawer with create/edit/delete functionality via unified PlanFormDialog, role-based
+  actions (delete requires OWNER role), and local visibility toggles for filtering calendar display. Uses
+  Repository-Service-View architecture with MealPlanRepository (create/update/delete/fetch operations),
+  MealPlanListService, MealPlanVisibilityService, and MealPlanCalendarService.
 
 ## Data Models
 

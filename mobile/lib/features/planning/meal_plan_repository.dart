@@ -129,4 +129,27 @@ class MealPlanRepository {
       throw Exception('Failed to update meal plan: ${response.statusCode}');
     }
   }
+
+  Future<void> deleteMealPlan({
+    required String id,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.delete(
+      Uri.parse('$_baseUrl/meal-plans/$id'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to delete this plan');
+    } else if (response.statusCode == 404) {
+      throw Exception('Plan not found');
+    } else {
+      throw Exception('Failed to delete meal plan: ${response.statusCode}');
+    }
+  }
 }
