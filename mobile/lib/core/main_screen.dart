@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_service.dart';
 import '../features/planning/meal_plan_calendar_screen.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
+import '../features/planning/meal_plan_drawer.dart';
+import '../features/planning/meal_plan_list_service.dart';
+import '../features/planning/meal_plan_visibility_service.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/recipe_list.dart';
 import '../features/recipe/recipe_list_fab.dart';
@@ -22,6 +25,8 @@ class MainScreen extends StatefulWidget {
   final ShoppingListListService shoppingListListService;
   final AuthService authService;
   final MealPlanCalendarService? mealPlanCalendarService;
+  final MealPlanListService? mealPlanListService;
+  final MealPlanVisibilityService? mealPlanVisibilityService;
 
   const MainScreen({
     super.key,
@@ -30,6 +35,8 @@ class MainScreen extends StatefulWidget {
     required this.shoppingListListService,
     required this.authService,
     required this.mealPlanCalendarService,
+    required this.mealPlanListService,
+    required this.mealPlanVisibilityService,
   });
 
   @override
@@ -46,9 +53,9 @@ class _MainScreenState extends State<MainScreen> {
     widget.recipesCollectionListService.loadRecipesCollections();
     widget.shoppingListListService.loadShoppingLists();
 
-    if (FeatureFlags.mealPlanningEnabled &&
-        widget.mealPlanCalendarService != null) {
-      widget.mealPlanCalendarService!.loadCalendar();
+    if (FeatureFlags.mealPlanningEnabled) {
+      widget.mealPlanCalendarService?.loadCalendar();
+      widget.mealPlanListService?.loadMealPlans();
     }
   }
 
@@ -64,9 +71,16 @@ class _MainScreenState extends State<MainScreen> {
     if (getIt.isRegistered<ShoppingListListService>()) {
       getIt.resetLazySingleton<ShoppingListListService>();
     }
-    if (FeatureFlags.mealPlanningEnabled &&
-        getIt.isRegistered<MealPlanCalendarService>()) {
-      getIt.resetLazySingleton<MealPlanCalendarService>();
+    if (FeatureFlags.mealPlanningEnabled) {
+      if (getIt.isRegistered<MealPlanCalendarService>()) {
+        getIt.resetLazySingleton<MealPlanCalendarService>();
+      }
+      if (getIt.isRegistered<MealPlanListService>()) {
+        getIt.resetLazySingleton<MealPlanListService>();
+      }
+      if (getIt.isRegistered<MealPlanListService>()) {
+        getIt.resetLazySingleton<MealPlanVisibilityService>();
+      }
     }
     super.dispose();
   }
@@ -121,14 +135,14 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: theme.colorScheme.inversePrimary,
         actions: [
           if (FeatureFlags.mealPlanningEnabled && _selectedIndex == 2)
-            IconButton(
-              icon: const Icon(Icons.calendar_month),
-              tooltip: 'Manage Plans',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Plan management coming soon')),
-                );
-              },
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.calendar_month),
+                tooltip: 'Manage Plans',
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
             ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -172,6 +186,12 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
+      endDrawer: FeatureFlags.mealPlanningEnabled && _selectedIndex == 2
+          ? MealPlanDrawer(
+              mealPlanListService: widget.mealPlanListService!,
+              visibilityService: widget.mealPlanVisibilityService!,
+            )
+          : null,
       body: IndexedStack(
         index: _selectedIndex,
         children: [

@@ -114,7 +114,15 @@
 
 - Meal Plan Calendar Screen (`meal_plan_calendar_screen.dart`) - Agenda view displaying weekly meal plan entries with
   week navigation strip, 7 vertical day sections (locale-aware first day of week), pull-to-refresh, and entry tap
-  handling. All dates formatted according to user locale.
+  handling. Features right-side drawer for plan management accessed via "Manage Plans" button (calendar icon) when
+  Planning tab is active. All dates formatted according to user locale.
+- Meal Plan Drawer (`meal_plan_drawer.dart`) - Side drawer for managing meal plans with unified list of all plans
+  (personal and shared), visibility checkboxes for filtering calendar display, and three-dot menu per plan for
+  Edit/Share/Delete actions (Delete only visible to owners). Includes "Create New Plan" button and pull-to-refresh
+  functionality.
+- Plan List Tile (`plan_list_tile.dart`) - Card widget for individual plans with color indicator (CircleAvatar), plan
+  name, visibility checkbox, and PopupMenuButton with role-based menu items (Edit, Share for all; Delete for owners
+  only).
 - Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
   navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
 - Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
@@ -174,7 +182,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 - `/` - Main screen with embedded bottom navigation (AppRoute.main)
     - Tab 1: Recipes (default) - Displays RecipeList widget
     - Tab 2: Shopping - Displays ShoppingListList widget
-  - Tab 3: Planning - Displays MealPlanCalendarScreen widget
+  - Tab 3: Planning - Displays MealPlanCalendarScreen widget with right-side drawer for plan management
     - `/recipes/url-extraction` - URL extraction screen (nested route)
     - `/recipes/image-extraction` - Image extraction screen (nested route)
     - `/recipes/create` - Recipe creation screen (nested route)
@@ -252,6 +260,20 @@ All routes except `/login` require user authentication. The app automatically re
 3. **Pull to Refresh** (on Shopping tab) → Shopping lists reloaded from API
 4. **Shopping List Tap** → Shopping List Detail Screen (`/shopping-lists/:id` with shopping list ID parameter)
 5. **Back Button** (on Shopping List Detail Screen) → Back to Shopping tab on Main Screen
+
+#### Meal Planning Management Flow
+
+1. **Bottom Navigation → Planning Tab** → MainScreen switches to Planning tab view with calendar
+2. **Manage Plans Button Tap** (calendar icon in AppBar) → Opens MealPlanDrawer overlay from right side
+3. **Pull to Refresh** (in drawer) → Meal plans reloaded from API
+4. **Visibility Checkbox Tap** (in drawer) → Toggle plan visibility → Calendar refreshes automatically to show/hide plan
+   entries
+5. **Plan Menu → Delete** (owners only) → SnackBar "Delete feature coming soon" (placeholder)
+6. **Plan Menu → Edit** → SnackBar "Edit feature coming soon" (placeholder)
+7. **Plan Menu → Share** → SnackBar "Share feature coming soon" (placeholder)
+8. **Create New Plan Button** (bottom of drawer) → SnackBar "Create plan feature coming soon" (placeholder)
+9. **Close Drawer** → Swipe left or tap outside drawer → Returns to calendar view
+10. **Switch Tabs** → Drawer closes automatically
 
 ## Theme System
 

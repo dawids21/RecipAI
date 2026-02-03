@@ -9,6 +9,8 @@ import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
 import '../features/extraction/url_extraction_screen.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
+import '../features/planning/meal_plan_list_service.dart';
+import '../features/planning/meal_plan_visibility_service.dart';
 import '../features/recipe/collection/recipes_collection_list_screen.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/create_recipe_screen.dart';
@@ -125,6 +127,12 @@ GoRouter createAppRouter() {
           authService: getIt<AuthService>(),
           mealPlanCalendarService: FeatureFlags.mealPlanningEnabled
               ? getIt<MealPlanCalendarService>()
+              : null,
+          mealPlanListService: FeatureFlags.mealPlanningEnabled
+              ? getIt<MealPlanListService>()
+              : null,
+          mealPlanVisibilityService: FeatureFlags.mealPlanningEnabled
+              ? getIt<MealPlanVisibilityService>()
               : null,
         ),
         routes: [

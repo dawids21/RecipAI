@@ -16,7 +16,8 @@
   ShoppingListDetailService (with bulk operations: deleteAllCheckedItems, uncheckAllItems), and
   ShoppingListSyncService for background syncing and conflict resolution
 - `planning` - Meal planning calendar management with weekly agenda view for viewing meal plan entries across multiple
-  plans.
+  plans. Includes plan management drawer for creating, editing, sharing, and deleting plans, with local visibility
+  toggles for filtering calendar display.
 
 ## Data Models
 
@@ -47,9 +48,10 @@
 
 ### Meal Planning module
 
+- Meal Plan (`planning/meal_plan.dart`) - Data model for meal plans with id, name, color, role (UserRole
+  enum), and createdAt fields
 - Meal Plan Calendar Entry (`planning/meal_plan_calendar_entry.dart`) - Data model for individual calendar entries with
-  plan metadata,
-  recipe information, or placeholder text
+  plan metadata, recipe information, or placeholder text
 - Meal Plan Calendar Data (`planning/meal_plan_calendar_data.dart`) - Data model for grouped calendar entries organized
   by date
 
@@ -66,7 +68,7 @@ mobile/
 │   │   ├── async_value.dart           # AsyncValue sealed class (Loading/Data/Error)
 │   │   ├── get_it.dart                # Global GetIt instance
 │   │   ├── feature_flags.dart         # Feature flags configuration using environment variables
-│   │   ├── preferences_service.dart   # SharedPreferences wrapper for local storage (recipe filter persistence)
+│   │   ├── preferences_service.dart   # SharedPreferences wrapper for local storage (recipe filter, plan visibility)
 │   │   ├── theme.dart                 # App theme and spacing constants
 │   │   └── widgets/                    # Reusable widgets shared across features
 │   │       └── sharing_dialog.dart    # Generic sharing dialog with SharedUser DTO
@@ -124,12 +126,17 @@ mobile/
 │       │   ├── shopping_list_item_add_widget.dart # Dedicated widget for adding new items
 │       │   └── shopping_list_detail_screen.dart # Shopping list detail screen
 │       ├── planning/                    # "meal planning" feature
+│       │   ├── meal_plan.dart           # Meal plan data model
 │       │   ├── meal_plan_calendar_entry.dart # Meal plan entry data model
 │       │   ├── meal_plan_calendar_data.dart # Calendar data model
 │       │   ├── meal_plan_repository.dart # Meal plan data access layer
+│       │   ├── meal_plan_list_service.dart # Plan list business logic with ValueNotifier
+│       │   ├── meal_plan_visibility_service.dart # Visibility toggles with local persistence
 │       │   ├── meal_plan_calendar_service.dart # Calendar business logic with week navigation
 │       │   ├── meal_plan_setup.dart     # Dependency injection setup for planning module
 │       │   ├── meal_plan_calendar_screen.dart # Agenda view screen
+│       │   ├── meal_plan_drawer.dart    # Side drawer for plan management
+│       │   ├── plan_list_tile.dart      # Plan list item widget with checkbox and menu
 │       │   ├── week_strip.dart          # Week navigation header widget with tappable label to jump to today
 │       │   ├── day_section.dart         # Day section widget with entry list
 │       │   └── meal_entry_calendar_card.dart # Individual meal entry card widget
@@ -163,6 +170,7 @@ a singleton in `main.dart` and available via GetIt dependency injection.
 **Current supported preferences:**
 
 - Recipe filter collection ID - Persists the selected collection filter across app restarts
+- Plan visibility toggles - Persists which meal plans are visible on calendar (Map<String, bool> stored as JSON)
 
 **Usage example in services:**
 

@@ -17,20 +17,13 @@ class MealEntryCalendarCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    Color cardColor;
-    try {
-      cardColor = Color(int.parse(entry.planColor.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      cardColor = theme.colorScheme.outline; // Fallback color
-    }
-
-    final textColor = cardColor.computeLuminance() > 0.5
+    final textColor = entry.planColor.computeLuminance() > 0.5
         ? Colors.black
         : Colors.white;
 
     return Card(
       margin: AppSpacing.cardMargin,
-      color: cardColor,
+      color: entry.planColor,
       child: ListTile(
         contentPadding: AppSpacing.listTilePadding,
 

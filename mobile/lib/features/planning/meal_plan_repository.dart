@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:recipai_mobile/shared/extensions.dart';
 
 import '../../core/app_config.dart';
+import 'meal_plan.dart';
 import 'meal_plan_calendar_data.dart';
 
 class MealPlanRepository {
@@ -22,7 +23,7 @@ class MealPlanRepository {
   Future<MealPlanCalendarData> fetchCalendar({
     required DateTime startDate,
     required DateTime endDate,
-    List<String>? planIds,
+    required List<String> planIds,
     required String? idToken,
   }) async {
     final headers = _getAuthHeaders(idToken);
@@ -30,11 +31,8 @@ class MealPlanRepository {
     final queryParameters = <String, String>{
       'startDate': startDate.toIso8601DateString(),
       'endDate': endDate.toIso8601DateString(),
+      'planIds': planIds.join(','),
     };
-
-    if (planIds != null && planIds.isNotEmpty) {
-      queryParameters['planIds'] = planIds.join(',');
-    }
 
     final uri = Uri.parse(
       '$_baseUrl/meal-plans/calendar',
@@ -51,6 +49,22 @@ class MealPlanRepository {
       throw Exception('Unauthorized: Please log in again');
     } else {
       throw Exception('Failed to load calendar: ${response.statusCode}');
+    }
+  }
+
+  Future<List<MealPlan>> fetchMealPlans({required String? idToken}) async {
+    final headers = _getAuthHeaders(idToken);
+    final uri = Uri.parse('$_baseUrl/meal-plans');
+
+    final response = await _client.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      return jsonList.map((json) => MealPlan.fromJson(json)).toList();
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else {
+      throw Exception('Failed to load meal plans: ${response.statusCode}');
     }
   }
 }
