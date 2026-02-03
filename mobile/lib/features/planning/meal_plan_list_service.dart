@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
@@ -43,6 +44,40 @@ class MealPlanListService {
     });
 
     _isLoadMealPlansRunning = false;
+  }
+
+  Future<MealPlan> createMealPlan({
+    required String name,
+    required Color color,
+  }) async {
+    final token = await _authService.idToken;
+    final newPlan = await _repository.createMealPlan(
+      name: name,
+      color: color,
+      idToken: token,
+    );
+
+    await loadMealPlans();
+
+    return newPlan;
+  }
+
+  Future<MealPlan> updateMealPlan({
+    required String id,
+    required String name,
+    required Color color,
+  }) async {
+    final token = await _authService.idToken;
+    final updatedPlan = await _repository.updateMealPlan(
+      id: id,
+      name: name,
+      color: color,
+      idToken: token,
+    );
+
+    await loadMealPlans();
+
+    return updatedPlan;
   }
 
   void dispose() {

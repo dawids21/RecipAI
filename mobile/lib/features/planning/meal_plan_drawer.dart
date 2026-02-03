@@ -4,8 +4,10 @@ import 'package:recipai_mobile/shared/user_role.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
+import 'meal_plan.dart';
 import 'meal_plan_list_service.dart';
 import 'meal_plan_visibility_service.dart';
+import 'plan_form_dialog.dart';
 import 'plan_list_tile.dart';
 
 class MealPlanDrawer extends StatelessWidget {
@@ -62,8 +64,7 @@ class MealPlanDrawer extends StatelessWidget {
                                 onToggleVisibility: () {
                                   visibilityService.toggleVisibility(plan.id);
                                 },
-                                onEdit: () =>
-                                    _handlePlaceholder(context, 'Edit'),
+                                onEdit: () => _handleEditPlan(context, plan),
                                 onShare: () =>
                                     _handlePlaceholder(context, 'Share'),
                                 onDelete: plan.role == UserRole.owner
@@ -88,7 +89,7 @@ class MealPlanDrawer extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(AppSpacing.medium),
             child: ElevatedButton.icon(
-              onPressed: () => _handlePlaceholder(context, 'Create plan'),
+              onPressed: () => _handleCreatePlan(context),
               icon: const Icon(Icons.add),
               label: const Text('Create New Plan'),
               style: ElevatedButton.styleFrom(
@@ -99,6 +100,67 @@ class MealPlanDrawer extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleCreatePlan(BuildContext context) async {
+    final result = await showDialog<PlanFormResult>(
+      context: context,
+      builder: (context) => const PlanFormDialog(),
+    );
+
+    if (result == null || !context.mounted) return;
+
+    try {
+      await mealPlanListService.createMealPlan(
+        name: result.name,
+        color: result.color,
+      );
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plan created successfully')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      final message = e.toString().contains('Plan limit exceeded')
+          ? 'Cannot create plan: You have reached the maximum number of plans'
+          : 'Failed to create plan: ${e.toString().replaceFirst('Exception: ', '')}';
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _handleEditPlan(BuildContext context, MealPlan plan) async {
+    final result = await showDialog<PlanFormResult>(
+      context: context,
+      builder: (context) => PlanFormDialog(existingPlan: plan),
+    );
+
+    if (result == null || !context.mounted) return;
+
+    try {
+      await mealPlanListService.updateMealPlan(
+        id: plan.id,
+        name: result.name,
+        color: result.color,
+      );
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plan updated successfully')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to update plan: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
+      );
+    }
   }
 
   void _handlePlaceholder(BuildContext context, String action) {

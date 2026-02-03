@@ -1,0 +1,121 @@
+import 'package:flutter/material.dart';
+import 'package:recipai_mobile/features/planning/plan_color_picker.dart';
+
+import '../../core/theme.dart';
+import 'meal_plan.dart';
+
+class PlanFormResult {
+  final String name;
+  final Color color;
+
+  const PlanFormResult({required this.name, required this.color});
+}
+
+class PlanFormDialog extends StatefulWidget {
+  final MealPlan? existingPlan;
+
+  const PlanFormDialog({super.key, this.existingPlan});
+
+  @override
+  State<PlanFormDialog> createState() => _PlanFormDialogState();
+}
+
+class _PlanFormDialogState extends State<PlanFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  Color? _selectedColor;
+  String? _colorError;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.existingPlan?.name);
+    _selectedColor = widget.existingPlan?.color;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  bool get _isEditMode => widget.existingPlan?.id != null;
+
+  void _handleSave() {
+    setState(() {
+      _colorError = _selectedColor == null ? 'Please select a color' : null;
+    });
+
+    if (!_formKey.currentState!.validate() || _selectedColor == null) {
+      return;
+    }
+
+    final name = _nameController.text.trim();
+    Navigator.of(
+      context,
+    ).pop(PlanFormResult(name: name, color: _selectedColor!));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: Text(_isEditMode ? 'Edit Plan' : 'Create Plan'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Plan Name',
+                hintText: 'Enter plan name',
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a plan name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text('Color', style: theme.textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.small),
+            PlanColorPicker(
+              selectedColor: _selectedColor,
+              onColorSelected: (color) {
+                setState(() {
+                  _selectedColor = color;
+                  _colorError = null;
+                });
+              },
+            ),
+            if (_colorError != null) ...[
+              const SizedBox(height: AppSpacing.extraSmall),
+              Text(
+                _colorError!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _handleSave,
+          child: Text(_isEditMode ? 'Save' : 'Create'),
+        ),
+      ],
+    );
+  }
+}

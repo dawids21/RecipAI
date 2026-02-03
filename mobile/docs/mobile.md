@@ -16,8 +16,10 @@
   ShoppingListDetailService (with bulk operations: deleteAllCheckedItems, uncheckAllItems), and
   ShoppingListSyncService for background syncing and conflict resolution
 - `planning` - Meal planning calendar management with weekly agenda view for viewing meal plan entries across multiple
-  plans. Includes plan management drawer for creating, editing, sharing, and deleting plans, with local visibility
-  toggles for filtering calendar display.
+  plans. Includes plan management drawer with create/edit functionality via unified PlanFormDialog, role-based actions,
+  and local visibility toggles for filtering calendar display. Uses Repository-Service-View architecture with
+  MealPlanRepository (create/update/fetch operations), MealPlanListService, MealPlanVisibilityService, and
+  MealPlanCalendarService.
 
 ## Data Models
 
@@ -48,12 +50,17 @@
 
 ### Meal Planning module
 
-- Meal Plan (`planning/meal_plan.dart`) - Data model for meal plans with id, name, color, role (UserRole
-  enum), and createdAt fields
+- Meal Plan (`planning/meal_plan.dart`) - Data model for meal plans with id, name, color (Flutter Color type), role
+  (UserRole enum), and createdAt fields.
 - Meal Plan Calendar Entry (`planning/meal_plan_calendar_entry.dart`) - Data model for individual calendar entries with
   plan metadata, recipe information, or placeholder text
 - Meal Plan Calendar Data (`planning/meal_plan_calendar_data.dart`) - Data model for grouped calendar entries organized
   by date
+
+### Shared Utilities
+
+- Color Extension (`shared/extensions.dart`) - Extension methods on Flutter Color class for API hex string conversion:
+  `toHexString()` converts Color to "#RRGGBB" format, `fromHexString()` creates Color from hex string.
 
 ## Codebase Structure
 
@@ -77,6 +84,7 @@ mobile/
 │   │   ├── api_error_widget.dart      # API error display widget
 │   │   ├── error_message_widget.dart  # General error message widget
 │   │   ├── error_icon.dart           # Error icon widget
+│   │   ├── extensions.dart           # Extension methods (IsoDateFormat for DateTime, ColorExtension for Color)
 │   │   └── user_role.dart            # UserRole enum with API conversion methods
 │   └── features/                       # Feature modules
 │       ├── auth/                       # "authentication" feature
@@ -129,13 +137,15 @@ mobile/
 │       │   ├── meal_plan.dart           # Meal plan data model
 │       │   ├── meal_plan_calendar_entry.dart # Meal plan entry data model
 │       │   ├── meal_plan_calendar_data.dart # Calendar data model
-│       │   ├── meal_plan_repository.dart # Meal plan data access layer
-│       │   ├── meal_plan_list_service.dart # Plan list business logic with ValueNotifier
+│       │   ├── meal_plan_repository.dart # Meal plan data access layer with create/update/fetch operations
+│       │   ├── meal_plan_list_service.dart # Plan list business logic with create/update methods and ValueNotifier
 │       │   ├── meal_plan_visibility_service.dart # Visibility toggles with local persistence
 │       │   ├── meal_plan_calendar_service.dart # Calendar business logic with week navigation
 │       │   ├── meal_plan_setup.dart     # Dependency injection setup for planning module
 │       │   ├── meal_plan_calendar_screen.dart # Agenda view screen
-│       │   ├── meal_plan_drawer.dart    # Side drawer for plan management
+│       │   ├── meal_plan_drawer.dart    # Side drawer for plan management with create/edit handlers
+│       │   ├── plan_form_dialog.dart    # Unified create/edit dialog with PlanFormResult model
+│       │   ├── plan_color_picker.dart   # Reusable color picker widget with 12 predefined colors
 │       │   ├── plan_list_tile.dart      # Plan list item widget with checkbox and menu
 │       │   ├── week_strip.dart          # Week navigation header widget with tappable label to jump to today
 │       │   ├── day_section.dart         # Day section widget with entry list

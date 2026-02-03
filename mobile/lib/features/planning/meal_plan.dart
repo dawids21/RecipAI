@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import '../../shared/extensions.dart';
 import '../../shared/user_role.dart';
 
 class MealPlan {
@@ -18,13 +19,10 @@ class MealPlan {
   });
 
   factory MealPlan.fromJson(Map<String, dynamic> json) {
-    final color = Color(
-      int.parse((json['color'] as String).replaceFirst('#', '0xFF')),
-    );
     return MealPlan(
       id: json['id'] as String,
       name: json['name'] as String,
-      color: color,
+      color: ColorExtension.fromHexString(json['color'] as String),
       role: UserRole.fromApiString(json['role'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
