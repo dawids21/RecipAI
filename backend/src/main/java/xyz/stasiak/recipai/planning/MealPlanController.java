@@ -128,7 +128,7 @@ class MealPlanController {
     Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) String planIds,
+            @RequestParam String planIds,
             @AuthenticationPrincipal Jwt jwt) {
 
         String userEmail = jwt.getClaimAsString("email");
@@ -141,7 +141,7 @@ class MealPlanController {
 
     private List<UUID> parsePlanIds(String planIds) {
         if (planIds == null || planIds.isBlank()) {
-            return null;
+            return List.of();
         }
 
         return Arrays.stream(planIds.split(","))

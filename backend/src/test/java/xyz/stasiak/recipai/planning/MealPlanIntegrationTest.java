@@ -538,7 +538,7 @@ class MealPlanIntegrationTest {
         deleteRecipe(client, recipe.id());
 
         Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
-                client, LocalDate.of(2026, 1, 29), LocalDate.of(2026, 1, 29), null);
+                client, LocalDate.of(2026, 1, 29), LocalDate.of(2026, 1, 29), plan.id().toString());
 
         assertThat(calendar).hasSize(1);
         List<MealPlanCalendarViewDto> entries = calendar.get(LocalDate.of(2026, 1, 29));
@@ -794,15 +794,16 @@ class MealPlanIntegrationTest {
         LocalDate date2 = LocalDate.of(2026, 2, 2);
 
         CreateMealPlanEntryRequest entry1 = new CreateMealPlanEntryRequest(date1, recipe.id(), null, 2);
-        CreateMealPlanEntryRequest entry2 = new CreateMealPlanEntryRequest(date1, null, "Placeholder", 4);
+        CreateMealPlanEntryRequest entry2 = new CreateMealPlanEntryRequest(date1, null, "Placeholder", null);
         CreateMealPlanEntryRequest entry3 = new CreateMealPlanEntryRequest(date2, recipe.id(), null, 1);
 
         createEntry(client, plan1.id(), entry1);
         createEntry(client, plan2.id(), entry2);
         createEntry(client, plan1.id(), entry3);
 
+        String allPlanIds = plan1.id() + "," + plan2.id();
         Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
-                client, date1, date2, null);
+                client, date1, date2, allPlanIds);
 
         assertThat(calendar).hasSize(2);
 
@@ -830,7 +831,7 @@ class MealPlanIntegrationTest {
         assertThat(placeholderEntry.recipeId()).isNull();
         assertThat(placeholderEntry.recipeName()).isNull();
         assertThat(placeholderEntry.placeholderText()).isEqualTo("Placeholder");
-        assertThat(placeholderEntry.servingSize()).isEqualTo(4);
+        assertThat(placeholderEntry.servingSize()).isNull();
         assertThat(placeholderEntry.hasRecipeAccess()).isTrue();
 
         List<MealPlanCalendarViewDto> date2Entries = calendar.get(date2);
@@ -860,7 +861,7 @@ class MealPlanIntegrationTest {
         createEntry(client1, plan.id(), entry);
 
         Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
-                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), null);
+                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), plan.id().toString());
 
         assertThat(calendar).hasSize(1);
         List<MealPlanCalendarViewDto> entries = calendar.get(LocalDate.of(2026, 2, 1));
@@ -876,8 +877,11 @@ class MealPlanIntegrationTest {
     void shouldValidateDateRangeInCalendarView() {
         RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
 
+        MealPlanDto plan = createMealPlan(client, "Date Range Test", "#FF5733");
+        String planIds = plan.id().toString();
+
         try {
-            getCalendarView(client, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 1), null);
+            getCalendarView(client, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 1, 1), planIds);
             fail("Should have thrown exception");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
@@ -885,7 +889,7 @@ class MealPlanIntegrationTest {
         }
 
         try {
-            getCalendarView(client, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 5, 1), null);
+            getCalendarView(client, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 5, 1), planIds);
             fail("Should have thrown exception");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());

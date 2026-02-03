@@ -42,7 +42,7 @@ interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Long> {
             LEFT JOIN Recipe r ON r.id = e.recipeId
             WHERE mpp.id.email = :email
             AND e.date BETWEEN :startDate AND :endDate
-            AND (:planIds IS NULL OR e.planId IN :planIds)
+            AND e.planId IN :planIds
             ORDER BY e.date, e.createdAt
             """)
     List<MealPlanCalendarEntryProjection> findCalendarEntries(

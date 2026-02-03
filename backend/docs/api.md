@@ -1181,7 +1181,8 @@
     - Query parameters:
         - `startDate` (required, ISO 8601 date format): Start of date range (inclusive)
         - `endDate` (required, ISO 8601 date format): End of date range (inclusive)
-        - `planIds` (optional, comma-separated UUIDs): Filter entries by specific meal plan IDs
+      - `planIds` (required, comma-separated UUIDs): Filter entries by specific meal plan IDs. Can be empty string to
+        get no entries.
     - Example request:
       `GET /meal-plans/calendar?startDate=2026-02-01&endDate=2026-02-28&planIds=550e8400-e29b-41d4-a716-446655440000,660e8400-e29b-41d4-a716-446655440001`
     - Example response:
@@ -1228,10 +1229,14 @@
       ```
     - Success: 200 OK
     - Errors:
-        - 400 Bad Request (invalid date format, startDate after endDate, or date range exceeds 3 months)
+        - 400 Bad Request (invalid date format, startDate after endDate, date range exceeds 3 months, or planIds
+          parameter is missing)
         - 401 Unauthorized
     - Notes:
         - Entries are grouped by date and sorted by date (ascending), then by creation time within each date
+      - `planIds` is required and must be present in the request
+      - When `planIds` is an empty string, all lists are empty `{}` (no entries match empty plan list)
+      - When `planIds` contains valid UUIDs, only entries from those specific plans are returned
         - `hasRecipeAccess` is `true` if the user has permission to view the recipe (either direct permission or via
           recipe collection), or if the entry is a placeholder (no recipeId)
         - `hasRecipeAccess` is `false` if the entry references a recipe the user cannot access
@@ -1239,4 +1244,4 @@
           `placeholderText` is set to the original recipe name
         - Date range cannot exceed 3 months
         - Returns empty object `{}` if no entries exist in the date range
-        - If `planIds` is provided, only entries from those specific plans are returned
+      - Returns entries with empty lists if none of the specified plan IDs match user's accessible plans
