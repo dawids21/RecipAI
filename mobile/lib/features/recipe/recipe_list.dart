@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'collection/recipes_collection_list_service.dart';
@@ -14,11 +12,13 @@ import 'recipe_search_bar.dart';
 class RecipeList extends StatefulWidget {
   final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
+  final void Function(BuildContext, Recipe) onRecipeTap;
 
   const RecipeList({
     super.key,
     required this.recipeListService,
     required this.recipesCollectionListService,
+    required this.onRecipeTap,
   });
 
   @override
@@ -26,11 +26,16 @@ class RecipeList extends StatefulWidget {
 }
 
 class _RecipeListState extends State<RecipeList> {
+  String _searchQuery = '';
+
   void _onRecipeTap(BuildContext context, Recipe recipe) {
-    context.goNamed(
-      AppRoute.recipeDetail.name,
-      pathParameters: {'id': recipe.id},
-    );
+    widget.onRecipeTap(context, recipe);
+  }
+
+  void _handleSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
   }
 
   Future<void> _handleRefresh() async {
@@ -49,17 +54,19 @@ class _RecipeListState extends State<RecipeList> {
           onFilterChanged: (id) => widget.recipeListService.setFilter(id),
         ),
         RecipeSearchBar(
-          searchQuery: widget.recipeListService.searchQuery,
-          onSearchChanged: (query) =>
-              widget.recipeListService.setSearchQuery(query),
+          searchQuery: _searchQuery,
+          onSearchChanged: _handleSearchChanged,
         ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
             child: ValueListenableBuilder(
-              valueListenable: widget.recipeListService.filteredRecipes,
+              valueListenable: widget.recipeListService.recipes,
               builder: (context, asyncValueRecipes, child) {
-                return asyncValueRecipes.when(
+                final filteredRecipes = widget.recipeListService
+                    .getFilteredRecipes(_searchQuery);
+
+                return filteredRecipes.when(
                   loading: () => const LoadingWidget(),
                   data: (recipes) {
                     if (recipes.isEmpty) {

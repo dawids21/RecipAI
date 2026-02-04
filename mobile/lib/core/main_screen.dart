@@ -198,6 +198,12 @@ class _MainScreenState extends State<MainScreen> {
           RecipeList(
             recipeListService: widget.recipeListService,
             recipesCollectionListService: widget.recipesCollectionListService,
+            onRecipeTap: (context, recipe) {
+              context.goNamed(
+                AppRoute.recipeDetail.name,
+                pathParameters: {'id': recipe.id},
+              );
+            },
           ),
           ShoppingListList(
             shoppingListListService: widget.shoppingListListService,

@@ -98,8 +98,9 @@
 - **Primary Actions**:
     - **Tap Recipe**: Selects the recipe, closes the dialog, and passes the selection back to `MealEntryDialog`.
 - **Components Required**: `RecipeList`.
-    - **Refactor Note**: `RecipeList` must support a configurable `onRecipeTap` callback. If provided, navigation to
-      Detail Screen is suppressed, and the callback is executed instead.
+    - **Refactor Note**: COMPLETED. `RecipeList` now supports an optional `onRecipeTap` callback parameter. When
+      provided, the callback is executed instead of navigating to RecipeDetailScreen. Search query is now local widget
+      state, allowing each RecipeList instance to have independent search state for use in dialogs and pickers.
 - **Edge Cases**: No recipes found (prompt to create recipe or use Placeholder).
 
 ### View 5: Shopping List Generation Flow

@@ -14,16 +14,19 @@
 ### Recipe feature
 
 - Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with horizontal
-  Recipe Filter Bar and fuzzy search bar. Results are filtered by collection (server-side) and search query
-  (client-side with fuzzy matching).
+  Recipe Filter Bar and fuzzy search bar. Recipe Filter Bar state is shared across the app. Requires `onRecipeTap`
+  callback parameter to define tap behavior. Results are filtered by collection (server-side) and search query (
+  client-side with fuzzy matching).
 - Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes with optional
   thumbnails in a list
 - Recipe Filter Bar (`recipe_filter_bar.dart`) - Self-contained horizontal scrollable chip filter widget using Material
   3
   ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips. Selected filter
   persists across app restarts using SharedPreferences.
-- Recipe Search Bar (`recipe_search_bar.dart`) - Search input widget with fuzzy matching for filtering recipes by name.
-  Updates results in real-time as user types. Results are ranked by fuzzy match score with best matches at top.
+- Recipe Search Bar (`recipe_search_bar.dart`) - Search input widget accepting current search query (String)
+  and onChange callback. Used by RecipeList for local search state. Updates parent in real-time as user types.
+  Search filtering is performed by RecipeListService.getFilteredRecipes() with fuzzy matching, ranking results by
+  match score with best matches at top.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including image carousel (when images
   available), ingredients, and instructions with Edit FAB, Share button, and role-based conditional Delete button for
@@ -194,15 +197,14 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
     - Tab 1: Recipes (default) - Displays RecipeList widget
     - Tab 2: Shopping - Displays ShoppingListList widget
   - Tab 3: Planning - Displays MealPlanCalendarScreen widget with right-side drawer for plan management
-    - `/recipes/url-extraction` - URL extraction screen (nested route)
-    - `/recipes/image-extraction` - Image extraction screen (nested route)
-    - `/recipes/create` - Recipe creation screen (nested route)
-    - `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
-    - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
-  - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
-  - `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections, shown when feature flag
-    enabled)
-  - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
+- `/recipes/url-extraction` - URL extraction screen (nested route)
+- `/recipes/image-extraction` - Image extraction screen (nested route)
+- `/recipes/create` - Recipe creation screen (nested route)
+- `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
+- `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
+- `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
+- `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections, shown when feature flag enabled)
+- `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 
 ### Bottom Navigation Bar
 

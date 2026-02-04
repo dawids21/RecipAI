@@ -34,15 +34,7 @@ class RecipeListService {
 
   ValueListenable<String?> get selectedCollectionId => _selectedCollectionId;
 
-  final ValueNotifier<String> _searchQuery = ValueNotifier('');
-
-  ValueListenable<String> get searchQuery => _searchQuery;
-
-  final ValueNotifier<AsyncValue<List<Recipe>>> _filteredRecipes =
-      ValueNotifier(const AsyncValue.loading());
-
-  ValueListenable<AsyncValue<List<Recipe>>> get filteredRecipes =>
-      _filteredRecipes;
+  ValueListenable<AsyncValue<List<Recipe>>> get recipes => _recipes;
 
   bool _isLoadRecipesRunning = false;
   bool _isCreateRecipeRunning = false;
@@ -76,25 +68,18 @@ class RecipeListService {
         return _recipeRepository.fetchRecipesByCollectionId(filterValue, token);
       }
     });
-    _applySearchFilter();
     _isLoadRecipesRunning = false;
   }
 
-  void setSearchQuery(String query) {
-    _searchQuery.value = query;
-    _applySearchFilter();
-  }
-
-  void _applySearchFilter() {
+  AsyncValue<List<Recipe>> getFilteredRecipes(String searchQuery) {
     final currentRecipes = _recipes.value;
-    final query = _searchQuery.value.trim();
+    final query = searchQuery.trim();
 
     if (query.isEmpty) {
-      _filteredRecipes.value = currentRecipes;
-      return;
+      return currentRecipes;
     }
 
-    _filteredRecipes.value = currentRecipes.when(
+    return currentRecipes.when(
       loading: () => const AsyncValue.loading(),
       error: (error) => AsyncValue.error(error),
       data: (recipes) {
@@ -159,7 +144,5 @@ class RecipeListService {
   void dispose() {
     _recipes.dispose();
     _selectedCollectionId.dispose();
-    _searchQuery.dispose();
-    _filteredRecipes.dispose();
   }
 }
