@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:recipai_mobile/shared/user_role.dart';
 
+import '../../core/get_it.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../auth/auth_service.dart';
 import 'meal_plan.dart';
 import 'meal_plan_list_service.dart';
+import 'meal_plan_repository.dart';
+import 'meal_plan_sharing_dialog.dart';
+import 'meal_plan_sharing_service.dart';
 import 'meal_plan_visibility_service.dart';
 import 'plan_form_dialog.dart';
 import 'plan_list_tile.dart';
@@ -65,8 +70,7 @@ class MealPlanDrawer extends StatelessWidget {
                                   visibilityService.toggleVisibility(plan.id);
                                 },
                                 onEdit: () => _handleEditPlan(context, plan),
-                                onShare: () =>
-                                    _handlePlaceholder(context, 'Share'),
+                                onShare: () => _handleSharePlan(context, plan),
                                 onDelete: plan.role == UserRole.owner
                                     ? () => _handleDeletePlan(context, plan)
                                     : null,
@@ -204,9 +208,27 @@ class MealPlanDrawer extends StatelessWidget {
     }
   }
 
-  void _handlePlaceholder(BuildContext context, String action) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$action feature coming soon')));
+  Future<void> _handleSharePlan(BuildContext context, MealPlan plan) async {
+    final sharingService = MealPlanSharingService(
+      mealPlanRepository: getIt<MealPlanRepository>(),
+      authService: getIt<AuthService>(),
+      mealPlanListService: mealPlanListService,
+      mealPlanId: plan.id,
+    );
+
+    await sharingService.loadSharedUsers();
+
+    if (!context.mounted) {
+      sharingService.dispose();
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) =>
+          MealPlanSharingDialog(mealPlanSharingService: sharingService),
+    );
+
+    sharingService.dispose();
   }
 }

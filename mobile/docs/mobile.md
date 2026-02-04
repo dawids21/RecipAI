@@ -52,6 +52,8 @@
 
 - Meal Plan (`planning/meal_plan.dart`) - Data model for meal plans with id, name, color (Flutter Color type), role
   (UserRole enum), and createdAt fields.
+- Meal Plan Permission (`planning/meal_plan_permission.dart`) - Permission data model for meal plan sharing with email
+  and UserRole enum fields
 - Meal Plan Calendar Entry (`planning/meal_plan_calendar_entry.dart`) - Data model for individual calendar entries with
   plan metadata, recipe information, or placeholder text
 - Meal Plan Calendar Data (`planning/meal_plan_calendar_data.dart`) - Data model for grouped calendar entries organized
@@ -137,8 +139,11 @@ mobile/
 │       │   ├── meal_plan.dart           # Meal plan data model
 │       │   ├── meal_plan_calendar_entry.dart # Meal plan entry data model
 │       │   ├── meal_plan_calendar_data.dart # Calendar data model
+│       │   ├── meal_plan_sharing_service.dart # Meal plan sharing service with ValueNotifier, depends on MealPlanListService
+│       │   ├── meal_plan_permission.dart # Permission data model for sharing
 │       │   ├── meal_plan_repository.dart # Meal plan data access layer with create/update/fetch operations
 │       │   ├── meal_plan_list_service.dart # Plan list business logic with create/update methods and ValueNotifier
+│       │   ├── meal_plan_sharing_dialog.dart # Meal plan sharing dialog wrapper
 │       │   ├── meal_plan_visibility_service.dart # Visibility toggles with local persistence
 │       │   ├── meal_plan_calendar_service.dart # Calendar business logic with week navigation
 │       │   ├── meal_plan_setup.dart     # Dependency injection setup for planning module

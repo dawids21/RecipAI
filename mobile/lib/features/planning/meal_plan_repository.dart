@@ -7,6 +7,7 @@ import 'package:recipai_mobile/shared/extensions.dart';
 import '../../core/app_config.dart';
 import 'meal_plan.dart';
 import 'meal_plan_calendar_data.dart';
+import 'meal_plan_permission.dart';
 
 class MealPlanRepository {
   final http.Client _client = http.Client();
@@ -150,6 +151,73 @@ class MealPlanRepository {
       throw Exception('Plan not found');
     } else {
       throw Exception('Failed to delete meal plan: ${response.statusCode}');
+    }
+  }
+
+  Future<List<MealPlanPermission>> fetchSharedUsers({
+    required String mealPlanId,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final uri = Uri.parse('$_baseUrl/meal-plans/$mealPlanId/users');
+
+    final response = await _client.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      return jsonList
+          .map((json) => MealPlanPermission.fromJson(json))
+          .toList();
+    } else if (response.statusCode == 404) {
+      throw Exception('Plan not found');
+    } else {
+      throw Exception('Failed to load shared users: ${response.statusCode}');
+    }
+  }
+
+  Future<void> shareMealPlan({
+    required String mealPlanId,
+    required String email,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/meal-plans/$mealPlanId/share'),
+      headers: headers,
+      body: jsonEncode({'email': email}),
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to share this plan');
+    } else if (response.statusCode == 404) {
+      throw Exception('Plan not found');
+    } else {
+      throw Exception('Failed to share meal plan: ${response.statusCode}');
+    }
+  }
+
+  Future<void> unshareMealPlan({
+    required String mealPlanId,
+    required String email,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/meal-plans/$mealPlanId/unshare'),
+      headers: headers,
+      body: jsonEncode({'email': email}),
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to unshare this plan');
+    } else if (response.statusCode == 404) {
+      throw Exception('Plan not found');
+    } else {
+      throw Exception('Failed to unshare meal plan: ${response.statusCode}');
     }
   }
 }

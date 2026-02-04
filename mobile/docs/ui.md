@@ -118,7 +118,8 @@
   Planning tab is active. All dates formatted according to user locale.
 - Meal Plan Drawer (`meal_plan_drawer.dart`) - Side drawer for managing meal plans with unified list of all plans
   (personal and shared), visibility checkboxes for filtering calendar display, and three-dot menu per plan for
-  Edit/Share/Delete actions (Delete only visible to owners, requires confirmation dialog). Includes "Create New Plan"
+  Edit/Share/Delete actions (Delete only visible to owners, requires confirmation dialog). Share action opens
+  MealPlanSharingDialog with email input, shared users list, and unshare functionality. Includes "Create New Plan"
   button with integrated form dialog, pull-to-refresh functionality, and comprehensive error handling with user-friendly
   messages including special handling for plan limit exceeded (409 Conflict).
 - Plan Form Dialog (`plan_form_dialog.dart`) - Unified modal dialog for creating and editing meal plans with name input
@@ -128,6 +129,11 @@
 - Plan List Tile (`plan_list_tile.dart`) - Card widget for individual plans with color indicator (CircleAvatar), plan
   name, visibility checkbox, and PopupMenuButton with role-based menu items (Edit, Share for all; Delete for owners
   only).
+- Meal Plan Sharing Dialog (`meal_plan_sharing_dialog.dart`) - Modal dialog for sharing meal plans with other users,
+  featuring email input with validation, shared users list with UserRole display, and unshare functionality with
+  Material Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current user.
+  Uses MealPlanSharingService for sharing operations, which automatically refreshes the meal plans list after successful
+  share/unshare actions.
 - Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
   navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
 - Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
@@ -279,7 +285,9 @@ All routes except `/login` require user authentication. The app automatically re
    remove deleted plan entries
 6. **Plan Menu → Edit** → PlanFormDialog opens with pre-filled name and color → Edit fields → Tap "Save" → Plan updated
    → SnackBar "Plan updated successfully" → Drawer list refreshes
-7. **Plan Menu → Share** → SnackBar "Share feature coming soon" (placeholder)
+7. **Plan Menu → Share** → MealPlanSharingDialog opens → Enter email and tap "Share" → Email validated → Shared user
+   added to list → SnackBar "Meal plan shared successfully!" → Can unshare users (except self) via remove icon →
+   SnackBar "Meal plan unshared successfully!" → Close dialog → Plan list refreshes
 8. **Create New Plan Button** (bottom of drawer) → PlanFormDialog opens → Enter name and select color → Tap "Create" →
    Plan created → SnackBar "Plan created successfully" → New plan appears in drawer list
 9. **Create/Edit Validation Errors** → Name required, color required → Error messages displayed inline

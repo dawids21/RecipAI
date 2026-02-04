@@ -59,7 +59,7 @@
       - **Editors**: Edit, Share. (Delete option is hidden).
 - **Navigation**:
     - Create/Edit → `PlanFormDialog`.
-    - Share → `SharingDialog` (Generic).
+  - Share → `MealPlanSharingDialog` (uses generic `SharingDialog`).
 - **Components Required**: `Drawer`, `PlanListTile`, `AlertDialog` (for delete confirmation).
 - **API Endpoints Used**: `GET /meal-plans`, `DELETE /meal-plans/{id}`.
 
@@ -214,8 +214,8 @@
       `warningMessages` (List<String>) for the `MaterialBanner`. Support "Check/Uncheck" only (no editing).
 3. **SharingDialog**
     - **Source**: `lib/core/widgets/sharing_dialog.dart`.
-    - **Used In**: Plan Management (Drawer).
-    - **Adaptations Needed**: None, just map `MealPlanPermission` to `SharedUser` DTO.
+   - **Used In**: Plan Management (Drawer) via MealPlanSharingDialog wrapper.
+   - **Adaptations Needed**: None, MealPlanPermission is mapped to SharedUser DTO in MealPlanSharingService.
 
 ## 6. State Management
 
@@ -223,6 +223,9 @@
     - `MealPlanningService` (Scoped/Singleton): Manages `selectedWeekStart`, `calendarCache` (Map<Week, Entries>), and
       `loadingState`.
     - `visiblePlanIds`: Read/Write via `PreferencesService`.
+  - `MealPlanSharingService` (Created on-demand per dialog): Manages `sharedUsers` for a specific plan ID, created when
+    Share is tapped, disposed when dialog closes. Depends on MealPlanListService to refresh the plans list after
+    share/unshare operations.
 - **Shared State**:
     - `RecipeRepository`: For recipe details.
     - `ShoppingListRepository`: For adding generated items.
