@@ -9,12 +9,16 @@ class DaySection extends StatelessWidget {
   final DateTime date;
   final List<MealPlanCalendarEntry> entries;
   final Function(MealPlanCalendarEntry) onEntryTap;
+  final Function(MealPlanCalendarEntry) onEntryEdit;
+  final Function(MealPlanCalendarEntry) onEntryDelete;
 
   const DaySection({
     super.key,
     required this.date,
     required this.entries,
     required this.onEntryTap,
+    required this.onEntryEdit,
+    required this.onEntryDelete,
   });
 
   @override
@@ -54,6 +58,8 @@ class DaySection extends StatelessWidget {
             (entry) => MealEntryCalendarCard(
               entry: entry,
               onTap: () => onEntryTap(entry),
+              onEdit: () => onEntryEdit(entry),
+              onDelete: () => onEntryDelete(entry),
             ),
           ),
 

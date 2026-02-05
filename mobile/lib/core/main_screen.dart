@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_service.dart';
+import '../features/planning/meal_plan_calendar_fab.dart';
 import '../features/planning/meal_plan_calendar_screen.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/planning/meal_plan_drawer.dart';
@@ -212,6 +213,9 @@ class _MainScreenState extends State<MainScreen> {
               widget.mealPlanCalendarService != null)
             MealPlanCalendarScreen(
               calendarService: widget.mealPlanCalendarService!,
+              mealPlanListService: widget.mealPlanListService!,
+              recipeListService: widget.recipeListService,
+              recipesCollectionListService: widget.recipesCollectionListService,
             ),
         ],
       ),
@@ -222,14 +226,11 @@ class _MainScreenState extends State<MainScreen> {
               shoppingListListService: widget.shoppingListListService,
             )
           : FeatureFlags.mealPlanningEnabled && _selectedIndex == 2
-          ? FloatingActionButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Add meal feature coming soon')),
-                );
-              },
-              tooltip: 'Add meal',
-              child: const Icon(Icons.add),
+          ? MealPlanCalendarFab(
+              calendarService: widget.mealPlanCalendarService!,
+              mealPlanListService: widget.mealPlanListService!,
+              recipeListService: widget.recipeListService,
+              recipesCollectionListService: widget.recipesCollectionListService,
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(

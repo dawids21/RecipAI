@@ -92,6 +92,62 @@ class MealPlanCalendarService {
     return DateTime(date.year, date.month, date.day - daysToSubtract);
   }
 
+  Future<void> createMealEntry({
+    required String planId,
+    required DateTime date,
+    String? recipeId,
+    String? placeholderText,
+    int? servingSize,
+  }) async {
+    final token = await _authService.idToken;
+    await _repository.createMealEntry(
+      planId: planId,
+      date: date,
+      recipeId: recipeId,
+      placeholderText: placeholderText,
+      servingSize: servingSize,
+      idToken: token,
+    );
+
+    await loadCalendar();
+  }
+
+  Future<void> updateMealEntry({
+    required String planId,
+    required int entryId,
+    required DateTime date,
+    String? recipeId,
+    String? placeholderText,
+    int? servingSize,
+  }) async {
+    final token = await _authService.idToken;
+    await _repository.updateMealEntry(
+      planId: planId,
+      entryId: entryId,
+      date: date,
+      recipeId: recipeId,
+      placeholderText: placeholderText,
+      servingSize: servingSize,
+      idToken: token,
+    );
+
+    await loadCalendar();
+  }
+
+  Future<void> deleteMealEntry({
+    required String planId,
+    required int entryId,
+  }) async {
+    final token = await _authService.idToken;
+    await _repository.deleteMealEntry(
+      planId: planId,
+      entryId: entryId,
+      idToken: token,
+    );
+
+    await loadCalendar();
+  }
+
   void dispose() {
     _visibilityService.visibility.removeListener(_onVisibilityChanged);
     _currentWeekStart.dispose();

@@ -17,9 +17,9 @@
   ShoppingListSyncService for background syncing and conflict resolution
 - `planning` - Meal planning calendar management with weekly agenda view for viewing meal plan entries across multiple
   plans. Includes plan management drawer with create/edit/delete functionality via unified PlanFormDialog, role-based
-  actions (delete requires OWNER role), and local visibility toggles for filtering calendar display. Uses
-  Repository-Service-View architecture with MealPlanRepository (create/update/delete/fetch operations),
-  MealPlanListService, MealPlanVisibilityService, and MealPlanCalendarService.
+  actions (delete requires OWNER role), and local visibility toggles for filtering calendar display. Features meal entry
+  management supporting recipe entries (with serving size) and placeholder entries (text-only), and full CRUD
+  operations (create, edit, delete) with calendar refresh.
 
 ## Data Models
 
@@ -104,6 +104,7 @@ mobile/
 │       │   ├── recipe_list.dart        # Reusable recipe list body widget with filter bar and search. Requires onRecipeTap callback, uses local search state
 │       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
 │       │   ├── recipe_list_item.dart   # Recipe list item widget with thumbnail support
+│       │   ├── recipe_picker_dialog.dart # Dialog for selecting recipes using RecipeList component
 │       │   ├── recipe_image_carousel.dart # Image carousel widget with PageView, pagination, and tap-to-zoom
 │       │   ├── recipe_image_fullscreen_viewer.dart # Fullscreen zoomable image viewer using photo_view package
 │       │   ├── recipe_image_input.dart # Data model for managing recipe images (new/existing)
@@ -139,17 +140,20 @@ mobile/
 │       │   ├── meal_plan.dart           # Meal plan data model
 │       │   ├── meal_plan_calendar_entry.dart # Meal plan entry data model
 │       │   ├── meal_plan_calendar_data.dart # Calendar data model
+│       │   ├── meal_entry_form_result.dart # Result model for meal entry form dialog
 │       │   ├── meal_plan_sharing_service.dart # Meal plan sharing service with ValueNotifier, depends on MealPlanListService
 │       │   ├── meal_plan_permission.dart # Permission data model for sharing
 │       │   ├── meal_plan_repository.dart # Meal plan data access layer with create/update/fetch operations
 │       │   ├── meal_plan_list_service.dart # Plan list business logic with create/update methods and ValueNotifier
 │       │   ├── meal_plan_sharing_dialog.dart # Meal plan sharing dialog wrapper
 │       │   ├── meal_plan_visibility_service.dart # Visibility toggles with local persistence
-│       │   ├── meal_plan_calendar_service.dart # Calendar business logic with week navigation
+│       │   ├── meal_plan_calendar_service.dart # Calendar business logic with week navigation and entry CRUD
 │       │   ├── meal_plan_setup.dart     # Dependency injection setup for planning module
 │       │   ├── meal_plan_calendar_screen.dart # Agenda view screen
+│       │   ├── meal_plan_calendar_fab.dart # FAB widget for adding meal entries
 │       │   ├── meal_plan_drawer.dart    # Side drawer for plan management with create/edit handlers
 │       │   ├── plan_form_dialog.dart    # Unified create/edit dialog with PlanFormResult model
+│       │   ├── meal_entry_form_dialog.dart # Modal dialog for creating/editing meal entries with recipe/placeholder modes
 │       │   ├── plan_color_picker.dart   # Reusable color picker widget with 12 predefined colors
 │       │   ├── plan_list_tile.dart      # Plan list item widget with checkbox and menu
 │       │   ├── week_strip.dart          # Week navigation header widget with tappable label to jump to today

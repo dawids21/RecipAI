@@ -6,11 +6,15 @@ import 'meal_plan_calendar_entry.dart';
 class MealEntryCalendarCard extends StatelessWidget {
   final MealPlanCalendarEntry entry;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const MealEntryCalendarCard({
     super.key,
     required this.entry,
     required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -66,9 +70,11 @@ class MealEntryCalendarCard extends StatelessWidget {
             ),
           ],
           onSelected: (value) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('$value feature coming soon')),
-            );
+            if (value == 'edit') {
+              onEdit();
+            } else if (value == 'delete') {
+              onDelete();
+            }
           },
         ),
 

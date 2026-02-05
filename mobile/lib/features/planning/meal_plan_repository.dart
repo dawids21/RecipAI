@@ -220,4 +220,103 @@ class MealPlanRepository {
       throw Exception('Failed to unshare meal plan: ${response.statusCode}');
     }
   }
+
+  Future<void> createMealEntry({
+    required String planId,
+    required DateTime date,
+    String? recipeId,
+    String? placeholderText,
+    int? servingSize,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final body = {
+      'date': date.toIso8601DateString(),
+      if (recipeId != null) 'recipeId': recipeId,
+      if (placeholderText != null) 'placeholderText': placeholderText,
+      if (servingSize != null) 'servingSize': servingSize,
+    };
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/meal-plans/$planId/entries'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 201) {
+      return;
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid entry data');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to add entries to this plan');
+    } else if (response.statusCode == 404) {
+      throw Exception('Plan not found');
+    } else {
+      throw Exception('Failed to create meal entry: ${response.statusCode}');
+    }
+  }
+
+  Future<void> updateMealEntry({
+    required String planId,
+    required int entryId,
+    required DateTime date,
+    String? recipeId,
+    String? placeholderText,
+    int? servingSize,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final body = {
+      'date': date.toIso8601DateString(),
+      if (recipeId != null) 'recipeId': recipeId,
+      if (placeholderText != null) 'placeholderText': placeholderText,
+      if (servingSize != null) 'servingSize': servingSize,
+    };
+
+    final response = await _client.put(
+      Uri.parse('$_baseUrl/meal-plans/$planId/entries/$entryId'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      return;
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid entry data');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to edit this entry');
+    } else if (response.statusCode == 404) {
+      throw Exception('Entry not found');
+    } else {
+      throw Exception('Failed to update meal entry: ${response.statusCode}');
+    }
+  }
+
+  Future<void> deleteMealEntry({
+    required String planId,
+    required int entryId,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.delete(
+      Uri.parse('$_baseUrl/meal-plans/$planId/entries/$entryId'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to delete this entry');
+    } else if (response.statusCode == 404) {
+      throw Exception('Entry not found');
+    } else {
+      throw Exception('Failed to delete meal entry: ${response.statusCode}');
+    }
+  }
 }

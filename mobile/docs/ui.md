@@ -68,6 +68,8 @@
 - Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
   shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
   and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success
+- Recipe Picker Dialog (`recipe_picker_dialog.dart`) - Full-screen dialog for selecting recipes using RecipeList
+  component with search and filter capabilities. Returns selected Recipe when user taps an item.
 - Recipes Collection List Screen (`collection/recipes_collection_list_screen.dart`) - Screen for managing recipe
   collections with pull-to-refresh, FAB for creating new collections, inline rename/delete operations via
   PopupMenuButton
@@ -137,6 +139,11 @@
   Material Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current user.
   Uses MealPlanSharingService for sharing operations, which automatically refreshes the meal plans list after successful
   share/unshare actions.
+- Meal Entry Form Dialog (`meal_entry_form_dialog.dart`) - Modal dialog for creating and editing meal entries with
+  plan dropdown (OWNER/EDITOR only), date picker, recipe/placeholder mode toggle, recipe selection button (opens
+  RecipePickerDialog), serving size input (for recipes), and placeholder text input. Supports both create mode (with
+  defaultDate from FAB) and edit mode (with pre-filled existingEntry data). Validation ensures plan selection, recipe
+  selection with positive serving size for recipe mode, or non-empty text for placeholder mode.
 - Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
   navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
 - Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
@@ -297,6 +304,19 @@ All routes except `/login` require user authentication. The app automatically re
     delete), plan not found (404) → User-friendly error messages in SnackBars
 11. **Close Drawer** → Swipe left or tap outside drawer → Returns to calendar view
 12. **Switch Tabs** → Drawer closes automatically
+13. **Add Meal Entry (FAB)** → Tap FAB on calendar screen → MealEntryFormDialog opens with date defaulting to week
+    start → Select plan from dropdown → Choose Recipe or Placeholder mode → For Recipe: tap "Select Recipe" button →
+    RecipePickerDialog opens → Search/filter and tap recipe → Dialog closes with selected recipe → Enter serving size
+    → Tap "Create" → Entry added to calendar → SnackBar "Meal entry added" → Calendar refreshes
+14. **Add Placeholder Entry** → Same as step 13 but select "Placeholder" mode → Enter text description → Tap
+    "Create" → Placeholder added to calendar
+15. **Edit Meal Entry** → Tap three-dot menu on entry card → Select "Edit" → MealEntryFormDialog opens with pre-filled
+    data → Modify fields (plan, date, recipe, serving size, or text) → Tap "Save" → Entry updated → SnackBar "Meal
+    entry updated" → Calendar refreshes
+16. **Delete Meal Entry** → Tap three-dot menu on entry card → Select "Delete" → Confirmation dialog "Are you sure you
+    want to delete...?" → Tap "Delete" → Entry deleted → SnackBar "Meal entry deleted" → Calendar refreshes
+17. **Navigate to Recipe from Entry** → Tap on recipe entry card (not menu) → If hasRecipeAccess, navigates to Recipe
+    Detail Screen → If no access, shows SnackBar "Recipe details not shared"
 
 ## Theme System
 
