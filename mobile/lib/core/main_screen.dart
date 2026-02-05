@@ -135,7 +135,7 @@ class _MainScreenState extends State<MainScreen> {
         title: const Text('RecipAI'),
         backgroundColor: theme.colorScheme.inversePrimary,
         actions: [
-          if (FeatureFlags.mealPlanningEnabled && _selectedIndex == 2)
+          if (FeatureFlags.mealPlanningEnabled && _selectedIndex == 1)
             Builder(
               builder: (context) => IconButton(
                 icon: const Icon(Icons.calendar_month),
@@ -187,7 +187,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      endDrawer: FeatureFlags.mealPlanningEnabled && _selectedIndex == 2
+      endDrawer: FeatureFlags.mealPlanningEnabled && _selectedIndex == 1
           ? MealPlanDrawer(
               mealPlanListService: widget.mealPlanListService!,
               visibilityService: widget.mealPlanVisibilityService!,
@@ -206,9 +206,6 @@ class _MainScreenState extends State<MainScreen> {
               );
             },
           ),
-          ShoppingListList(
-            shoppingListListService: widget.shoppingListListService,
-          ),
           if (FeatureFlags.mealPlanningEnabled &&
               widget.mealPlanCalendarService != null)
             MealPlanCalendarScreen(
@@ -217,20 +214,23 @@ class _MainScreenState extends State<MainScreen> {
               recipeListService: widget.recipeListService,
               recipesCollectionListService: widget.recipesCollectionListService,
             ),
+          ShoppingListList(
+            shoppingListListService: widget.shoppingListListService,
+          ),
         ],
       ),
       floatingActionButton: _selectedIndex == 0
           ? RecipeListFab(recipeListService: widget.recipeListService)
-          : _selectedIndex == 1
-          ? ShoppingListListFab(
-              shoppingListListService: widget.shoppingListListService,
-            )
-          : FeatureFlags.mealPlanningEnabled && _selectedIndex == 2
+          : FeatureFlags.mealPlanningEnabled && _selectedIndex == 1
           ? MealPlanCalendarFab(
               calendarService: widget.mealPlanCalendarService!,
               mealPlanListService: widget.mealPlanListService!,
               recipeListService: widget.recipeListService,
               recipesCollectionListService: widget.recipesCollectionListService,
+            )
+          : _selectedIndex == 2
+          ? ShoppingListListFab(
+              shoppingListListService: widget.shoppingListListService,
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(
@@ -242,15 +242,15 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.restaurant_menu),
             label: 'Recipes',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Shopping',
-          ),
           if (FeatureFlags.mealPlanningEnabled)
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today),
               label: 'Planning',
             ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: 'Shopping',
+          ),
         ],
       ),
     );

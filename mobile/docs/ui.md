@@ -5,9 +5,9 @@
 ### Core feature
 
 - Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing recipe,
-  shopping list, and planning tabs. Displays RecipeList, ShoppingListList, or MealPlanCalendarScreen widgets based on
+  planning, and shopping list tabs. Displays RecipeList, MealPlanCalendarScreen, or ShoppingListList widgets based on
   selected tab, with corresponding FABs (
-  RecipeListFab, ShoppingListListFab, or placeholder Planning FAB). Features PopupMenuButton in AppBar with "Recipes
+  RecipeListFab, MealPlanCalendarFab, or ShoppingListListFab). Features PopupMenuButton in AppBar with "Recipes
   collections" and logout options. When Planning tab is active and meal planning feature flag is enabled, shows "Manage
   Plans" IconButton before the overflow menu
 
@@ -202,8 +202,8 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 
 - `/` - Main screen with embedded bottom navigation (AppRoute.main)
     - Tab 1: Recipes (default) - Displays RecipeList widget
-    - Tab 2: Shopping - Displays ShoppingListList widget
-  - Tab 3: Planning - Displays MealPlanCalendarScreen widget with right-side drawer for plan management
+  - Tab 2: Planning - Displays MealPlanCalendarScreen widget with right-side drawer for plan management
+  - Tab 3: Shopping - Displays ShoppingListList widget
 - `/recipes/url-extraction` - URL extraction screen (nested route)
 - `/recipes/image-extraction` - Image extraction screen (nested route)
 - `/recipes/create` - Recipe creation screen (nested route)
@@ -218,8 +218,8 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 The app features an embedded bottom navigation bar (part of MainScreen) with tabs:
 
 - **Recipes** (restaurant_menu icon) - Access recipe management features
-- **Shopping** (shopping_cart icon) - Access shopping list features
 - **Planning** (calendar_today icon) - Access meal planning agenda view
+- **Shopping** (shopping_cart icon) - Access shopping list features
 
 Tab state is ephemeral and not preserved across app restarts. Navigation to sub-routes (like recipe detail) pushes a new
 screen on top of MainScreen.
@@ -273,14 +273,6 @@ All routes except `/login` require user authentication. The app automatically re
 6. **Collection Item Menu → Delete** → Confirmation dialog → Collection deleted → List refreshed
 7. **Back Button** (on Collections screen) → Back to Main Screen
 
-#### Shopping List Management Flow
-
-1. **Bottom Navigation → Shopping Tab** → MainScreen switches to Shopping tab view
-2. **FAB Tap** (on Shopping tab) → Create dialog with name input → Shopping list created → List refreshed
-3. **Pull to Refresh** (on Shopping tab) → Shopping lists reloaded from API
-4. **Shopping List Tap** → Shopping List Detail Screen (`/shopping-lists/:id` with shopping list ID parameter)
-5. **Back Button** (on Shopping List Detail Screen) → Back to Shopping tab on Main Screen
-
 #### Meal Planning Management Flow
 
 1. **Bottom Navigation → Planning Tab** → MainScreen switches to Planning tab view with calendar
@@ -317,6 +309,14 @@ All routes except `/login` require user authentication. The app automatically re
     want to delete...?" → Tap "Delete" → Entry deleted → SnackBar "Meal entry deleted" → Calendar refreshes
 17. **Navigate to Recipe from Entry** → Tap on recipe entry card (not menu) → If hasRecipeAccess, navigates to Recipe
     Detail Screen → If no access, shows SnackBar "Recipe details not shared"
+
+#### Shopping List Management Flow
+
+1. **Bottom Navigation → Shopping Tab** → MainScreen switches to Shopping tab view
+2. **FAB Tap** (on Shopping tab) → Create dialog with name input → Shopping list created → List refreshed
+3. **Pull to Refresh** (on Shopping tab) → Shopping lists reloaded from API
+4. **Shopping List Tap** → Shopping List Detail Screen (`/shopping-lists/:id` with shopping list ID parameter)
+5. **Back Button** (on Shopping List Detail Screen) → Back to Shopping tab on Main Screen
 
 ## Theme System
 
