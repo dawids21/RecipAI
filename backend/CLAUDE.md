@@ -3,24 +3,30 @@
 ## Tech Stack
 
 - Java 24
-- Spring Framework
-    - Spring Core 6.2.9
-    - Spring Boot 3.5.4
-    - Spring Web 6.2.9
-    - Spring Data JPA 3.5.2
-    - Spring AI 1.0.0
-    - Spring AI OpenAI 1.0.0
-    - Spring AI PDF Document Reader 1.0.0
-    - Spring Test 6.2.9
-    - Spring Boot DevTools 3.5.4
-    - Spring Boot Docker Compose 3.5.4
-    - Spring Boot Testcontainers 3.5.4
-    - Spring Boot Configuration Processor 3.5.4
+- Spring Boot 3.5.10
+- Spring Framework 6.2.x
+  - Spring Data JPA
+  - Spring Web
+  - Spring Validation
+  - Spring Security + OAuth2 Resource Server
+  - Spring Actuator
+  - Spring Test
+  - Spring Boot DevTools
+  - Spring Boot Docker Compose
+  - Spring Boot Testcontainers
+  - Spring Boot Configuration Processor
+- Spring AI 1.1.2
+  - Spring AI Google Genai
+  - Spring AI PDF Document Reader
+  - Spring AI Docker Compose
+  - Spring AI Testcontainers
 - Lombok 1.18.38
 - PostgreSQL 17.5
-- Flyway
+- Flyway (core + PostgreSQL)
 - AWS SDK for Java 2.40.7 (S3)
-- Thumbnailator 0.4.20 (image processing)
+- Thumbnailator 0.4.21 (image processing)
+- Apache Commons IO 2.21.0
+- Testcontainers (JUnit Jupiter, PostgreSQL)
 
 ## Documentation
 

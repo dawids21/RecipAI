@@ -3,20 +3,21 @@
 ## Backend
 
 - Java 24
-- Spring Boot 3.5.5
-- Spring Framework 6.2.x (e.g., Core/Web 6.2.9)
+- Spring Boot 3.5.10
+- Spring Framework 6.2.x
 - Spring Data JPA
 - Spring Validation (Bean Validation)
 - Spring Actuator
 - Spring Security + OAuth2 Resource Server
-- Spring AI 1.0.0
-    - OpenAI starter
+- Spring AI 1.1.2
+    - Google Genai starter
     - PDF Document Reader
 - PostgreSQL 17.5
 - Flyway (core + PostgreSQL)
-- Lombok
+- Lombok 1.18.38
 - AWS SDK for Java 2.40.7 (S3)
-- Thumbnailator 0.4.20 (image processing)
+- Thumbnailator 0.4.21 (image processing)
+- Apache Commons IO 2.21.0
 - Testcontainers (JUnit Jupiter, PostgreSQL)
 - Docker Compose integration (Spring Boot Docker Compose, Spring AI Docker Compose)
 - Maven (spring-boot-maven-plugin, compiler with annotation processors)
