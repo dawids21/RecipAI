@@ -19,6 +19,7 @@ import '../features/recipe/initial_recipe_form_data.dart';
 import '../features/recipe/recipe_detail_screen.dart';
 import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_service.dart';
+import '../features/recipe/recipe_picker_screen.dart';
 import '../features/recipe/recipe_to_shopping_list_screen.dart';
 import '../features/recipe/recipe_to_shopping_list_service.dart';
 import '../features/shopping_list/shopping_list_detail_screen.dart';
@@ -35,6 +36,7 @@ enum AppRoute {
   urlExtraction('recipes/url-extraction'), // '/recipes/url-extraction'
   imageExtraction('recipes/image-extraction'), // '/recipes/image-extraction'
   recipeCreate('recipes/create'), // '/recipes/create'
+  recipePicker('recipes/picker'), // '/recipes/picker'
   recipeDetail('recipes/:id'), // '/recipes/:id'
   recipeEdit('edit'), // '/recipes/:id/edit'
   recipesCollections('recipes-collections'), // '/recipes-collections'
@@ -162,6 +164,15 @@ GoRouter createAppRouter() {
                     getIt<RecipesCollectionListService>(),
               );
             },
+          ),
+          GoRoute(
+            path: AppRoute.recipePicker.path,
+            name: AppRoute.recipePicker.name,
+            builder: (context, state) => RecipePickerScreen(
+              recipeListService: getIt<RecipeListService>(),
+              recipesCollectionListService:
+                  getIt<RecipesCollectionListService>(),
+            ),
           ),
           GoRoute(
             path: AppRoute.recipeDetail.path,

@@ -68,8 +68,9 @@
 - Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
   shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
   and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success
-- Recipe Picker Dialog (`recipe_picker_dialog.dart`) - Full-screen dialog for selecting recipes using RecipeList
-  component with search and filter capabilities. Returns selected Recipe when user taps an item.
+- Recipe Picker Screen (`recipe_picker_screen.dart`) - Full-screen screen for selecting recipes using RecipeList
+  component with search and filter capabilities. Uses Scaffold with AppBar and standard navigation (Navigator.push/pop).
+  Returns selected Recipe via Navigator.pop when user taps an item. Route: /recipes/picker
 - Recipes Collection List Screen (`collection/recipes_collection_list_screen.dart`) - Screen for managing recipe
   collections with pull-to-refresh, FAB for creating new collections, inline rename/delete operations via
   PopupMenuButton
@@ -140,10 +141,12 @@
   Uses MealPlanSharingService for sharing operations, which automatically refreshes the meal plans list after successful
   share/unshare actions.
 - Meal Entry Form Dialog (`meal_entry_form_dialog.dart`) - Modal dialog for creating and editing meal entries with
-  plan dropdown (OWNER/EDITOR only), date picker, recipe/placeholder mode toggle, recipe selection button (opens
-  RecipePickerDialog), serving size input (for recipes), and placeholder text input. Supports both create mode (with
-  defaultDate from FAB) and edit mode (with pre-filled existingEntry data). Validation ensures plan selection, recipe
-  selection with positive serving size for recipe mode, or non-empty text for placeholder mode.
+  plan dropdown (OWNER/EDITOR only), date picker, recipe/note mode toggle (segmented button with icons), recipe
+  selection button (navigates to RecipePickerScreen), serving size input (for recipes), and note text input. Form
+  content
+  is scrollable. Supports both create mode (with defaultDate from FAB) and edit mode (with pre-filled existingEntry
+  data). Validation ensures plan selection, recipe selection with positive serving size for recipe mode, or
+  non-empty text for note mode.
 - Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
   navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
 - Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
@@ -210,6 +213,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 - `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
 - `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
 - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
+- `/recipes/picker` - Recipe picker screen for selecting a recipe (AppRoute.recipePicker, nested route)
 - `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections, shown when feature flag enabled)
 - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 
@@ -297,11 +301,12 @@ All routes except `/login` require user authentication. The app automatically re
 11. **Close Drawer** → Swipe left or tap outside drawer → Returns to calendar view
 12. **Switch Tabs** → Drawer closes automatically
 13. **Add Meal Entry (FAB)** → Tap FAB on calendar screen → MealEntryFormDialog opens with date defaulting to week
-    start → Select plan from dropdown → Choose Recipe or Placeholder mode → For Recipe: tap "Select Recipe" button →
-    RecipePickerDialog opens → Search/filter and tap recipe → Dialog closes with selected recipe → Enter serving size
+    start → Select plan from dropdown → Choose Recipe or Note mode → For Recipe: tap "Select Recipe" button →
+    RecipePickerScreen opens with full-screen navigation → Search/filter and tap recipe → Navigate back with selected
+    recipe → Enter serving size
     → Tap "Create" → Entry added to calendar → SnackBar "Meal entry added" → Calendar refreshes
-14. **Add Placeholder Entry** → Same as step 13 but select "Placeholder" mode → Enter text description → Tap
-    "Create" → Placeholder added to calendar
+14. **Add Note Entry** → Same as step 13 but select "Note" mode → Enter text description → Tap
+    "Create" → Note added to calendar
 15. **Edit Meal Entry** → Tap three-dot menu on entry card → Select "Edit" → MealEntryFormDialog opens with pre-filled
     data → Modify fields (plan, date, recipe, serving size, or text) → Tap "Save" → Entry updated → SnackBar "Meal
     entry updated" → Calendar refreshes

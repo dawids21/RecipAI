@@ -64,46 +64,48 @@ class _PlanFormDialogState extends State<PlanFormDialog> {
       title: Text(_isEditMode ? 'Edit Plan' : 'Create Plan'),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextFormField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Plan Name',
-                hintText: 'Enter plan name',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a plan name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            Text('Color', style: theme.textTheme.titleSmall),
-            const SizedBox(height: AppSpacing.small),
-            PlanColorPicker(
-              selectedColor: _selectedColor,
-              onColorSelected: (color) {
-                setState(() {
-                  _selectedColor = color;
-                  _colorError = null;
-                });
-              },
-            ),
-            if (_colorError != null) ...[
-              const SizedBox(height: AppSpacing.extraSmall),
-              Text(
-                _colorError!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.error,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Plan Name',
+                  hintText: 'Enter plan name',
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a plan name';
+                  }
+                  return null;
+                },
               ),
+              const SizedBox(height: AppSpacing.medium),
+              Text('Color', style: theme.textTheme.titleSmall),
+              const SizedBox(height: AppSpacing.small),
+              PlanColorPicker(
+                selectedColor: _selectedColor,
+                onColorSelected: (color) {
+                  setState(() {
+                    _selectedColor = color;
+                    _colorError = null;
+                  });
+                },
+              ),
+              if (_colorError != null) ...[
+                const SizedBox(height: AppSpacing.extraSmall),
+                Text(
+                  _colorError!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
       actions: [

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/core/theme.dart';
 import 'package:recipai_mobile/features/planning/meal_entry_form_result.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_calendar_entry.dart';
@@ -7,7 +9,6 @@ import 'package:recipai_mobile/features/planning/meal_plan_list_service.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_list_service.dart';
 import 'package:recipai_mobile/features/recipe/recipe.dart';
 import 'package:recipai_mobile/features/recipe/recipe_list_service.dart';
-import 'package:recipai_mobile/features/recipe/recipe_picker_dialog.dart';
 
 class MealEntryFormDialog extends StatefulWidget {
   final MealPlanListService mealPlanListService;
@@ -103,13 +104,7 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
   }
 
   Future<void> _selectRecipe() async {
-    final recipe = await showDialog<Recipe>(
-      context: context,
-      builder: (context) => RecipePickerDialog(
-        recipeListService: widget.recipeListService,
-        recipesCollectionListService: widget.recipesCollectionListService,
-      ),
-    );
+    final recipe = await context.pushNamed<Recipe>(AppRoute.recipePicker.name);
 
     if (recipe != null) {
       setState(() {
@@ -232,35 +227,43 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
                       const SizedBox(height: AppSpacing.medium),
 
                       // Mode Toggle
-                      Text('Type', style: theme.textTheme.titleSmall),
+                      Text(
+                        'Type',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: AppSpacing.small),
-                      SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment<bool>(
-                            value: true,
-                            label: Text('Recipe'),
-                            icon: Icon(Icons.restaurant_menu),
-                          ),
-                          ButtonSegment<bool>(
-                            value: false,
-                            label: Text('Placeholder'),
-                            icon: Icon(Icons.text_fields),
-                          ),
-                        ],
-                        selected: {_isRecipeMode},
-                        onSelectionChanged: (Set<bool> newSelection) {
-                          setState(() {
-                            _isRecipeMode = newSelection.first;
-                            // Clear fields when switching modes
-                            if (_isRecipeMode) {
-                              _placeholderTextController.clear();
-                            } else {
-                              _selectedRecipe = null;
-                              _servingSize = 1;
-                              _recipeError = null;
-                            }
-                          });
-                        },
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment<bool>(
+                              value: true,
+                              label: Text('Recipe'),
+                              icon: Icon(Icons.restaurant_menu),
+                            ),
+                            ButtonSegment<bool>(
+                              value: false,
+                              label: Text('Note'),
+                              icon: Icon(Icons.text_fields),
+                            ),
+                          ],
+                          selected: {_isRecipeMode},
+                          onSelectionChanged: (Set<bool> newSelection) {
+                            setState(() {
+                              _isRecipeMode = newSelection.first;
+                              // Clear fields when switching modes
+                              if (_isRecipeMode) {
+                                _placeholderTextController.clear();
+                              } else {
+                                _selectedRecipe = null;
+                                _servingSize = 1;
+                                _recipeError = null;
+                              }
+                            });
+                          },
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.medium),
 
@@ -335,7 +338,7 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
                         ),
                       ],
 
-                      // Placeholder Mode Fields
+                      // Note Mode Fields
                       if (!_isRecipeMode) ...[
                         TextFormField(
                           controller: _placeholderTextController,

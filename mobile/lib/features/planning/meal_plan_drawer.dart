@@ -30,77 +30,83 @@ class MealPlanDrawer extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Drawer(
-      child: Column(
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(color: theme.colorScheme.inversePrimary),
-            child: const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('My Meal Plans', style: TextStyle(fontSize: 24)),
-            ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => mealPlanListService.loadMealPlans(),
-              child: ValueListenableBuilder(
-                valueListenable: mealPlanListService.mealPlans,
-                builder: (context, asyncValuePlans, child) {
-                  return asyncValuePlans.when(
-                    loading: () => const LoadingWidget(),
-                    data: (plans) {
-                      if (plans.isEmpty) {
-                        return const Center(child: Text('No plans yet'));
-                      }
-
-                      return ValueListenableBuilder(
-                        valueListenable: visibilityService.visibility,
-                        builder: (context, visibilityMap, child) {
-                          return ListView.builder(
-                            itemCount: plans.length,
-                            itemBuilder: (context, index) {
-                              final plan = plans[index];
-                              final isVisible = visibilityService.isVisible(
-                                plan.id,
-                              );
-
-                              return PlanListTile(
-                                plan: plan,
-                                isVisible: isVisible,
-                                onToggleVisibility: () {
-                                  visibilityService.toggleVisibility(plan.id);
-                                },
-                                onEdit: () => _handleEditPlan(context, plan),
-                                onShare: () => _handleSharePlan(context, plan),
-                                onDelete: plan.role == UserRole.owner
-                                    ? () => _handleDeletePlan(context, plan)
-                                    : null,
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                    error: (error) => ApiErrorWidget(
-                      errorMessage: 'Error: $error',
-                      onRetry: mealPlanListService.loadMealPlans,
-                    ),
-                  );
-                },
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.inversePrimary,
+              ),
+              child: const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('My Meal Plans', style: TextStyle(fontSize: 24)),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.medium),
-            child: ElevatedButton.icon(
-              onPressed: () => _handleCreatePlan(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Create New Plan'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => mealPlanListService.loadMealPlans(),
+                child: ValueListenableBuilder(
+                  valueListenable: mealPlanListService.mealPlans,
+                  builder: (context, asyncValuePlans, child) {
+                    return asyncValuePlans.when(
+                      loading: () => const LoadingWidget(),
+                      data: (plans) {
+                        if (plans.isEmpty) {
+                          return const Center(child: Text('No plans yet'));
+                        }
+
+                        return ValueListenableBuilder(
+                          valueListenable: visibilityService.visibility,
+                          builder: (context, visibilityMap, child) {
+                            return ListView.builder(
+                              itemCount: plans.length,
+                              itemBuilder: (context, index) {
+                                final plan = plans[index];
+                                final isVisible = visibilityService.isVisible(
+                                  plan.id,
+                                );
+
+                                return PlanListTile(
+                                  plan: plan,
+                                  isVisible: isVisible,
+                                  onToggleVisibility: () {
+                                    visibilityService.toggleVisibility(plan.id);
+                                  },
+                                  onEdit: () => _handleEditPlan(context, plan),
+                                  onShare: () =>
+                                      _handleSharePlan(context, plan),
+                                  onDelete: plan.role == UserRole.owner
+                                      ? () => _handleDeletePlan(context, plan)
+                                      : null,
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                      error: (error) => ApiErrorWidget(
+                        errorMessage: 'Error: $error',
+                        onRetry: mealPlanListService.loadMealPlans,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.medium),
+              child: ElevatedButton.icon(
+                onPressed: () => _handleCreatePlan(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Create New Plan'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
