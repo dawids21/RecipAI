@@ -31,7 +31,7 @@
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including image carousel (when images
   available), ingredients, and instructions with Edit FAB, Share button, and role-based conditional Delete button for
   recipe management. Shows collection name with folder icon when recipe is assigned to a collection. Displays source URL
-  as clickable link with link icon when available.
+  as clickable link with link icon when available. Shows serving size with restaurant icon.
 - Recipe Image Carousel (`recipe_image_carousel.dart`) - Full-width image carousel widget using PageView with 1:1 aspect
   ratio. Tapping an image opens a fullscreen zoomable viewer.
 - Recipe Image Fullscreen Viewer (`recipe_image_fullscreen_viewer.dart`) - Fullscreen dialog-based image viewer widget
@@ -46,12 +46,12 @@
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using
   RecipeFormWidget.
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
-  and instruction inputs, validation, collection dropdown menu for optional collection assignment, image management
-  via RecipeImageManager, and save functionality. Accepts InitialRecipeFormData parameter containing recipeDetail,
-  sourceUrl, and pendingImages for prefilling form. Also accepts optional initialCollection parameter to prefill
-  collection
-  dropdown. Dropdown shows loading/error states and all available collections with "None" option to create recipes
-  without collection. Prefill priority: initialFormData's recipeDetail collection > initialCollection > null.
+  and instruction inputs, serving size input (using ServingSizeInput widget), validation, collection dropdown menu for
+  optional collection assignment, image management via RecipeImageManager, and save functionality. Accepts
+  InitialRecipeFormData parameter containing recipeDetail, sourceUrl, and pendingImages for prefilling form. Also
+  accepts optional initialCollection parameter to prefill collection dropdown. Dropdown shows loading/error states and
+  all available collections with "None" option to create recipes without collection. Prefill priority:
+  initialFormData's recipeDetail collection > initialCollection > null.
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
   with validation
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
@@ -142,11 +142,10 @@
   share/unshare actions.
 - Meal Entry Form Dialog (`meal_entry_form_dialog.dart`) - Modal dialog for creating and editing meal entries with
   plan dropdown (OWNER/EDITOR only), date picker, recipe/note mode toggle (segmented button with icons), recipe
-  selection button (navigates to RecipePickerScreen), serving size input (for recipes), and note text input. Form
-  content
-  is scrollable. Supports both create mode (with defaultDate from FAB) and edit mode (with pre-filled existingEntry
-  data). Validation ensures plan selection, recipe selection with positive serving size for recipe mode, or
-  non-empty text for note mode.
+  selection button (navigates to RecipePickerScreen), serving size input using ServingSizeInput widget (for recipes),
+  and note text input. Form content is scrollable. Supports both create mode (with defaultDate from FAB) and edit mode
+  (with pre-filled existingEntry data). Validation ensures plan selection, recipe selection with positive serving size
+  for recipe mode, or non-empty text for note mode.
 - Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
   navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
 - Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
@@ -174,6 +173,9 @@
 - **Loading Widget** (`loading_widget.dart`) - Reusable loading indicator for async operations
 - **API Error Widget** (`api_error_widget.dart`) - Reusable error display with retry functionality for API failures
 - **Error Icon** (`error_icon.dart`) - Standardized error icon (64px, theme-based color)
+- **Serving Size Input** (`serving_size_input.dart`) - Reusable spinner-style control for serving size input with
+  increment/decrement buttons. Minimum value is 1 (decrement disabled at 1). Uses IconButton.outlined with Material
+  icons, displays value using headlineMedium text style. Used in RecipeFormWidget and MealEntryFormDialog.
 
 ### Generic Sharing Dialog
 

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../shared/error_message_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../../shared/serving_size_input.dart';
 import '../../shared/user_role.dart';
 import 'collection/recipes_collection.dart';
 import 'collection/recipes_collection_list_service.dart';
@@ -47,6 +48,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
   bool _isLoading = false;
   String? _errorMessage;
   RecipesCollection? _selectedCollection;
+  int _servingSize = 1;
 
   @override
   void initState() {
@@ -66,6 +68,9 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
 
       // Initialize source URL from formData OR from recipe data
       _sourceUrlController.text = widget.initialFormData?.sourceUrl ?? '';
+
+      // Initialize serving size
+      _servingSize = initialRecipe.data.servingSize;
 
       // Convert existing images to RecipeImageInput
       _imageInputs = initialRecipe.images
@@ -219,6 +224,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
         sourceUrl: _sourceUrlController.text.trim().isNotEmpty
             ? _sourceUrlController.text.trim()
             : null,
+        servingSize: _servingSize,
       );
 
       final recipeRequest = RecipeRequest(
@@ -387,6 +393,17 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                           }
                         }
                         return null;
+                      },
+                    ),
+
+                    // Serving size input
+                    const SizedBox(height: AppSpacing.medium),
+                    ServingSizeInput(
+                      servingSize: _servingSize,
+                      onChanged: (value) {
+                        setState(() {
+                          _servingSize = value;
+                        });
                       },
                     ),
 

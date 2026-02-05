@@ -9,6 +9,7 @@ import 'package:recipai_mobile/features/planning/meal_plan_list_service.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_list_service.dart';
 import 'package:recipai_mobile/features/recipe/recipe.dart';
 import 'package:recipai_mobile/features/recipe/recipe_list_service.dart';
+import 'package:recipai_mobile/shared/serving_size_input.dart';
 
 class MealEntryFormDialog extends StatefulWidget {
   final MealPlanListService mealPlanListService;
@@ -292,49 +293,13 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
                         const SizedBox(height: AppSpacing.medium),
 
                         // Serving Size Input
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Serving Size',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.small),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton.outlined(
-                                  onPressed: _servingSize > 1
-                                      ? () {
-                                          setState(() {
-                                            _servingSize--;
-                                          });
-                                        }
-                                      : null,
-                                  icon: const Icon(Icons.remove),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.large,
-                                  ),
-                                  child: Text(
-                                    _servingSize.toString(),
-                                    style: theme.textTheme.headlineMedium,
-                                  ),
-                                ),
-                                IconButton.outlined(
-                                  onPressed: () {
-                                    setState(() {
-                                      _servingSize++;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.add),
-                                ),
-                              ],
-                            ),
-                          ],
+                        ServingSizeInput(
+                          servingSize: _servingSize,
+                          onChanged: (value) {
+                            setState(() {
+                              _servingSize = value;
+                            });
+                          },
                         ),
                       ],
 

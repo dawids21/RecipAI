@@ -280,6 +280,25 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                       ],
 
+                      const SizedBox(height: AppSpacing.small),
+                      Row(
+                        spacing: AppSpacing.extraSmall,
+                        children: [
+                          Icon(
+                            Icons.restaurant,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          Text('Servings:', style: theme.textTheme.bodyMedium),
+                          Text(
+                            '${recipeDetail.data.servingSize}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+
                       const SizedBox(height: AppSpacing.large),
 
                       // Ingredients Section

@@ -49,21 +49,20 @@ class ExtractedInstruction {
 
 class ExtractedRecipe {
   final String name;
-  final String? description;
   final List<ExtractedIngredient> ingredients;
   final List<ExtractedInstruction> instructions;
+  final int? servingSize;
 
   const ExtractedRecipe({
     required this.name,
-    this.description,
     required this.ingredients,
     required this.instructions,
+    this.servingSize,
   });
 
   factory ExtractedRecipe.fromJson(Map<String, dynamic> json) {
     return ExtractedRecipe(
       name: json['name'] as String,
-      description: json['description'] as String?,
       ingredients: (json['ingredients'] as List<dynamic>)
           .map(
             (ingredient) => ExtractedIngredient.fromJson(
@@ -78,19 +77,20 @@ class ExtractedRecipe {
             ),
           )
           .toList(),
+      servingSize: json['servingSize'] as int?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'description': description,
       'ingredients': ingredients
           .map((ingredient) => ingredient.toJson())
           .toList(),
       'instructions': instructions
           .map((instruction) => instruction.toJson())
           .toList(),
+      'servingSize': servingSize,
     };
   }
 
@@ -101,6 +101,7 @@ class ExtractedRecipe {
       data: RecipeData(
         ingredients: ingredients.map((e) => e.toIngredient()).toList(),
         instructions: instructions.map((e) => e.toInstruction()).toList(),
+        servingSize: servingSize ?? 1,
       ),
       role: UserRole.owner,
     );

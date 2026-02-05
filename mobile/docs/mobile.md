@@ -27,10 +27,8 @@
 
 - Recipe (`recipe.dart`) - Basic recipe data model with id, name, and optional thumbnailUrl
 - Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including ingredients,
-  instructions,
-  source url, UserRole enum (owner/editor), and optional images (RecipeImage class with id, url, and thumbnailUrl
-  fields),
-  collectionId and collectionName fields for recipe-to-collection assignment
+  instructions, source url, serving size, UserRole enum (owner/editor), and optional images (RecipeImage class with id,
+  url, and thumbnailUrl fields), collectionId and collectionName fields for recipe-to-collection assignment
 - Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images during creation/editing.
 - Initial Recipe Form Data (`initial_recipe_form_data.dart`) - Wrapper class for passing recipe data for recipe form
   widget prefilling
@@ -86,6 +84,7 @@ mobile/
 │   │   ├── api_error_widget.dart      # API error display widget
 │   │   ├── error_message_widget.dart  # General error message widget
 │   │   ├── error_icon.dart           # Error icon widget
+│   │   ├── serving_size_input.dart   # Reusable serving size input widget with increment/decrement controls
 │   │   ├── extensions.dart           # Extension methods (IsoDateFormat for DateTime, ColorExtension for Color)
 │   │   └── user_role.dart            # UserRole enum with API conversion methods
 │   └── features/                       # Feature modules

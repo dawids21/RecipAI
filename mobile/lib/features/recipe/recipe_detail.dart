@@ -62,10 +62,12 @@ class RecipeData {
   final List<Ingredient> ingredients;
   final List<Instruction> instructions;
   final String? sourceUrl;
+  final int servingSize;
 
   const RecipeData({
     required this.ingredients,
     required this.instructions,
+    required this.servingSize,
     this.sourceUrl,
   });
 
@@ -84,6 +86,7 @@ class RecipeData {
           )
           .toList(),
       sourceUrl: json['sourceUrl'] as String?,
+      servingSize: json['servingSize'] as int,
     );
   }
 
@@ -96,6 +99,7 @@ class RecipeData {
           .map((instruction) => instruction.toJson())
           .toList(),
       'sourceUrl': sourceUrl,
+      'servingSize': servingSize,
     };
   }
 }
