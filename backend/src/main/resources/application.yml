@@ -17,14 +17,13 @@ spring:
     enabled: true
     default-schema: recipai
   ai:
-    openai:
-      api-key: ${SPRING_AI_API_KEY}
-      base-url: https://generativelanguage.googleapis.com/v1beta/openai/
-      chat:
-        completions-path: /chat/completions
-        options:
-          model: gemini-2.5-flash
-          reasoning-effort: none
+    google:
+      genai:
+        api-key: ${SPRING_AI_API_KEY}
+        chat:
+          options:
+            model: gemini-3-flash-preview
+            thinking-level: low
   security:
     oauth2:
       resourceserver:
