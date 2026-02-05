@@ -154,7 +154,8 @@ class RecipeIntegrationTest {
         return new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
                 List.of(new Instruction("Make dough")),
-                ""
+                "",
+                1
         );
     }
 
@@ -174,7 +175,8 @@ class RecipeIntegrationTest {
                         new Instruction("Add sauce and toppings"),
                         new Instruction("Bake for 15 minutes")
                 ),
-                ""
+                "",
+                4
         );
 
         RecipeDetailsDto pizzaResponse = createRecipe(client, "Pizza Margherita", pizzaData, null);
@@ -193,7 +195,8 @@ class RecipeIntegrationTest {
                         new Instruction("Fry pancetta"),
                         new Instruction("Mix with eggs")
                 ),
-                ""
+                "",
+                2
         );
 
         RecipeDetailsDto pastaResponse = createRecipe(client, "Spaghetti Carbonara", pastaData, null);
@@ -233,7 +236,8 @@ class RecipeIntegrationTest {
                         new Instruction("Add cheese and tomatoes"),
                         new Instruction("Bake for 20 minutes")
                 ),
-                ""
+                "",
+                6
         );
 
         RecipeDetailsDto updatedRecipe = updateRecipe(client, pizzaResponse.id(), "Updated Pizza Margherita", updatedPizzaData, null);
@@ -282,7 +286,8 @@ class RecipeIntegrationTest {
         RecipeData data = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
                 List.of(new Instruction("Make dough")),
-                ""
+                "",
+                1
         );
         UUID randomId = UUID.randomUUID();
 
@@ -318,7 +323,8 @@ class RecipeIntegrationTest {
         RecipeData user1RecipeData = new RecipeData(
                 List.of(new Ingredient("flour", "300g", null)),
                 List.of(new Instruction("Make bread")),
-                ""
+                "",
+                1
         );
 
         RecipeDetailsDto user1Recipe = createRecipe(user1Client, "User 1 Recipe", user1RecipeData, null);
@@ -329,7 +335,8 @@ class RecipeIntegrationTest {
         RecipeData user2RecipeData = new RecipeData(
                 List.of(new Ingredient("sugar", "200g", null)),
                 List.of(new Instruction("Make cake")),
-                ""
+                "",
+                1
         );
 
         RecipeDetailsDto user2Recipe = createRecipe(user2Client, "User 2 Recipe", user2RecipeData, null);
@@ -368,7 +375,8 @@ class RecipeIntegrationTest {
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
                 List.of(new Instruction("Secret recipe step")),
-                ""
+                "",
+                1
         );
 
         RecipeDetailsDto user1Recipe = createRecipe(user1Client, "Secret Recipe", recipeData, null);
@@ -411,7 +419,8 @@ class RecipeIntegrationTest {
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("secret ingredient", "100g", null)),
                 List.of(new Instruction("Secret recipe step")),
-                ""
+                "",
+                1
         );
 
         RecipeDetailsDto ownerRecipe = createRecipe(user1Client, "Shared Recipe", recipeData, null);
@@ -448,7 +457,8 @@ class RecipeIntegrationTest {
         RecipeData updatedData = new RecipeData(
                 List.of(new Ingredient("updated ingredient", "200g", null)),
                 List.of(new Instruction("Updated recipe step")),
-                ""
+                "",
+                2
         );
 
         RecipeDetailsDto updatedRecipe = updateRecipe(user2Client, ownerRecipe.id(), "Updated Shared Recipe", updatedData, null);
@@ -496,7 +506,8 @@ class RecipeIntegrationTest {
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
                 List.of(new Instruction("Step")),
-                ""
+                "",
+                1
         );
 
         RecipeDetailsDto ownerRecipe = createRecipe(user1Client, "Editor Sharing Test Recipe", recipeData, null);
@@ -547,7 +558,8 @@ class RecipeIntegrationTest {
         RecipeData recipeData = new RecipeData(
                 List.of(new Ingredient("ingredient", "100g", null)),
                 List.of(new Instruction("Step")),
-                ""
+                "",
+                1
         );
 
         RecipeDetailsDto ownerRecipe = createRecipe(user1Client, "Recipe To Be Shared", recipeData, null);
@@ -924,6 +936,7 @@ class RecipeIntegrationTest {
                 .body(RecipesCollectionListDto.class);
 
         // User 1 shares collection with User 2
+        assertThat(collection).isNotNull();
         ShareRecipesCollectionRequest shareRequest = new ShareRecipesCollectionRequest("user2@example.com");
         user1Client
                 .post()

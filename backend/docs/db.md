@@ -10,6 +10,29 @@
 - recipes_collection_id: UUID NULL (FK -> recipes_collections.id)
 - created_at: TIMESTAMP NOT NULL
 
+#### recipes.data JSONB structure:
+
+```json
+{
+  "ingredients": [
+    {
+      "name": "string",
+      "quantity": "string",
+      "unit": "string"
+    }
+  ],
+  "instructions": [
+    {
+      "step": "string"
+    }
+  ],
+  "sourceUrl": "string (optional, URL)",
+  "servingSize": "integer (optional, positive 1-100, defaults to 1)"
+}
+```
+
+- `servingSize`: Optional positive integer (1-100) representing number of servings (defaults to 1 if not provided)
+
 ### recipe_images
 
 - id: UUID PRIMARY KEY (FK -> recipes.id)

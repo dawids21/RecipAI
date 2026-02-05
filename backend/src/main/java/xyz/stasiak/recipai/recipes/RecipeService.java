@@ -218,6 +218,7 @@ class RecipeService {
             List<Ingredient> ingredients;
             List<Instruction> instructions;
             String sourceUrl = null;
+            int servingSize = 1;
 
             if (jsonNode.has("ingredients")) {
                 ingredients = objectMapper.treeToValue(jsonNode.get("ingredients"),
@@ -238,7 +239,11 @@ class RecipeService {
                 sourceUrl = jsonNode.get("sourceUrl").asText();
             }
 
-            return new RecipeData(ingredients, instructions, sourceUrl);
+            if (jsonNode.has("servingSize") && !jsonNode.get("servingSize").isNull()) {
+                servingSize = jsonNode.get("servingSize").asInt();
+            }
+
+            return new RecipeData(ingredients, instructions, sourceUrl, servingSize);
         } catch (Exception e) {
             log.error("Failed to convert JsonNode to RecipeData", e);
             throw new RuntimeException("Invalid recipe data format", e);

@@ -107,7 +107,8 @@ class MealPlanIntegrationTest {
         RecipeData data = new RecipeData(
                 List.of(new Ingredient("flour", "300", "g")),
                 List.of(new Instruction("Mix")),
-                null
+                null,
+                1
         );
         CreateRecipeRequest request = new CreateRecipeRequest(name, data, null, List.of());
         return client
@@ -688,7 +689,7 @@ class MealPlanIntegrationTest {
 
         List<SharedUserDto> users = getSharedUsers(client1, plan.id());
         assertThat(users).hasSize(1);
-        assertThat(users.get(0).email()).isEqualTo("user1@example.com");
+        assertThat(users.getFirst().email()).isEqualTo("user1@example.com");
 
         List<MealPlanDto> user2PlansAfter = getAllMealPlans(client2);
         assertThat(user2PlansAfter).extracting(MealPlanDto::id).doesNotContain(plan.id());

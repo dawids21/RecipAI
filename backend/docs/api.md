@@ -73,7 +73,8 @@
               "step": "Add sauce and toppings"
             }
           ],
-          "sourceUrl": "https://example.com/recipe/pizza"
+          "sourceUrl": "https://example.com/recipe/pizza",
+          "servingSize": 4
         },
         "role": "OWNER",
         "collectionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -102,7 +103,9 @@
     collection.                                                      
     When the user does not have access to the assigned collection, `collectionId` is still returned
     but `collectionName` is null. The `sourceUrl` field in `data` is optional and contains the URL of
-    the original recipe source. The `images` array contains presigned S3 URLs that are valid for a limited time
+    the original recipe source. The `servingSize` field in `data` is optional (defaults to 1 if not provided) and must
+    be a positive integer (1-100) if specified. It represents the number of servings the recipe yields. The `images`
+    array contains presigned S3 URLs that are valid for a limited time
     (configured by server). Maximum of 2 images per recipe.
 - POST /recipes (JSON)
     - Description: Add new recipe with JSON data
@@ -134,7 +137,8 @@
               "step": "Add sauce and toppings"
             }
           ],
-          "sourceUrl": "https://example.com/recipe/pizza"
+          "sourceUrl": "https://example.com/recipe/pizza",
+          "servingSize": 4
         },
         "images": []
       }
@@ -165,7 +169,8 @@
               "step": "Add sauce and toppings"
             }
           ],
-          "sourceUrl": "https://example.com/recipe/pizza"
+          "sourceUrl": "https://example.com/recipe/pizza",
+          "servingSize": 4
         },
         "role": "OWNER",
         "collectionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -198,7 +203,8 @@
       "data": {
         "ingredients": [...],
         "instructions": [...],
-        "sourceUrl": "https://example.com/recipe/pizza"
+        "sourceUrl": "https://example.com/recipe/pizza",
+        "servingSize": 4
       },
       "images": ["image-uuid-1", "image-uuid-2"]
     }
@@ -244,7 +250,8 @@
                 "step": "Add cheese"
               }
             ],
-            "sourceUrl": "https://example.com/recipe/updated-pizza"
+            "sourceUrl": "https://example.com/recipe/updated-pizza",
+            "servingSize": 6
           },
           "images": ["existing-uuid-1"]
         }
@@ -275,7 +282,8 @@
                 "step": "Add cheese"
               }
             ],
-            "sourceUrl": "https://example.com/recipe/updated-pizza"
+            "sourceUrl": "https://example.com/recipe/updated-pizza",
+            "servingSize": 6
           },
           "role": "OWNER",
           "collectionId": "550e8400-e29b-41d4-a716-446655440000",
@@ -321,7 +329,8 @@
         "data": {
           "ingredients": [...],
           "instructions": [...],
-          "sourceUrl": "https://example.com/recipe/updated-pizza"
+          "sourceUrl": "https://example.com/recipe/updated-pizza",
+          "servingSize": 6
         },
         "images": ["existing-uuid-1", "new-uuid-2"]
       }
@@ -351,8 +360,8 @@
       - Example response: No content
       - Success: 204 No Content
       - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-    - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes.
-      When a recipe is deleted, a `RecipeDeleted` event is published.
+      - Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes.
+        When a recipe is deleted, a `RecipeDeleted` event is published.
 - GET /recipes/{uuid}/shared_users
     - Description: Get all users that a recipe is shared with, including their roles
     - Authenticated: true
@@ -988,26 +997,27 @@
     - Authenticated: true
   - Note: Automatically creates a permission record with OWNER role. There is a max number of plans owned per user (
     configured via `recipai.meal-plan.max-owned-plans`).
-    - Request body:
-      ```json
-      {
-        "name": "Weekly Plan",
-        "color": "#FF5733"
-      }
-      ```
-    - Example response:
-      ```json
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Weekly Plan",
-        "color": "#FF5733",
-        "role": "OWNER",
-        "createdAt": "2026-01-29T10:00:00Z"
-      }
-      ```
-    - Success: 201 Created
-    - Errors: 400 Bad Request (blank name, invalid color format), 409 Conflict (plan limit exceeded), 401 Unauthorized
-    - Note: Color must be a valid hex color in format `#RRGGBB` (e.g., `#FF5733`)
+      - Request body:
+        ```json
+        {
+          "name": "Weekly Plan",
+          "color": "#FF5733"
+        }
+        ```
+      - Example response:
+        ```json
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Weekly Plan",
+          "color": "#FF5733",
+          "role": "OWNER",
+          "createdAt": "2026-01-29T10:00:00Z"
+        }
+        ```
+      - Success: 201 Created
+      - Errors: 400 Bad Request (blank name, invalid color format), 409 Conflict (plan limit exceeded), 401
+        Unauthorized
+      - Note: Color must be a valid hex color in format `#RRGGBB` (e.g., `#FF5733`)
 - PUT /meal-plans/{id}
     - Description: Update the name and color of an existing meal plan
     - Authenticated: true
@@ -1237,11 +1247,12 @@
       - `planIds` is required and must be present in the request
       - When `planIds` is an empty string, all lists are empty `{}` (no entries match empty plan list)
       - When `planIds` contains valid UUIDs, only entries from those specific plans are returned
-        - `hasRecipeAccess` is `true` if the user has permission to view the recipe (either direct permission or via
-          recipe collection), or if the entry is a placeholder (no recipeId)
-        - `hasRecipeAccess` is `false` if the entry references a recipe the user cannot access
-        - When a recipe is deleted, the entry is converted to a placeholder: `recipeId` and `recipeName` become null,
-          `placeholderText` is set to the original recipe name
-        - Date range cannot exceed 3 months
-        - Returns empty object `{}` if no entries exist in the date range
+          - `hasRecipeAccess` is `true` if the user has permission to view the recipe (either direct permission or via
+            recipe collection), or if the entry is a placeholder (no recipeId)
+          - `hasRecipeAccess` is `false` if the entry references a recipe the user cannot access
+          - When a recipe is deleted, the entry is converted to a placeholder: `recipeId` and `recipeName` become
+            null,
+            `placeholderText` is set to the original recipe name
+          - Date range cannot exceed 3 months
+          - Returns empty object `{}` if no entries exist in the date range
       - Returns entries with empty lists if none of the specified plan IDs match user's accessible plans
