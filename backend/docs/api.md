@@ -398,7 +398,6 @@
     ```json
     {
       "name": "Pizza",
-      "description": "Homemade pizza recipe",
       "ingredients": [
         {
           "name": "flour",
@@ -418,7 +417,8 @@
         {
           "step": "Add sauce and toppings"
         }
-      ]
+      ],
+      "servingSize": 4
     }
     ```
   - Success: 200 OK
@@ -433,7 +433,6 @@
       ```json
       {
         "name": "Veggie Burger",
-        "description": "Delicious plant-based burger recipe",
         "ingredients": [
           {
             "name": "black beans",
@@ -441,7 +440,7 @@
             "unit": "cup"
           },
           {
-            "name": "breadcrumbs", 
+            "name": "breadcrumbs",
             "quantity": "1/2",
             "unit": "cup"
           }
@@ -453,7 +452,8 @@
           {
             "step": "Mix in breadcrumbs and seasonings"
           }
-        ]
+        ],
+        "servingSize": 2
       }
       ```
     - Success: 200 OK

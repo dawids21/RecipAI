@@ -36,7 +36,7 @@ class ExtractionIntegrationTest {
     void shouldExtractRecipeFromText() throws Exception {
         ClassPathResource textResource = new ClassPathResource("recipe_sources/kwestia_smaku.txt");
         String content = loadResourceContent(textResource);
-        
+
         ExtractTextRequest request = new ExtractTextRequest(content);
 
         // Extract recipe from text
@@ -51,10 +51,14 @@ class ExtractionIntegrationTest {
         assertThat(extractedRecipe.name()).isNotNull();
         assertThat(extractedRecipe.ingredients()).isNotEmpty();
         assertThat(extractedRecipe.instructions()).isNotEmpty();
+        assertThat(extractedRecipe.servingSize())
+                .isNotNull()
+                .isPositive()
+                .isLessThanOrEqualTo(100);
     }
 
     @Test
-    void shouldExtractRecipeFromImage() throws Exception {
+    void shouldExtractRecipeFromImage() {
         ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
 
         // Prepare multipart request
@@ -73,6 +77,10 @@ class ExtractionIntegrationTest {
         assertThat(extractedRecipe.name()).isNotNull();
         assertThat(extractedRecipe.ingredients()).isNotEmpty();
         assertThat(extractedRecipe.instructions()).isNotEmpty();
+        assertThat(extractedRecipe.servingSize())
+                .isNotNull()
+                .isPositive()
+                .isLessThanOrEqualTo(100);
     }
 
     private String loadResourceContent(ClassPathResource resource) throws IOException {

@@ -21,7 +21,7 @@ class ExtractionService {
     public ExtractedRecipe extractFromText(String text) {
         log.debug("Extracting recipe from text with {} characters", text.length());
 
-        PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as body text content\n<CONTENT>{content}</CONTENT>");
+        PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as body text content.\nInclude the number of servings if available in the source.\n<CONTENT>{content}</CONTENT>");
         Prompt prompt = promptTemplate.create(Map.of("content", text));
 
         ExtractedRecipe extractedRecipe = chatClient.prompt(prompt)
@@ -41,7 +41,7 @@ class ExtractionService {
         log.debug("Extracting recipe from image media");
 
         UserMessage userMessage = UserMessage.builder()
-                .text("Extract recipe data from this image. Include name, ingredients with quantities, and step-by-step instructions.")
+                .text("Extract recipe data from this image. Include name, ingredients with quantities, step-by-step instructions, and the number of servings if visible.")
                 .media(imageMedia)
                 .build();
 
