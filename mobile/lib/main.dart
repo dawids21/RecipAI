@@ -8,7 +8,6 @@ import 'package:recipai_mobile/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_config.dart';
-import 'core/feature_flags.dart';
 import 'core/preferences_service.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
@@ -33,11 +32,9 @@ void main() async {
   setupAuth();
   setupRecipe();
   setupRecipesCollection();
+  setupMealPlan();
   setupShoppingList();
   setupExtraction();
-  if (FeatureFlags.mealPlanningEnabled) {
-    setupMealPlan();
-  }
 
   final appRouter = createAppRouter();
 

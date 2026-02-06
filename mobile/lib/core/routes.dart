@@ -26,7 +26,6 @@ import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import '../features/shopping_list/shopping_list_sync_service.dart';
-import 'feature_flags.dart';
 import 'main_screen.dart';
 
 /// Route definitions with enum for type-safe navigation
@@ -127,15 +126,9 @@ GoRouter createAppRouter() {
           recipesCollectionListService: getIt<RecipesCollectionListService>(),
           shoppingListListService: getIt<ShoppingListListService>(),
           authService: getIt<AuthService>(),
-          mealPlanCalendarService: FeatureFlags.mealPlanningEnabled
-              ? getIt<MealPlanCalendarService>()
-              : null,
-          mealPlanListService: FeatureFlags.mealPlanningEnabled
-              ? getIt<MealPlanListService>()
-              : null,
-          mealPlanVisibilityService: FeatureFlags.mealPlanningEnabled
-              ? getIt<MealPlanVisibilityService>()
-              : null,
+          mealPlanCalendarService: getIt<MealPlanCalendarService>(),
+          mealPlanListService: getIt<MealPlanListService>(),
+          mealPlanVisibilityService: getIt<MealPlanVisibilityService>(),
         ),
         routes: [
           GoRoute(
@@ -182,15 +175,10 @@ GoRouter createAppRouter() {
               return RecipeDetailScreen(
                 recipeId: id,
                 recipeDetailService: getIt<RecipeDetailService>(),
-                mealPlanCalendarService: FeatureFlags.mealPlanningEnabled
-                    ? getIt<MealPlanCalendarService>()
-                    : null,
-                mealPlanListService: FeatureFlags.mealPlanningEnabled
-                    ? getIt<MealPlanListService>()
-                    : null,
-                recipesCollectionListService: FeatureFlags.mealPlanningEnabled
-                    ? getIt<RecipesCollectionListService>()
-                    : null,
+                mealPlanCalendarService: getIt<MealPlanCalendarService>(),
+                mealPlanListService: getIt<MealPlanListService>(),
+                recipesCollectionListService:
+                    getIt<RecipesCollectionListService>(),
               );
             },
             routes: [

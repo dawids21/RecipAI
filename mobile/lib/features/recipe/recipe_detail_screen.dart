@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/routes.dart';
 
-import '../../core/feature_flags.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
@@ -196,20 +195,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             // Build menu items based on user role
             final menuItems = <PopupMenuItem<String>>[];
 
-            if (FeatureFlags.mealPlanningEnabled) {
-              menuItems.add(
-                PopupMenuItem<String>(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit),
-                      const SizedBox(width: AppSpacing.small),
-                      Text('Edit Recipe'),
-                    ],
-                  ),
+            menuItems.add(
+              PopupMenuItem<String>(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit),
+                    const SizedBox(width: AppSpacing.small),
+                    Text('Edit Recipe'),
+                  ],
                 ),
-              );
-            }
+              ),
+            );
 
             // Always show add to shopping list option
             menuItems.add(
@@ -279,16 +276,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                 ],
               ),
-              floatingActionButton: FeatureFlags.mealPlanningEnabled
-                  ? FloatingActionButton(
-                      onPressed: () => _showAddToMealPlanDialog(recipeDetail),
-                      tooltip: 'Add to Meal Plan',
-                      child: const Icon(Icons.calendar_today),
-                    )
-                  : FloatingActionButton(
-                      onPressed: _navigateToEdit,
-                      child: const Icon(Icons.edit),
-                    ),
+              floatingActionButton: FloatingActionButton(
+                onPressed: () => _showAddToMealPlanDialog(recipeDetail),
+                tooltip: 'Add to Meal Plan',
+                child: const Icon(Icons.calendar_today),
+              ),
               body: SafeArea(
                 top: false,
                 child: SingleChildScrollView(

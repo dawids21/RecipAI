@@ -223,8 +223,7 @@ Feature flags are defined in `core/feature_flags.dart` using `bool.fromEnvironme
 
 Available feature flags:
 
-- `mealPlanningEnabled` - Controls visibility of meal planning feature in the app (environment variable:
-  `MEAL_PLANNING`, default: `false`)
+- None
 
 ```dart
 import 'package:mobile/core/feature_flags.dart';
