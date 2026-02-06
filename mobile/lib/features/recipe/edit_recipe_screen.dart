@@ -4,8 +4,10 @@ import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'initial_recipe_form_data.dart';
+import 'recipe_detail.dart';
 import 'recipe_detail_service.dart';
 import 'recipe_form_widget.dart';
+import 'recipe_image_input.dart';
 
 class EditRecipeScreen extends StatefulWidget {
   final String recipeId;
@@ -24,7 +26,10 @@ class EditRecipeScreen extends StatefulWidget {
 }
 
 class _EditRecipeScreenState extends State<EditRecipeScreen> {
-  Future<void> _updateRecipe(recipeRequest, images) async {
+  Future<void> _updateRecipe(
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+  ) async {
     await widget.recipeDetailService.updateRecipe(
       widget.recipeId,
       recipeRequest,

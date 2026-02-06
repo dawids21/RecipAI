@@ -79,10 +79,7 @@ class MealPlanRepository {
     final response = await _client.post(
       Uri.parse('$_baseUrl/meal-plans'),
       headers: headers,
-      body: jsonEncode({
-        'name': name,
-        'color': color.toHexString(),
-      }),
+      body: jsonEncode({'name': name, 'color': color.toHexString()}),
     );
 
     if (response.statusCode == 201) {
@@ -109,10 +106,7 @@ class MealPlanRepository {
     final response = await _client.put(
       Uri.parse('$_baseUrl/meal-plans/$id'),
       headers: headers,
-      body: jsonEncode({
-        'name': name,
-        'color': color.toHexString(),
-      }),
+      body: jsonEncode({'name': name, 'color': color.toHexString()}),
     );
 
     if (response.statusCode == 200) {
@@ -165,9 +159,7 @@ class MealPlanRepository {
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList
-          .map((json) => MealPlanPermission.fromJson(json))
-          .toList();
+      return jsonList.map((json) => MealPlanPermission.fromJson(json)).toList();
     } else if (response.statusCode == 404) {
       throw Exception('Plan not found');
     } else {
@@ -230,11 +222,13 @@ class MealPlanRepository {
     required String? idToken,
   }) async {
     final headers = _getAuthHeaders(idToken);
-    final body = {
+    final body = <String, dynamic>{
       'date': date.toIso8601DateString(),
-      if (recipeId != null) 'recipeId': recipeId,
-      if (placeholderText != null) 'placeholderText': placeholderText,
-      if (servingSize != null) 'servingSize': servingSize,
+      ...?(recipeId != null ? {'recipeId': recipeId} : null),
+      ...?(placeholderText != null
+          ? {'placeholderText': placeholderText}
+          : null),
+      ...?(servingSize != null ? {'servingSize': servingSize} : null),
     };
 
     final response = await _client.post(
@@ -268,11 +262,13 @@ class MealPlanRepository {
     required String? idToken,
   }) async {
     final headers = _getAuthHeaders(idToken);
-    final body = {
+    final body = <String, dynamic>{
       'date': date.toIso8601DateString(),
-      if (recipeId != null) 'recipeId': recipeId,
-      if (placeholderText != null) 'placeholderText': placeholderText,
-      if (servingSize != null) 'servingSize': servingSize,
+      ...?(recipeId != null ? {'recipeId': recipeId} : null),
+      ...?(placeholderText != null
+          ? {'placeholderText': placeholderText}
+          : null),
+      ...?(servingSize != null ? {'servingSize': servingSize} : null),
     };
 
     final response = await _client.put(

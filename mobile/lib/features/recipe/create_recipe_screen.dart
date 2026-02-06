@@ -4,7 +4,9 @@ import 'package:recipai_mobile/features/recipe/collection/recipes_collection.dar
 
 import 'collection/recipes_collection_list_service.dart';
 import 'initial_recipe_form_data.dart';
+import 'recipe_detail.dart';
 import 'recipe_form_widget.dart';
+import 'recipe_image_input.dart';
 import 'recipe_list_service.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
@@ -40,7 +42,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     return selectedCollection;
   }
 
-  Future<void> _createRecipe(recipeRequest, images) async {
+  Future<void> _createRecipe(
+    RecipeRequest recipeRequest,
+    List<RecipeImageInput> images,
+  ) async {
     return widget.recipeListService.createRecipe(recipeRequest, images);
   }
 

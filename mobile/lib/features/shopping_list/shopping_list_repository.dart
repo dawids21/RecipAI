@@ -158,9 +158,9 @@ class ShoppingListRepository {
     final headers = _getAuthHeaders(idToken);
     final body = <String, dynamic>{
       'name': name,
-      if (quantity != null) 'quantity': quantity,
-      if (unit != null) 'unit': unit,
-      if (index != null) 'index': index,
+      ...?(quantity != null ? {'quantity': quantity} : null),
+      ...?(unit != null ? {'unit': unit} : null),
+      ...?(index != null ? {'index': index} : null),
     };
 
     final response = await _client.post(
@@ -320,8 +320,8 @@ class ShoppingListRepository {
 
     final body = <String, dynamic>{
       'name': name,
-      if (quantity != null) 'quantity': quantity,
-      if (unit != null) 'unit': unit,
+      ...?(quantity != null ? {'quantity': quantity} : null),
+      ...?(unit != null ? {'unit': unit} : null),
     };
 
     final response = await _client.put(
