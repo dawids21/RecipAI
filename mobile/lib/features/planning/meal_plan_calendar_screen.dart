@@ -4,7 +4,6 @@ import 'package:recipai_mobile/features/planning/meal_entry_form_dialog.dart';
 import 'package:recipai_mobile/features/planning/meal_entry_form_result.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_list_service.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_list_service.dart';
-import 'package:recipai_mobile/features/recipe/recipe_list_service.dart';
 
 import '../../core/routes.dart';
 import '../../shared/api_error_widget.dart';
@@ -17,14 +16,12 @@ import 'week_strip.dart';
 class MealPlanCalendarScreen extends StatefulWidget {
   final MealPlanCalendarService calendarService;
   final MealPlanListService mealPlanListService;
-  final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
 
   const MealPlanCalendarScreen({
     super.key,
     required this.calendarService,
     required this.mealPlanListService,
-    required this.recipeListService,
     required this.recipesCollectionListService,
   });
 
@@ -44,7 +41,6 @@ class _MealPlanCalendarScreenState extends State<MealPlanCalendarScreen> {
       builder: (context) => MealEntryFormDialog(
         mealPlanListService: widget.mealPlanListService,
         existingEntry: entry,
-        recipeListService: widget.recipeListService,
         recipesCollectionListService: widget.recipesCollectionListService,
       ),
     );

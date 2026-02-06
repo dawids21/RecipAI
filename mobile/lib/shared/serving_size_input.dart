@@ -20,7 +20,12 @@ class ServingSizeInput extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Serving Size', style: theme.textTheme.titleMedium),
+        Text(
+          'Serving Size',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: AppSpacing.small),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,

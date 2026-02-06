@@ -211,7 +211,6 @@ class _MainScreenState extends State<MainScreen> {
             MealPlanCalendarScreen(
               calendarService: widget.mealPlanCalendarService!,
               mealPlanListService: widget.mealPlanListService!,
-              recipeListService: widget.recipeListService,
               recipesCollectionListService: widget.recipesCollectionListService,
             ),
           ShoppingListList(
@@ -225,7 +224,6 @@ class _MainScreenState extends State<MainScreen> {
           ? MealPlanCalendarFab(
               calendarService: widget.mealPlanCalendarService!,
               mealPlanListService: widget.mealPlanListService!,
-              recipeListService: widget.recipeListService,
               recipesCollectionListService: widget.recipesCollectionListService,
             )
           : _selectedIndex == 2

@@ -182,6 +182,15 @@ GoRouter createAppRouter() {
               return RecipeDetailScreen(
                 recipeId: id,
                 recipeDetailService: getIt<RecipeDetailService>(),
+                mealPlanCalendarService: FeatureFlags.mealPlanningEnabled
+                    ? getIt<MealPlanCalendarService>()
+                    : null,
+                mealPlanListService: FeatureFlags.mealPlanningEnabled
+                    ? getIt<MealPlanListService>()
+                    : null,
+                recipesCollectionListService: FeatureFlags.mealPlanningEnabled
+                    ? getIt<RecipesCollectionListService>()
+                    : null,
               );
             },
             routes: [

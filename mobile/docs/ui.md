@@ -29,9 +29,10 @@
   match score with best matches at top.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
 - Detail Screen (`recipe_detail_screen.dart`) - Displays full recipe details including image carousel (when images
-  available), ingredients, and instructions with Edit FAB, Share button, and role-based conditional Delete button for
-  recipe management. Shows collection name with folder icon when recipe is assigned to a collection. Displays source URL
-  as clickable link with link icon when available. Shows serving size with restaurant icon.
+  available), ingredients, and instructions. FAB shows "Add to Meal Plan" button (calendar icon). Overflow menu includes
+  Edit, Share button and role-based conditional Delete button for recipe management. Shows collection name with folder
+  icon when recipe is assigned to a collection. Displays source URL as clickable link with link icon when available.
+  Shows serving size with restaurant icon.
 - Recipe Image Carousel (`recipe_image_carousel.dart`) - Full-width image carousel widget using PageView with 1:1 aspect
   ratio. Tapping an image opens a fullscreen zoomable viewer.
 - Recipe Image Fullscreen Viewer (`recipe_image_fullscreen_viewer.dart`) - Fullscreen dialog-based image viewer widget
@@ -144,7 +145,9 @@
   plan dropdown (OWNER/EDITOR only), date picker, recipe/note mode toggle (segmented button with icons), recipe
   selection button (navigates to RecipePickerScreen), serving size input using ServingSizeInput widget (for recipes),
   and note text input. Form content is scrollable. Supports both create mode (with defaultDate from FAB) and edit mode
-  (with pre-filled existingEntry data). Validation ensures plan selection, recipe selection with positive serving size
+  (with pre-filled existingEntry data). Supports preselected recipe mode (when preselectedRecipe parameter is provided):
+  hides mode toggle and recipe selection UI, pre-fills serving size from recipe's default, only shows plan dropdown,
+  date picker, and serving size input. Validation ensures plan selection, recipe selection with positive serving size
   for recipe mode, or non-empty text for note mode.
 - Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
   navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
@@ -254,19 +257,21 @@ All routes except `/login` require user authentication. The app automatically re
    `/recipes/url-extraction` or `/recipes/image-extraction`)
 3. **Speed Dial FAB → Create Tap** (on Recipes tab) → Create Recipe Screen (`/recipes/create`) with collection
    pre-selected if a collection filter is active
-4. **Edit FAB Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
-5. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
-6. **Add to Shopping List Tap** (on Recipe Detail Screen) → Recipe To Shopping List Screen (
+4. **Add to Meal Plan FAB Tap** (on Recipe Detail Screen) → MealEntryFormDialog opens with
+   recipe preselected, serving size pre-filled → Select plan and date → Entry created → Success message → Dialog closes
+5. **Edit Menu Item Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
+6. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
+7. **Add to Shopping List Tap** (on Recipe Detail Screen) → Recipe To Shopping List Screen (
    `/recipes/:id/to-shopping-list`) → Select ingredients → Choose shopping list → Items queued for sync → Back to Recipe
    Detail Screen
-7. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
-8. **Successful URL Extraction** → Create Recipe Screen with pre-filled extracted data, source URL, and collection (if
+8. **Delete Button Tap** (on Recipe Detail Screen) → Confirmation dialog → Recipe deletion → Back to Main Screen
+9. **Successful URL Extraction** → Create Recipe Screen with pre-filled extracted data, source URL, and collection (if
    filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
-9. **Successful Image Extraction** → Create Recipe Screen with pre-filled extracted data, pending image, and
-   collection (
-   if filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
-10. **Successful Manual Creation** → Back to Main Screen (with recipe added to selected collection if filter was active)
-11. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
+10. **Successful Image Extraction** → Create Recipe Screen with pre-filled extracted data, pending image, and
+    collection (
+    if filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
+11. **Successful Manual Creation** → Back to Main Screen (with recipe added to selected collection if filter was active)
+12. **Successful Edit** → Back to Recipe Detail Screen (with updated data)
 
 #### Recipe Collections Management Flow
 

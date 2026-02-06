@@ -4,19 +4,16 @@ import 'package:recipai_mobile/features/planning/meal_entry_form_result.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_calendar_service.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_list_service.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_list_service.dart';
-import 'package:recipai_mobile/features/recipe/recipe_list_service.dart';
 
 class MealPlanCalendarFab extends StatefulWidget {
   final MealPlanCalendarService calendarService;
   final MealPlanListService mealPlanListService;
-  final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
 
   const MealPlanCalendarFab({
     super.key,
     required this.calendarService,
     required this.mealPlanListService,
-    required this.recipeListService,
     required this.recipesCollectionListService,
   });
 
@@ -31,7 +28,6 @@ class _MealPlanCalendarFabState extends State<MealPlanCalendarFab> {
       builder: (context) => MealEntryFormDialog(
         mealPlanListService: widget.mealPlanListService,
         defaultDate: widget.calendarService.currentWeekStart.value,
-        recipeListService: widget.recipeListService,
         recipesCollectionListService: widget.recipesCollectionListService,
       ),
     );

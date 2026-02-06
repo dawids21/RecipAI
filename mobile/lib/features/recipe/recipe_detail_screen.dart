@@ -3,11 +3,18 @@ import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/routes.dart';
 
+import '../../core/feature_flags.dart';
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import '../planning/meal_entry_form_dialog.dart';
+import '../planning/meal_entry_form_result.dart';
+import '../planning/meal_plan_calendar_service.dart';
+import '../planning/meal_plan_list_service.dart';
+import 'collection/recipes_collection_list_service.dart';
 import 'ingredient_bullet.dart';
+import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'recipe_detail_service.dart';
 import 'recipe_image_carousel.dart';
@@ -18,11 +25,17 @@ import 'step_number_badge.dart';
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
   final RecipeDetailService recipeDetailService;
+  final MealPlanCalendarService? mealPlanCalendarService;
+  final MealPlanListService? mealPlanListService;
+  final RecipesCollectionListService? recipesCollectionListService;
 
   const RecipeDetailScreen({
     super.key,
     required this.recipeId,
     required this.recipeDetailService,
+    this.mealPlanCalendarService,
+    this.mealPlanListService,
+    this.recipesCollectionListService,
   });
 
   @override
@@ -104,6 +117,43 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
+  Future<void> _showAddToMealPlanDialog(RecipeDetail recipeDetail) async {
+    final result = await showDialog<MealEntryFormResult>(
+      context: context,
+      builder: (context) => MealEntryFormDialog(
+        mealPlanListService: widget.mealPlanListService!,
+        recipesCollectionListService: widget.recipesCollectionListService!,
+        preselectedRecipe: Recipe(
+          id: recipeDetail.id,
+          name: recipeDetail.name,
+          thumbnailUrl: recipeDetail.images.isNotEmpty
+              ? recipeDetail.images.first.thumbnailUrl
+              : null,
+        ),
+        preselectedServingSize: recipeDetail.data.servingSize,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    try {
+      await widget.mealPlanCalendarService!.createMealEntry(
+        planId: result.planId,
+        date: result.date,
+        recipeId: result.recipeId,
+        servingSize: result.servingSize,
+      );
+
+      if (!mounted) return;
+      _showSnackBar('Added to meal plan');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(
+        'Failed to add to meal plan: ${e.toString().replaceFirst('Exception: ', '')}',
+      );
+    }
+  }
+
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
@@ -145,6 +195,21 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           data: (recipeDetail) {
             // Build menu items based on user role
             final menuItems = <PopupMenuItem<String>>[];
+
+            if (FeatureFlags.mealPlanningEnabled) {
+              menuItems.add(
+                PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit),
+                      const SizedBox(width: AppSpacing.small),
+                      Text('Edit Recipe'),
+                    ],
+                  ),
+                ),
+              );
+            }
 
             // Always show add to shopping list option
             menuItems.add(
@@ -197,7 +262,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 actions: [
                   PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'addToShoppingList') {
+                      if (value == 'edit') {
+                        _navigateToEdit();
+                      } else if (value == 'addToShoppingList') {
                         context.goNamed(
                           AppRoute.recipeToShoppingList.name,
                           pathParameters: {'id': widget.recipeId},
@@ -212,10 +279,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                 ],
               ),
-              floatingActionButton: FloatingActionButton(
-                onPressed: _navigateToEdit,
-                child: const Icon(Icons.edit),
-              ),
+              floatingActionButton: FeatureFlags.mealPlanningEnabled
+                  ? FloatingActionButton(
+                      onPressed: () => _showAddToMealPlanDialog(recipeDetail),
+                      tooltip: 'Add to Meal Plan',
+                      child: const Icon(Icons.calendar_today),
+                    )
+                  : FloatingActionButton(
+                      onPressed: _navigateToEdit,
+                      child: const Icon(Icons.edit),
+                    ),
               body: SafeArea(
                 top: false,
                 child: SingleChildScrollView(

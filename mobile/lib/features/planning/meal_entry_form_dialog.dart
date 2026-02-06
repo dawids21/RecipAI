@@ -8,23 +8,24 @@ import 'package:recipai_mobile/features/planning/meal_plan_calendar_entry.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_list_service.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_list_service.dart';
 import 'package:recipai_mobile/features/recipe/recipe.dart';
-import 'package:recipai_mobile/features/recipe/recipe_list_service.dart';
 import 'package:recipai_mobile/shared/serving_size_input.dart';
 
 class MealEntryFormDialog extends StatefulWidget {
   final MealPlanListService mealPlanListService;
-  final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
   final MealPlanCalendarEntry? existingEntry;
   final DateTime? defaultDate;
+  final Recipe? preselectedRecipe;
+  final int? preselectedServingSize;
 
   const MealEntryFormDialog({
     super.key,
     required this.mealPlanListService,
-    required this.recipeListService,
     required this.recipesCollectionListService,
     this.existingEntry,
     this.defaultDate,
+    this.preselectedRecipe,
+    this.preselectedServingSize,
   });
 
   @override
@@ -45,6 +46,8 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
 
   bool get _isEditMode => widget.existingEntry?.id != null;
 
+  bool get _isPreselectedRecipe => widget.preselectedRecipe != null;
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +62,13 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
   }
 
   void _initializeFromExisting() {
-    if (widget.existingEntry != null) {
+    // Handle preselected recipe first
+    if (widget.preselectedRecipe != null) {
+      _isRecipeMode = true;
+      _selectedRecipe = widget.preselectedRecipe;
+      _servingSize = widget.preselectedServingSize ?? 1;
+      _selectedDate = widget.defaultDate ?? DateTime.now();
+    } else if (widget.existingEntry != null) {
       final entry = widget.existingEntry!;
       _selectedPlanId = entry.planId;
       _selectedDate = DateTime.parse(entry.date);
@@ -228,69 +237,73 @@ class _MealEntryFormDialogState extends State<MealEntryFormDialog> {
                       const SizedBox(height: AppSpacing.medium),
 
                       // Mode Toggle
-                      Text(
-                        'Type',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      if (!_isPreselectedRecipe) ...[
+                        Text(
+                          'Type',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.small),
-                      SizedBox(
-                        width: double.infinity,
-                        child: SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment<bool>(
-                              value: true,
-                              label: Text('Recipe'),
-                              icon: Icon(Icons.restaurant_menu),
-                            ),
-                            ButtonSegment<bool>(
-                              value: false,
-                              label: Text('Note'),
-                              icon: Icon(Icons.text_fields),
-                            ),
-                          ],
-                          selected: {_isRecipeMode},
-                          onSelectionChanged: (Set<bool> newSelection) {
-                            setState(() {
-                              _isRecipeMode = newSelection.first;
-                              // Clear fields when switching modes
-                              if (_isRecipeMode) {
-                                _placeholderTextController.clear();
-                              } else {
-                                _selectedRecipe = null;
-                                _servingSize = 1;
-                                _recipeError = null;
-                              }
-                            });
-                          },
+                        const SizedBox(height: AppSpacing.small),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<bool>(
+                            segments: const [
+                              ButtonSegment<bool>(
+                                value: true,
+                                label: Text('Recipe'),
+                                icon: Icon(Icons.restaurant_menu),
+                              ),
+                              ButtonSegment<bool>(
+                                value: false,
+                                label: Text('Note'),
+                                icon: Icon(Icons.text_fields),
+                              ),
+                            ],
+                            selected: {_isRecipeMode},
+                            onSelectionChanged: (Set<bool> newSelection) {
+                              setState(() {
+                                _isRecipeMode = newSelection.first;
+                                // Clear fields when switching modes
+                                if (_isRecipeMode) {
+                                  _placeholderTextController.clear();
+                                } else {
+                                  _selectedRecipe = null;
+                                  _servingSize = 1;
+                                  _recipeError = null;
+                                }
+                              });
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
+                        const SizedBox(height: AppSpacing.medium),
+                      ],
 
                       // Recipe Mode Fields
                       if (_isRecipeMode) ...[
                         // Recipe Selection
-                        InkWell(
-                          onTap: _selectRecipe,
-                          child: InputDecorator(
-                            decoration: InputDecoration(
-                              labelText: 'Recipe',
-                              suffixIcon: const Icon(Icons.search),
-                              errorText: _recipeError,
-                            ),
-                            child: Text(
-                              _selectedRecipe?.name ?? 'Select Recipe',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: _selectedRecipe == null
-                                    ? theme.hintColor
-                                    : null,
+                        if (!_isPreselectedRecipe) ...[
+                          InkWell(
+                            onTap: _selectRecipe,
+                            child: InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: 'Recipe',
+                                suffixIcon: const Icon(Icons.search),
+                                errorText: _recipeError,
                               ),
-                              overflow: TextOverflow.ellipsis,
+                              child: Text(
+                                _selectedRecipe?.name ?? 'Select Recipe',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: _selectedRecipe == null
+                                      ? theme.hintColor
+                                      : null,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.medium),
+                          const SizedBox(height: AppSpacing.medium),
+                        ],
 
                         // Serving Size Input
                         ServingSizeInput(
