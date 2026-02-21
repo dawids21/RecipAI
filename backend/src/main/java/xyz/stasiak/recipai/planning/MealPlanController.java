@@ -124,6 +124,15 @@ class MealPlanController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/generate-shopping-list")
+    List<GeneratedShoppingListItemDto> generateShoppingListItems(
+            @Valid @RequestBody GenerateShoppingListItemsRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Generating shopping list items for user: {}", userEmail);
+        return mealPlanService.generateShoppingListItems(request.planIds(), request.selectedDates(), userEmail);
+    }
+
     @GetMapping("/calendar")
     Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

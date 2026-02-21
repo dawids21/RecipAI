@@ -187,6 +187,19 @@ class MealPlanIntegrationTest {
                 .toBodilessEntity();
     }
 
+    private List<GeneratedShoppingListItemDto> generateShoppingListItems(
+            RestClient client, List<UUID> planIds, List<LocalDate> dates) {
+        GenerateShoppingListItemsRequest request = new GenerateShoppingListItemsRequest(planIds, dates);
+        return client
+                .post()
+                .uri("/meal-plans/generate-shopping-list")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
     private Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
             RestClient client, LocalDate startDate, LocalDate endDate, String planIds) {
         String uri = "/meal-plans/calendar?startDate=" + startDate + "&endDate=" + endDate;
@@ -872,6 +885,89 @@ class MealPlanIntegrationTest {
         assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
         assertThat(calendarEntry.recipeName()).isEqualTo("Private Recipe");
         assertThat(calendarEntry.hasRecipeAccess()).isFalse();
+    }
+
+    @Test
+    void shouldGenerateShoppingListItemsFromPlannedMeals() {
+        RestClient client = restClient();
+
+        RecipeDetailsDto recipe = createRecipe(client, "Pasta");
+        MealPlanDto plan = createMealPlan(client, "Shopping Test Plan", "#FF5733");
+
+        LocalDate date = LocalDate.of(2026, 3, 1);
+        createEntry(client, plan.id(), new CreateMealPlanEntryRequest(date, recipe.id(), null, 2));
+
+        List<GeneratedShoppingListItemDto> items = generateShoppingListItems(
+                client, List.of(plan.id()), List.of(date));
+
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst().name()).isEqualTo("flour");
+        assertThat(items.getFirst().quantity()).isEqualTo("300");
+        assertThat(items.getFirst().unit()).isEqualTo("g");
+
+        deleteRecipe(client, recipe.id());
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenEntriesHaveOnlyPlaceholders() {
+        RestClient client = restClient();
+
+        MealPlanDto plan = createMealPlan(client, "Placeholder Only Plan", "#FF5733");
+        LocalDate date = LocalDate.of(2026, 3, 1);
+        createEntry(client, plan.id(), new CreateMealPlanEntryRequest(date, null, "Leftovers", null));
+
+        List<GeneratedShoppingListItemDto> items = generateShoppingListItems(
+                client, List.of(plan.id()), List.of(date));
+
+        assertThat(items).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoDatesMatch() {
+        RestClient client = restClient();
+
+        MealPlanDto plan = createMealPlan(client, "No Date Match Plan", "#FF5733");
+        createEntry(client, plan.id(), new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 3, 1), null, "Leftovers", null));
+
+        List<GeneratedShoppingListItemDto> items = generateShoppingListItems(
+                client, List.of(plan.id()), List.of(LocalDate.of(2026, 3, 2)));
+
+        assertThat(items).isEmpty();
+    }
+
+    @Test
+    void shouldReturn404WhenRequestedPlanDoesNotExist() {
+        RestClient client = restClient();
+        UUID nonexistent = UUID.randomUUID();
+
+        try {
+            generateShoppingListItems(client, List.of(nonexistent), List.of(LocalDate.of(2026, 3, 1)));
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenUserLacksAccessToRequestedPlan() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipeDetailsDto recipe = createRecipe(client1, "Secret Recipe");
+        MealPlanDto plan = createMealPlan(client1, "Private Plan for Shopping", "#FF5733");
+
+        LocalDate date = LocalDate.of(2026, 3, 1);
+        createEntry(client1, plan.id(), new CreateMealPlanEntryRequest(date, recipe.id(), null, 2));
+
+        try {
+            generateShoppingListItems(client2, List.of(plan.id()), List.of(date));
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        }
+
+        deleteRecipe(client1, recipe.id());
     }
 
     @Test

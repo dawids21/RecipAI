@@ -13,6 +13,20 @@ interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Long> {
     List<MealPlanEntry> findAllByRecipeId(UUID recipeId);
 
     @Query("""
+            SELECT e FROM MealPlanEntry e
+            INNER JOIN MealPlanPermission mpp ON mpp.id.planId = e.planId
+            WHERE mpp.id.email = :email
+            AND e.planId IN :planIds
+            AND e.date IN :dates
+            AND e.recipeId IS NOT NULL
+            """)
+    List<MealPlanEntry> findEntriesWithRecipes(
+            @Param("email") String email,
+            @Param("planIds") List<UUID> planIds,
+            @Param("dates") List<LocalDate> dates
+    );
+
+    @Query("""
             SELECT
                 e.id AS id,
                 e.planId AS planId,

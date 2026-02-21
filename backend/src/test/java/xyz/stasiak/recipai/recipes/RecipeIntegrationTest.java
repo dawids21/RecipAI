@@ -1,6 +1,7 @@
 package xyz.stasiak.recipai.recipes;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -26,6 +27,9 @@ class RecipeIntegrationTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private RecipeFacade recipeFacade;
 
     private RestClient restClient() {
         return restClient(TestSecurityConfiguration.AUTH_TOKEN);
@@ -967,5 +971,51 @@ class RecipeIntegrationTest {
         assertThat(updatedRecipe).isNotNull();
         assertThat(updatedRecipe.collectionId()).isNull();
         assertThat(updatedRecipe.collectionName()).isNull();
+    }
+
+    @Test
+    void shouldReturnIngredientsForRecipe() {
+        RestClient client = restClient();
+        RecipeData data = new RecipeData(
+                List.of(new Ingredient("Flour", "300", "g"), new Ingredient("Sugar", "100", "g")),
+                List.of(new Instruction("Mix")),
+                null, 1
+        );
+        RecipeDetailsDto recipe = createRecipe(client, "Cake", data, null);
+
+        List<Ingredient> ingredients = recipeFacade.getIngredients(List.of(recipe.id()));
+
+        assertThat(ingredients).hasSize(2);
+        assertThat(ingredients.get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
+        assertThat(ingredients.get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
+    }
+
+    @Test
+    void shouldFlattenIngredientsAcrossMultipleRecipes() {
+        RestClient client = restClient();
+        RecipeData data1 = new RecipeData(
+                List.of(new Ingredient("Eggs", "3", null)),
+                List.of(new Instruction("Beat")),
+                null, 1
+        );
+        RecipeData data2 = new RecipeData(
+                List.of(new Ingredient("Butter", "100", "g"), new Ingredient("Milk", "200", "ml")),
+                List.of(new Instruction("Melt")),
+                null, 1
+        );
+        RecipeDetailsDto recipe1 = createRecipe(client, "Omelette", data1, null);
+        RecipeDetailsDto recipe2 = createRecipe(client, "Sauce", data2, null);
+
+        List<Ingredient> ingredients = recipeFacade.getIngredients(List.of(recipe1.id(), recipe2.id()));
+
+        assertThat(ingredients).hasSize(3);
+        assertThat(ingredients).extracting(Ingredient::name).containsExactly("Eggs", "Butter", "Milk");
+    }
+
+    @Test
+    void shouldReturnEmptyListForUnknownRecipeId() {
+        List<Ingredient> ingredients = recipeFacade.getIngredients(List.of(UUID.randomUUID()));
+
+        assertThat(ingredients).isEmpty();
     }
 }

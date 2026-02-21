@@ -8,8 +8,12 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.exception.*;
+import xyz.stasiak.recipai.provisioning.ProvisioningFacade;
+import xyz.stasiak.recipai.provisioning.ProvisioningIngredient;
 import xyz.stasiak.recipai.recipes.RecipeDeleted;
+import xyz.stasiak.recipai.recipes.RecipeFacade;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +26,8 @@ class MealPlanService {
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanPermissionRepository permissionRepository;
     private final MealPlanEntryRepository entryRepository;
+    private final RecipeFacade recipeFacade;
+    private final ProvisioningFacade provisioningFacade;
 
     List<MealPlanDto> findAll(String userEmail) {
         log.debug("Fetching all meal plans for user: {}", userEmail);
@@ -210,6 +216,35 @@ class MealPlanService {
 
     private MealPlanDto toDto(MealPlan plan, UserRole role) {
         return new MealPlanDto(plan.getId(), plan.getName(), plan.getColor(), role, plan.getCreatedAt());
+    }
+
+    List<GeneratedShoppingListItemDto> generateShoppingListItems(List<UUID> planIds, List<LocalDate> dates, String userEmail) {
+        log.debug("Generating shopping list items for user {} from {} plans on {} dates", userEmail, planIds.size(), dates.size());
+
+        for (UUID planId : planIds) {
+            if (!mealPlanRepository.existsById(planId)) {
+                throw new MealPlanNotFoundException(planId);
+            }
+            permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
+                    .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+        }
+
+        List<UUID> recipeIds = entryRepository.findEntriesWithRecipes(userEmail, planIds, dates).stream()
+                .map(MealPlanEntry::getRecipeId)
+                .distinct()
+                .toList();
+
+        if (recipeIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<ProvisioningIngredient> ingredients = recipeFacade.getIngredients(recipeIds).stream()
+                .map(ingredient -> new ProvisioningIngredient(ingredient.name(), ingredient.quantity(), ingredient.unit()))
+                .toList();
+
+        return provisioningFacade.provision(ingredients).stream()
+                .map(item -> new GeneratedShoppingListItemDto(item.name(), item.quantity(), item.unit()))
+                .toList();
     }
 
     void shareMealPlan(String targetEmail, UUID planId, String requesterEmail) {

@@ -222,7 +222,7 @@ recipe ownership and privacy rules.
   "items": [
     {
       "name": "String",
-      "quantity": "BigDecimal | null",
+      "quantity": "String | null",
       "unit": "String | null",
       "sourceRecipeName": "String | Description: Context for where this item came from"
     }
