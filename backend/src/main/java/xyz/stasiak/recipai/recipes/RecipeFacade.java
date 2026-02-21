@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,13 +18,29 @@ import java.util.UUID;
 public class RecipeFacade {
 
     private final RecipeRepository recipeRepository;
+    private final RecipeService recipeService;
     private final ObjectMapper objectMapper;
 
-    public List<Ingredient> getIngredients(Collection<UUID> recipeIds) {
-        log.debug("Getting ingredients for {} recipes", recipeIds.size());
-        return recipeRepository.findAllById(recipeIds).stream()
-                .flatMap(recipe -> extractIngredients(recipe.getData()).stream())
+    public RecipeIngredientsResult getIngredients(Collection<UUID> recipeIds, String userEmail) {
+        log.debug("Getting ingredients for {} recipes for user {}", recipeIds.size(), userEmail);
+
+        Set<UUID> accessibleRecipeIds = recipeService.findAll(userEmail).stream()
+                .map(RecipeListDto::id)
+                .collect(Collectors.toSet());
+
+        List<Recipe> recipes = recipeRepository.findAllById(recipeIds);
+
+        List<Ingredient> ingredients = recipes.stream()
+                .filter(r -> accessibleRecipeIds.contains(r.getId()))
+                .flatMap(r -> extractIngredients(r.getData()).stream())
                 .toList();
+
+        List<String> inaccessibleRecipeNames = recipes.stream()
+                .filter(r -> !accessibleRecipeIds.contains(r.getId()))
+                .map(Recipe::getName)
+                .toList();
+
+        return new RecipeIngredientsResult(ingredients, inaccessibleRecipeNames);
     }
 
     private List<Ingredient> extractIngredients(JsonNode data) {

@@ -12,6 +12,7 @@ import xyz.stasiak.recipai.provisioning.ProvisioningFacade;
 import xyz.stasiak.recipai.provisioning.ProvisioningIngredient;
 import xyz.stasiak.recipai.recipes.RecipeDeleted;
 import xyz.stasiak.recipai.recipes.RecipeFacade;
+import xyz.stasiak.recipai.recipes.RecipeIngredientsResult;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -218,7 +219,7 @@ class MealPlanService {
         return new MealPlanDto(plan.getId(), plan.getName(), plan.getColor(), role, plan.getCreatedAt());
     }
 
-    List<GeneratedShoppingListItemDto> generateShoppingListItems(List<UUID> planIds, List<LocalDate> dates, String userEmail) {
+    GeneratedShoppingListResponse generateShoppingListItems(List<UUID> planIds, List<LocalDate> dates, String userEmail) {
         log.debug("Generating shopping list items for user {} from {} plans on {} dates", userEmail, planIds.size(), dates.size());
 
         for (UUID planId : planIds) {
@@ -235,16 +236,24 @@ class MealPlanService {
                 .toList();
 
         if (recipeIds.isEmpty()) {
-            return List.of();
+            return new GeneratedShoppingListResponse(List.of(), List.of());
         }
 
-        List<ProvisioningIngredient> ingredients = recipeFacade.getIngredients(recipeIds).stream()
+        RecipeIngredientsResult recipeIngredients = recipeFacade.getIngredients(recipeIds, userEmail);
+
+        List<ProvisioningIngredient> ingredients = recipeIngredients.ingredients().stream()
                 .map(ingredient -> new ProvisioningIngredient(ingredient.name(), ingredient.quantity(), ingredient.unit()))
                 .toList();
 
-        return provisioningFacade.provision(ingredients).stream()
+        List<GeneratedShoppingListItemDto> items = provisioningFacade.provision(ingredients).stream()
                 .map(item -> new GeneratedShoppingListItemDto(item.name(), item.quantity(), item.unit()))
                 .toList();
+
+        List<String> warnings = recipeIngredients.inaccessibleRecipeNames().stream()
+                .map("Recipe '%s' was skipped because you don't have access to it"::formatted)
+                .toList();
+
+        return new GeneratedShoppingListResponse(items, warnings);
     }
 
     void shareMealPlan(String targetEmail, UUID planId, String requesterEmail) {

@@ -187,7 +187,7 @@ class MealPlanIntegrationTest {
                 .toBodilessEntity();
     }
 
-    private List<GeneratedShoppingListItemDto> generateShoppingListItems(
+    private GeneratedShoppingListResponse generateShoppingListItems(
             RestClient client, List<UUID> planIds, List<LocalDate> dates) {
         GenerateShoppingListItemsRequest request = new GenerateShoppingListItemsRequest(planIds, dates);
         return client
@@ -196,8 +196,7 @@ class MealPlanIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
-                .body(new ParameterizedTypeReference<>() {
-                });
+                .body(GeneratedShoppingListResponse.class);
     }
 
     private Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
@@ -897,13 +896,14 @@ class MealPlanIntegrationTest {
         LocalDate date = LocalDate.of(2026, 3, 1);
         createEntry(client, plan.id(), new CreateMealPlanEntryRequest(date, recipe.id(), null, 2));
 
-        List<GeneratedShoppingListItemDto> items = generateShoppingListItems(
+        GeneratedShoppingListResponse response = generateShoppingListItems(
                 client, List.of(plan.id()), List.of(date));
 
-        assertThat(items).hasSize(1);
-        assertThat(items.getFirst().name()).isEqualTo("flour");
-        assertThat(items.getFirst().quantity()).isEqualTo("300");
-        assertThat(items.getFirst().unit()).isEqualTo("g");
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().getFirst().name()).isEqualTo("flour");
+        assertThat(response.items().getFirst().quantity()).isEqualTo("300");
+        assertThat(response.items().getFirst().unit()).isEqualTo("g");
+        assertThat(response.warnings()).isEmpty();
 
         deleteRecipe(client, recipe.id());
     }
@@ -916,10 +916,11 @@ class MealPlanIntegrationTest {
         LocalDate date = LocalDate.of(2026, 3, 1);
         createEntry(client, plan.id(), new CreateMealPlanEntryRequest(date, null, "Leftovers", null));
 
-        List<GeneratedShoppingListItemDto> items = generateShoppingListItems(
+        GeneratedShoppingListResponse response = generateShoppingListItems(
                 client, List.of(plan.id()), List.of(date));
 
-        assertThat(items).isEmpty();
+        assertThat(response.items()).isEmpty();
+        assertThat(response.warnings()).isEmpty();
     }
 
     @Test
@@ -930,10 +931,33 @@ class MealPlanIntegrationTest {
         createEntry(client, plan.id(), new CreateMealPlanEntryRequest(
                 LocalDate.of(2026, 3, 1), null, "Leftovers", null));
 
-        List<GeneratedShoppingListItemDto> items = generateShoppingListItems(
+        GeneratedShoppingListResponse response = generateShoppingListItems(
                 client, List.of(plan.id()), List.of(LocalDate.of(2026, 3, 2)));
 
-        assertThat(items).isEmpty();
+        assertThat(response.items()).isEmpty();
+        assertThat(response.warnings()).isEmpty();
+    }
+
+    @Test
+    void shouldSkipInaccessibleRecipesAndReturnWarnings() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipeDetailsDto privateRecipe = createRecipe(client1, "Private Recipe");
+        MealPlanDto plan = createMealPlan(client1, "Shared Plan With Private Recipe", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        LocalDate date = LocalDate.of(2026, 3, 1);
+        createEntry(client1, plan.id(), new CreateMealPlanEntryRequest(date, privateRecipe.id(), null, 2));
+
+        GeneratedShoppingListResponse response = generateShoppingListItems(
+                client2, List.of(plan.id()), List.of(date));
+
+        assertThat(response.items()).isEmpty();
+        assertThat(response.warnings()).hasSize(1);
+        assertThat(response.warnings().getFirst()).contains("Private Recipe");
+
+        deleteRecipe(client1, privateRecipe.id());
     }
 
     @Test

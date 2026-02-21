@@ -983,11 +983,12 @@ class RecipeIntegrationTest {
         );
         RecipeDetailsDto recipe = createRecipe(client, "Cake", data, null);
 
-        List<Ingredient> ingredients = recipeFacade.getIngredients(List.of(recipe.id()));
+        RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(recipe.id()), "user@example.com");
 
-        assertThat(ingredients).hasSize(2);
-        assertThat(ingredients.get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
-        assertThat(ingredients.get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
+        assertThat(result.ingredients()).hasSize(2);
+        assertThat(result.ingredients().get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
+        assertThat(result.ingredients().get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
+        assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 
     @Test
@@ -1006,16 +1007,18 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe1 = createRecipe(client, "Omelette", data1, null);
         RecipeDetailsDto recipe2 = createRecipe(client, "Sauce", data2, null);
 
-        List<Ingredient> ingredients = recipeFacade.getIngredients(List.of(recipe1.id(), recipe2.id()));
+        RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(recipe1.id(), recipe2.id()), "user@example.com");
 
-        assertThat(ingredients).hasSize(3);
-        assertThat(ingredients).extracting(Ingredient::name).containsExactly("Eggs", "Butter", "Milk");
+        assertThat(result.ingredients()).hasSize(3);
+        assertThat(result.ingredients()).extracting(Ingredient::name).containsExactly("Eggs", "Butter", "Milk");
+        assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 
     @Test
     void shouldReturnEmptyListForUnknownRecipeId() {
-        List<Ingredient> ingredients = recipeFacade.getIngredients(List.of(UUID.randomUUID()));
+        RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(UUID.randomUUID()), "user@example.com");
 
-        assertThat(ingredients).isEmpty();
+        assertThat(result.ingredients()).isEmpty();
+        assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 }

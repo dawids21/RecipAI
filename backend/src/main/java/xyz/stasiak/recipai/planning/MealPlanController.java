@@ -125,7 +125,7 @@ class MealPlanController {
     }
 
     @PostMapping("/generate-shopping-list")
-    List<GeneratedShoppingListItemDto> generateShoppingListItems(
+    GeneratedShoppingListResponse generateShoppingListItems(
             @Valid @RequestBody GenerateShoppingListItemsRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
