@@ -19,6 +19,9 @@
   functionality with OWNER/EDITOR roles, meal plan entries with recipe or placeholder support, limit for owner plans,
   automatic conversion of recipe entries to placeholders when a recipe is deleted via `RecipeDeleted` event, calendar
   view for retrieving entries grouped by date with recipe names and access flags populated in a single efficient query)
+- `provisioning` - transformation module that converts a list of ingredients into shopping list items; exposes a
+  `ProvisioningFacade` (no HTTP controller) for use by other modules; currently implements a simple 1:1 mapping but
+  designed to support future enhancements (merging duplicates, unit conversion, quantity normalization, etc.)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 - `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 
@@ -113,6 +116,11 @@ backend/
 │   │   ├── dto/                       # Meal Planning Data Transfer Objects
 │   │   └── exception/                 # Meal Planning custom exceptions
 │   ├── extraction/                      # "extraction" module
+│   ├── provisioning/                    # "provisioning" module
+│   │   ├── ProvisioningIngredient.java  # Input data model (public record)
+│   │   ├── ProvisioningItem.java        # Output data model (public record)
+│   │   ├── ProvisioningService.java     # Transformation logic (package-private)
+│   │   └── ProvisioningFacade.java      # Public facade for use by other modules
 │   ├── shoppinglists/                   # "shoppinglists" module
 │   │   ├── ShoppingList.java            # Shopping list entity
 │   │   ├── ShoppingListItem.java        # Shopping list item entity
