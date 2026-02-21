@@ -1153,12 +1153,12 @@
         "items": [
           {
             "name": "flour",
-            "quantity": "300",
+            "quantity": 300,
             "unit": "g"
           },
           {
             "name": "tomato sauce",
-            "quantity": "200",
+            "quantity": 200,
             "unit": "ml"
           }
         ],

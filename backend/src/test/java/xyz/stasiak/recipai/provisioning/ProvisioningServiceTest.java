@@ -2,6 +2,7 @@ package xyz.stasiak.recipai.provisioning;
 
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,8 +22,8 @@ class ProvisioningServiceTest {
         var items = provisioningService.provision(ingredients);
 
         assertThat(items).hasSize(3);
-        assertThat(items.get(0)).isEqualTo(new ProvisioningItem("Flour", "2", "cups"));
-        assertThat(items.get(1)).isEqualTo(new ProvisioningItem("Sugar", "1", "tbsp"));
+        assertThat(items.get(0)).isEqualTo(new ProvisioningItem("Flour", new BigDecimal("2"), "cups"));
+        assertThat(items.get(1)).isEqualTo(new ProvisioningItem("Sugar", new BigDecimal("1"), "tbsp"));
         assertThat(items.get(2)).isEqualTo(new ProvisioningItem("Salt", null, null));
     }
 
@@ -45,5 +46,23 @@ class ProvisioningServiceTest {
 
         assertThat(items).extracting(ProvisioningItem::name)
                 .containsExactly("Eggs", "Butter", "Milk");
+    }
+
+    @Test
+    void shouldReturnNullQuantityForUnparseableValue() {
+        var ingredients = List.of(new ProvisioningIngredient("Flour", "abc", "cups"));
+
+        var items = provisioningService.provision(ingredients);
+
+        assertThat(items.getFirst().quantity()).isNull();
+    }
+
+    @Test
+    void shouldReturnNullQuantityForBlankValue() {
+        var ingredients = List.of(new ProvisioningIngredient("Sugar", "  ", "tbsp"));
+
+        var items = provisioningService.provision(ingredients);
+
+        assertThat(items.getFirst().quantity()).isNull();
     }
 }

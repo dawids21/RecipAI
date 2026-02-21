@@ -1,8 +1,10 @@
 package xyz.stasiak.recipai.planning.dto;
 
+import java.math.BigDecimal;
+
 public record GeneratedShoppingListItemDto(
         String name,
-        String quantity,
+        BigDecimal quantity,
         String unit
 ) {
 }
