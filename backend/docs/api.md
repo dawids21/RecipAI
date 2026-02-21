@@ -1129,6 +1129,53 @@
     - Success: 204 No Content
     - Errors: 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found or belongs to different plan)
 
+- POST /meal-plans/generate-shopping-list
+    - Description: Generate shopping list items from planned meals across one or more meal plans on specified dates.
+      Only entries with a recipe (not placeholders) are considered. Recipes the requesting user cannot access are
+      skipped and included as warnings.
+    - Authenticated: true
+    - Request body:
+      ```json
+      {
+        "planIds": [
+          "550e8400-e29b-41d4-a716-446655440000",
+          "660e8400-e29b-41d4-a716-446655440001"
+        ],
+        "selectedDates": [
+          "2026-02-01",
+          "2026-02-02"
+        ]
+      }
+      ```
+    - Example response:
+      ```json
+      {
+        "items": [
+          {
+            "name": "flour",
+            "quantity": "300",
+            "unit": "g"
+          },
+          {
+            "name": "tomato sauce",
+            "quantity": "200",
+            "unit": "ml"
+          }
+        ],
+        "warnings": [
+          "Recipe 'Secret Recipe' was skipped because you don't have access to it"
+        ]
+      }
+      ```
+    - Success: 200 OK
+    - Errors: 400 Bad Request (planIds or selectedDates are null or empty), 401 Unauthorized, 403 Forbidden (user
+      lacks access to one of the specified plans), 404 Not Found (one of the specified plans does not exist)
+    - Note: All specified plan IDs are validated — the user must have access to every plan in the request. Entries
+      with placeholder text (no recipeId) are ignored. If a recipe referenced by an entry is not accessible to the
+      requesting user (e.g., it belongs to another user who shared only the plan), its ingredients are skipped and a
+      warning message is included in the response. Returns empty `items` and `warnings` lists when no matching
+      entries are found.
+
 #### Sharing & Permissions
 
 - GET /meal-plans/{id}/users

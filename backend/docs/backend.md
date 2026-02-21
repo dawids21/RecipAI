@@ -18,7 +18,9 @@
 - `planning` - manages meal plans with user-based permission control (CRUD operations with role-based access, sharing
   functionality with OWNER/EDITOR roles, meal plan entries with recipe or placeholder support, limit for owner plans,
   automatic conversion of recipe entries to placeholders when a recipe is deleted via `RecipeDeleted` event, calendar
-  view for retrieving entries grouped by date with recipe names and access flags populated in a single efficient query)
+  view for retrieving entries grouped by date with recipe names and access flags populated in a single efficient query,
+  and shopping list generation from planned meals across multiple plans and dates with access-controlled ingredient
+  aggregation and warnings for inaccessible recipes)
 - `provisioning` - transformation module that converts a list of ingredients into shopping list items; exposes a
   `ProvisioningFacade` (no HTTP controller) for use by other modules; currently implements a simple 1:1 mapping but
   designed to support future enhancements (merging duplicates, unit conversion, quantity normalization, etc.)
@@ -46,6 +48,8 @@ backend/
 │   │   ├── RecipeRepository.java        # Recipe data access with user filtering (all, by collection, unassigned, accessible)
 │   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management (upload, update, reorder, delete)
 │   │   ├── RecipeController.java        # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
+│   │   ├── RecipeFacade.java            # Public facade for use by other modules
+│   │   ├── RecipeIngredientsResult.java # Result record holding extracted ingredients and names of inaccessible recipes
 │   │   ├── RecipeDetailsDto.java        # Recipe details response DTO with images array
 │   │   ├── RecipeListDto.java           # Recipe list response DTO with thumbnail URL
 │   │   ├── CreateRecipeRequest.java     # Create recipe request DTO
@@ -114,6 +118,9 @@ backend/
 │   │   ├── MealPlanProperties.java   # Configuration properties
 │   │   ├── PlanningExceptionHandler.java # Exception handling with ProblemDetail
 │   │   ├── dto/                       # Meal Planning Data Transfer Objects
+│   │   │   ├── GenerateShoppingListItemsRequest.java # Request DTO with planIds and selectedDates
+│   │   │   ├── GeneratedShoppingListItemDto.java # Shopping list item DTO (name, quantity, unit)
+│   │   │   └── GeneratedShoppingListResponse.java # Response DTO with items list and warnings list
 │   │   └── exception/                 # Meal Planning custom exceptions
 │   ├── extraction/                      # "extraction" module
 │   ├── provisioning/                    # "provisioning" module
