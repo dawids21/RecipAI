@@ -20,10 +20,11 @@
   automatic conversion of recipe entries to placeholders when a recipe is deleted via `RecipeDeleted` event, calendar
   view for retrieving entries grouped by date with recipe names and access flags populated in a single efficient query,
   and shopping list generation from planned meals across multiple plans and dates with access-controlled ingredient
-  aggregation and warnings for inaccessible recipes)
-- `provisioning` - transformation module that converts a list of ingredients into shopping list items; exposes a
-  `ProvisioningFacade` (no HTTP controller) for use by other modules; currently implements a simple 1:1 mapping but
-  designed to support future enhancements (merging duplicates, unit conversion, quantity normalization, etc.)
+  aggregation, serving size scaling, and warnings for inaccessible recipes)
+- `provisioning` - transformation module that converts a list of ingredients (each with a quantity multiplier) into
+  shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; applies the
+  multiplier to numeric quantities; designed to support future enhancements (merging duplicates, unit conversion,
+  quantity normalization, etc.)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 - `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 
@@ -49,7 +50,8 @@ backend/
 │   │   ├── RecipeService.java           # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management (upload, update, reorder, delete)
 │   │   ├── RecipeController.java        # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
 │   │   ├── RecipeFacade.java            # Public facade for use by other modules
-│   │   ├── RecipeIngredientsResult.java # Result record holding extracted ingredients and names of inaccessible recipes
+│   │   ├── RecipeIngredientsResult.java # Result record holding list of RecipeWithIngredients and names of inaccessible recipes
+│   │   ├── RecipeWithIngredients.java   # Record holding recipeId, servingSize, and ingredients for a single recipe
 │   │   ├── RecipeDetailsDto.java        # Recipe details response DTO with images array
 │   │   ├── RecipeListDto.java           # Recipe list response DTO with thumbnail URL
 │   │   ├── CreateRecipeRequest.java     # Create recipe request DTO

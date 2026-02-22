@@ -13,10 +13,16 @@ import xyz.stasiak.recipai.provisioning.ProvisioningIngredient;
 import xyz.stasiak.recipai.recipes.RecipeDeleted;
 import xyz.stasiak.recipai.recipes.RecipeFacade;
 import xyz.stasiak.recipai.recipes.RecipeIngredientsResult;
+import xyz.stasiak.recipai.recipes.RecipeWithIngredients;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -230,19 +236,32 @@ class MealPlanService {
                     .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
         }
 
-        List<UUID> recipeIds = entryRepository.findEntriesWithRecipes(userEmail, planIds, dates).stream()
+        List<MealPlanEntry> entries = entryRepository.findEntriesWithRecipes(userEmail, planIds, dates);
+
+        if (entries.isEmpty()) {
+            return new GeneratedShoppingListResponse(List.of(), List.of());
+        }
+
+        List<UUID> distinctRecipeIds = entries.stream()
                 .map(MealPlanEntry::getRecipeId)
                 .distinct()
                 .toList();
 
-        if (recipeIds.isEmpty()) {
-            return new GeneratedShoppingListResponse(List.of(), List.of());
-        }
+        RecipeIngredientsResult recipeIngredients = recipeFacade.getIngredients(distinctRecipeIds, userEmail);
 
-        RecipeIngredientsResult recipeIngredients = recipeFacade.getIngredients(recipeIds, userEmail);
+        Map<UUID, RecipeWithIngredients> recipeMap = recipeIngredients.recipes().stream()
+                .collect(Collectors.toMap(RecipeWithIngredients::recipeId, Function.identity()));
 
-        List<ProvisioningIngredient> ingredients = recipeIngredients.ingredients().stream()
-                .map(ingredient -> new ProvisioningIngredient(ingredient.name(), ingredient.quantity(), ingredient.unit()))
+        List<ProvisioningIngredient> ingredients = entries.stream()
+                .filter(entry -> recipeMap.containsKey(entry.getRecipeId()))
+                .flatMap(entry -> {
+                    RecipeWithIngredients recipe = recipeMap.get(entry.getRecipeId());
+                    BigDecimal multiplier = BigDecimal.valueOf(entry.getServingSize())
+                            .divide(BigDecimal.valueOf(recipe.servingSize()), 10, RoundingMode.HALF_UP);
+                    return recipe.ingredients().stream()
+                            .map(ingredient -> new ProvisioningIngredient(
+                                    ingredient.name(), ingredient.quantity(), ingredient.unit(), multiplier));
+                })
                 .toList();
 
         List<GeneratedShoppingListItemDto> items = provisioningFacade.provision(ingredients).stream()

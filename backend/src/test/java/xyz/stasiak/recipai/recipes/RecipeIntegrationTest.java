@@ -985,9 +985,10 @@ class RecipeIntegrationTest {
 
         RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(recipe.id()), "user@example.com");
 
-        assertThat(result.ingredients()).hasSize(2);
-        assertThat(result.ingredients().get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
-        assertThat(result.ingredients().get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
+        assertThat(result.recipes()).hasSize(1);
+        assertThat(result.recipes().getFirst().servingSize()).isEqualTo(1);
+        assertThat(result.recipes().getFirst().ingredients().get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
+        assertThat(result.recipes().getFirst().ingredients().get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
         assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 
@@ -1009,8 +1010,9 @@ class RecipeIntegrationTest {
 
         RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(recipe1.id(), recipe2.id()), "user@example.com");
 
-        assertThat(result.ingredients()).hasSize(3);
-        assertThat(result.ingredients()).extracting(Ingredient::name).containsExactly("Eggs", "Butter", "Milk");
+        assertThat(result.recipes()).hasSize(2);
+        assertThat(result.recipes().stream().flatMap(r -> r.ingredients().stream()))
+                .extracting(Ingredient::name).containsExactly("Eggs", "Butter", "Milk");
         assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 
@@ -1018,7 +1020,7 @@ class RecipeIntegrationTest {
     void shouldReturnEmptyListForUnknownRecipeId() {
         RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(UUID.randomUUID()), "user@example.com");
 
-        assertThat(result.ingredients()).isEmpty();
+        assertThat(result.recipes()).isEmpty();
         assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 }

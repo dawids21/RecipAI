@@ -1131,7 +1131,8 @@
 
 - POST /meal-plans/generate-shopping-list
     - Description: Generate shopping list items from planned meals across one or more meal plans on specified dates.
-      Only entries with a recipe (not placeholders) are considered. Recipes the requesting user cannot access are
+      Only entries with a recipe (not placeholders) are considered. Ingredient quantities are scaled by the ratio of
+      the entry's `servingSize` to the recipe's base `servingSize`. Recipes the requesting user cannot access are
       skipped and included as warnings.
     - Authenticated: true
     - Request body:
@@ -1171,10 +1172,12 @@
     - Errors: 400 Bad Request (planIds or selectedDates are null or empty), 401 Unauthorized, 403 Forbidden (user
       lacks access to one of the specified plans), 404 Not Found (one of the specified plans does not exist)
     - Note: All specified plan IDs are validated — the user must have access to every plan in the request. Entries
-      with placeholder text (no recipeId) are ignored. If a recipe referenced by an entry is not accessible to the
-      requesting user (e.g., it belongs to another user who shared only the plan), its ingredients are skipped and a
-      warning message is included in the response. Returns empty `items` and `warnings` lists when no matching
-      entries are found.
+      with placeholder text (no recipeId) are ignored. Ingredient quantities are multiplied by
+      `entry.servingSize / recipe.servingSize` (the recipe's base serving size defaults to 1 if not set). For
+      non-numeric ingredient quantities (e.g., "to taste"), the multiplier itself is used as the quantity. If a
+      recipe referenced by an entry is not accessible to the requesting user (e.g., it belongs to another user who
+      shared only the plan), its ingredients are skipped and a warning message is included in the response. Returns
+      empty `items` and `warnings` lists when no matching entries are found.
 
 #### Sharing & Permissions
 

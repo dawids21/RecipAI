@@ -110,6 +110,10 @@ class MealPlanIntegrationTest {
                 null,
                 1
         );
+        return createRecipe(client, name, data);
+    }
+
+    private RecipeDetailsDto createRecipe(RestClient client, String name, RecipeData data) {
         CreateRecipeRequest request = new CreateRecipeRequest(name, data, null, List.of());
         return client
                 .post()
@@ -901,7 +905,7 @@ class MealPlanIntegrationTest {
 
         assertThat(response.items()).hasSize(1);
         assertThat(response.items().getFirst().name()).isEqualTo("flour");
-        assertThat(response.items().getFirst().quantity()).isEqualTo("300");
+        assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("600"));
         assertThat(response.items().getFirst().unit()).isEqualTo("g");
         assertThat(response.warnings()).isEmpty();
 
@@ -992,6 +996,34 @@ class MealPlanIntegrationTest {
         }
 
         deleteRecipe(client1, recipe.id());
+    }
+
+    @Test
+    void shouldApplyServingSizeMultiplierToNonNumericQuantity() {
+        RestClient client = restClient();
+
+        RecipeData data = new RecipeData(
+                List.of(new Ingredient("salt", "to taste", null)),
+                List.of(new Instruction("Season")),
+                null,
+                1
+        );
+        RecipeDetailsDto recipe = createRecipe(client, "Seasoned Dish", data);
+        MealPlanDto plan = createMealPlan(client, "Non-numeric Quantity Plan", "#FF5733");
+
+        LocalDate date = LocalDate.of(2026, 3, 1);
+        createEntry(client, plan.id(), new CreateMealPlanEntryRequest(date, recipe.id(), null, 3));
+
+        GeneratedShoppingListResponse response = generateShoppingListItems(
+                client, List.of(plan.id()), List.of(date));
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().getFirst().name()).isEqualTo("salt");
+        assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("3"));
+        assertThat(response.items().getFirst().unit()).isNull();
+        assertThat(response.warnings()).isEmpty();
+
+        deleteRecipe(client, recipe.id());
     }
 
     @Test

@@ -30,9 +30,13 @@ public class RecipeFacade {
 
         List<Recipe> recipes = recipeRepository.findAllById(recipeIds);
 
-        List<Ingredient> ingredients = recipes.stream()
+        List<RecipeWithIngredients> recipeWithIngredients = recipes.stream()
                 .filter(r -> accessibleRecipeIds.contains(r.getId()))
-                .flatMap(r -> extractIngredients(r.getData()).stream())
+                .map(r -> new RecipeWithIngredients(
+                        r.getId(),
+                        extractServingSize(r.getData()),
+                        extractIngredients(r.getData())
+                ))
                 .toList();
 
         List<String> inaccessibleRecipeNames = recipes.stream()
@@ -40,7 +44,7 @@ public class RecipeFacade {
                 .map(Recipe::getName)
                 .toList();
 
-        return new RecipeIngredientsResult(ingredients, inaccessibleRecipeNames);
+        return new RecipeIngredientsResult(recipeWithIngredients, inaccessibleRecipeNames);
     }
 
     private List<Ingredient> extractIngredients(JsonNode data) {
@@ -56,5 +60,13 @@ public class RecipeFacade {
             log.error("Failed to extract ingredients from recipe data", e);
             return List.of();
         }
+    }
+
+    private int extractServingSize(JsonNode data) {
+        JsonNode servingSize = data.path("servingSize");
+        if (servingSize.isNumber() && servingSize.asInt() > 0) {
+            return servingSize.asInt();
+        }
+        return 1;
     }
 }

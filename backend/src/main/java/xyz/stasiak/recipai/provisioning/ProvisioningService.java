@@ -12,7 +12,10 @@ class ProvisioningService {
 
     List<ProvisioningItem> provision(List<ProvisioningIngredient> ingredients) {
         return ingredients.stream()
-                .map(ingredient -> new ProvisioningItem(ingredient.name(), parseQuantity(ingredient.quantity()), ingredient.unit()))
+                .map(ingredient -> new ProvisioningItem(
+                        ingredient.name(),
+                        applyMultiplier(parseQuantity(ingredient.quantity()), ingredient.multiplier()),
+                        ingredient.unit()))
                 .toList();
     }
 
@@ -25,5 +28,12 @@ class ProvisioningService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private BigDecimal applyMultiplier(BigDecimal quantity, BigDecimal multiplier) {
+        if (quantity == null) {
+            return multiplier;
+        }
+        return quantity.multiply(multiplier);
     }
 }
