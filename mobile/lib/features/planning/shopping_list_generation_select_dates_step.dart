@@ -29,6 +29,12 @@ class _ShoppingListGenerationSelectDatesStepState
     extends State<ShoppingListGenerationSelectDatesStep> {
   DateTime _displayMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
+  @override
+  void initState() {
+    super.initState();
+    _loadCalendarForDisplayMonth();
+  }
+
   Future<void> _loadCalendarForDisplayMonth() async {
     await widget.calendarService.loadCalendar(
       startDate: DateTime(_displayMonth.year, _displayMonth.month, 1),
