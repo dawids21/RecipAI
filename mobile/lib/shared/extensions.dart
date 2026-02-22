@@ -1,12 +1,20 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+extension DateTimeLocalizations on DateTime {
+  static int dartFirstDayOfWeek(BuildContext context) {
+    final intlFirstDay = MaterialLocalizations.of(context).firstDayOfWeekIndex;
+    return intlFirstDay == 0 ? 7 : intlFirstDay;
+  }
+}
 
 extension IsoDateFormat on DateTime {
   String toIso8601DateString() {
     final isoDateFormat = DateFormat('yyyy-MM-dd');
     return isoDateFormat.format(this);
   }
+
+  int get daysInMonth => DateTime(year, month + 1, 0).day;
 }
 
 extension ColorExtension on Color {

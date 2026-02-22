@@ -6,6 +6,8 @@ import 'meal_plan_calendar_service.dart';
 import 'meal_plan_list_service.dart';
 import 'meal_plan_repository.dart';
 import 'meal_plan_visibility_service.dart';
+import 'shopping_list_generation_calendar_service.dart';
+import 'shopping_list_generation_service.dart';
 
 void setupMealPlan() {
   getIt.registerSingleton(MealPlanRepository());
@@ -31,6 +33,22 @@ void setupMealPlan() {
       repository: getIt<MealPlanRepository>(),
       authService: getIt<AuthService>(),
       visibilityService: getIt<MealPlanVisibilityService>(),
+    ),
+    dispose: (service) => service.dispose(),
+  );
+
+  getIt.registerLazySingleton(
+    () => ShoppingListGenerationCalendarService(
+      repository: getIt<MealPlanRepository>(),
+      authService: getIt<AuthService>(),
+    ),
+    dispose: (service) => service.dispose(),
+  );
+
+  getIt.registerLazySingleton(
+    () => ShoppingListGenerationService(
+      mealPlanRepository: getIt<MealPlanRepository>(),
+      authService: getIt<AuthService>(),
     ),
     dispose: (service) => service.dispose(),
   );

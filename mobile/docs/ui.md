@@ -8,7 +8,8 @@
   planning, and shopping list tabs. Displays RecipeList, MealPlanCalendarScreen, or ShoppingListList widgets based on
   selected tab, with corresponding FABs (
   RecipeListFab, MealPlanCalendarFab, or ShoppingListListFab). Features PopupMenuButton in AppBar with "Recipes
-  collections" and logout options. When Planning tab is active and meal planning feature flag is enabled, shows "Manage
+  collections", "Generate shopping list", and logout options. When Planning tab is active and meal planning feature flag
+  is enabled, shows "Manage
   Plans" IconButton before the overflow menu
 
 ### Recipe feature
@@ -156,6 +157,25 @@
 - Meal Entry Calendar Card (`meal_entry_calendar_card.dart`) - Card widget for individual meal entries with background
   color from plan color, recipe name or placeholder text, serving size, and placeholder overflow menu for edit/delete
   actions. Text color adapts to background luminance for readability.
+- Shopping List Generation Screen (`shopping_list_generation_screen.dart`) - Multi-step wizard screen for generating
+  shopping lists from meal plan entries. Uses a PageView with 3 steps: Select Plans, Select Dates, Review Items.
+  Features an animated step indicator bar at the top. Navigation between steps is controlled programmatically (swipe
+  disabled). Back button shown in AppBar from step 2 onwards. Lazy singleton services are reset on dispose.
+- Shopping List Generation Select Plan Step (`shopping_list_generation_select_plan_step.dart`) - First step widget
+  displaying a list of meal plans with CheckboxListTile items (color indicator + name). "Next" button enabled only when
+  at least one plan is selected.
+- Shopping List Generation Select Dates Step (`shopping_list_generation_select_dates_step.dart`) - Second step widget
+  with a scrollable MonthCalendarWidget for date selection. Supports month navigation (previous/next). Loads calendar
+  data for the displayed month from ShoppingListGenerationCalendarService. "Generate Shopping List" button enabled only
+  when at least one date is selected. Shows selected date count.
+- Shopping List Generation Review Step (`shopping_list_generation_review_step.dart`) - Third step widget showing
+  generated items via ShoppingListReviewWidget. Displays a collapsible warnings banner (errorContainer styled) when
+  some meals were skipped due to inaccessible recipes. Shows LoadingWidget during generation and ApiErrorWidget on
+  failure with retry support.
+- Month Calendar Widget (`month_calendar_widget.dart`) - Reusable month grid calendar widget with previous/next month
+  navigation, locale-aware weekday labels (respects first day of week), and tappable day cells. Each day cell shows a
+  dot indicator when the date has meal plan entries. Selected dates are highlighted with a filled circle using
+  primary color. Accepts calendarData (MealPlanCalendarData) for entry indicators.
 
 ### Extraction feature
 
@@ -220,6 +240,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
 - `/recipes/picker` - Recipe picker screen for selecting a recipe (AppRoute.recipePicker, nested route)
 - `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections, shown when feature flag enabled)
+- `/shopping-list-generation` - Shopping list generation wizard screen (AppRoute.shoppingListGeneration)
 - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 
 ### Bottom Navigation Bar
@@ -321,6 +342,17 @@ All routes except `/login` require user authentication. The app automatically re
     want to delete...?" → Tap "Delete" → Entry deleted → SnackBar "Meal entry deleted" → Calendar refreshes
 17. **Navigate to Recipe from Entry** → Tap on recipe entry card (not menu) → If hasRecipeAccess, navigates to Recipe
     Detail Screen → If no access, shows SnackBar "Recipe details not shared"
+
+#### Shopping List Generation Flow
+
+1. **AppBar Menu → Generate shopping list** → Shopping List Generation Screen (`/shopping-list-generation`)
+2. **Step 1 - Select Plans** → Displays all available meal plans with checkboxes → Select one or more → Tap "Next"
+3. **Step 2 - Select Dates** → Month calendar loaded for selected plans → Navigate months with previous/next →
+   Tap dates to toggle selection (dots show days with meal entries) → Tap "Generate Shopping List"
+4. **Step 3 - Review Items** → Loading indicator during generation → Generated items displayed via
+   ShoppingListReviewWidget → Warnings banner shown for skipped inaccessible recipes → Select shopping list and
+   add items → Navigate back on success
+5. **Back Button** (steps 2 and 3) → Returns to previous step
 
 #### Shopping List Management Flow
 

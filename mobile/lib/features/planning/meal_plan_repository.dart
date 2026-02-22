@@ -8,6 +8,7 @@ import '../../core/app_config.dart';
 import 'meal_plan.dart';
 import 'meal_plan_calendar_data.dart';
 import 'meal_plan_permission.dart';
+import 'shopping_list_generated_items.dart';
 
 class MealPlanRepository {
   final http.Client _client = http.Client();
@@ -289,6 +290,39 @@ class MealPlanRepository {
       throw Exception('Entry not found');
     } else {
       throw Exception('Failed to update meal entry: ${response.statusCode}');
+    }
+  }
+
+  Future<ShoppingListGeneratedItems> generateShoppingList({
+    required List<String> planIds,
+    required List<DateTime> selectedDates,
+    required String? idToken,
+  }) async {
+    final headers = _getAuthHeaders(idToken);
+    final body = jsonEncode({
+      'planIds': planIds,
+      'selectedDates': selectedDates
+          .map((d) => d.toIso8601DateString())
+          .toList(),
+    });
+
+    final response = await _client.post(
+      Uri.parse('$_baseUrl/meal-plans/generate-shopping-list'),
+      headers: headers,
+      body: body,
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+      return ShoppingListGeneratedItems.fromJson(json);
+    } else if (response.statusCode == 400) {
+      throw Exception('Invalid request parameters');
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized: Please log in again');
+    } else {
+      throw Exception(
+        'Failed to generate shopping list: ${response.statusCode}',
+      );
     }
   }
 

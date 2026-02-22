@@ -11,6 +11,9 @@ import '../features/extraction/url_extraction_screen.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/planning/meal_plan_list_service.dart';
 import '../features/planning/meal_plan_visibility_service.dart';
+import '../features/planning/shopping_list_generation_calendar_service.dart';
+import '../features/planning/shopping_list_generation_screen.dart';
+import '../features/planning/shopping_list_generation_service.dart';
 import '../features/recipe/collection/recipes_collection_list_screen.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
 import '../features/recipe/create_recipe_screen.dart';
@@ -39,6 +42,9 @@ enum AppRoute {
   recipeEdit('edit'), // '/recipes/:id/edit'
   recipesCollections('recipes-collections'), // '/recipes-collections'
   recipeToShoppingList('to-shopping-list'), // '/recipes/:id/to-shopping-list'
+  shoppingListGeneration(
+    'shopping-list-generation',
+  ), // '/shopping-list-generation'
   shoppingListDetail('shopping-lists/:id'); // '/shopping-lists/:id'
 
   const AppRoute(this.path);
@@ -218,6 +224,17 @@ GoRouter createAppRouter() {
                     getIt<RecipesCollectionListService>(),
               );
             },
+          ),
+          GoRoute(
+            path: AppRoute.shoppingListGeneration.path,
+            name: AppRoute.shoppingListGeneration.name,
+            builder: (context, state) => ShoppingListGenerationScreen(
+              mealPlanListService: getIt<MealPlanListService>(),
+              shoppingListListService: getIt<ShoppingListListService>(),
+              shoppingListSyncService: getIt<ShoppingListSyncService>(),
+              generationService: getIt<ShoppingListGenerationService>(),
+              calendarService: getIt<ShoppingListGenerationCalendarService>(),
+            ),
           ),
           GoRoute(
             path: AppRoute.shoppingListDetail.path,

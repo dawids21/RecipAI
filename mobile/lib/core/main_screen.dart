@@ -143,6 +143,8 @@ class _MainScreenState extends State<MainScreen> {
             onSelected: (value) {
               if (value == 'recipes_collections') {
                 context.goNamed(AppRoute.recipesCollections.name);
+              } else if (value == 'generate_shopping_list') {
+                context.goNamed(AppRoute.shoppingListGeneration.name);
               } else if (value == 'logout') {
                 _onLogoutTap(context);
               }
@@ -158,6 +160,19 @@ class _MainScreenState extends State<MainScreen> {
                       Icon(Icons.folder),
                       SizedBox(width: AppSpacing.small),
                       Text('Recipes collections'),
+                    ],
+                  ),
+                ),
+              );
+
+              menuItems.add(
+                const PopupMenuItem<String>(
+                  value: 'generate_shopping_list',
+                  child: Row(
+                    children: [
+                      Icon(Icons.playlist_add),
+                      SizedBox(width: AppSpacing.small),
+                      Text('Generate shopping list'),
                     ],
                   ),
                 ),

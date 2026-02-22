@@ -56,11 +56,17 @@
   plan metadata, recipe information, or placeholder text
 - Meal Plan Calendar Data (`planning/meal_plan_calendar_data.dart`) - Data model for grouped calendar entries organized
   by date
+- Shopping List Generated Items (`planning/shopping_list_generated_items.dart`) - Data model for the shopping list
+  generation API response, containing a list of ShoppingListGeneratedItem and a list of warning strings for
+  inaccessible recipes
 
 ### Shared Utilities
 
-- Color Extension (`shared/extensions.dart`) - Extension methods on Flutter Color class for API hex string conversion:
-  `toHexString()` converts Color to "#RRGGBB" format, `fromHexString()` creates Color from hex string.
+- Extensions (`shared/extensions.dart`) - Extension methods used across the app:
+  `ColorExtension` on Color for API hex string conversion (`toHexString()` → "#RRGGBB", `fromHexString()` → Color);
+  `IsoDateFormat` on DateTime (`toIso8601DateString()`, `daysInMonth`);
+  `DateTimeLocalizations` with `dartFirstDayOfWeek(BuildContext)` static helper for locale-aware first-day-of-week
+  (returns 1–7 where 7=Sunday).
 
 ## Codebase Structure
 
@@ -157,7 +163,15 @@ mobile/
 │       │   ├── plan_list_tile.dart      # Plan list item widget with checkbox and menu
 │       │   ├── week_strip.dart          # Week navigation header widget with tappable label to jump to today
 │       │   ├── day_section.dart         # Day section widget with entry list
-│       │   └── meal_entry_calendar_card.dart # Individual meal entry card widget
+│       │   ├── meal_entry_calendar_card.dart # Individual meal entry card widget
+│       │   ├── shopping_list_generated_items.dart # Data model for shopping list generation API response
+│       │   ├── shopping_list_generation_service.dart # Service for generating shopping lists from meal plan entries
+│       │   ├── shopping_list_generation_calendar_service.dart # Service for loading calendar data for date selection step
+│       │   ├── shopping_list_generation_screen.dart # Multi-step wizard screen for shopping list generation
+│       │   ├── shopping_list_generation_select_plan_step.dart # Step 1: plan selection widget
+│       │   ├── shopping_list_generation_select_dates_step.dart # Step 2: date selection widget with MonthCalendarWidget
+│       │   ├── shopping_list_generation_review_step.dart # Step 3: review and add generated items widget
+│       │   └── month_calendar_widget.dart # Reusable month grid calendar with locale-aware day layout and entry dots
 │       └── extraction/                 # "extraction" feature
 │           ├── extraction_repository.dart # API communication layer for extraction endpoints
 │           ├── extraction_service.dart # Business logic layer for extraction operations
