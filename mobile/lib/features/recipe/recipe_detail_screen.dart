@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/routes.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
@@ -47,10 +48,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     super.initState();
     widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
     widget.recipeDetailService.loadSharedUsers(widget.recipeId);
+    WakelockPlus.enable();
   }
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     if (getIt.isRegistered<RecipeDetailService>()) {
       getIt.resetLazySingleton<RecipeDetailService>();
     }

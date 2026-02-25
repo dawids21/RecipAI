@@ -33,7 +33,7 @@
   available), ingredients, and instructions. FAB shows "Add to Meal Plan" button (calendar icon). Overflow menu includes
   Edit, Share button and role-based conditional Delete button for recipe management. Shows collection name with folder
   icon when recipe is assigned to a collection. Displays source URL as clickable link with link icon when available.
-  Shows serving size with restaurant icon.
+  Shows serving size with restaurant icon. Keeps the screen on while the screen is active (using wakelock_plus).
 - Recipe Image Carousel (`recipe_image_carousel.dart`) - Full-width image carousel widget using PageView with 1:1 aspect
   ratio. Tapping an image opens a fullscreen zoomable viewer.
 - Recipe Image Fullscreen Viewer (`recipe_image_fullscreen_viewer.dart`) - Fullscreen dialog-based image viewer widget
