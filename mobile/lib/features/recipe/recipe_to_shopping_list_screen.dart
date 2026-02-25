@@ -61,7 +61,12 @@ class RecipeToShoppingListScreen extends StatelessWidget {
                 }
 
                 final reviewItems = ingredients
-                    .map(ShoppingListGeneratedItem.fromIngredient)
+                    .map(
+                      (ingredient) => ShoppingListGeneratedItem.fromIngredient(
+                        ingredient,
+                        source: recipeDetail.name,
+                      ),
+                    )
                     .toList();
 
                 return Column(

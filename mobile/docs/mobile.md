@@ -57,8 +57,8 @@
 - Meal Plan Calendar Data (`planning/meal_plan_calendar_data.dart`) - Data model for grouped calendar entries organized
   by date
 - Shopping List Generated Items (`planning/shopping_list_generated_items.dart`) - Data model for the shopping list
-  generation API response, containing a list of ShoppingListGeneratedItem and a list of warning strings for
-  inaccessible recipes
+  generation API response, containing a list of ShoppingListGeneratedItem and a list of inaccessible recipe names
+  (inaccessibleRecipeNames)
 
 ### Shared Utilities
 

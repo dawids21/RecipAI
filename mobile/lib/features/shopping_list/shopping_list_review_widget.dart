@@ -195,7 +195,7 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
                   value: isSelected,
                   onChanged: (checked) =>
                       _onItemToggled(index, checked == true),
-                  title: Text(item.name),
+                  title: Text(item.displayTitle),
                   subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
                 );
               },
