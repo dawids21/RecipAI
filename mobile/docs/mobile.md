@@ -66,7 +66,8 @@
   `ColorExtension` on Color for API hex string conversion (`toHexString()` → "#RRGGBB", `fromHexString()` → Color);
   `IsoDateFormat` on DateTime (`toIso8601DateString()`, `daysInMonth`);
   `DateTimeLocalizations` with `dartFirstDayOfWeek(BuildContext)` static helper for locale-aware first-day-of-week
-  (returns 1–7 where 7=Sunday).
+  (returns 1–7 where 7=Sunday) and `startOfWeek(BuildContext)` instance method returning the DateTime of the
+  locale-aware week start date.
 
 ## Codebase Structure
 

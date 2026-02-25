@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme.dart';
+import '../../shared/extensions.dart';
 import 'meal_plan_calendar_service.dart';
 
 class WeekStrip extends StatelessWidget {
@@ -30,7 +31,9 @@ class WeekStrip extends StatelessWidget {
                 onPressed: calendarService.goToPreviousWeek,
               ),
               TextButton(
-                onPressed: calendarService.goToToday,
+                onPressed: () => calendarService.goToWeek(
+                  DateTime.now().startOfWeek(context),
+                ),
                 child: Text(weekLabel, style: theme.textTheme.titleMedium),
               ),
               IconButton(

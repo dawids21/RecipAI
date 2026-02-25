@@ -10,20 +10,15 @@ class MealPlanCalendarService {
   final MealPlanRepository _repository;
   final AuthService _authService;
   final MealPlanVisibilityService _visibilityService;
-  final int _firstDayOfWeek; // 0 = Sunday, 1 = Monday, etc.
 
   MealPlanCalendarService({
     required MealPlanRepository repository,
     required AuthService authService,
     required MealPlanVisibilityService visibilityService,
-    int firstDayOfWeek = 1, // Default to Monday
   }) : _repository = repository,
        _authService = authService,
        _visibilityService = visibilityService,
-       _firstDayOfWeek = firstDayOfWeek,
-       _currentWeekStart = ValueNotifier(
-         _getWeekStart(DateTime.now(), firstDayOfWeek),
-       ),
+       _currentWeekStart = ValueNotifier(DateTime(0)),
        _calendarData = ValueNotifier(const AsyncValue.loading()) {
     _visibilityService.visibility.addListener(_onVisibilityChanged);
   }
@@ -80,16 +75,9 @@ class MealPlanCalendarService {
     loadCalendar();
   }
 
-  void goToToday() {
-    _currentWeekStart.value = _getWeekStart(DateTime.now(), _firstDayOfWeek);
+  void goToWeek(DateTime weekStart) {
+    _currentWeekStart.value = weekStart;
     loadCalendar();
-  }
-
-  static DateTime _getWeekStart(DateTime date, int firstDayOfWeek) {
-    final currentWeekday = date.weekday % 7;
-    final daysToSubtract = (currentWeekday - firstDayOfWeek + 7) % 7;
-
-    return DateTime(date.year, date.month, date.day - daysToSubtract);
   }
 
   Future<void> createMealEntry({

@@ -15,6 +15,7 @@ import '../features/recipe/recipe_list_service.dart';
 import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
+import '../shared/extensions.dart';
 import 'get_it.dart';
 import 'routes.dart';
 import 'theme.dart';
@@ -45,15 +46,21 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    widget.recipeListService.loadRecipes();
-    widget.recipesCollectionListService.loadRecipesCollections();
-    widget.shoppingListListService.loadShoppingLists();
-    widget.mealPlanCalendarService.loadCalendar();
-    widget.mealPlanListService.loadMealPlans();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      widget.mealPlanCalendarService.goToWeek(
+        DateTime.now().startOfWeek(context),
+      );
+      widget.recipeListService.loadRecipes();
+      widget.recipesCollectionListService.loadRecipesCollections();
+      widget.shoppingListListService.loadShoppingLists();
+      widget.mealPlanListService.loadMealPlans();
+    }
   }
 
   @override

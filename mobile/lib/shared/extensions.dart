@@ -6,6 +6,12 @@ extension DateTimeLocalizations on DateTime {
     final intlFirstDay = MaterialLocalizations.of(context).firstDayOfWeekIndex;
     return intlFirstDay == 0 ? 7 : intlFirstDay;
   }
+
+  DateTime startOfWeek(BuildContext context) {
+    final firstDay = DateTimeLocalizations.dartFirstDayOfWeek(context);
+    final diff = (weekday - firstDay + 7) % 7;
+    return DateTime(year, month, day - diff);
+  }
 }
 
 extension IsoDateFormat on DateTime {
