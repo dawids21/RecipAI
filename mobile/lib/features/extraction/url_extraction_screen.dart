@@ -197,85 +197,112 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Extract Recipe'),
-        backgroundColor: theme.colorScheme.inversePrimary,
-      ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            // URL Input Section
-            Container(
-              padding: AppSpacing.screenPadding,
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _urlController,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter recipe URL or search terms',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.link),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (await _controller.canGoBack()) {
+          final urlBeforeBack = await _controller.currentUrl();
+          await _controller.goBack();
+          // Detect redirect loops (e.g. Google search result redirects):
+          // if the URL bounces back to the same page, exit the screen.
+          // Dirty hack but works
+          await Future.delayed(const Duration(milliseconds: 300));
+          final urlAfterBack = await _controller.currentUrl();
+          if (urlAfterBack == urlBeforeBack && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        } else {
+          if (context.mounted) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('Extract Recipe'),
+          backgroundColor: theme.colorScheme.inversePrimary,
+        ),
+        body: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              // URL Input Section
+              Container(
+                padding: AppSpacing.screenPadding,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _urlController,
+                            decoration: const InputDecoration(
+                              hintText: 'Enter recipe URL or search terms',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.link),
+                            ),
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.go,
+                            onSubmitted: (_) => _loadUrl(),
                           ),
-                          keyboardType: TextInputType.url,
-                          textInputAction: TextInputAction.go,
-                          onSubmitted: (_) => _loadUrl(),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.small),
-                      ElevatedButton(
-                        onPressed: _loadUrl,
-                        child: Text(_isCurrentInputUrl ? 'Load' : 'Search'),
+                        const SizedBox(width: AppSpacing.small),
+                        ElevatedButton(
+                          onPressed: _loadUrl,
+                          child: Text(_isCurrentInputUrl ? 'Load' : 'Search'),
+                        ),
+                      ],
+                    ),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: AppSpacing.small),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.small),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
                   ],
-                ],
+                ),
               ),
-            ),
 
-            // WebView Section
-            Expanded(
-              child: Stack(
-                children: [
-                  WebViewWidget(controller: _controller),
-                  if (_isLoading) const Positioned.fill(child: LoadingWidget()),
-                ],
+              // WebView Section
+              Expanded(
+                child: Stack(
+                  children: [
+                    WebViewWidget(controller: _controller),
+                    if (_isLoading)
+                      const Positioned.fill(child: LoadingWidget()),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isExtracting ? null : _extractRecipe,
-        icon: _isExtracting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.download),
-        label: Text(_isExtracting ? 'Extracting...' : 'Extract Recipe'),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _isExtracting ? null : _extractRecipe,
+          icon: _isExtracting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download),
+          label: Text(_isExtracting ? 'Extracting...' : 'Extract Recipe'),
+        ),
       ),
     );
   }

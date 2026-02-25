@@ -183,7 +183,8 @@
   smart input field that automatically detects URLs vs search queries. Supports domain patterns (example.com,
   sub.example.co.uk, localhost:3000) and full URLs (https://example.com). Non-URL inputs trigger Google search with
   encoded query parameters. Captures the current URL from WebView and navigates to create screen with
-  InitialRecipeFormData containing extracted recipe detail and source URL
+  InitialRecipeFormData containing extracted recipe detail and source URL. Back button uses WebView history navigation
+  when possible, only popping the route when there is no WebView history to go back to.
 - Image Extraction Screen (`image_extraction_screen.dart`) - Screen for extracting recipes from images using camera or
   gallery selection with image preview and upload functionality. Navigates to create screen with InitialRecipeFormData
   containing extracted recipe detail and the selected image file as a pending image
