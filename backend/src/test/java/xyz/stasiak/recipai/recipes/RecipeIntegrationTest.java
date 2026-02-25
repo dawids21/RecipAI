@@ -983,9 +983,11 @@ class RecipeIntegrationTest {
         );
         RecipeDetailsDto recipe = createRecipe(client, "Cake", data, null);
 
-        RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(recipe.id()), "user@example.com");
+        RecipeInfoResult result = recipeFacade.getRecipes(List.of(recipe.id()), "user@example.com");
 
         assertThat(result.recipes()).hasSize(1);
+        assertThat(result.recipes().getFirst().id()).isEqualTo(recipe.id());
+        assertThat(result.recipes().getFirst().name()).isEqualTo("Cake");
         assertThat(result.recipes().getFirst().servingSize()).isEqualTo(1);
         assertThat(result.recipes().getFirst().ingredients().get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
         assertThat(result.recipes().getFirst().ingredients().get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
@@ -1008,7 +1010,7 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe1 = createRecipe(client, "Omelette", data1, null);
         RecipeDetailsDto recipe2 = createRecipe(client, "Sauce", data2, null);
 
-        RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(recipe1.id(), recipe2.id()), "user@example.com");
+        RecipeInfoResult result = recipeFacade.getRecipes(List.of(recipe1.id(), recipe2.id()), "user@example.com");
 
         assertThat(result.recipes()).hasSize(2);
         assertThat(result.recipes().stream().flatMap(r -> r.ingredients().stream()))
@@ -1018,7 +1020,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturnEmptyListForUnknownRecipeId() {
-        RecipeIngredientsResult result = recipeFacade.getIngredients(List.of(UUID.randomUUID()), "user@example.com");
+        RecipeInfoResult result = recipeFacade.getRecipes(List.of(UUID.randomUUID()), "user@example.com");
 
         assertThat(result.recipes()).isEmpty();
         assertThat(result.inaccessibleRecipeNames()).isEmpty();

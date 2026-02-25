@@ -6,6 +6,7 @@ public record ProvisioningIngredient(
         String name,
         String quantity,
         String unit,
-        BigDecimal multiplier
+        BigDecimal multiplier,
+        String sourceName
 ) {
 }

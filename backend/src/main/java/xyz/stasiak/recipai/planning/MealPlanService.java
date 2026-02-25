@@ -12,8 +12,8 @@ import xyz.stasiak.recipai.provisioning.ProvisioningFacade;
 import xyz.stasiak.recipai.provisioning.ProvisioningIngredient;
 import xyz.stasiak.recipai.recipes.RecipeDeleted;
 import xyz.stasiak.recipai.recipes.RecipeFacade;
-import xyz.stasiak.recipai.recipes.RecipeIngredientsResult;
-import xyz.stasiak.recipai.recipes.RecipeWithIngredients;
+import xyz.stasiak.recipai.recipes.RecipeInfo;
+import xyz.stasiak.recipai.recipes.RecipeInfoResult;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -247,25 +247,25 @@ class MealPlanService {
                 .distinct()
                 .toList();
 
-        RecipeIngredientsResult recipeIngredients = recipeFacade.getIngredients(distinctRecipeIds, userEmail);
+        RecipeInfoResult recipeIngredients = recipeFacade.getRecipes(distinctRecipeIds, userEmail);
 
-        Map<UUID, RecipeWithIngredients> recipeMap = recipeIngredients.recipes().stream()
-                .collect(Collectors.toMap(RecipeWithIngredients::recipeId, Function.identity()));
+        Map<UUID, RecipeInfo> recipeMap = recipeIngredients.recipes().stream()
+                .collect(Collectors.toMap(RecipeInfo::id, Function.identity()));
 
         List<ProvisioningIngredient> ingredients = entries.stream()
                 .filter(entry -> recipeMap.containsKey(entry.getRecipeId()))
                 .flatMap(entry -> {
-                    RecipeWithIngredients recipe = recipeMap.get(entry.getRecipeId());
+                    RecipeInfo recipe = recipeMap.get(entry.getRecipeId());
                     BigDecimal multiplier = BigDecimal.valueOf(entry.getServingSize())
                             .divide(BigDecimal.valueOf(recipe.servingSize()), 10, RoundingMode.HALF_UP);
                     return recipe.ingredients().stream()
                             .map(ingredient -> new ProvisioningIngredient(
-                                    ingredient.name(), ingredient.quantity(), ingredient.unit(), multiplier));
+                                    ingredient.name(), ingredient.quantity(), ingredient.unit(), multiplier, recipe.name()));
                 })
                 .toList();
 
         List<GeneratedShoppingListItemDto> items = provisioningFacade.provision(ingredients).stream()
-                .map(item -> new GeneratedShoppingListItemDto(item.name(), item.quantity(), item.unit()))
+                .map(item -> new GeneratedShoppingListItemDto(item.name(), item.quantity(), item.unit(), item.source()))
                 .toList();
 
         List<String> warnings = recipeIngredients.inaccessibleRecipeNames().stream()

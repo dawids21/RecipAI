@@ -15,7 +15,8 @@ class ProvisioningService {
                 .map(ingredient -> new ProvisioningItem(
                         ingredient.name(),
                         applyMultiplier(parseQuantity(ingredient.quantity()), ingredient.multiplier()),
-                        ingredient.unit()))
+                        ingredient.unit(),
+                        ingredient.sourceName()))
                 .toList();
     }
 

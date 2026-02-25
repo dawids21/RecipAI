@@ -21,8 +21,8 @@ public class RecipeFacade {
     private final RecipeService recipeService;
     private final ObjectMapper objectMapper;
 
-    public RecipeIngredientsResult getIngredients(Collection<UUID> recipeIds, String userEmail) {
-        log.debug("Getting ingredients for {} recipes for user {}", recipeIds.size(), userEmail);
+    public RecipeInfoResult getRecipes(Collection<UUID> recipeIds, String userEmail) {
+        log.debug("Getting recipes for {} recipe ids for user {}", recipeIds.size(), userEmail);
 
         Set<UUID> accessibleRecipeIds = recipeService.findAll(userEmail).stream()
                 .map(RecipeListDto::id)
@@ -30,12 +30,17 @@ public class RecipeFacade {
 
         List<Recipe> recipes = recipeRepository.findAllById(recipeIds);
 
-        List<RecipeWithIngredients> recipeWithIngredients = recipes.stream()
+        List<RecipeInfo> recipeInfos = recipes.stream()
                 .filter(r -> accessibleRecipeIds.contains(r.getId()))
-                .map(r -> new RecipeWithIngredients(
+                .map(r -> new RecipeInfo(
                         r.getId(),
-                        extractServingSize(r.getData()),
-                        extractIngredients(r.getData())
+                        r.getName(),
+                        r.getRecipesCollectionId(),
+                        r.getCreatedAt(),
+                        extractIngredients(r.getData()),
+                        extractInstructions(r.getData()),
+                        extractSourceUrl(r.getData()),
+                        extractServingSize(r.getData())
                 ))
                 .toList();
 
@@ -44,7 +49,7 @@ public class RecipeFacade {
                 .map(Recipe::getName)
                 .toList();
 
-        return new RecipeIngredientsResult(recipeWithIngredients, inaccessibleRecipeNames);
+        return new RecipeInfoResult(recipeInfos, inaccessibleRecipeNames);
     }
 
     private List<Ingredient> extractIngredients(JsonNode data) {
@@ -60,6 +65,29 @@ public class RecipeFacade {
             log.error("Failed to extract ingredients from recipe data", e);
             return List.of();
         }
+    }
+
+    private List<Instruction> extractInstructions(JsonNode data) {
+        try {
+            if (!data.has("instructions")) {
+                return List.of();
+            }
+            return objectMapper.treeToValue(
+                    data.get("instructions"),
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Instruction.class)
+            );
+        } catch (Exception e) {
+            log.error("Failed to extract instructions from recipe data", e);
+            return List.of();
+        }
+    }
+
+    private String extractSourceUrl(JsonNode data) {
+        JsonNode sourceUrl = data.path("sourceUrl");
+        if (sourceUrl.isTextual()) {
+            return sourceUrl.asText();
+        }
+        return null;
     }
 
     private int extractServingSize(JsonNode data) {

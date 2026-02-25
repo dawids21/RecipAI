@@ -907,6 +907,7 @@ class MealPlanIntegrationTest {
         assertThat(response.items().getFirst().name()).isEqualTo("flour");
         assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("600"));
         assertThat(response.items().getFirst().unit()).isEqualTo("g");
+        assertThat(response.items().getFirst().source()).isEqualTo("Pasta");
         assertThat(response.warnings()).isEmpty();
 
         deleteRecipe(client, recipe.id());
@@ -1021,6 +1022,7 @@ class MealPlanIntegrationTest {
         assertThat(response.items().getFirst().name()).isEqualTo("salt");
         assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("3"));
         assertThat(response.items().getFirst().unit()).isNull();
+        assertThat(response.items().getFirst().source()).isEqualTo("Seasoned Dish");
         assertThat(response.warnings()).isEmpty();
 
         deleteRecipe(client, recipe.id());

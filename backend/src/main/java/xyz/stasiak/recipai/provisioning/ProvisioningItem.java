@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record ProvisioningItem(
         String name,
         BigDecimal quantity,
-        String unit
+        String unit,
+        String source
 ) {
 }

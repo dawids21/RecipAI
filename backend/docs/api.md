@@ -1155,12 +1155,14 @@
           {
             "name": "flour",
             "quantity": 300,
-            "unit": "g"
+            "unit": "g",
+            "source": "Pizza"
           },
           {
             "name": "tomato sauce",
             "quantity": 200,
-            "unit": "ml"
+            "unit": "ml",
+            "source": "Pizza"
           }
         ],
         "warnings": [
@@ -1177,7 +1179,8 @@
       non-numeric ingredient quantities (e.g., "to taste"), the multiplier itself is used as the quantity. If a
       recipe referenced by an entry is not accessible to the requesting user (e.g., it belongs to another user who
       shared only the plan), its ingredients are skipped and a warning message is included in the response. Returns
-      empty `items` and `warnings` lists when no matching entries are found.
+      empty `items` and `warnings` lists when no matching entries are found. Each item includes a `source` field
+      containing the name of the recipe it originated from.
 
 #### Sharing & Permissions
 
