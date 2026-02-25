@@ -247,9 +247,9 @@ class MealPlanService {
                 .distinct()
                 .toList();
 
-        RecipeInfoResult recipeIngredients = recipeFacade.getRecipes(distinctRecipeIds, userEmail);
+        RecipeInfoResult recipeInfos = recipeFacade.getRecipes(distinctRecipeIds, userEmail);
 
-        Map<UUID, RecipeInfo> recipeMap = recipeIngredients.recipes().stream()
+        Map<UUID, RecipeInfo> recipeMap = recipeInfos.recipes().stream()
                 .collect(Collectors.toMap(RecipeInfo::id, Function.identity()));
 
         List<ProvisioningIngredient> ingredients = entries.stream()
@@ -268,11 +268,7 @@ class MealPlanService {
                 .map(item -> new GeneratedShoppingListItemDto(item.name(), item.quantity(), item.unit(), item.source()))
                 .toList();
 
-        List<String> warnings = recipeIngredients.inaccessibleRecipeNames().stream()
-                .map("Recipe '%s' was skipped because you don't have access to it"::formatted)
-                .toList();
-
-        return new GeneratedShoppingListResponse(items, warnings);
+        return new GeneratedShoppingListResponse(items, recipeInfos.inaccessibleRecipeNames());
     }
 
     void shareMealPlan(String targetEmail, UUID planId, String requesterEmail) {

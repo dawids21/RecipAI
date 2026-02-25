@@ -908,7 +908,7 @@ class MealPlanIntegrationTest {
         assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("600"));
         assertThat(response.items().getFirst().unit()).isEqualTo("g");
         assertThat(response.items().getFirst().source()).isEqualTo("Pasta");
-        assertThat(response.warnings()).isEmpty();
+        assertThat(response.inaccessibleRecipeNames()).isEmpty();
 
         deleteRecipe(client, recipe.id());
     }
@@ -925,7 +925,7 @@ class MealPlanIntegrationTest {
                 client, List.of(plan.id()), List.of(date));
 
         assertThat(response.items()).isEmpty();
-        assertThat(response.warnings()).isEmpty();
+        assertThat(response.inaccessibleRecipeNames()).isEmpty();
     }
 
     @Test
@@ -940,7 +940,7 @@ class MealPlanIntegrationTest {
                 client, List.of(plan.id()), List.of(LocalDate.of(2026, 3, 2)));
 
         assertThat(response.items()).isEmpty();
-        assertThat(response.warnings()).isEmpty();
+        assertThat(response.inaccessibleRecipeNames()).isEmpty();
     }
 
     @Test
@@ -959,8 +959,8 @@ class MealPlanIntegrationTest {
                 client2, List.of(plan.id()), List.of(date));
 
         assertThat(response.items()).isEmpty();
-        assertThat(response.warnings()).hasSize(1);
-        assertThat(response.warnings().getFirst()).contains("Private Recipe");
+        assertThat(response.inaccessibleRecipeNames()).hasSize(1);
+        assertThat(response.inaccessibleRecipeNames().getFirst()).isEqualTo("Private Recipe");
 
         deleteRecipe(client1, privateRecipe.id());
     }
@@ -1023,7 +1023,7 @@ class MealPlanIntegrationTest {
         assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("3"));
         assertThat(response.items().getFirst().unit()).isNull();
         assertThat(response.items().getFirst().source()).isEqualTo("Seasoned Dish");
-        assertThat(response.warnings()).isEmpty();
+        assertThat(response.inaccessibleRecipeNames()).isEmpty();
 
         deleteRecipe(client, recipe.id());
     }

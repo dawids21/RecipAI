@@ -1133,7 +1133,7 @@
     - Description: Generate shopping list items from planned meals across one or more meal plans on specified dates.
       Only entries with a recipe (not placeholders) are considered. Ingredient quantities are scaled by the ratio of
       the entry's `servingSize` to the recipe's base `servingSize`. Recipes the requesting user cannot access are
-      skipped and included as warnings.
+      skipped and their names are included in `inaccessibleRecipeNames`.
     - Authenticated: true
     - Request body:
       ```json
@@ -1165,8 +1165,8 @@
             "source": "Pizza"
           }
         ],
-        "warnings": [
-          "Recipe 'Secret Recipe' was skipped because you don't have access to it"
+        "inaccessibleRecipeNames": [
+          "Secret Recipe"
         ]
       }
       ```
@@ -1178,9 +1178,9 @@
       `entry.servingSize / recipe.servingSize` (the recipe's base serving size defaults to 1 if not set). For
       non-numeric ingredient quantities (e.g., "to taste"), the multiplier itself is used as the quantity. If a
       recipe referenced by an entry is not accessible to the requesting user (e.g., it belongs to another user who
-      shared only the plan), its ingredients are skipped and a warning message is included in the response. Returns
-      empty `items` and `warnings` lists when no matching entries are found. Each item includes a `source` field
-      containing the name of the recipe it originated from.
+      shared only the plan), its ingredients are skipped and its name is included in `inaccessibleRecipeNames`.
+      Returns empty `items` and `inaccessibleRecipeNames` lists when no matching entries are found. Each item
+      includes a `source` field containing the name of the recipe it originated from.
 
 #### Sharing & Permissions
 
