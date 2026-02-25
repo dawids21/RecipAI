@@ -170,8 +170,8 @@
   when at least one date is selected. Shows selected date count.
 - Shopping List Generation Review Step (`shopping_list_generation_review_step.dart`) - Third step widget showing
   generated items via ShoppingListReviewWidget. Displays a collapsible warnings banner (errorContainer styled) when
-  some meals were skipped due to inaccessible recipes. Shows LoadingWidget during generation and ApiErrorWidget on
-  failure with retry support.
+  some meals were skipped due to inaccessible recipes, listing the inaccessible recipe names. Shows LoadingWidget
+  during generation and ApiErrorWidget on failure with retry support.
 - Month Calendar Widget (`month_calendar_widget.dart`) - Reusable month grid calendar widget with previous/next month
   navigation, locale-aware weekday labels (respects first day of week), and tappable day cells. Each day cell shows a
   dot indicator when the date has meal plan entries. Selected dates are highlighted with a filled circle using

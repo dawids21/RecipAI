@@ -2,11 +2,11 @@ import '../shopping_list/shopping_list_review_item.dart';
 
 class ShoppingListGeneratedItems {
   final List<ShoppingListGeneratedItem> items;
-  final List<String> warnings;
+  final List<String> inaccessibleRecipeNames;
 
   const ShoppingListGeneratedItems({
     required this.items,
-    required this.warnings,
+    required this.inaccessibleRecipeNames,
   });
 
   factory ShoppingListGeneratedItems.fromJson(Map<String, dynamic> json) {
@@ -17,7 +17,9 @@ class ShoppingListGeneratedItems {
                 ShoppingListGeneratedItem.fromJson(e as Map<String, dynamic>),
           )
           .toList(),
-      warnings: (json['warnings'] as List).map((e) => e as String).toList(),
+      inaccessibleRecipeNames: (json['inaccessibleRecipeNames'] as List)
+          .map((e) => e as String)
+          .toList(),
     );
   }
 }

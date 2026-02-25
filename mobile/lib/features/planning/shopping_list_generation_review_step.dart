@@ -35,8 +35,8 @@ class ShoppingListGenerationReviewStep extends StatelessWidget {
               ApiErrorWidget(errorMessage: error.toString(), onRetry: onRetry),
           data: (data) => Column(
             children: [
-              if (data.warnings.isNotEmpty)
-                _buildWarningsBanner(theme, data.warnings),
+              if (data.inaccessibleRecipeNames.isNotEmpty)
+                _buildWarningsBanner(theme, data.inaccessibleRecipeNames),
               Expanded(
                 child: ShoppingListReviewWidget(
                   items: data.items,
