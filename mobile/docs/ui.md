@@ -108,10 +108,10 @@
   (bulk uncheck checked items). Integrates with ShoppingListSyncService for background syncing (10-second polling)
   and conflict resolution with user notifications
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
-  items with smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit
-  extraction using regex, TextField-based editing with focus management, optional drag handle for reordering (using
-  ReorderableDragStartListener), and visual states (checked items with strikethrough). Drag handle is only shown
-  when showDragHandle parameter is true, positioned on the left side before the checkbox
+  items. Smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit extraction
+  using regex, TextField-based editing with focus management. Optional drag handle for reordering (using
+  ReorderableDragStartListener), positioned on the left before the checkbox. Optional `subtitle` parameter shows
+  secondary text (e.g. source recipe name) below the item text.
 - Shopping List Item Add Widget (`shopping_list_item_add_widget.dart`) - Dedicated widget for adding new shopping list
   items with plus icon, "Add item..." hint text, smart text parsing (same as ShoppingListItemWidget), and automatic
   field clearing with focus retention after submission for quick consecutive entry
@@ -172,6 +172,12 @@
   generated items via ShoppingListReviewWidget. Displays a collapsible warnings banner (errorContainer styled) when
   some meals were skipped due to inaccessible recipes, listing the inaccessible recipe names. Shows LoadingWidget
   during generation and ApiErrorWidget on failure with retry support.
+- Shopping List Review Widget (`shopping_list_review_widget.dart`) - Widget for reviewing and selecting generated
+  shopping list items before adding them to a list. Items are displayed using ShoppingListItemWidget with drag-and-drop
+  reordering (ReorderableListView with auto-scroll), inline editing, and checkbox selection. Unchecked items appear
+  with strikethrough. Source recipe name is shown as a subtitle below each item text. "Select All / Deselect All"
+  toggle in the header. Only checked items are submitted when tapping "Add to Shopping List". Items are a mutable
+  local copy — all modifications are client-side only.
 - Month Calendar Widget (`month_calendar_widget.dart`) - Reusable month grid calendar widget with previous/next month
   navigation, locale-aware weekday labels (respects first day of week), and tappable day cells. Each day cell shows a
   dot indicator when the date has meal plan entries. Selected dates are highlighted with a filled circle using

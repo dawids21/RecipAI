@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../core/async_value.dart';
 import '../../core/get_it.dart';
@@ -11,7 +10,6 @@ import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
 import 'shopping_list_detail.dart';
 import 'shopping_list_detail_service.dart';
-import 'shopping_list_item.dart';
 import 'shopping_list_item_add_widget.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_operation.dart';
@@ -329,7 +327,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       uncheckedWidgets.add(
         ShoppingListItemWidget(
           key: ValueKey(item.id),
-          item: item,
+          item: ItemDisplayData(
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            checked: item.checked,
+          ),
           index: i,
           showDragHandle: true,
           onEdit: (result) {
@@ -364,20 +367,15 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
 
       // Handle ephemeral item insertion in unchecked section only
       if (_ephemeralItemIndex == i) {
-        final tempItem = ShoppingListItem(
-          id: 'temp-${const Uuid().v4()}',
-          name: '',
-          quantity: null,
-          unit: null,
-          checked: false,
-          position: 0.0,
-          version: 0,
-        );
-
         uncheckedWidgets.add(
           ShoppingListItemWidget(
             key: const ValueKey('ephemeral-item'),
-            item: tempItem,
+            item: const ItemDisplayData(
+              name: '',
+              quantity: null,
+              unit: null,
+              checked: false,
+            ),
             index: i + 1,
             showDragHandle: true,
             autoFocus: true,
@@ -404,7 +402,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       checkedWidgets.add(
         ShoppingListItemWidget(
           key: ValueKey(item.id),
-          item: item,
+          item: ItemDisplayData(
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            checked: item.checked,
+          ),
           index: i,
           showDragHandle: true,
           onEdit: (result) {

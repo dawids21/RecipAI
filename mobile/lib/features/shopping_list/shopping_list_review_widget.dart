@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
+import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_review_item.dart';
 import 'shopping_list_review_service.dart';
@@ -25,37 +26,55 @@ class ShoppingListReviewWidget extends StatefulWidget {
 }
 
 class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
-  late Set<int> _selectedIndices;
+  late List<ShoppingListGeneratedItem> _items;
+  late Set<ShoppingListGeneratedItem> _selectedItems;
   late ShoppingListReviewService _reviewService;
 
   @override
   void initState() {
     super.initState();
-    _selectedIndices = Set.from(List.generate(widget.items.length, (i) => i));
+    _items = List.of(widget.items);
+    _selectedItems = Set.of(_items);
     _reviewService = ShoppingListReviewService(
       syncService: widget.shoppingListSyncService,
     );
   }
 
-  void _onItemToggled(int index, bool selected) {
+  void _onItemToggled(ShoppingListGeneratedItem item, bool selected) {
     setState(() {
       if (selected) {
-        _selectedIndices.add(index);
+        _selectedItems.add(item);
       } else {
-        _selectedIndices.remove(index);
+        _selectedItems.remove(item);
       }
     });
   }
 
   void _onToggleSelectAll() {
     setState(() {
-      if (_selectedIndices.length == widget.items.length) {
-        _selectedIndices.clear();
+      if (_selectedItems.length == _items.length) {
+        _selectedItems.clear();
       } else {
-        _selectedIndices = Set.from(
-          List.generate(widget.items.length, (i) => i),
-        );
+        _selectedItems = Set.of(_items);
       }
+    });
+  }
+
+  void _onItemEdited(ShoppingListGeneratedItem item, ItemChanged change) {
+    setState(() {
+      item.name = change.name;
+      item.quantity = change.quantity;
+      item.unit = change.unit;
+    });
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final item = _items.removeAt(oldIndex);
+      _items.insert(newIndex, item);
     });
   }
 
@@ -121,7 +140,9 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
   }
 
   Future<void> _onAddButtonPressed() async {
-    final selectedItems = _selectedIndices.map((i) => widget.items[i]).toList();
+    final selectedItems = _items
+        .where((item) => _selectedItems.contains(item))
+        .toList();
     if (selectedItems.isEmpty) return;
 
     final selectedListId = await _showListSelectionDialog();
@@ -161,7 +182,7 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
               TextButton(
                 onPressed: _onToggleSelectAll,
                 child: Text(
-                  _selectedIndices.length == widget.items.length
+                  _selectedItems.length == _items.length
                       ? 'Deselect All'
                       : 'Select All',
                 ),
@@ -169,42 +190,53 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
             ],
           ),
         ),
-        if (widget.items.isEmpty)
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: AppSpacing.screenPadding,
-                child: Text(
-                  'No items to add.',
-                  style: theme.textTheme.bodyLarge,
-                  textAlign: TextAlign.center,
+        Expanded(
+          child: _items.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: AppSpacing.screenPadding,
+                    child: Text(
+                      'No items to add.',
+                      style: theme.textTheme.bodyLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : ReorderableListView(
+                  padding: AppSpacing.screenPadding,
+                  buildDefaultDragHandles: false,
+                  onReorder: _onReorder,
+                  proxyDecorator: (child, index, animation) => Material(
+                    elevation: 8.0,
+                    color: theme.colorScheme.surfaceContainerLow,
+                    child: child,
+                  ),
+                  children: [
+                    for (int i = 0; i < _items.length; i++)
+                      ShoppingListItemWidget(
+                        key: ValueKey(_items[i]),
+                        item: ItemDisplayData(
+                          name: _items[i].name,
+                          quantity: _items[i].quantity,
+                          unit: _items[i].unit,
+                          checked: _selectedItems.contains(_items[i]),
+                          strikethrough: !_selectedItems.contains(_items[i]),
+                        ),
+                        index: i,
+                        showDragHandle: true,
+                        showDeleteButton: false,
+                        subtitle: _items[i].source,
+                        onEdit: (change) => _onItemEdited(_items[i], change),
+                        onCheckChanged: (checked) =>
+                            _onItemToggled(_items[i], checked),
+                      ),
+                  ],
                 ),
-              ),
-            ),
-          )
-        else
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.items.length,
-              itemBuilder: (context, index) {
-                final item = widget.items[index];
-                final isSelected = _selectedIndices.contains(index);
-                final subtitle = item.displaySubtitle;
-
-                return CheckboxListTile(
-                  value: isSelected,
-                  onChanged: (checked) =>
-                      _onItemToggled(index, checked == true),
-                  title: Text(item.displayTitle),
-                  subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
-                );
-              },
-            ),
-          ),
+        ),
         Padding(
           padding: AppSpacing.screenPadding,
           child: ElevatedButton(
-            onPressed: _selectedIndices.isNotEmpty ? _onAddButtonPressed : null,
+            onPressed: _selectedItems.isNotEmpty ? _onAddButtonPressed : null,
             child: const Text('Add to Shopping List'),
           ),
         ),

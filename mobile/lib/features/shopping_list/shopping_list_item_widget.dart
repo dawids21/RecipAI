@@ -1,8 +1,23 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
-import 'shopping_list_item.dart';
 import 'shopping_list_item_parser.dart';
+
+class ItemDisplayData {
+  final String name;
+  final double? quantity;
+  final String? unit;
+  final bool checked;
+  final bool strikethrough;
+
+  const ItemDisplayData({
+    required this.name,
+    this.quantity,
+    this.unit,
+    this.checked = false,
+    bool? strikethrough,
+  }) : strikethrough = strikethrough ?? checked;
+}
 
 class ItemChanged {
   final String name;
@@ -17,27 +32,31 @@ class ItemChanged {
 }
 
 class ShoppingListItemWidget extends StatefulWidget {
-  final ShoppingListItem item;
+  final ItemDisplayData item;
   final ValueChanged<ItemChanged> onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final ValueChanged<bool> onCheckChanged;
   final bool showDragHandle;
+  final bool showDeleteButton;
   final int? index;
   final VoidCallback? onSubmitted;
   final bool autoFocus;
   final bool allowEmpty;
+  final String? subtitle;
 
   const ShoppingListItemWidget({
     super.key,
     required this.item,
     required this.onEdit,
-    required this.onDelete,
+    this.onDelete,
     required this.onCheckChanged,
     this.showDragHandle = false,
+    this.showDeleteButton = true,
     this.index,
     this.onSubmitted,
     this.autoFocus = false,
     this.allowEmpty = false,
+    this.subtitle,
   });
 
   @override
@@ -122,7 +141,7 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final textStyle = widget.item.checked
+    final textStyle = widget.item.strikethrough
         ? theme.textTheme.bodyLarge?.copyWith(
             decoration: TextDecoration.lineThrough,
             color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.6),
@@ -156,34 +175,47 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
             leadingWidget,
             const SizedBox(width: AppSpacing.small),
             Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                style: textStyle,
-                maxLines: null,
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onSubmitted: (text) {
-                  if (text.isNotEmpty) {
-                    _parseAndSave();
-                    widget.onSubmitted?.call();
-                  }
-                  _focusNode.requestFocus();
-                },
-                onTapOutside: (_) {
-                  _focusNode.unfocus();
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    style: textStyle,
+                    maxLines: null,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onSubmitted: (text) {
+                      if (text.isNotEmpty) {
+                        _parseAndSave();
+                        widget.onSubmitted?.call();
+                      }
+                      _focusNode.requestFocus();
+                    },
+                    onTapOutside: (_) {
+                      _focusNode.unfocus();
+                    },
+                  ),
+                  if (widget.subtitle != null && widget.subtitle!.isNotEmpty)
+                    Text(
+                      widget.subtitle!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: widget.onDelete,
-            ),
+            if (widget.showDeleteButton)
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: widget.onDelete,
+              ),
           ],
         ),
       ),

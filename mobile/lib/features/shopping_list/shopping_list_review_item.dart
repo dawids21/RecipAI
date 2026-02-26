@@ -1,12 +1,12 @@
 import '../recipe/recipe_detail.dart';
 
 class ShoppingListGeneratedItem {
-  final String name;
-  final double? quantity;
-  final String? unit;
+  String name;
+  double? quantity;
+  String? unit;
   final String? source;
 
-  const ShoppingListGeneratedItem({
+  ShoppingListGeneratedItem({
     required this.name,
     this.quantity,
     this.unit,
