@@ -68,7 +68,7 @@ class _RecipAIAppState extends State<RecipAIApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: widget.appRouter,
-      supportedLocales: [Locale('en'), Locale('pl')],
+      supportedLocales: [Locale('en', 'US'), Locale('en', 'GB'), Locale('pl')],
     );
   }
 }
