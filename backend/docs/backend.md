@@ -23,8 +23,10 @@
   aggregation, serving size scaling, and warnings for inaccessible recipes)
 - `provisioning` - transformation module that converts a list of ingredients (each with a quantity multiplier) into
   shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; applies the
-  multiplier to numeric quantities; designed to support future enhancements (merging duplicates, unit conversion,
-  quantity normalization, etc.)
+  multiplier to numeric quantities (uses multiplier as quantity when quantity is null); appends `comment` in
+  parentheses to the ingredient name when present (e.g., `"salt (to taste)"`); designed to support future enhancements (
+  merging
+  duplicates, unit conversion, quantity normalization, etc.)
 - `config.s3` - provides S3 client configuration for AWS SDK integration with presigned URL support
 - `config.security` - handles OAuth2 Resource Server authentication with JWT tokens
 

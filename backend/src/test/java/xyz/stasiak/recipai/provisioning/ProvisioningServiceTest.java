@@ -14,9 +14,9 @@ class ProvisioningServiceTest {
     @Test
     void shouldMultiplyNumericQuantityByMultiplier() {
         var ingredients = List.of(
-                new ProvisioningIngredient("Flour", "2", "cups", new BigDecimal("3"), "Cake"),
-                new ProvisioningIngredient("Sugar", "1", "tbsp", new BigDecimal("2"), "Cake"),
-                new ProvisioningIngredient("Salt", null, null, BigDecimal.ONE, "Cake")
+                new ProvisioningIngredient("Flour", new BigDecimal(2), "cups", new BigDecimal(3), "Cake", null),
+                new ProvisioningIngredient("Sugar", new BigDecimal(1), "tbsp", new BigDecimal(2), "Cake", null),
+                new ProvisioningIngredient("Salt", null, null, BigDecimal.ONE, "Cake", null)
         );
 
         var items = provisioningService.provision(ingredients);
@@ -33,33 +33,13 @@ class ProvisioningServiceTest {
     @Test
     void shouldReturnMultiplierAsQuantityForNullQuantity() {
         var ingredients = List.of(
-                new ProvisioningIngredient("Salt", null, null, new BigDecimal("3"), "Soup")
+                new ProvisioningIngredient("Salt", null, null, new BigDecimal("3"), "Soup", null)
         );
 
         var items = provisioningService.provision(ingredients);
 
         assertThat(items.getFirst().quantity()).isEqualByComparingTo(new BigDecimal("3"));
         assertThat(items.getFirst().source()).isEqualTo("Soup");
-    }
-
-    @Test
-    void shouldReturnMultiplierAsQuantityForUnparseableValue() {
-        var ingredients = List.of(new ProvisioningIngredient("Flour", "abc", "cups", new BigDecimal("2"), "Bread"));
-
-        var items = provisioningService.provision(ingredients);
-
-        assertThat(items.getFirst().quantity()).isEqualByComparingTo(new BigDecimal("2"));
-        assertThat(items.getFirst().source()).isEqualTo("Bread");
-    }
-
-    @Test
-    void shouldReturnMultiplierAsQuantityForBlankValue() {
-        var ingredients = List.of(new ProvisioningIngredient("Sugar", "  ", "tbsp", new BigDecimal("4"), "Cookie"));
-
-        var items = provisioningService.provision(ingredients);
-
-        assertThat(items.getFirst().quantity()).isEqualByComparingTo(new BigDecimal("4"));
-        assertThat(items.getFirst().source()).isEqualTo("Cookie");
     }
 
     @Test
@@ -72,14 +52,48 @@ class ProvisioningServiceTest {
     @Test
     void shouldPreserveIngredientOrder() {
         var ingredients = List.of(
-                new ProvisioningIngredient("Eggs", "3", null, BigDecimal.ONE, "Omelette"),
-                new ProvisioningIngredient("Butter", "100", "g", BigDecimal.ONE, "Omelette"),
-                new ProvisioningIngredient("Milk", "200", "ml", BigDecimal.ONE, "Omelette")
+                new ProvisioningIngredient("Eggs", new BigDecimal(3), null, BigDecimal.ONE, "Omelette", null),
+                new ProvisioningIngredient("Butter", new BigDecimal(100), "g", BigDecimal.ONE, "Omelette", null),
+                new ProvisioningIngredient("Milk", new BigDecimal(200), "ml", BigDecimal.ONE, "Omelette", null)
         );
 
         var items = provisioningService.provision(ingredients);
 
         assertThat(items).extracting(ProvisioningItem::name)
                 .containsExactly("Eggs", "Butter", "Milk");
+    }
+
+    @Test
+    void shouldPrependCommentToIngredientName() {
+        var ingredients = List.of(
+                new ProvisioningIngredient("salt", null, null, new BigDecimal(2), "Soup", "to taste")
+        );
+
+        var items = provisioningService.provision(ingredients);
+
+        assertThat(items.getFirst().name()).isEqualTo("salt (to taste)");
+        assertThat(items.getFirst().quantity()).isEqualByComparingTo(new BigDecimal("2"));
+    }
+
+    @Test
+    void shouldNotPrependNullComment() {
+        var ingredients = List.of(
+                new ProvisioningIngredient("Flour", new BigDecimal(300), "g", BigDecimal.ONE, "Bread", null)
+        );
+
+        var items = provisioningService.provision(ingredients);
+
+        assertThat(items.getFirst().name()).isEqualTo("Flour");
+    }
+
+    @Test
+    void shouldNotPrependBlankComment() {
+        var ingredients = List.of(
+                new ProvisioningIngredient("Flour", new BigDecimal(300), "g", BigDecimal.ONE, "Bread", "  ")
+        );
+
+        var items = provisioningService.provision(ingredients);
+
+        assertThat(items.getFirst().name()).isEqualTo("Flour");
     }
 }

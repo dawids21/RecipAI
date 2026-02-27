@@ -4,9 +4,10 @@ import java.math.BigDecimal;
 
 public record ProvisioningIngredient(
         String name,
-        String quantity,
+        BigDecimal quantity,
         String unit,
         BigDecimal multiplier,
-        String sourceName
+        String sourceName,
+        String comment
 ) {
 }

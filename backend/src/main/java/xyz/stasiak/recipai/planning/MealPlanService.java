@@ -260,7 +260,7 @@ class MealPlanService {
                             .divide(BigDecimal.valueOf(recipe.servingSize()), 10, RoundingMode.HALF_UP);
                     return recipe.ingredients().stream()
                             .map(ingredient -> new ProvisioningIngredient(
-                                    ingredient.name(), ingredient.quantity(), ingredient.unit(), multiplier, recipe.name()));
+                                    ingredient.name(), ingredient.quantity(), ingredient.unit(), multiplier, recipe.name(), ingredient.comment()));
                 })
                 .toList();
 

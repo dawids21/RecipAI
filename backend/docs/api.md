@@ -56,13 +56,17 @@
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "300",
+              "quantity": 300,
               "unit": "g"
             },
             {
               "name": "tomato sauce",
-              "quantity": "200",
+              "quantity": 200,
               "unit": "ml"
+            },
+            {
+              "name": "salt",
+              "comment": "to taste"
             }
           ],
           "instructions": [
@@ -120,13 +124,17 @@
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "300",
+              "quantity": 300,
               "unit": "g"
             },
             {
               "name": "tomato sauce",
-              "quantity": "200",
+              "quantity": 200,
               "unit": "ml"
+            },
+            {
+              "name": "salt",
+              "comment": "to taste"
             }
           ],
           "instructions": [
@@ -152,13 +160,17 @@
           "ingredients": [
             {
               "name": "flour",
-              "quantity": "300",
+              "quantity": 300,
               "unit": "g"
             },
             {
               "name": "tomato sauce",
-              "quantity": "200",
+              "quantity": 200,
               "unit": "ml"
+            },
+            {
+              "name": "salt",
+              "comment": "to taste"
             }
           ],
           "instructions": [
@@ -233,12 +245,12 @@
             "ingredients": [
               {
                 "name": "flour",
-                "quantity": "400",
+                "quantity": 400,
                 "unit": "g"
               },
               {
                 "name": "cheese",
-                "quantity": "200",
+                "quantity": 200,
                 "unit": "g"
               }
             ],
@@ -265,12 +277,12 @@
             "ingredients": [
               {
                 "name": "flour",
-                "quantity": "400",
+                "quantity": 400,
                 "unit": "g"
               },
               {
                 "name": "cheese",
-                "quantity": "200",
+                "quantity": 200,
                 "unit": "g"
               }
             ],
@@ -401,13 +413,17 @@
       "ingredients": [
         {
           "name": "flour",
-          "quantity": "300",
+          "quantity": 300,
           "unit": "g"
         },
         {
           "name": "tomato sauce",
-          "quantity": "200",
+          "quantity": 200,
           "unit": "ml"
+        },
+        {
+          "name": "salt",
+          "comment": "to taste"
         }
       ],
       "instructions": [
@@ -436,12 +452,12 @@
         "ingredients": [
           {
             "name": "black beans",
-            "quantity": "1",
+            "quantity": 1,
             "unit": "cup"
           },
           {
             "name": "breadcrumbs",
-            "quantity": "1/2",
+            "quantity": 0.5,
             "unit": "cup"
           }
         ],
@@ -1176,11 +1192,13 @@
     - Note: All specified plan IDs are validated — the user must have access to every plan in the request. Entries
       with placeholder text (no recipeId) are ignored. Ingredient quantities are multiplied by
       `entry.servingSize / recipe.servingSize` (the recipe's base serving size defaults to 1 if not set). For
-      non-numeric ingredient quantities (e.g., "to taste"), the multiplier itself is used as the quantity. If a
-      recipe referenced by an entry is not accessible to the requesting user (e.g., it belongs to another user who
-      shared only the plan), its ingredients are skipped and its name is included in `inaccessibleRecipeNames`.
-      Returns empty `items` and `inaccessibleRecipeNames` lists when no matching entries are found. Each item
-      includes a `source` field containing the name of the recipe it originated from.
+      ingredients with null quantity (e.g., those with a `comment` like "to taste"), the multiplier itself is used as
+      the quantity. If a recipe referenced by an entry is not accessible to the
+      requesting user (e.g., it belongs to another user who shared only the plan), its ingredients are skipped and
+      its name is included in `inaccessibleRecipeNames`. When a `comment` is present on an ingredient, it is
+      appended in parentheses to the ingredient name in the shopping list item (e.g., `"salt (to taste)"`). Returns
+      empty `items` and `inaccessibleRecipeNames` lists when no matching entries are found. Each item includes a
+      `source` field containing the name of the recipe it originated from.
 
 #### Sharing & Permissions
 

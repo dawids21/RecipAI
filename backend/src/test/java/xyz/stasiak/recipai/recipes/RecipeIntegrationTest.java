@@ -15,6 +15,7 @@ import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 import xyz.stasiak.recipai.recipes.collections.dto.ShareRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.UnshareRecipesCollectionRequest;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -156,7 +157,7 @@ class RecipeIntegrationTest {
 
     private RecipeData createTestRecipeData() {
         return new RecipeData(
-                List.of(new Ingredient("flour", "300g", null)),
+                List.of(new Ingredient("flour", new BigDecimal(300), "g", null)),
                 List.of(new Instruction("Make dough")),
                 "",
                 1
@@ -170,9 +171,9 @@ class RecipeIntegrationTest {
         // CREATE: Create first recipe
         RecipeData pizzaData = new RecipeData(
                 List.of(
-                        new Ingredient("flour", "300g", null),
-                        new Ingredient("tomato sauce", "200ml", null),
-                        new Ingredient("mozzarella", "150g", null)
+                        new Ingredient("flour", new BigDecimal(300), "g", null),
+                        new Ingredient("tomato sauce", new BigDecimal(200), "ml", null),
+                        new Ingredient("mozzarella", new BigDecimal(150), "g", null)
                 ),
                 List.of(
                         new Instruction("Make dough"),
@@ -190,9 +191,9 @@ class RecipeIntegrationTest {
         // CREATE: Create second recipe
         RecipeData pastaData = new RecipeData(
                 List.of(
-                        new Ingredient("spaghetti", "400g", null),
-                        new Ingredient("eggs", "4", null),
-                        new Ingredient("pancetta", "200g", null)
+                        new Ingredient("spaghetti", new BigDecimal(400), "g", null),
+                        new Ingredient("eggs", new BigDecimal(4), null, null),
+                        new Ingredient("pancetta", new BigDecimal(200), "g", null)
                 ),
                 List.of(
                         new Instruction("Cook pasta"),
@@ -231,9 +232,9 @@ class RecipeIntegrationTest {
         // UPDATE: Update the pizza recipe
         RecipeData updatedPizzaData = new RecipeData(
                 List.of(
-                        new Ingredient("flour", "400g", null),
-                        new Ingredient("cheese", "200g", null),
-                        new Ingredient("tomatoes", "300g", null)
+                        new Ingredient("flour", new BigDecimal(400), "g", null),
+                        new Ingredient("cheese", new BigDecimal(200), "g", null),
+                        new Ingredient("tomatoes", new BigDecimal(300), "g", null)
                 ),
                 List.of(
                         new Instruction("Make better dough"),
@@ -251,7 +252,7 @@ class RecipeIntegrationTest {
         assertThat(updatedRecipe.name()).isEqualTo("Updated Pizza Margherita");
         assertThat(updatedRecipe.data().ingredients()).hasSize(3);
         assertThat(updatedRecipe.data().instructions()).hasSize(3);
-        assertThat(updatedRecipe.data().ingredients().getFirst().quantity()).isEqualTo("400g");
+        assertThat(updatedRecipe.data().ingredients().getFirst().quantity()).isEqualByComparingTo(new BigDecimal(400));
 
         // READ: Verify GET shows updated data
         RecipeDetailsDto fetchedUpdatedRecipe = getRecipe(client, pizzaResponse.id());
@@ -288,7 +289,7 @@ class RecipeIntegrationTest {
     void shouldReturn404WhenUpdatingNonExistentRecipe() {
         RestClient client = restClient();
         RecipeData data = new RecipeData(
-                List.of(new Ingredient("flour", "300g", null)),
+                List.of(new Ingredient("flour", new BigDecimal(300), "g", null)),
                 List.of(new Instruction("Make dough")),
                 "",
                 1
@@ -325,7 +326,7 @@ class RecipeIntegrationTest {
 
         // User 1 creates a recipe
         RecipeData user1RecipeData = new RecipeData(
-                List.of(new Ingredient("flour", "300g", null)),
+                List.of(new Ingredient("flour", new BigDecimal(300), "g", null)),
                 List.of(new Instruction("Make bread")),
                 "",
                 1
@@ -337,7 +338,7 @@ class RecipeIntegrationTest {
 
         // User 2 creates a recipe
         RecipeData user2RecipeData = new RecipeData(
-                List.of(new Ingredient("sugar", "200g", null)),
+                List.of(new Ingredient("sugar", new BigDecimal(200), "g", null)),
                 List.of(new Instruction("Make cake")),
                 "",
                 1
@@ -377,7 +378,7 @@ class RecipeIntegrationTest {
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
-                List.of(new Ingredient("secret ingredient", "100g", null)),
+                List.of(new Ingredient("secret ingredient", new BigDecimal(100), "g", null)),
                 List.of(new Instruction("Secret recipe step")),
                 "",
                 1
@@ -421,7 +422,7 @@ class RecipeIntegrationTest {
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
-                List.of(new Ingredient("secret ingredient", "100g", null)),
+                List.of(new Ingredient("secret ingredient", new BigDecimal(100), "g", null)),
                 List.of(new Instruction("Secret recipe step")),
                 "",
                 1
@@ -459,7 +460,7 @@ class RecipeIntegrationTest {
 
         // User 2 (EDITOR) should be able to update the recipe
         RecipeData updatedData = new RecipeData(
-                List.of(new Ingredient("updated ingredient", "200g", null)),
+                List.of(new Ingredient("updated ingredient", new BigDecimal(200), "g", null)),
                 List.of(new Instruction("Updated recipe step")),
                 "",
                 2
@@ -508,7 +509,7 @@ class RecipeIntegrationTest {
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
-                List.of(new Ingredient("ingredient", "100g", null)),
+                List.of(new Ingredient("ingredient", new BigDecimal(100), "g", null)),
                 List.of(new Instruction("Step")),
                 "",
                 1
@@ -560,7 +561,7 @@ class RecipeIntegrationTest {
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
-                List.of(new Ingredient("ingredient", "100g", null)),
+                List.of(new Ingredient("ingredient", new BigDecimal(100), "g", null)),
                 List.of(new Instruction("Step")),
                 "",
                 1
@@ -977,7 +978,7 @@ class RecipeIntegrationTest {
     void shouldReturnIngredientsForRecipe() {
         RestClient client = restClient();
         RecipeData data = new RecipeData(
-                List.of(new Ingredient("Flour", "300", "g"), new Ingredient("Sugar", "100", "g")),
+                List.of(new Ingredient("Flour", new BigDecimal(300), "g", null), new Ingredient("Sugar", new BigDecimal(100), "g", null)),
                 List.of(new Instruction("Mix")),
                 null, 1
         );
@@ -989,8 +990,8 @@ class RecipeIntegrationTest {
         assertThat(result.recipes().getFirst().id()).isEqualTo(recipe.id());
         assertThat(result.recipes().getFirst().name()).isEqualTo("Cake");
         assertThat(result.recipes().getFirst().servingSize()).isEqualTo(1);
-        assertThat(result.recipes().getFirst().ingredients().get(0)).isEqualTo(new Ingredient("Flour", "300", "g"));
-        assertThat(result.recipes().getFirst().ingredients().get(1)).isEqualTo(new Ingredient("Sugar", "100", "g"));
+        assertThat(result.recipes().getFirst().ingredients().get(0)).isEqualTo(new Ingredient("Flour", new BigDecimal(300), "g", null));
+        assertThat(result.recipes().getFirst().ingredients().get(1)).isEqualTo(new Ingredient("Sugar", new BigDecimal(100), "g", null));
         assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 
@@ -998,12 +999,12 @@ class RecipeIntegrationTest {
     void shouldFlattenIngredientsAcrossMultipleRecipes() {
         RestClient client = restClient();
         RecipeData data1 = new RecipeData(
-                List.of(new Ingredient("Eggs", "3", null)),
+                List.of(new Ingredient("Eggs", new BigDecimal(3), null, null)),
                 List.of(new Instruction("Beat")),
                 null, 1
         );
         RecipeData data2 = new RecipeData(
-                List.of(new Ingredient("Butter", "100", "g"), new Ingredient("Milk", "200", "ml")),
+                List.of(new Ingredient("Butter", new BigDecimal(100), "g", null), new Ingredient("Milk", new BigDecimal(200), "ml", null)),
                 List.of(new Instruction("Melt")),
                 null, 1
         );

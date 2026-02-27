@@ -17,6 +17,7 @@ import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.dto.SharedUserDto;
 import xyz.stasiak.recipai.recipes.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +106,7 @@ class MealPlanIntegrationTest {
 
     private RecipeDetailsDto createRecipe(RestClient client, String name) {
         RecipeData data = new RecipeData(
-                List.of(new Ingredient("flour", "300", "g")),
+                List.of(new Ingredient("flour", new BigDecimal(300), "g", null)),
                 List.of(new Instruction("Mix")),
                 null,
                 1
@@ -905,7 +906,7 @@ class MealPlanIntegrationTest {
 
         assertThat(response.items()).hasSize(1);
         assertThat(response.items().getFirst().name()).isEqualTo("flour");
-        assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("600"));
+        assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new BigDecimal("600"));
         assertThat(response.items().getFirst().unit()).isEqualTo("g");
         assertThat(response.items().getFirst().source()).isEqualTo("Pasta");
         assertThat(response.inaccessibleRecipeNames()).isEmpty();
@@ -1004,7 +1005,7 @@ class MealPlanIntegrationTest {
         RestClient client = restClient();
 
         RecipeData data = new RecipeData(
-                List.of(new Ingredient("salt", "to taste", null)),
+                List.of(new Ingredient("salt", null, null, "to taste")),
                 List.of(new Instruction("Season")),
                 null,
                 1
@@ -1019,8 +1020,8 @@ class MealPlanIntegrationTest {
                 client, List.of(plan.id()), List.of(date));
 
         assertThat(response.items()).hasSize(1);
-        assertThat(response.items().getFirst().name()).isEqualTo("salt");
-        assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new java.math.BigDecimal("3"));
+        assertThat(response.items().getFirst().name()).isEqualTo("salt (to taste)");
+        assertThat(response.items().getFirst().quantity()).isEqualByComparingTo(new BigDecimal("3"));
         assertThat(response.items().getFirst().unit()).isNull();
         assertThat(response.items().getFirst().source()).isEqualTo("Seasoned Dish");
         assertThat(response.inaccessibleRecipeNames()).isEmpty();
