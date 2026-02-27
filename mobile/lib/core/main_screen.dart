@@ -9,7 +9,7 @@ import '../features/planning/meal_plan_drawer.dart';
 import '../features/planning/meal_plan_list_service.dart';
 import '../features/planning/meal_plan_visibility_service.dart';
 import '../features/recipe/collection/recipes_collection_list_service.dart';
-import '../features/recipe/recipe_list.dart';
+import '../features/recipe/recipe_grid.dart';
 import '../features/recipe/recipe_list_fab.dart';
 import '../features/recipe/recipe_list_service.dart';
 import '../features/shopping_list/shopping_list_list.dart';
@@ -212,7 +212,7 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          RecipeList(
+          RecipeGrid(
             recipeListService: widget.recipeListService,
             recipesCollectionListService: widget.recipesCollectionListService,
             onRecipeTap: (context, recipe) {

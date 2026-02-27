@@ -5,7 +5,7 @@
 ### Core feature
 
 - Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing recipe,
-  planning, and shopping list tabs. Displays RecipeList, MealPlanCalendarScreen, or ShoppingListList widgets based on
+  planning, and shopping list tabs. Displays RecipeGrid, MealPlanCalendarScreen, or ShoppingListList widgets based on
   selected tab, with corresponding FABs (
   RecipeListFab, MealPlanCalendarFab, or ShoppingListListFab). Features PopupMenuButton in AppBar with "Recipes
   collections", "Generate shopping list", and logout options. When Planning tab is active and meal planning feature flag
@@ -14,18 +14,19 @@
 
 ### Recipe feature
 
-- Recipe List Widget (`recipe_list.dart`) - Reusable body widget displaying all available recipes with horizontal
-  Recipe Filter Bar and fuzzy search bar. Recipe Filter Bar state is shared across the app. Requires `onRecipeTap`
-  callback parameter to define tap behavior. Results are filtered by collection (server-side) and search query (
-  client-side with fuzzy matching).
-- Recipe List Item (`recipe_list_item.dart`) - Reusable widget for displaying individual recipes with optional
-  thumbnails in a list
+- Recipe Grid Widget (`recipe_grid.dart`) - Reusable body widget displaying all available recipes in a 3-column grid
+  with horizontal Recipe Filter Bar and fuzzy search bar. Recipe Filter Bar state is shared across the app. Requires
+  `onRecipeTap` callback parameter to define tap behavior. Results are filtered by collection (server-side) and search
+  query (client-side with fuzzy matching).
+- Recipe Grid Item (`recipe_grid_item.dart`) - Reusable card widget for displaying individual recipes in a grid with a
+  full-width image on top (with loading, error, and placeholder states) and a recipe name below (up to 3 lines,
+  ellipsis overflow)
 - Recipe Filter Bar (`recipe_filter_bar.dart`) - Self-contained horizontal scrollable chip filter widget using Material
   3
   ChoiceChip components. Displays "All Recipes" (default), "Unassigned", and collection name chips. Selected filter
   persists across app restarts using SharedPreferences.
 - Recipe Search Bar (`recipe_search_bar.dart`) - Search input widget accepting current search query (String)
-  and onChange callback. Used by RecipeList for local search state. Updates parent in real-time as user types.
+  and onChange callback. Used by RecipeGrid for local search state. Updates parent in real-time as user types.
   Search filtering is performed by RecipeListService.getFilteredRecipes() with fuzzy matching, ranking results by
   match score with best matches at top.
 - Recipe List FAB (`recipe_list_fab.dart`) - Speed Dial FAB widget for importing and creating recipes
@@ -70,7 +71,7 @@
 - Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
   shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
   and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success
-- Recipe Picker Screen (`recipe_picker_screen.dart`) - Full-screen screen for selecting recipes using RecipeList
+- Recipe Picker Screen (`recipe_picker_screen.dart`) - Full-screen screen for selecting recipes using RecipeGrid
   component with search and filter capabilities. Uses Scaffold with AppBar and standard navigation (Navigator.push/pop).
   Returns selected Recipe via Navigator.pop when user taps an item. Route: /recipes/picker
 - Recipes Collection List Screen (`collection/recipes_collection_list_screen.dart`) - Screen for managing recipe
@@ -236,7 +237,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 #### Main App Routes
 
 - `/` - Main screen with embedded bottom navigation (AppRoute.main)
-    - Tab 1: Recipes (default) - Displays RecipeList widget
+  - Tab 1: Recipes (default) - Displays RecipeGrid widget
   - Tab 2: Planning - Displays MealPlanCalendarScreen widget with right-side drawer for plan management
   - Tab 3: Shopping - Displays ShoppingListList widget
 - `/recipes/url-extraction` - URL extraction screen (nested route)

@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'recipe.dart';
 import 'recipe_filter_bar.dart';
-import 'recipe_list_item.dart';
+import 'recipe_grid_item.dart';
 import 'recipe_list_service.dart';
 import 'recipe_search_bar.dart';
 
-class RecipeList extends StatefulWidget {
+class RecipeGrid extends StatefulWidget {
   final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
   final void Function(BuildContext, Recipe) onRecipeTap;
 
-  const RecipeList({
+  const RecipeGrid({
     super.key,
     required this.recipeListService,
     required this.recipesCollectionListService,
@@ -22,10 +23,10 @@ class RecipeList extends StatefulWidget {
   });
 
   @override
-  State<RecipeList> createState() => _RecipeListState();
+  State<RecipeGrid> createState() => _RecipeGridState();
 }
 
-class _RecipeListState extends State<RecipeList> {
+class _RecipeGridState extends State<RecipeGrid> {
   String _searchQuery = '';
 
   void _onRecipeTap(BuildContext context, Recipe recipe) {
@@ -77,10 +78,21 @@ class _RecipeListState extends State<RecipeList> {
                         ),
                       );
                     }
-                    return ListView.builder(
+                    return GridView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.small,
+                        vertical: AppSpacing.small,
+                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 1.0,
+                            mainAxisSpacing: 1.0,
+                            childAspectRatio: 0.6,
+                          ),
                       itemCount: recipes.length,
                       itemBuilder: (context, index) {
-                        return RecipeListItem(
+                        return RecipeGridItem(
                           recipe: recipes[index],
                           onTap: () => _onRecipeTap(context, recipes[index]),
                         );

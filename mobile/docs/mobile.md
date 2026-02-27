@@ -110,10 +110,10 @@ mobile/
 │       │   ├── recipe_search_bar.dart  # Search bar widget with fuzzy matching
 │       │   ├── recipe_detail_service.dart # Recipe detail and sharing business logic with ValueNotifier
 │       │   ├── recipe_setup.dart       # Dependency injection setup for recipe module
-│       │   ├── recipe_list.dart        # Reusable recipe list body widget with filter bar and search. Requires onRecipeTap callback, uses local search state
+│       │   ├── recipe_grid.dart        # Reusable recipe grid body widget with filter bar and search. Requires onRecipeTap callback, uses local search state
+│       │   ├── recipe_grid_item.dart   # Recipe grid item card widget with full-width image and title
 │       │   ├── recipe_list_fab.dart    # Reusable recipe list FAB widget
-│       │   ├── recipe_list_item.dart   # Recipe list item widget with thumbnail support
-│       │   ├── recipe_picker_dialog.dart # Dialog for selecting recipes using RecipeList component
+│       │   ├── recipe_picker_dialog.dart # Dialog for selecting recipes using RecipeGrid component
 │       │   ├── recipe_image_carousel.dart # Image carousel widget with PageView, pagination, and tap-to-zoom
 │       │   ├── recipe_image_fullscreen_viewer.dart # Fullscreen zoomable image viewer using photo_view package
 │       │   ├── recipe_image_input.dart # Data model for managing recipe images (new/existing)

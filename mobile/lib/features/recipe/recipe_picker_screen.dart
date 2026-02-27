@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_list_service.dart';
-import 'package:recipai_mobile/features/recipe/recipe_list.dart';
+import 'package:recipai_mobile/features/recipe/recipe_grid.dart';
 import 'package:recipai_mobile/features/recipe/recipe_list_service.dart';
 
 class RecipePickerScreen extends StatelessWidget {
@@ -27,7 +27,7 @@ class RecipePickerScreen extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: RecipeList(
+        child: RecipeGrid(
           recipeListService: recipeListService,
           recipesCollectionListService: recipesCollectionListService,
           onRecipeTap: (context, recipe) {
