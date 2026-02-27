@@ -26,21 +26,33 @@ class RecipeImage {
 
 class Ingredient {
   final String name;
-  final String quantity;
+  final double? quantity;
   final String? unit;
+  final String? comment;
 
-  const Ingredient({required this.name, required this.quantity, this.unit});
+  const Ingredient({
+    required this.name,
+    this.quantity,
+    this.unit,
+    this.comment,
+  });
 
   factory Ingredient.fromJson(Map<String, dynamic> json) {
     return Ingredient(
       name: json['name'] as String,
-      quantity: json['quantity'] as String,
+      quantity: (json['quantity'] as num?)?.toDouble(),
       unit: json['unit'] as String?,
+      comment: json['comment'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'quantity': quantity, 'unit': unit};
+    return {
+      'name': name,
+      if (quantity != null) 'quantity': quantity,
+      if (unit != null) 'unit': unit,
+      if (comment != null) 'comment': comment,
+    };
   }
 }
 

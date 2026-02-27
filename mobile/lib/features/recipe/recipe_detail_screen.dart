@@ -156,6 +156,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
+  String _formatIngredient(Ingredient ingredient) {
+    final parts = <String>[];
+    if (ingredient.quantity != null) {
+      final q = ingredient.quantity!;
+      parts.add(q % 1 == 0 ? q.toInt().toString() : q.toString());
+    }
+    if (ingredient.unit != null) parts.add(ingredient.unit!);
+    parts.add(ingredient.name);
+    final base = parts.join(' ');
+    if (ingredient.comment != null) return '$base (${ingredient.comment})';
+    return base;
+  }
+
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
@@ -392,7 +405,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     const SizedBox(width: AppSpacing.small),
                                     Expanded(
                                       child: Text(
-                                        '${ingredient.quantity}${ingredient.unit != null ? ' ${ingredient.unit}' : ''} ${ingredient.name}',
+                                        _formatIngredient(ingredient),
                                         style: theme.textTheme.bodyLarge,
                                       ),
                                     ),

@@ -3,29 +3,42 @@ import '../recipe/recipe_detail.dart';
 
 class ExtractedIngredient {
   final String name;
-  final String quantity;
+  final double? quantity;
   final String? unit;
+  final String? comment;
 
   const ExtractedIngredient({
     required this.name,
-    required this.quantity,
+    this.quantity,
     this.unit,
+    this.comment,
   });
 
   factory ExtractedIngredient.fromJson(Map<String, dynamic> json) {
     return ExtractedIngredient(
       name: json['name'] as String,
-      quantity: json['quantity'] as String,
+      quantity: (json['quantity'] as num?)?.toDouble(),
       unit: json['unit'] as String?,
+      comment: json['comment'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'quantity': quantity, 'unit': unit};
+    return {
+      'name': name,
+      if (quantity != null) 'quantity': quantity,
+      if (unit != null) 'unit': unit,
+      if (comment != null) 'comment': comment,
+    };
   }
 
   Ingredient toIngredient() {
-    return Ingredient(name: name, quantity: quantity, unit: unit);
+    return Ingredient(
+      name: name,
+      quantity: quantity,
+      unit: unit,
+      comment: comment,
+    );
   }
 }
 

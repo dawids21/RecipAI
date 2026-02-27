@@ -28,7 +28,7 @@ class ShoppingListGeneratedItem {
   }) {
     return ShoppingListGeneratedItem(
       name: ingredient.name,
-      quantity: double.tryParse(ingredient.quantity),
+      quantity: ingredient.quantity,
       unit: ingredient.unit,
       source: source,
     );

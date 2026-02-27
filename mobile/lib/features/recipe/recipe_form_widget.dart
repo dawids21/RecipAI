@@ -43,7 +43,7 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
   final _instructionsController = TextEditingController();
   final _sourceUrlController = TextEditingController();
   final List<GlobalKey<State>> _ingredientKeys = [];
-  final List<Ingredient?> _ingredients = [];
+  final List<IngredientInput?> _ingredients = [];
   List<RecipeImageInput> _imageInputs = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -101,15 +101,14 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
       if (initialRecipe.data.ingredients.isNotEmpty) {
         for (final ingredient in initialRecipe.data.ingredients) {
           _ingredientKeys.add(GlobalKey<State>());
-          // Convert back to the format expected by IngredientInputWidget
-          final quantityText = ingredient.unit != null
-              ? '${ingredient.quantity} ${ingredient.unit!}'
-              : ingredient.quantity;
           _ingredients.add(
-            Ingredient(
+            IngredientInput(
               name: ingredient.name,
-              quantity: quantityText,
-              unit: null, // IngredientInputWidget will parse this again
+              quantityText: _formatQuantityForInput(
+                ingredient.quantity,
+                ingredient.unit,
+              ),
+              comment: ingredient.comment,
             ),
           );
         }
@@ -155,29 +154,39 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
     }
   }
 
-  void _onIngredientChanged(int index, Ingredient? ingredient) {
-    _ingredients[index] = ingredient;
+  void _onIngredientChanged(int index, IngredientInput? input) {
+    _ingredients[index] = input;
   }
 
-  /// Parses ingredient text to extract quantity and unit from the quantity field
-  static Ingredient parseIngredientText(String name, String quantityText) {
+  static String _formatQuantityForInput(double? quantity, String? unit) {
+    if (quantity == null) return '';
+    final quantityStr = quantity % 1 == 0
+        ? quantity.toInt().toString()
+        : quantity.toString();
+    if (unit != null && unit.isNotEmpty) return '$quantityStr $unit';
+    return quantityStr;
+  }
+
+  /// Parses ingredient input to extract quantity and unit from the quantity text field
+  static Ingredient parseIngredientText(IngredientInput input) {
     final regex = RegExp(r'(\d+(?:[.,]\d+)?)\s*([\p{L}]*)\s*', unicode: true);
-    final match = regex.firstMatch(quantityText.trim());
+    final match = regex.firstMatch(input.quantityText.trim());
 
     if (match != null) {
-      final quantity = match.group(1) ?? '';
+      final quantityStr = match.group(1) ?? '';
       final unit = match.group(2) ?? '';
       return Ingredient(
-        name: name.trim(),
-        quantity: quantity,
+        name: input.name.trim(),
+        quantity: double.tryParse(quantityStr.replaceAll(',', '.')),
         unit: unit.isEmpty ? null : unit,
+        comment: input.comment,
       );
     } else {
-      // If no pattern matches, use the full quantity text as quantity
       return Ingredient(
-        name: name.trim(),
-        quantity: quantityText.trim(),
+        name: input.name.trim(),
+        quantity: null,
         unit: null,
+        comment: input.comment,
       );
     }
   }
@@ -195,13 +204,8 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
     try {
       // Filter out null/empty ingredients
       final validIngredients = _ingredients
-          .where(
-            (ingredient) => ingredient != null && ingredient.name.isNotEmpty,
-          )
-          .map(
-            (ingredient) =>
-                parseIngredientText(ingredient!.name, ingredient.quantity),
-          )
+          .where((input) => input != null && input.name.isNotEmpty)
+          .map((input) => parseIngredientText(input!))
           .toList();
 
       if (validIngredients.isEmpty) {
@@ -452,8 +456,8 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
                               child: IngredientInputWidget(
                                 key: _ingredientKeys[index],
                                 initialIngredient: _ingredients[index],
-                                onIngredientChanged: (ingredient) =>
-                                    _onIngredientChanged(index, ingredient),
+                                onIngredientChanged: (input) =>
+                                    _onIngredientChanged(index, input),
                               ),
                             ),
                             if (_ingredients.length > 1)

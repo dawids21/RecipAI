@@ -55,8 +55,10 @@
   accepts optional initialCollection parameter to prefill collection dropdown. Dropdown shows loading/error states and
   all available collections with "None" option to create recipes without collection. Prefill priority:
   initialFormData's recipeDetail collection > initialCollection > null.
-- Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name and quantity
-  with validation
+- Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name, quantity,
+  and optional comment. Uses `IngredientInput` data class (name, quantityText, comment?) for input/output instead of
+  `Ingredient`. Renders a name+quantity row followed by a comment field ("Comment (optional)", hint: "e.g., to taste,
+  fresh")
 - Ingredient bullet (`ingredient_bullet.dart`) - Small bullet point icon for ingredient lists (8px size)
 - Step number badge (`step_number_badge.dart`) - Circular badge for recipe step numbers (24px container, white text)
 - Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images with support for both new

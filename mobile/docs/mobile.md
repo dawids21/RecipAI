@@ -28,7 +28,9 @@
 - Recipe (`recipe.dart`) - Basic recipe data model with id, name, and optional thumbnailUrl
 - Recipe Detail (`recipe_detail.dart`) - Complex nested structure for detailed recipe information including ingredients,
   instructions, source url, serving size, UserRole enum (owner/editor), and optional images (RecipeImage class with id,
-  url, and thumbnailUrl fields), collectionId and collectionName fields for recipe-to-collection assignment
+  url, and thumbnailUrl fields), collectionId and collectionName fields for recipe-to-collection assignment. Ingredient
+  model has name (String), quantity (double?, nullable), unit (String?, nullable), and comment (String?, nullable, e.g.
+  "to taste", "fresh")
 - Recipe Image Input (`recipe_image_input.dart`) - Data model for managing recipe images during creation/editing.
 - Initial Recipe Form Data (`initial_recipe_form_data.dart`) - Wrapper class for passing recipe data for recipe form
   widget prefilling
@@ -184,7 +186,7 @@ mobile/
 │           ├── extraction_repository.dart # API communication layer for extraction endpoints
 │           ├── extraction_service.dart # Business logic layer for extraction operations
 │           ├── extraction_setup.dart   # Dependency injection setup for extraction module
-│           ├── extracted_recipe.dart   # Data models (ExtractedRecipe, ExtractedIngredient, ExtractedInstruction)
+│           ├── extracted_recipe.dart   # Data models (ExtractedRecipe, ExtractedIngredient with double? quantity and String? comment, ExtractedInstruction)
 │           ├── url_extraction_screen.dart # WebView-based URL extraction UI
 │           ├── image_extraction_screen.dart # Camera/Gallery image extraction UI
 │           ├── extraction_dialog.dart  # Simple dialog widget
