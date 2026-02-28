@@ -33,6 +33,7 @@ void setupMealPlan() {
       repository: getIt<MealPlanRepository>(),
       authService: getIt<AuthService>(),
       visibilityService: getIt<MealPlanVisibilityService>(),
+      mealPlanListService: getIt<MealPlanListService>(),
     ),
     dispose: (service) => service.dispose(),
   );

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
 import 'meal_plan_calendar_data.dart';
+import 'meal_plan_list_service.dart';
 import 'meal_plan_repository.dart';
 import 'meal_plan_visibility_service.dart';
 
@@ -10,17 +11,21 @@ class MealPlanCalendarService {
   final MealPlanRepository _repository;
   final AuthService _authService;
   final MealPlanVisibilityService _visibilityService;
+  final MealPlanListService _mealPlanListService;
 
   MealPlanCalendarService({
     required MealPlanRepository repository,
     required AuthService authService,
     required MealPlanVisibilityService visibilityService,
+    required MealPlanListService mealPlanListService,
   }) : _repository = repository,
        _authService = authService,
        _visibilityService = visibilityService,
+       _mealPlanListService = mealPlanListService,
        _currentWeekStart = ValueNotifier(DateTime(0)),
        _calendarData = ValueNotifier(const AsyncValue.loading()) {
     _visibilityService.visibility.addListener(_onVisibilityChanged);
+    _mealPlanListService.mealPlans.addListener(_onMealPlansChanged);
   }
 
   final ValueNotifier<DateTime> _currentWeekStart;
@@ -35,6 +40,10 @@ class MealPlanCalendarService {
   bool _isLoadingCalendar = false;
 
   void _onVisibilityChanged() {
+    loadCalendar();
+  }
+
+  void _onMealPlansChanged() {
     loadCalendar();
   }
 
@@ -138,6 +147,7 @@ class MealPlanCalendarService {
 
   void dispose() {
     _visibilityService.visibility.removeListener(_onVisibilityChanged);
+    _mealPlanListService.mealPlans.removeListener(_onMealPlansChanged);
     _currentWeekStart.dispose();
     _calendarData.dispose();
   }
