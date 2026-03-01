@@ -254,6 +254,7 @@ class MealPlanRepository {
   }
 
   Future<void> updateMealEntry({
+    required String oldPlanId,
     required String planId,
     required int entryId,
     required DateTime date,
@@ -264,6 +265,7 @@ class MealPlanRepository {
   }) async {
     final headers = _getAuthHeaders(idToken);
     final body = <String, dynamic>{
+      'planId': planId,
       'date': date.toIso8601DateString(),
       ...?(recipeId != null ? {'recipeId': recipeId} : null),
       ...?(placeholderText != null
@@ -273,7 +275,7 @@ class MealPlanRepository {
     };
 
     final response = await _client.put(
-      Uri.parse('$_baseUrl/meal-plans/$planId/entries/$entryId'),
+      Uri.parse('$_baseUrl/meal-plans/$oldPlanId/entries/$entryId'),
       headers: headers,
       body: jsonEncode(body),
     );

@@ -49,6 +49,7 @@ class _MealPlanCalendarScreenState extends State<MealPlanCalendarScreen> {
 
     try {
       await widget.calendarService.updateMealEntry(
+        oldPlanId: entry.planId,
         planId: result.planId,
         entryId: entry.id,
         date: result.date,

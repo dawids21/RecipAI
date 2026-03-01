@@ -110,6 +110,7 @@ class MealPlanCalendarService {
   }
 
   Future<void> updateMealEntry({
+    required String oldPlanId,
     required String planId,
     required int entryId,
     required DateTime date,
@@ -119,6 +120,7 @@ class MealPlanCalendarService {
   }) async {
     final token = await _authService.idToken;
     await _repository.updateMealEntry(
+      oldPlanId: oldPlanId,
       planId: planId,
       entryId: entryId,
       date: date,
