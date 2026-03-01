@@ -11,6 +11,7 @@ public record UpdateMealPlanEntryRequest(
         @NotNull LocalDate date,
         UUID recipeId,
         @Size(max = 255) String placeholderText,
-        @Positive Integer servingSize
+        @Positive Integer servingSize,
+        UUID planId
 ) {
 }

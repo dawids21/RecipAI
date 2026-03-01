@@ -1114,14 +1114,15 @@
         "date": "2026-02-01",
         "recipeId": null,
         "placeholderText": "Leftovers",
-        "servingSize": null
+        "servingSize": null,
+        "planId": "660e8400-e29b-41d4-a716-446655440001"
       }
       ```
     - Example response:
       ```json
       {
         "id": 1,
-        "planId": "550e8400-e29b-41d4-a716-446655440000",
+        "planId": "660e8400-e29b-41d4-a716-446655440001",
         "date": "2026-02-01",
         "recipeId": null,
         "placeholderText": "Leftovers",
@@ -1130,8 +1131,9 @@
       }
       ```
     - Success: 200 OK
-    - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found or belongs to different
-      plan)
+  - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (entry not found, belongs to different
+    plan, or target planId does not exist); 403 Forbidden also returned when the requesting user lacks EDITOR/OWNER
+    access on the target plan specified by `planId` in the request body
   - Note: Same validation rules as create (recipeId XOR placeholderText, servingSize required with recipeId,
     servingSize cannot be provided with placeholderText)
 - DELETE /meal-plans/{planId}/entries/{entryId}

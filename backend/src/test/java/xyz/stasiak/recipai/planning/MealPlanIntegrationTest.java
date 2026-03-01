@@ -401,7 +401,7 @@ class MealPlanIntegrationTest {
         MealPlanEntryDto entry = createEntry(client, plan.id(), createReq);
 
         UpdateMealPlanEntryRequest updateReq = new UpdateMealPlanEntryRequest(
-                LocalDate.of(2026, 2, 1), null, "Updated", null
+                LocalDate.of(2026, 2, 1), null, "Updated", null, plan.id()
         );
         MealPlanEntryDto updated = updateEntry(client, plan.id(), entry.id(), updateReq);
 
@@ -438,7 +438,7 @@ class MealPlanIntegrationTest {
 
         try {
             UpdateMealPlanEntryRequest req = new UpdateMealPlanEntryRequest(
-                    LocalDate.of(2026, 1, 29), null, "Test", null
+                    LocalDate.of(2026, 1, 29), null, "Test", null, plan.id()
             );
             updateEntry(client, plan.id(), nonexistent, req);
             fail("Should have thrown exception");
@@ -460,7 +460,7 @@ class MealPlanIntegrationTest {
 
         try {
             UpdateMealPlanEntryRequest updateReq = new UpdateMealPlanEntryRequest(
-                    LocalDate.of(2026, 1, 29), null, "Moved", null
+                    LocalDate.of(2026, 1, 29), null, "Moved", null, plan1.id()
             );
             updateEntry(client, plan2.id(), entry.id(), updateReq);
             fail("Should have thrown exception");
@@ -583,7 +583,7 @@ class MealPlanIntegrationTest {
 
         try {
             UpdateMealPlanEntryRequest updateReq = new UpdateMealPlanEntryRequest(
-                    LocalDate.of(2026, 1, 29), null, "Hacked", null
+                    LocalDate.of(2026, 1, 29), null, "Hacked", null, plan.id()
             );
             updateEntry(client2, plan.id(), entry.id(), updateReq);
             fail("Should have thrown exception");
@@ -1027,6 +1027,76 @@ class MealPlanIntegrationTest {
         assertThat(response.inaccessibleRecipeNames()).isEmpty();
 
         deleteRecipe(client, recipe.id());
+    }
+
+    @Test
+    void shouldMoveEntryToAnotherPlan() {
+        RestClient client = restClient();
+
+        MealPlanDto sourcePlan = createMealPlan(client, "Source Plan", "#FF5733");
+        MealPlanDto targetPlan = createMealPlan(client, "Target Plan", "#00FF00");
+
+        CreateMealPlanEntryRequest createReq = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Movable Entry", null
+        );
+        MealPlanEntryDto entry = createEntry(client, sourcePlan.id(), createReq);
+        assertThat(entry.planId()).isEqualTo(sourcePlan.id());
+
+        UpdateMealPlanEntryRequest moveReq = new UpdateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Movable Entry", null, targetPlan.id()
+        );
+        MealPlanEntryDto moved = updateEntry(client, sourcePlan.id(), entry.id(), moveReq);
+
+        assertThat(moved.planId()).isEqualTo(targetPlan.id());
+        assertThat(moved.placeholderText()).isEqualTo("Movable Entry");
+    }
+
+    @Test
+    void shouldReturn404WhenMovingEntryToNonexistentPlan() {
+        RestClient client = restClient();
+
+        MealPlanDto sourcePlan = createMealPlan(client, "Source Plan", "#FF5733");
+        CreateMealPlanEntryRequest createReq = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Entry", null
+        );
+        MealPlanEntryDto entry = createEntry(client, sourcePlan.id(), createReq);
+
+        UUID nonexistentPlanId = UUID.randomUUID();
+        UpdateMealPlanEntryRequest moveReq = new UpdateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Entry", null, nonexistentPlanId
+        );
+
+        try {
+            updateEntry(client, sourcePlan.id(), entry.id(), moveReq);
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenMovingEntryToInaccessiblePlan() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto user1Plan = createMealPlan(client1, "User1 Source Plan", "#FF0000");
+        MealPlanDto user2Plan = createMealPlan(client2, "User2 Private Plan", "#0000FF");
+
+        CreateMealPlanEntryRequest createReq = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Entry", null
+        );
+        MealPlanEntryDto entry = createEntry(client1, user1Plan.id(), createReq);
+
+        UpdateMealPlanEntryRequest moveReq = new UpdateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), null, "Entry", null, user2Plan.id()
+        );
+
+        try {
+            updateEntry(client1, user1Plan.id(), entry.id(), moveReq);
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        }
     }
 
     @Test

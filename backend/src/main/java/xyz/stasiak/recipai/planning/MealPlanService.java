@@ -137,11 +137,23 @@ class MealPlanService {
             throw new MealPlanNotFoundException(planId);
         }
 
+        if (!mealPlanRepository.existsById(request.planId())) {
+            throw new MealPlanNotFoundException(request.planId());
+        }
+
         MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
                 .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
 
         if (!permission.hasEditorRights()) {
             throw new MealPlanAccessDeniedException(planId);
+        }
+
+        MealPlanPermission targetPlanPermission = permissionRepository
+                .findById(new MealPlanPermissionId(userEmail, request.planId()))
+                .orElseThrow(() -> new MealPlanAccessDeniedException(request.planId()));
+
+        if (!targetPlanPermission.hasEditorRights()) {
+            throw new MealPlanAccessDeniedException(request.planId());
         }
 
         MealPlanEntry entry = entryRepository.findById(entryId)
@@ -153,6 +165,7 @@ class MealPlanService {
 
         validateEntry(request.recipeId(), request.placeholderText(), request.servingSize());
 
+        entry.setPlanId(request.planId());
         entry.setDate(request.date());
         entry.setRecipeId(request.recipeId());
         entry.setPlaceholderText(request.placeholderText());
