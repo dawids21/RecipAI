@@ -2,7 +2,7 @@
 
 ## Backend
 
-- Java 24
+- Java 25
 - Spring Boot 3.5.10
 - Spring Framework 6.2.x
 - Spring Data JPA

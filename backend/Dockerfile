@@ -1,7 +1,7 @@
 # Multi-stage build for RecipAI Spring Boot API
 
 # Build stage
-FROM eclipse-temurin:24-jdk-alpine AS builder
+FROM eclipse-temurin:25-jdk-alpine AS builder
 WORKDIR /app
 
 # Install Maven
@@ -16,7 +16,7 @@ COPY src ./src
 RUN mvn package -DskipTests -B
 
 # Runtime stage
-FROM eclipse-temurin:24-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
 # Install wget for health checks
@@ -42,4 +42,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Optimized JVM settings for container environment
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=80.0", "-XX:+UseContainerSupport", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseCompactObjectHeaders", "-XX:MaxRAMPercentage=80.0", "-XX:+UseContainerSupport", "-jar", "app.jar"]
