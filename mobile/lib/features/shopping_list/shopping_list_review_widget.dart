@@ -33,7 +33,7 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
   @override
   void initState() {
     super.initState();
-    _items = List.of(widget.items);
+    _items = List.of(widget.items)..sort((a, b) => a.name.compareTo(b.name));
     _selectedItems = Set.of(_items);
     _reviewService = ShoppingListReviewService(
       syncService: widget.shoppingListSyncService,
