@@ -1,30 +1,5 @@
 # AI Rules for RecipAI mobile
 
-## Tech Stack
-
-- Dart SDK 3.8.1
-- Flutter 3.32
-- Cupertino Icons 1.0.8
-- HTTP 1.1.0 - HTTP client for API communication
-- Flutter WebView 4.13.0
-- Flutter Speed Dial 7.0.0 - Speed dial floating action button
-- Go Router 16.1.0 - Declarative routing with nested routes and deep linking
-- Image Picker 1.2.0 - Plugin for selecting images from camera and gallery
-- HTTP Parser 4.1.2 - HTTP content type parsing for multipart uploads
-- MIME 2.0.0 - MIME type detection for file uploads
-- URL Launcher 6.3.2 - Plugin for opening URLs in external browser
-- Flutter Lints 5.0.0 (dev dependency)
-- Flutter Test (dev dependency)
-
-## Documentation
-
-- `./docs/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app, implemented features,
-  its codebase structure and usage patterns.
-- `./docs/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app.
-  Contains navigation flow, theme system and data models.
-- `./docs/architecture.md` - **Mobile App Architecture** - Describes the architecture of the mobile app.
-- `./docs/upload_key.md` - **Upload Key Management** - Instructions for encrypting/decrypting the app upload key.
-
 ## Coding Practices
 
 ### Modular Architecture
