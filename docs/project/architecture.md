@@ -19,17 +19,15 @@ Code is organized by feature (not by layer). Each feature package contains its o
 
 ### Feature Modules
 
-| Module | Responsibility |
-|--------|---------------|
-| `recipes` | Recipe CRUD, role-based sharing (OWNER/EDITOR), collection assignment, image management |
-| `recipes.images` | S3 image storage, thumbnail generation, presigned URLs |
-| `recipes.collections` | Recipe collection management with permission control |
-| `extraction` | AI-powered recipe extraction from text/images (Google Genai via Spring AI) |
-| `planning` | Meal plan calendar management, entry CRUD, shopping list generation |
-| `shoppinglists` | Shopping list CRUD with optimistic locking (If-Match headers) |
-| `provisioning` | Ingredient-to-shopping-list-item transformation (no HTTP layer; used as facade) |
-| `config.security` | OAuth2 Resource Server — JWT token validation |
-| `config.s3` | AWS S3 client configuration with presigned URL support |
+- **`recipes`** — manages user-scoped recipe CRUD with role-based sharing (OWNER/EDITOR), optional collection assignment, collection-based access control, filtering by collection or unassigned status, image management (upload, reorder, delete), source URLs; publishes a `RecipeDeleted` event when a recipe is deleted
+- **`recipes.images`** — manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and presigned URL generation (maximum 2 images per recipe)
+- **`recipes.collections`** — manages recipes collections with user-based permission control (CRUD with role-based access, sharing with OWNER/EDITOR roles, automatic removal of user-owned recipes from a collection when unshared)
+- **`extraction`** — extracts recipes from text/images using AI (Spring AI Gemini integration)
+- **`planning`** — manages meal plans with user-based permission control (CRUD with role-based access, sharing, meal plan entries with recipe or placeholder support, configurable owner plan limit, automatic conversion of recipe entries to placeholders on `RecipeDeleted` event, calendar view grouped by date, shopping list generation with serving size scaling and inaccessible recipe warnings)
+- **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, optimistic locking with If-Match headers for all item operations, comprehensive item management: update, move, check, uncheck)
+- **`provisioning`** — transformation module that converts ingredients (with quantity multipliers) into shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; appends ingredient comments in parentheses to item names (e.g. `"salt (to taste)"`)
+- **`config.security`** — OAuth2 Resource Server — JWT token validation
+- **`config.s3`** — AWS S3 client configuration with presigned URL support
 
 ### Layer Structure (within each feature)
 
@@ -139,14 +137,30 @@ Spring Boot API (backend/)
 
 ## Database Schema
 
-Managed by Flyway migrations in `backend/src/main/resources/db/migration/`. See `docs/backend/db.md` for full schema documentation.
+Managed by Flyway migrations in `backend/src/main/resources/db/migration/`. Per-module schema documentation is in `docs/backend/modules/<module>/db.md`.
 
 ---
 
 ## Configuration
 
-- **Backend**: Spring Boot `application.properties` / environment variables (JWT issuer, S3 config, DB URL, Google AI key)
-- **Mobile**: Firebase config (`google-services.json`), API base URL in app config
+### Backend
+
+Spring Boot profiles (`dev` / `prod`). See `docs/backend/standards/configuration-profiles.md` for profile conventions.
+
+Production deployments require these environment variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `SPRING_DATASOURCE_URL` | Database connection URL |
+| `SPRING_DATASOURCE_USERNAME` | Database username |
+| `SPRING_DATASOURCE_PASSWORD` | Database password |
+| `SPRING_AI_API_KEY` | API key for Spring AI Gemini integration |
+| `AWS_ACCESS_KEY_ID` | AWS access key ID for S3 operations |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret access key for S3 operations |
+
+### Mobile
+
+Firebase config (`google-services.json`), API base URL in app config.
 
 ---
 
@@ -171,7 +185,21 @@ Managed by Flyway migrations in `backend/src/main/resources/db/migration/`. See 
     Google Play → Android APK/AAB
 ```
 
-GitHub Actions builds and pushes the Docker image on merge to main.
+### Docker
+
+The backend is containerized using a multi-stage Dockerfile:
+
+1. **Build stage** — `eclipse-temurin:25-jdk-alpine` with Maven compiles the application
+2. **Runtime stage** — `eclipse-temurin:25-jre-alpine` for a smaller production image
+
+### CI/CD
+
+GitHub Actions runs on every push to `main`:
+
+1. Builds the Spring Boot application with Maven
+2. Builds the Docker image
+3. Publishes to GitHub Container Registry (`ghcr.io/dawids21/recipai/api`)
+4. Supports manual workflow triggers
 
 ---
 

@@ -31,14 +31,39 @@ Describes the structural design of both applications: backend module breakdown a
 
 Located in `docs/backend/`
 
-### Backend Overview (`backend/backend.md`)
-Describes each backend feature module and its responsibilities, the full codebase directory structure with file-level annotations, Spring Boot configuration profiles, required environment variables, and the Docker-based build and deployment process.
+### Module Documentation
 
-### API Documentation (`backend/api.md`)
-Documents all REST API endpoints including request/response formats and examples, organised by resource.
+Per-module documentation is in `docs/backend/modules/<module>/`. Each module directory contains up to three files:
+- `codebase_structure.md` — file tree for that module
+- `api.md` — REST API endpoints for that module
+- `db.md` — database tables, relationships, and indexes for that module
 
-### Database Schema (`backend/db.md`)
-Documents all database tables, their columns, types, constraints, and relationships. Schema is managed by Flyway migrations.
+Module descriptions (what each module does) are in `docs/project/architecture.md`.
+
+#### Recipes & Collections (`backend/modules/recipes/`)
+- [`codebase_structure.md`](backend/modules/recipes/codebase_structure.md) — file tree for `recipes`, `recipes.collections`, `recipes.images`
+- [`api.md`](backend/modules/recipes/api.md) — all `/recipes` and `/collections` endpoints including sharing and image upload
+- [`db.md`](backend/modules/recipes/db.md) — `recipes`, `recipe_images`, `recipe_permission`, `recipes_collections`, `recipes_collection_permission` tables
+
+#### Extraction (`backend/modules/extraction/`)
+- [`codebase_structure.md`](backend/modules/extraction/codebase_structure.md) — file tree
+- [`api.md`](backend/modules/extraction/api.md) — `/extract/text` and `/extract/image` endpoints
+
+#### Shopping Lists (`backend/modules/shopping-lists/`)
+- [`codebase_structure.md`](backend/modules/shopping-lists/codebase_structure.md) — file tree
+- [`api.md`](backend/modules/shopping-lists/api.md) — all `/shopping-lists` endpoints including item operations
+- [`db.md`](backend/modules/shopping-lists/db.md) — `shopping_lists`, `shopping_list_permission`, `shopping_list_items` tables
+
+#### Planning (`backend/modules/planning/`)
+- [`codebase_structure.md`](backend/modules/planning/codebase_structure.md) — file tree
+- [`api.md`](backend/modules/planning/api.md) — all `/meal-plans` endpoints including calendar view and shopping list generation
+- [`db.md`](backend/modules/planning/db.md) — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
+
+#### Provisioning (`backend/modules/provisioning/`)
+- [`codebase_structure.md`](backend/modules/provisioning/codebase_structure.md) — file tree (no HTTP endpoints, no DB tables)
+
+#### Config (`backend/modules/config/`)
+- [`codebase_structure.md`](backend/modules/config/codebase_structure.md) — file tree for `config.s3`, `config.security`
 
 ---
 
@@ -51,6 +76,9 @@ Standards for how to write Java code in this project: DTO structure using record
 
 ### Module Structure (`backend/standards/module-structure.md`)
 Standards for feature module organisation: how to expose cross-module access via facades, how to structure exception handlers, RESTful endpoint naming conventions, and SLF4J logging patterns.
+
+### Configuration Profiles (`backend/standards/configuration-profiles.md`)
+Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.
 
 ### Integration Tests (`backend/standards/integration-tests.md`)
 Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, and test method naming convention.
