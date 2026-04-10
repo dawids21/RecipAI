@@ -202,8 +202,8 @@ Production deployments require the following environment variables:
 The RecipAI backend API is containerized using Docker.
 The Dockerfile uses a multi-stage build process:
 
-1. **Build stage**: Uses `eclipse-temurin:24-jdk-alpine` with Maven to compile the application
-2. **Runtime stage**: Uses `eclipse-temurin:24-jre-alpine` for a smaller, production-ready image
+1. **Build stage**: Uses `eclipse-temurin:25-jdk-alpine` with Maven to compile the application
+2. **Runtime stage**: Uses `eclipse-temurin:25-jre-alpine` for a smaller, production-ready image
 
 ### GitHub Container Registry
 

@@ -2,9 +2,6 @@
   "permissions": {
     "allow": [
       "WebSearch"
-    ],
-    "additionalDirectories": [
-      "../docs/shared"
     ]
   }
 }

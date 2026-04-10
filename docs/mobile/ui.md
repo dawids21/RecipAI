@@ -371,27 +371,3 @@ All routes except `/login` require user authentication. The app automatically re
 3. **Pull to Refresh** (on Shopping tab) → Shopping lists reloaded from API
 4. **Shopping List Tap** → Shopping List Detail Screen (`/shopping-lists/:id` with shopping list ID parameter)
 5. **Back Button** (on Shopping List Detail Screen) → Back to Shopping tab on Main Screen
-
-## Theme System
-
-The app uses a centralized theming approach with Material Design 3, configured in `core/theme.dart`:
-
-### AppTheme
-
-- **Material 3**
-- **Color Scheme**: Generated from `Colors.deepOrange` seed color
-- **Usage**: Applied in `main.dart` as `theme: AppTheme.theme`
-
-### AppSpacing Constants
-
-- **screenPadding**: `EdgeInsets.all(16.0)` - Standard screen padding
-- **cardMargin**: `EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0)` - Card margins
-- **listTilePadding**: `EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0)` - ListTile content padding
-- **smallVertical**: `EdgeInsets.symmetric(vertical: 4.0)` - Small vertical spacing
-- **mediumVertical**: `EdgeInsets.symmetric(vertical: 8.0)` - Medium vertical spacing
-- **Spacing Values**: `small` (8dp), `medium` (16dp), `large` (24dp), `extraSmall` (4dp), `extraLarge` (32dp)
-
-### AppAnimations Constants
-
-- **sectionTransition**: `Duration(milliseconds: 300)` - Duration for section expand/collapse animations
-- **sectionCurve**: `Curves.easeInOut` - Animation curve for smooth section transitions

@@ -2,9 +2,14 @@
 
 ## 1. Product Overview
 
-The RecipAI app helps users manage recipes for daily cooking.
+RecipAI is a personal cooking assistant built for daily real-world use by its sole developer-user.
 It stores recipes imported from various sources, creates shopping lists, and allows users to plan
-meals for specific days. The app is available on both mobile and web platforms.
+meals for specific days. Features are added only when they solve a genuine pain point — the product
+is a practical daily tool, not a demo.
+
+The architecture is intentionally pragmatic: feature-driven modules on the backend and a
+three-layer feature-split structure on mobile, enabling a single developer to move quickly
+without sacrificing maintainability.
 
 ## 2. User Problem
 

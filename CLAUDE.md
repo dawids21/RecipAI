@@ -5,26 +5,27 @@
 - RecipAI is an application that helps users manage recipes for daily cooking.
 - Backend for the project is built with Spring Boot and Java. Source code is available in the `backend/` directory.
 - Mobile application is built with Flutter and Dart, available in the `mobile/` directory.
-- Shared documentation for the project is available in the `docs/shared` directory.
 
 ## Documentation
 
-- `./docs/prd.md` - **Product Requirements Document (PRD)** - Contains product overview, user problems,
-  functional requirements, and user stories.
-- `./docs/tech-stack.md` - **Tech Stack Overview** - Contains the list of technologies used in the project.
-- `./docs/backend/backend.md` - **Backend App Overview** - Provides an overview of the backend modules and codebase
-  structure.
-- `./docs/backend/api.md` - **API Documentation** - Contains API endpoints, request/response formats, and examples.
-- `./docs/backend/db.md` - **Database Schema** - Describes the database structure, tables
-- `./docs/mobile/mobile.md` - **Mobile App Overview** - Provides an overview of the mobile app, implemented features,
-  its codebase structure and usage patterns.
-- `./docs/mobile/ui.md` - **Mobile UI Components** - Lists the screens and UI components used in the mobile app.
-  Contains navigation flow, theme system and data models.
-- `./docs/mobile/architecture.md` - **Mobile App Architecture** - Describes the architecture of the mobile app.
-- `./docs/mobile/upload_key.md` - **Upload Key Management** - Instructions for encrypting/decrypting the app upload key.
+- Documentation for the project is available in the `docs/` directory.
+- Read @docs/INDEX.md before starting any task. It indexes the project's documentation and coding standards
+- Follow standards in `docs/backend/standards/` and `docs/mobile/standards/` when writing code — they represent team
+  decisions. If standards conflict with the task, ask the user.
+
+### Standards Evolution
+
+When you notice recurring patterns, fixes, or conventions during implementation that aren't yet captured in standards —
+suggest adding them. Examples:
+
+- A bug fix reveals a pattern that should be standardized (e.g., "always validate X before Y")
+- PR review feedback identifies a convention the team wants enforced
+- The same type of fix is needed across multiple files
+- A new library/pattern is adopted that should be documented
+
+When this happens, briefly suggest the standard to the user. If approved, create or update the standard.
 
 ## AI Behavior
 
-- When implementing new features, restrict changes to a single codebase (either backend or mobile).
 - Never assume missing context. Ask questions if uncertain.
 - Never hallucinate libraries or functions.
