@@ -61,11 +61,11 @@ Files are organized by feature directory (`features/auth/`, `features/recipe/`, 
 
 ### Layers
 
-| Layer | Files | Responsibility |
-|-------|-------|---------------|
-| Repository | `*_repository.dart` | Stateless data access — HTTP calls, local storage. Returns raw types. No business logic. |
-| Service | `*_service.dart` | Application state with `ValueNotifier<AsyncValue<T>>`. Coordinates repositories, manages side effects. |
-| View | `*_screen.dart` | UI rendering. Receives services via constructor. Uses `ValueListenableBuilder` for reactive rebuilds. |
+| Layer      | Files               | Responsibility                                                                                         |
+|------------|---------------------|--------------------------------------------------------------------------------------------------------|
+| Repository | `*_repository.dart` | Stateless data access — HTTP calls, local storage. Returns raw types. No business logic.               |
+| Service    | `*_service.dart`    | Application state with `ValueNotifier<AsyncValue<T>>`. Coordinates repositories, manages side effects. |
+| View       | `*_screen.dart`     | UI rendering. Receives services via constructor. Uses `ValueListenableBuilder` for reactive rebuilds.  |
 
 ### State Management
 
@@ -85,13 +85,21 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
 
 ### Features
 
-| Feature | Responsibility |
-|---------|---------------|
-| `auth` | Firebase authentication with Google Sign-In |
-| `recipe` | Recipe list, detail, create/edit forms, sharing, collections |
-| `extraction` | Extract recipes from URLs and photos |
-| `planning` | Meal plan calendar UI, entry management |
-| `shopping_list` | Shopping list display and item management |
+- **`auth`** — user authentication using Firebase Authentication with Google Sign-In
+- **`recipe`** — recipe list and detail display with 3-column grid, horizontal chip-based collection filtering ("All
+  Recipes", "Unassigned", specific collection), client-side fuzzy search, recipe create/edit forms, image carousel,
+  sharing (OWNER/EDITOR roles), and "Add to Shopping List" flow; includes the `collection` sub-feature for managing
+  recipe collections with CRUD and sharing
+- **`extraction`** — recipe extraction from URLs (WebView-based with smart URL/search detection) and images
+  (camera/gallery); extracted data is passed to the recipe create screen via InitialRecipeFormData
+- **`planning`** — meal plan calendar with weekly agenda view across multiple plans; plan management drawer with
+  create/edit/delete and role-based actions (delete requires OWNER); local visibility toggles; meal entry management
+  supporting recipe entries (with serving size) and placeholder entries (text-only); shopping list generation wizard
+  (3-step: select plans → select dates → review items)
+- **`shopping_list`** — shopping list management with list creation and display, inline item management with smart
+  text parsing, drag-and-drop reordering within active/done sections, optimistic UI updates via operation queue
+  (ShoppingListSyncService), bulk operations (delete all checked, uncheck all), and background syncing with conflict
+  resolution
 
 ### Routing
 
@@ -126,12 +134,12 @@ Spring Boot API (backend/)
 
 ## External Integrations
 
-| Service | Purpose |
-|---------|---------|
-| Firebase Auth | User identity and Google Sign-In on mobile |
-| Google Genai (via Spring AI) | Recipe text/image extraction |
-| AWS S3 | Recipe image storage; presigned URLs for direct mobile access |
-| PostgreSQL | Primary relational database |
+| Service                      | Purpose                                                       |
+|------------------------------|---------------------------------------------------------------|
+| Firebase Auth                | User identity and Google Sign-In on mobile                    |
+| Google Genai (via Spring AI) | Recipe text/image extraction                                  |
+| AWS S3                       | Recipe image storage; presigned URLs for direct mobile access |
+| PostgreSQL                   | Primary relational database                                   |
 
 ---
 
@@ -149,14 +157,14 @@ Spring Boot profiles (`dev` / `prod`). See `docs/backend/standards/configuration
 
 Production deployments require these environment variables:
 
-| Variable | Purpose |
-|----------|---------|
-| `SPRING_DATASOURCE_URL` | Database connection URL |
-| `SPRING_DATASOURCE_USERNAME` | Database username |
-| `SPRING_DATASOURCE_PASSWORD` | Database password |
-| `SPRING_AI_API_KEY` | API key for Spring AI Gemini integration |
-| `AWS_ACCESS_KEY_ID` | AWS access key ID for S3 operations |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret access key for S3 operations |
+| Variable                     | Purpose                                  |
+|------------------------------|------------------------------------------|
+| `SPRING_DATASOURCE_URL`      | Database connection URL                  |
+| `SPRING_DATASOURCE_USERNAME` | Database username                        |
+| `SPRING_DATASOURCE_PASSWORD` | Database password                        |
+| `SPRING_AI_API_KEY`          | API key for Spring AI Gemini integration |
+| `AWS_ACCESS_KEY_ID`          | AWS access key ID for S3 operations      |
+| `AWS_SECRET_ACCESS_KEY`      | AWS secret access key for S3 operations  |
 
 ### Mobile
 

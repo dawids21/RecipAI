@@ -41,29 +41,29 @@ Per-module documentation is in `docs/backend/modules/<module>/`. Each module dir
 Module descriptions (what each module does) are in `docs/project/architecture.md`.
 
 #### Recipes & Collections (`backend/modules/recipes/`)
-- [`codebase_structure.md`](backend/modules/recipes/codebase_structure.md) — file tree for `recipes`, `recipes.collections`, `recipes.images`
-- [`api.md`](backend/modules/recipes/api.md) — all `/recipes` and `/collections` endpoints including sharing and image upload
-- [`db.md`](backend/modules/recipes/db.md) — `recipes`, `recipe_images`, `recipe_permission`, `recipes_collections`, `recipes_collection_permission` tables
+- `codebase_structure.md` — file tree for `recipes`, `recipes.collections`, `recipes.images`
+- `api.md` — all `/recipes` and `/collections` endpoints including sharing and image upload
+- `db.md` — `recipes`, `recipe_images`, `recipe_permission`, `recipes_collections`, `recipes_collection_permission` tables
 
 #### Extraction (`backend/modules/extraction/`)
-- [`codebase_structure.md`](backend/modules/extraction/codebase_structure.md) — file tree
-- [`api.md`](backend/modules/extraction/api.md) — `/extract/text` and `/extract/image` endpoints
+- `codebase_structure.md` — file tree
+- `api.md` — `/extract/text` and `/extract/image` endpoints
 
 #### Shopping Lists (`backend/modules/shopping-lists/`)
-- [`codebase_structure.md`](backend/modules/shopping-lists/codebase_structure.md) — file tree
-- [`api.md`](backend/modules/shopping-lists/api.md) — all `/shopping-lists` endpoints including item operations
-- [`db.md`](backend/modules/shopping-lists/db.md) — `shopping_lists`, `shopping_list_permission`, `shopping_list_items` tables
+- `codebase_structure.md` — file tree
+- `api.md` — all `/shopping-lists` endpoints including item operations
+- `db.md` — `shopping_lists`, `shopping_list_permission`, `shopping_list_items` tables
 
 #### Planning (`backend/modules/planning/`)
-- [`codebase_structure.md`](backend/modules/planning/codebase_structure.md) — file tree
-- [`api.md`](backend/modules/planning/api.md) — all `/meal-plans` endpoints including calendar view and shopping list generation
-- [`db.md`](backend/modules/planning/db.md) — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
+- `codebase_structure.md` — file tree
+- `api.md` — all `/meal-plans` endpoints including calendar view and shopping list generation
+- `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
 #### Provisioning (`backend/modules/provisioning/`)
-- [`codebase_structure.md`](backend/modules/provisioning/codebase_structure.md) — file tree (no HTTP endpoints, no DB tables)
+- `codebase_structure.md` — file tree (no HTTP endpoints, no DB tables)
 
 #### Config (`backend/modules/config/`)
-- [`codebase_structure.md`](backend/modules/config/codebase_structure.md) — file tree for `config.s3`, `config.security`
+- `codebase_structure.md` — file tree for `config.s3`, `config.security`
 
 ---
 
@@ -89,11 +89,37 @@ Standards for writing backend integration tests: required annotations, HTTP clie
 
 Located in `docs/mobile/`
 
-### Mobile Overview (`mobile/mobile.md`)
-Describes each mobile feature and its responsibilities, all data models used across features, and the full codebase directory structure with file-level annotations.
+### Module Documentation
 
-### Mobile UI (`mobile/ui.md`)
-Documents all screens and reusable widgets per feature, the navigation route structure, bottom navigation bar tabs, authentication routing, and the full user flow for each feature area.
+Per-module documentation is in `docs/mobile/modules/<module>/`. Each module directory contains two files:
+- `codebase_structure.md` — file tree for that module
+- `ui.md` — screens, widgets, and user flows for that module
+
+Module descriptions (what each module does) are in `docs/project/architecture.md`.
+
+#### Core (`mobile/modules/core/`)
+- `codebase_structure.md` — file tree for `main.dart`, `core/`, `shared/`
+- `ui.md` — Main Screen, shared widgets, navigation route structure, bottom navigation bar, and authentication flow
+
+#### Auth (`mobile/modules/auth/`)
+- `codebase_structure.md` — file tree for `features/auth/`
+- `ui.md` — Login Screen and authentication flow
+
+#### Recipe & Collections (`mobile/modules/recipe/`)
+- `codebase_structure.md` — file tree for `features/recipe/` including `collection/` sub-feature
+- `ui.md` — all recipe and collection screens/widgets, recipe management flow, and collections management flow
+
+#### Extraction (`mobile/modules/extraction/`)
+- `codebase_structure.md` — file tree for `features/extraction/`
+- `ui.md` — URL and image extraction screens and flow
+
+#### Shopping Lists (`mobile/modules/shopping_list/`)
+- `codebase_structure.md` — file tree for `features/shopping_list/`
+- `ui.md` — shopping list screens/widgets and management flow
+
+#### Planning (`mobile/modules/planning/`)
+- `codebase_structure.md` — file tree for `features/planning/`
+- `ui.md` — calendar and planning screens, shopping list generation wizard, and all planning flows
 
 ---
 
