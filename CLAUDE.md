@@ -29,3 +29,4 @@ When this happens, briefly suggest the standard to the user. If approved, create
 
 - Never assume missing context. Ask questions if uncertain.
 - Never hallucinate libraries or functions.
+- Always run `git` commands from the project root - never `cd` before git operations.
