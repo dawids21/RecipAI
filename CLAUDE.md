@@ -10,6 +10,7 @@
 
 - Documentation for the project is available in the `docs/` directory.
 - Read `docs/INDEX.md` before starting any task. It indexes the project's documentation and coding standards
+- Do not stop at INDEX.md — follow the links and read the actual documentation files relevant to the task.
 - Follow standards in `docs/backend/standards/` and `docs/mobile/standards/` when writing code — they represent team
   decisions. If standards conflict with the task, ask the user.
 
