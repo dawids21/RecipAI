@@ -150,18 +150,6 @@ Standards for feature flags: how to define flags using `bool.fromEnvironment()`,
 
 ---
 
-## Architecture Decision Records
-
-Located in `docs/ADRs/`
-
-### ADR 001 — Optimistic UI with Operation-Based Sync for Shopping Lists
-Records the decision to use optimistic UI for shopping list item operations, including the chosen approach, alternatives considered, and consequences.
-
-### ADR 002 — Selective Queue Clearing for Rejected Operations
-Records the decision on how to handle sync conflicts when server rejects queued operations, including the chosen strategy, alternatives considered, and consequences.
-
----
-
 ## How to Use This Documentation
 
 1. **Start Here**: Always read this INDEX.md first to understand what documentation exists
