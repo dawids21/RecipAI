@@ -4,27 +4,23 @@ import 'package:flutter/foundation.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_item.dart';
 
 import '../auth/auth_service.dart';
-import 'shopping_list_detail.dart';
 import 'shopping_list_exceptions.dart';
 import 'shopping_list_operation.dart';
 import 'shopping_list_repository.dart';
 
-class _SyncCallbacks {
-  final Function(String, ShoppingListItem, List<ShoppingListOperation>)
-  onItemAdded;
-  final Function(String, ShoppingListItem, List<ShoppingListOperation>)
-  onItemUpdated;
-  final Function(ShoppingListDetail) onSync;
-  final Function() onConflict;
-  final Function(String) onError;
+sealed class SyncEvent {}
 
-  _SyncCallbacks({
-    required this.onItemAdded,
-    required this.onItemUpdated,
-    required this.onSync,
-    required this.onConflict,
-    required this.onError,
-  });
+final class ItemSynced extends SyncEvent {
+  final String submittedItemId;
+  final ShoppingListItem serverItem;
+  ItemSynced(this.submittedItemId, this.serverItem);
+}
+
+final class SyncConflict extends SyncEvent {}
+
+final class SyncFailed extends SyncEvent {
+  final String message;
+  SyncFailed(this.message);
 }
 
 class ShoppingListSyncService {
@@ -40,65 +36,17 @@ class ShoppingListSyncService {
   final Map<String, List<ShoppingListOperation>> _operationQueues = {};
   final Map<String, bool> _isSyncing = {};
   final Map<String, ValueNotifier<bool>> _syncStatusNotifiers = {};
-  final Map<String, Timer> _syncTimers = {};
-  final Map<String, _SyncCallbacks> _syncCallbacks = {};
+  final Map<String, StreamController<SyncEvent>> _eventControllers = {};
 
-  ValueNotifier<bool> getSyncStatusNotifier(String listId) {
-    return _syncStatusNotifiers.putIfAbsent(listId, () => ValueNotifier(false));
-  }
+  ValueListenable<bool> syncStatus(String listId) =>
+      _syncStatusNotifiers.putIfAbsent(listId, () => ValueNotifier(false));
 
-  void startSyncing({
-    required String listId,
-    required Function(String, ShoppingListItem, List<ShoppingListOperation>)
-    onItemAdded,
-    required Function(String, ShoppingListItem, List<ShoppingListOperation>)
-    onItemUpdated,
-    required Function(ShoppingListDetail) onSync,
-    required VoidCallback onConflict,
-    required ValueChanged<String> onError,
-  }) {
-    // Cancel existing timer if any
-    _syncTimers[listId]?.cancel();
+  Stream<SyncEvent> events(String listId) => _eventControllers
+      .putIfAbsent(listId, () => StreamController<SyncEvent>.broadcast())
+      .stream;
 
-    // Store callbacks
-    _syncCallbacks[listId] = _SyncCallbacks(
-      onItemAdded: onItemAdded,
-      onItemUpdated: onItemUpdated,
-      onSync: onSync,
-      onConflict: onConflict,
-      onError: onError,
-    );
-
-    // Create new timer
-    _syncTimers[listId] = Timer.periodic(
-      const Duration(seconds: 10),
-      (_) => _syncList(listId),
-    );
-  }
-
-  void stopSyncing(String listId) {
-    _syncTimers[listId]?.cancel();
-    _syncTimers.remove(listId);
-    _syncCallbacks.remove(listId);
-  }
-
-  void pauseSyncing(String listId) {
-    _syncTimers[listId]?.cancel();
-  }
-
-  void resumeSyncing(String listId) {
-    // Only resume if callbacks exist and timer isn't already active
-    if (_syncCallbacks[listId] != null &&
-        (_syncTimers[listId]?.isActive != true)) {
-      // Recreate timer
-      _syncTimers[listId] = Timer.periodic(
-        const Duration(seconds: 10),
-        (_) => _syncList(listId),
-      );
-      // Immediately sync to catch up on changes
-      _syncList(listId);
-    }
-  }
+  List<ShoppingListOperation> pendingOperations(String listId) =>
+      List.unmodifiable(_operationQueues[listId] ?? const []);
 
   void queueOperation(String listId, ShoppingListOperation operation) {
     _operationQueues.putIfAbsent(listId, () => []).add(operation);
@@ -110,7 +58,6 @@ class ShoppingListSyncService {
 
     _isSyncing[listId] = true;
     _updateSyncStatus(listId);
-    final callbacks = _syncCallbacks[listId];
 
     while (_operationQueues[listId]?.isNotEmpty ?? false) {
       final operation = _operationQueues[listId]!.first;
@@ -127,17 +74,8 @@ class ShoppingListSyncService {
               add.index,
             );
             _replaceValuesInQueue(listId, add.itemId, response);
-            callbacks?.onItemAdded.call(
-              add.itemId,
-              response,
-              _operationQueues[listId]!
-                  .where(
-                    (operation) =>
-                        operation.id != add.id &&
-                        operation.itemId == response.id,
-                  )
-                  .toList(),
-            );
+            _operationQueues[listId]!.removeAt(0);
+            _emit(listId, ItemSynced(add.itemId, response));
           case DeleteItemOperation delete:
             await _repository.deleteItem(
               listId,
@@ -145,6 +83,7 @@ class ShoppingListSyncService {
               delete.itemVersion!,
               await _authService.idToken,
             );
+            _operationQueues[listId]!.removeAt(0);
           case MoveItemOperation move:
             final response = await _repository.moveItem(
               listId,
@@ -154,17 +93,8 @@ class ShoppingListSyncService {
               await _authService.idToken,
             );
             _replaceValuesInQueue(listId, move.itemId, response);
-            callbacks?.onItemUpdated.call(
-              move.itemId,
-              response,
-              _operationQueues[listId]!
-                  .where(
-                    (operation) =>
-                        operation.id != move.id &&
-                        operation.itemId == response.id,
-                  )
-                  .toList(),
-            );
+            _operationQueues[listId]!.removeAt(0);
+            _emit(listId, ItemSynced(move.itemId, response));
           case CheckItemOperation check:
             final response = await _repository.checkItem(
               listId,
@@ -173,17 +103,8 @@ class ShoppingListSyncService {
               await _authService.idToken,
             );
             _replaceValuesInQueue(listId, check.itemId, response);
-            callbacks?.onItemUpdated.call(
-              check.itemId,
-              response,
-              _operationQueues[listId]!
-                  .where(
-                    (operation) =>
-                        operation.id != check.id &&
-                        operation.itemId == response.id,
-                  )
-                  .toList(),
-            );
+            _operationQueues[listId]!.removeAt(0);
+            _emit(listId, ItemSynced(check.itemId, response));
           case UncheckItemOperation uncheck:
             final response = await _repository.uncheckItem(
               listId,
@@ -192,17 +113,8 @@ class ShoppingListSyncService {
               await _authService.idToken,
             );
             _replaceValuesInQueue(listId, uncheck.itemId, response);
-            callbacks?.onItemUpdated.call(
-              uncheck.itemId,
-              response,
-              _operationQueues[listId]!
-                  .where(
-                    (operation) =>
-                        operation.id != uncheck.id &&
-                        operation.itemId == response.id,
-                  )
-                  .toList(),
-            );
+            _operationQueues[listId]!.removeAt(0);
+            _emit(listId, ItemSynced(uncheck.itemId, response));
           case UpdateItemOperation update:
             final response = await _repository.updateItem(
               listId,
@@ -214,25 +126,19 @@ class ShoppingListSyncService {
               await _authService.idToken,
             );
             _replaceValuesInQueue(listId, update.itemId, response);
-            callbacks?.onItemUpdated.call(
-              update.itemId,
-              response,
-              _operationQueues[listId]!
-                  .where(
-                    (operation) =>
-                        operation.id != update.id &&
-                        operation.itemId == response.id,
-                  )
-                  .toList(),
-            );
+            _operationQueues[listId]!.removeAt(0);
+            _emit(listId, ItemSynced(update.itemId, response));
         }
-        _operationQueues[listId]!.removeAt(0);
       } on ShoppingListItemApiConflictException {
+        final failedItemId = _operationQueues[listId]!.first.itemId;
         _operationQueues[listId]!.removeAt(0);
-        await callbacks?.onConflict.call();
+        _operationQueues[listId]!.removeWhere(
+          (op) => op.itemId == failedItemId,
+        );
+        _emit(listId, SyncConflict());
       } on ShoppingListItemApiException catch (e) {
         _operationQueues[listId]!.removeAt(0);
-        callbacks?.onError.call('Failed to process operation: ${e.message}');
+        _emit(listId, SyncFailed('Failed to process operation: ${e.message}'));
       } catch (e) {
         // retry if operation failed due to connection error
         await Future.delayed(const Duration(seconds: 3));
@@ -243,9 +149,18 @@ class ShoppingListSyncService {
     _updateSyncStatus(listId);
   }
 
+  void _emit(String listId, SyncEvent event) {
+    final controller = _eventControllers.putIfAbsent(
+      listId,
+      () => StreamController<SyncEvent>.broadcast(),
+    );
+    controller.add(event);
+  }
+
   void _updateSyncStatus(String listId) {
     final isProcessing = _operationQueues[listId]?.isNotEmpty ?? false;
-    getSyncStatusNotifier(listId).value = isProcessing;
+    _syncStatusNotifiers.putIfAbsent(listId, () => ValueNotifier(false)).value =
+        isProcessing;
   }
 
   void _replaceValuesInQueue(
@@ -304,19 +219,14 @@ class ShoppingListSyncService {
     }
   }
 
-  Future<void> _syncList(String listId) async {
-    // Skip if currently syncing
-    if (_isSyncing[listId] == true) return;
-
-    final callbacks = _syncCallbacks[listId];
-    if (callbacks == null) return;
-
-    try {
-      final token = await _authService.idToken;
-      final detail = await _repository.fetchShoppingListDetail(listId, token);
-      callbacks.onSync(detail);
-    } catch (e) {
-      // syncing fails silently
+  void dispose() {
+    for (final controller in _eventControllers.values) {
+      controller.close();
     }
+    _eventControllers.clear();
+    for (final notifier in _syncStatusNotifiers.values) {
+      notifier.dispose();
+    }
+    _syncStatusNotifiers.clear();
   }
 }

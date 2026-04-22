@@ -47,6 +47,12 @@ class ShoppingListDetailService {
   bool _isShareShoppingListRunning = false;
   bool _isUnshareShoppingListRunning = false;
 
+  String? _currentSyncingListId;
+  Timer? _periodicFetchTimer;
+  StreamSubscription<SyncEvent>? _syncEventsSubscription;
+  VoidCallback? _onConflictCallback;
+  ValueChanged<String>? _onErrorCallback;
+
   Future<void> loadShoppingListDetail(String id) async {
     if (_isLoadShoppingListDetailRunning) return;
     _isLoadShoppingListDetailRunning = true;
@@ -87,55 +93,144 @@ class ShoppingListDetailService {
     }
   }
 
-  String? _currentSyncingListId;
-
   void startSyncing({
     required String listId,
     VoidCallback? onConflict,
     ValueChanged<String>? onError,
   }) {
     _currentSyncingListId = listId;
-    _syncService.startSyncing(
-      listId: listId,
-      onItemAdded: _onItemAdded,
-      onItemUpdated: _onItemUpdated,
-      onSync: (detail) {
-        _shoppingListDetail.value = AsyncData(detail);
-      },
-      onConflict: () async {
-        _shoppingListDetail.value = await AsyncValue.guardAsync(() async {
-          final token = await _authService.idToken;
-          return _shoppingListRepository.fetchShoppingListDetail(listId, token);
-        });
-        onConflict?.call();
-      },
-      onError: (message) {
-        onError?.call(message);
-      },
+    _onConflictCallback = onConflict;
+    _onErrorCallback = onError;
+    _syncEventsSubscription = _syncService
+        .events(listId)
+        .listen(_handleSyncEvent);
+    _periodicFetchTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _onPeriodicFetch(),
     );
   }
 
   void stopSyncing() {
-    if (_currentSyncingListId != null) {
-      _syncService.stopSyncing(_currentSyncingListId!);
-      _currentSyncingListId = null;
-    }
+    _periodicFetchTimer?.cancel();
+    _periodicFetchTimer = null;
+    _syncEventsSubscription?.cancel();
+    _syncEventsSubscription = null;
+    _currentSyncingListId = null;
+    _onConflictCallback = null;
+    _onErrorCallback = null;
   }
 
   void pauseSyncing() {
     if (_currentSyncingListId != null) {
-      _syncService.pauseSyncing(_currentSyncingListId!);
+      _periodicFetchTimer?.cancel();
+      _periodicFetchTimer = null;
     }
   }
 
   void resumeSyncing() {
     if (_currentSyncingListId != null) {
-      _syncService.resumeSyncing(_currentSyncingListId!);
+      _periodicFetchTimer = Timer.periodic(
+        const Duration(seconds: 10),
+        (_) => _onPeriodicFetch(),
+      );
+      _onPeriodicFetch();
     }
   }
 
-  ValueNotifier<bool> getSyncStatusNotifier(String listId) {
-    return _syncService.getSyncStatusNotifier(listId);
+  ValueListenable<bool> syncStatus(String listId) {
+    return _syncService.syncStatus(listId);
+  }
+
+  Future<void> _onPeriodicFetch() async {
+    if (_currentSyncingListId == null) return;
+    final id = _currentSyncingListId!;
+
+    if (_syncService.syncStatus(id).value == true ||
+        _syncService.pendingOperations(id).isNotEmpty) {
+      return;
+    }
+
+    try {
+      final token = await _authService.idToken;
+      final detail = await _shoppingListRepository.fetchShoppingListDetail(
+        id,
+        token,
+      );
+      _shoppingListDetail.value = AsyncData(detail);
+    } catch (_) {
+      // silent fail — matches old _syncList behaviour
+    }
+  }
+
+  void _handleSyncEvent(SyncEvent event) {
+    switch (event) {
+      case ItemSynced():
+        _handleItemSynced(event);
+      case SyncConflict():
+        _handleConflict();
+      case SyncFailed(:final message):
+        _onErrorCallback?.call(message);
+    }
+  }
+
+  void _handleItemSynced(ItemSynced e) {
+    final currentState = _shoppingListDetail.value;
+    if (currentState is! AsyncData<ShoppingListDetail>) return;
+
+    final detail = currentState.value;
+    final itemIndex = detail.items.indexWhere(
+      (item) => item.id == e.submittedItemId,
+    );
+
+    // If no item matches, a later optimistic op (e.g. delete) has already
+    // removed it — that absence is authoritative; do nothing.
+    if (itemIndex == -1) return;
+
+    final updatedItems = detail.items.toList();
+    updatedItems[itemIndex] = e.serverItem;
+
+    var updatedDetail = ShoppingListDetail(
+      id: detail.id,
+      name: detail.name,
+      items: updatedItems,
+      role: detail.role,
+    );
+
+    // Re-apply pending ops for this item so subsequent optimistic changes stay
+    // reflected. _replaceValuesInQueue in sync service rewrites ops to the
+    // server id *before* emitting ItemSynced, so pendingOperations already
+    // carries the server id and the filter below matches correctly. Do not
+    // move the emit before _replaceValuesInQueue in sync service — this
+    // ordering is load-bearing.
+    final pending = _syncService.pendingOperations(_currentSyncingListId!);
+    for (final op in pending) {
+      if (op.itemId == e.serverItem.id) {
+        updatedDetail = applyOperation(updatedDetail, op);
+      }
+    }
+
+    _shoppingListDetail.value = AsyncData(updatedDetail);
+  }
+
+  Future<void> _handleConflict() async {
+    final listId = _currentSyncingListId;
+    if (listId == null) return;
+
+    _shoppingListDetail.value = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      var detail = await _shoppingListRepository.fetchShoppingListDetail(
+        listId,
+        token,
+      );
+      // Re-apply still-pending ops so optimistic state for non-conflicted
+      // items survives the refetch. Without this, those changes would only
+      // reappear once each op round-trips and ItemSynced lands.
+      for (final op in _syncService.pendingOperations(listId)) {
+        detail = applyOperation(detail, op);
+      }
+      return detail;
+    });
+    _onConflictCallback?.call();
   }
 
   void processOperation(ShoppingListOperation operation) async {
@@ -327,66 +422,6 @@ class ShoppingListDetailService {
     };
   }
 
-  void _onItemAdded(
-    String tempId,
-    ShoppingListItem addedItem,
-    List<ShoppingListOperation> pendingOperations,
-  ) {
-    final currentState = _shoppingListDetail.value;
-    if (currentState is! AsyncData<ShoppingListDetail>) return;
-
-    final detail = currentState.value;
-    final updatedItems = detail.items.map((item) {
-      if (item.id == tempId) {
-        return addedItem;
-      }
-      return item;
-    }).toList();
-
-    var updatedDetail = ShoppingListDetail(
-      id: detail.id,
-      name: detail.name,
-      items: updatedItems,
-      role: detail.role,
-    );
-
-    for (final operation in pendingOperations) {
-      updatedDetail = applyOperation(updatedDetail, operation);
-    }
-
-    _shoppingListDetail.value = AsyncData(updatedDetail);
-  }
-
-  void _onItemUpdated(
-    String itemId,
-    ShoppingListItem updatedItem,
-    List<ShoppingListOperation> pendingOperations,
-  ) {
-    final currentState = _shoppingListDetail.value;
-    if (currentState is! AsyncData<ShoppingListDetail>) return;
-
-    final detail = currentState.value;
-    final itemsCopy = detail.items.toList();
-    final index = itemsCopy.indexWhere((i) => i.id == itemId);
-
-    if (index != -1) {
-      itemsCopy[index] = updatedItem;
-    }
-
-    var updatedDetail = ShoppingListDetail(
-      id: detail.id,
-      name: detail.name,
-      items: itemsCopy,
-      role: detail.role,
-    );
-
-    for (final operation in pendingOperations) {
-      updatedDetail = applyOperation(updatedDetail, operation);
-    }
-
-    _shoppingListDetail.value = AsyncData(updatedDetail);
-  }
-
   Future<void> loadSharedUsers(String id) async {
     if (_isLoadSharedUsersRunning) return;
     _isLoadSharedUsersRunning = true;
@@ -479,6 +514,8 @@ class ShoppingListDetailService {
   }
 
   void dispose() {
+    _shoppingListDetail.dispose();
+    _sharedUsers.dispose();
     stopSyncing();
   }
 }

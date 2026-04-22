@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "934414686934-u8io9oruj4umh9sa1d5ksl7ippro0eue.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "xyz.stasiak.recipai",
+            "certificate_hash": "c57ca10eba0d07920e5c552a358e704cab0664c8"
+          }
+        },
+        {
           "client_id": "934414686934-i2o01ndv2rnm547pbv67bc3e9fltbtma.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -150,6 +150,14 @@ Standards for feature flags: how to define flags using `bool.fromEnvironment()`,
 
 ---
 
+## Architecture Decision Records (ADRs)
+
+Located in `docs/ADRs/`. See `ADRs/INDEX.md` for the full list of decisions and their status.
+
+ADRs document significant architectural decisions: the context, the options considered, and the chosen approach.
+
+---
+
 ## How to Use This Documentation
 
 1. **Start Here**: Always read this INDEX.md first to understand what documentation exists

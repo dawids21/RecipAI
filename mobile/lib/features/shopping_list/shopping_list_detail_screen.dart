@@ -576,7 +576,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                     children: [
                       ValueListenableBuilder(
                         valueListenable: widget.shoppingListDetailService
-                            .getSyncStatusNotifier(detail.id),
+                            .syncStatus(detail.id),
                         builder: (context, isSyncing, child) => Row(
                           children: [
                             Expanded(

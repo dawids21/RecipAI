@@ -14,6 +14,7 @@ void setupShoppingList({ShoppingListRepository? shoppingListRepository}) {
       repository: getIt<ShoppingListRepository>(),
       authService: getIt<AuthService>(),
     ),
+    dispose: (service) => service.dispose(),
   );
   getIt.registerLazySingleton(
     () => ShoppingListListService(
