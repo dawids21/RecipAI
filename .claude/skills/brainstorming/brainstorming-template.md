@@ -1,56 +1,73 @@
-# <Task name>
+# <Task name> — solution brainstorming
 
 **Date:** <YYYY-MM-DD>
-**Type:** <feature | refactor>
 **Status:** brainstorming
 
 ## Summary
 
-<One or two sentences describing the task in plain language.>
+<One or two sentences: what we're trying to build (from requirements) and
+what this doc is doing — exploring N distinct approaches and recommending
+one (or deferring).>
 
-## Context
+## Approaches considered
 
-<Why this needs to happen. Background, motivation, the problem being solved.
-Include any relevant history — past attempts, related decisions, incidents
-that prompted this.>
+### Approach 1: <Name>
 
-## Requirements
+**Sketch.** <2–4 sentences on how this actually works in this codebase.
+Reference concrete modules, files, or systems where relevant. Stay at the
+level of shape, not implementation detail.>
 
-<How the system should behave after this is implemented. Concrete and
-observable. Prefer statements like "When X happens, the system does Y"
-over vague goals.>
+**Trade-offs.**
+- <Honest cost or benefit>
+- <Honest cost or benefit>
+- ...
 
-## Anti-requirements
+**When it's the right choice.** <The conditions under which this approach
+clearly wins.>
 
-<What is explicitly out of scope, and why. Adjacent features we're not
-building, simplifications we're accepting, problems we're deferring.>
+**Main risk.** <The single thing most likely to go wrong.>
 
-## Constraints & assumptions
+### Approach 2: <Name>
 
-<Technical limits (performance, compatibility, data volume), dependencies
-on other systems or work, and things we're taking for granted. Call out
-assumptions explicitly so they can be challenged later.>
+<Same structure.>
 
-## Acceptance criteria
+### Approach 3: <Name>
 
-<Concrete checklist of conditions that must be true for the task to be
-considered done. Each item should be verifiable.>
+<Same structure.>
 
-- [ ] ...
-- [ ] ...
+<Add Approach 4 / 5 as needed. Drop the header if fewer approaches.>
 
-## Edge cases
+## At a glance
 
-<Unusual scenarios, failure modes, boundary conditions. Empty inputs,
-concurrent access, external service failures, scale, partial failures.>
+<Comparison table on the 2–3 dimensions that actually discriminate between
+these options for this task. Pick the dimensions that matter — not a generic
+template. Examples: implementation cost, latency, revocability, migration
+burden, operational cost, coupling to existing modules.>
 
-## Integration points
+| Approach | <Dim 1> | <Dim 2> | <Dim 3> |
+|----------|---------|---------|---------|
+| 1. ...   | ...     | ...     | ...     |
+| 2. ...   | ...     | ...     | ...     |
 
-<Where this touches existing code. Files, modules, APIs, database tables,
-event handlers, UI entry points. This is the starting map for whoever
-implements the task.>
+## Recommendation
 
-## Open questions
+<One of:>
 
-<Things that came up but weren't resolved. Decisions deferred to
-implementation or follow-up research. If empty, delete this section.>
+<**Chosen: Approach N.** One paragraph on why, referencing the specific
+trade-offs that decided it — not generic best-practice language. Mention
+explicitly what this choice gives up relative to the runners-up.>
+
+<**Deferred.** What's deferred is the recommendation, not the exploration.
+State clearly what information is missing, what would resolve it (a spike,
+a benchmark, a conversation, a production data check), and who/what can
+provide it. Include which approaches are still live and which have been
+ruled out.>
+
+## Questions for design
+
+<Questions that only matter once an approach is chosen — for the designing
+step to resolve. Different from deferred brainstorming questions, which
+block the choice itself. If none, delete this section.>
+
+- ...
+- ...

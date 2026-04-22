@@ -2,16 +2,16 @@ spring:
   devtools:
     restart:
       enabled: false
-  jpa:
-    properties:
-      hibernate:
-        format_sql: true
+  # jpa:
+  #   properties:
+  #     hibernate:
+  #       format_sql: true
 
 logging:
   level:
     xyz.stasiak: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    # org.hibernate.SQL: DEBUG
+    # org.hibernate.orm.jdbc.bind: TRACE
 
 recipai:
   meal-plan:
