@@ -7,9 +7,10 @@ description: Create a detailed, PR-ready implementation plan for a single task b
 
 Produce a detailed, PR-ready implementation plan that an engineer (or another
 agent) can execute top-to-bottom without further interpretation. This is the
-terminal planning step in a brainstorming → design → tasks → implementation-plan
-workflow. The design work has already been done; this skill translates it into
-a concrete, file-level plan grounded in the real codebase.
+terminal planning step in a requirements → brainstorming → design → tasks →
+implementation-plan workflow. The upstream planning is already done; this skill
+translates `design.md` (and, in multi-task mode, one entry from `tasks.md`)
+into a concrete, file-level plan grounded in the real codebase.
 
 ## Inputs
 

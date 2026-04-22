@@ -9,12 +9,13 @@ Translates a completed `design.md` into a `tasks.md` — an ordered list of vert
 
 ## Pipeline position
 
-This skill is step 3 of a 4-step workflow:
+This skill is step 4 of a 5-step workflow:
 
-1. Brainstorming (Socratic) → brainstorming notes
-2. Design → `design.md`
-3. **Task planning (this skill)** → `tasks.md`
-4. Implementation planning → per-task implementation plan
+1. Requirements gathering (Socratic) → `requirements.md`
+2. Brainstorming (solution alternatives) → `brainstorming.md`
+3. Design → `design.md`
+4. **Task planning (this skill)** → `tasks.md`
+5. Implementation planning → per-task implementation plan
 
 ## Inputs
 
