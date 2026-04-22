@@ -6,8 +6,8 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_item.dart             # Shopping list item data model
 ├── shopping_list_repository.dart       # Shopping list data access layer
 ├── shopping_list_list_service.dart     # Shopping list list business logic with ValueNotifier
-├── shopping_list_detail_service.dart   # Shopping list detail business logic with optimistic updates
-├── shopping_list_sync_service.dart     # Background sync service with operation queue and conflict handling
+├── shopping_list_detail_service.dart   # Shopping list detail business logic with optimistic updates; owns the 10-second periodic fetch timer and subscribes to sync events
+├── shopping_list_sync_service.dart     # Operation queue with conflict handling; exposes a SyncEvent stream (ItemSynced/SyncConflict/SyncFailed) and a sync-status ValueListenable per list
 ├── shopping_list_operation.dart        # Operation models for optimistic UI updates (sealed class: Add/Delete/Move/Check/Uncheck/Update)
 ├── shopping_list_setup.dart            # Dependency injection setup for shopping list module
 ├── shopping_list_list.dart             # Reusable shopping list body widget
