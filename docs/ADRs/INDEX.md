@@ -9,3 +9,7 @@ consequences. Read an ADR before changing code in the area it covers.
 - [ADR-0001: Sync service communicates results via a per-list event stream](0001-sync-service-event-stream.md) —
   Decouples `ShoppingListSyncService` from `ShoppingListDetailService` by
   replacing the callback bundle with a broadcast `Stream<SyncEvent>` per list.
+- [ADR-0002: Mobile widget tests pump the real screen against a single-route test router with mocktail repositories](0002-mobile-widget-test-shape.md) —
+  Establishes the widget-test shape: real screen in a test-local single-route
+  `GoRouter`, `NavigatorObserver` for navigation assertions, mocktail at the
+  repository boundary.

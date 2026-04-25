@@ -28,7 +28,8 @@ mobile/
 │       └── app_config.json             # App configuration file
 ├── android/                            # Android-specific configuration and native code
 ├── test/
-│   └── widget_test.dart                # Smoke test
+│   └── support/
+│       └── mocks.dart                  # mocktail Mock* class declarations for all repositories
 ├── pubspec.yaml                        # Flutter dependencies and project configuration
 └── analysis_options.yaml              # Dart/Flutter linting rules
 ```

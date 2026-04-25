@@ -4,8 +4,9 @@
 Use `get_it` as the service locator. Each feature has a `setup<Feature>()` function in `*_setup.dart` that registers all feature services and repositories. Setup functions are called in `main()` before app initialization.
 
 ```dart
-void setupRecipe() {
-  getIt.registerSingleton(RecipeRepository());
+void setupRecipe({RecipeRepository? recipeRepository}) {
+  final repository = recipeRepository ?? RecipeRepository();
+  getIt.registerSingleton<RecipeRepository>(repository);
   getIt.registerLazySingleton(
     () => RecipeListService(
       recipeRepository: getIt<RecipeRepository>(),

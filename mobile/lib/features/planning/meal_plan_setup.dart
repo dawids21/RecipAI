@@ -9,8 +9,9 @@ import 'meal_plan_visibility_service.dart';
 import 'shopping_list_generation_calendar_service.dart';
 import 'shopping_list_generation_service.dart';
 
-void setupMealPlan() {
-  getIt.registerSingleton(MealPlanRepository());
+void setupMealPlan({MealPlanRepository? mealPlanRepository}) {
+  final repository = mealPlanRepository ?? MealPlanRepository();
+  getIt.registerSingleton<MealPlanRepository>(repository);
 
   getIt.registerLazySingleton(
     () => MealPlanVisibilityService(

@@ -6,8 +6,9 @@ import 'recipe_detail_service.dart';
 import 'recipe_list_service.dart';
 import 'recipe_repository.dart';
 
-void setupRecipe() {
-  getIt.registerSingleton(RecipeRepository());
+void setupRecipe({RecipeRepository? recipeRepository}) {
+  final repository = recipeRepository ?? RecipeRepository();
+  getIt.registerSingleton<RecipeRepository>(repository);
   getIt.registerLazySingleton(
     () => RecipeListService(
       recipeRepository: getIt<RecipeRepository>(),

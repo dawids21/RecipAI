@@ -82,10 +82,7 @@ class MealPlanListService {
 
   Future<void> deleteMealPlan({required String id}) async {
     final token = await _authService.idToken;
-    await _repository.deleteMealPlan(
-      id: id,
-      idToken: token,
-    );
+    await _repository.deleteMealPlan(id: id, idToken: token);
 
     await loadMealPlans();
   }

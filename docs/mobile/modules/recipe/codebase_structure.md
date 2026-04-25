@@ -30,3 +30,8 @@ mobile/lib/features/recipe/
 │   └── recipes_collection_rename_dialog.dart # Dialog for renaming collections
 └── ...                                 # Other screens, models, and widgets
 ```
+
+```
+mobile/test/features/recipe/
+└── main_screen_recipes_tab_widget_test.dart # Widget tests for the Recipes tab on MainScreen
+```
