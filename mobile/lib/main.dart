@@ -14,10 +14,14 @@ import 'core/theme.dart';
 import 'features/auth/auth_service.dart';
 import 'features/auth/auth_setup.dart';
 import 'features/extraction/extraction_setup.dart';
+import 'features/extraction/share_intent_service.dart';
+import 'features/extraction/share_intent_setup.dart';
 import 'features/planning/meal_plan_setup.dart';
 import 'features/recipe/collection/recipes_collection_setup.dart';
 import 'features/recipe/recipe_setup.dart';
 import 'features/shopping_list/shopping_list_setup.dart';
+
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +41,11 @@ void main() async {
   setupExtraction();
 
   final appRouter = createAppRouter();
+  setupShareIntent(
+    router: appRouter,
+    authService: getIt<AuthService>(),
+    scaffoldMessengerKey: scaffoldMessengerKey,
+  );
 
   runApp(RecipAIApp(appRouter: appRouter));
 }
@@ -52,7 +61,16 @@ class RecipAIApp extends StatefulWidget {
 
 class _RecipAIAppState extends State<RecipAIApp> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => getIt<ShareIntentService>().consumeInitialShare(),
+    );
+  }
+
+  @override
   void dispose() {
+    getIt<ShareIntentService>().dispose();
     getIt<AuthService>().dispose();
     super.dispose();
   }
@@ -62,6 +80,7 @@ class _RecipAIAppState extends State<RecipAIApp> {
     return MaterialApp.router(
       title: 'RecipAI',
       theme: AppTheme.theme,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

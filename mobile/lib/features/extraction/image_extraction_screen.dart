@@ -11,8 +11,13 @@ import 'extraction_service.dart';
 
 class ImageExtractionScreen extends StatefulWidget {
   final ExtractionService extractionService;
+  final File? initialImageFile;
 
-  const ImageExtractionScreen({super.key, required this.extractionService});
+  const ImageExtractionScreen({
+    super.key,
+    required this.extractionService,
+    this.initialImageFile,
+  });
 
   @override
   State<ImageExtractionScreen> createState() => _ImageExtractionScreenState();
@@ -22,6 +27,14 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   XFile? _selectedImage;
   bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialImageFile != null) {
+      _selectedImage = XFile(widget.initialImageFile!.path);
+    }
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {

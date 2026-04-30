@@ -23,6 +23,28 @@ extension IsoDateFormat on DateTime {
   int get daysInMonth => DateTime(year, month + 1, 0).day;
 }
 
+extension UrlString on String {
+  bool get isUrl {
+    final trimmed = trim();
+
+    if (trimmed.startsWith(RegExp(r'https?://'))) {
+      try {
+        final uri = Uri.parse(trimmed);
+        return uri.hasScheme && uri.host.isNotEmpty;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    final domainPattern = RegExp(
+      r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost(:\d+)?$',
+      caseSensitive: false,
+    );
+
+    return domainPattern.hasMatch(trimmed);
+  }
+}
+
 extension ColorExtension on Color {
   String toHexString() {
     final r = (0xFF0000 & toARGB32()) >> 16;

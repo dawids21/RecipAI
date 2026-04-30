@@ -7,6 +7,7 @@ import '../features/auth/auth_service.dart';
 import '../features/auth/login_screen.dart';
 import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
+import '../features/extraction/share_route_extras.dart';
 import '../features/extraction/url_extraction_screen.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/planning/meal_plan_list_service.dart';
@@ -139,16 +140,24 @@ GoRouter createAppRouter() {
           GoRoute(
             path: AppRoute.urlExtraction.path,
             name: AppRoute.urlExtraction.name,
-            builder: (context, state) => UrlExtractionScreen(
-              extractionService: getIt<ExtractionService>(),
-            ),
+            builder: (context, state) {
+              final prefill = state.extra as UrlPrefill?;
+              return UrlExtractionScreen(
+                extractionService: getIt<ExtractionService>(),
+                initialUrl: prefill?.url,
+              );
+            },
           ),
           GoRoute(
             path: AppRoute.imageExtraction.path,
             name: AppRoute.imageExtraction.name,
-            builder: (context, state) => ImageExtractionScreen(
-              extractionService: getIt<ExtractionService>(),
-            ),
+            builder: (context, state) {
+              final prefill = state.extra as ImagePrefill?;
+              return ImageExtractionScreen(
+                extractionService: getIt<ExtractionService>(),
+                initialImageFile: prefill?.file,
+              );
+            },
           ),
           GoRoute(
             path: AppRoute.recipeCreate.path,

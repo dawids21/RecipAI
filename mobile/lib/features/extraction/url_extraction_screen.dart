@@ -4,6 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../shared/extensions.dart';
 import '../../shared/loading_widget.dart';
 import '../recipe/initial_recipe_form_data.dart';
 import 'extraction_service.dart';
@@ -11,8 +12,13 @@ import 'web_recipe_extractor.dart';
 
 class UrlExtractionScreen extends StatefulWidget {
   final ExtractionService extractionService;
+  final String? initialUrl;
 
-  const UrlExtractionScreen({super.key, required this.extractionService});
+  const UrlExtractionScreen({
+    super.key,
+    required this.extractionService,
+    this.initialUrl,
+  });
 
   @override
   State<UrlExtractionScreen> createState() => _UrlExtractionScreenState();
@@ -30,14 +36,25 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
   void initState() {
     super.initState();
     _initializeWebView();
+
+    final initialUrl = widget.initialUrl;
+    if (initialUrl != null) {
+      _urlController.text = initialUrl;
+      _isCurrentInputUrl = initialUrl.isUrl;
+    }
+
     _urlController.addListener(() {
-      final newValue = _isUrl(_urlController.text.trim());
+      final newValue = _urlController.text.trim().isUrl;
       if (newValue != _isCurrentInputUrl) {
         setState(() {
           _isCurrentInputUrl = newValue;
         });
       }
     });
+
+    if (initialUrl != null) {
+      _loadUrlInternal(initialUrl);
+    }
   }
 
   void _initializeWebView() {
@@ -78,54 +95,32 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
       );
   }
 
-  bool _isUrl(String input) {
-    final trimmed = input.trim();
-
-    // If it has a scheme, validate with Uri.parse
-    if (trimmed.startsWith(RegExp(r'https?://'))) {
-      try {
-        final uri = Uri.parse(trimmed);
-        return uri.hasScheme && uri.host.isNotEmpty;
-      } catch (e) {
-        return false;
-      }
-    }
-
-    // Check for domain-like pattern without scheme
-    // Pattern: optional subdomain(s) + domain + TLD or localhost
-    final domainPattern = RegExp(
-      r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$|^localhost(:\d+)?$',
-      caseSensitive: false,
-    );
-
-    return domainPattern.hasMatch(trimmed);
-  }
-
   void _loadUrl() {
     final input = _urlController.text.trim();
     if (input.isEmpty) {
       _showSnackBar('Please enter a URL or search terms');
       return;
     }
+    FocusScope.of(context).unfocus();
+    _loadUrlInternal(input);
+  }
 
-    String urlToLoad;
+  void _loadUrlInternal(String input) {
+    final String urlToLoad;
 
-    if (_isUrl(input)) {
-      // Handle as URL
+    if (input.isUrl) {
       if (!input.startsWith('http://') && !input.startsWith('https://')) {
         urlToLoad = 'https://$input';
       } else {
         urlToLoad = input;
       }
     } else {
-      // Handle as search query - construct Google search URL
       final encodedQuery = Uri.encodeQueryComponent(input);
       urlToLoad = 'https://www.google.com/search?q=$encodedQuery';
     }
 
     try {
       _controller.loadRequest(Uri.parse(urlToLoad));
-      FocusScope.of(context).unfocus(); // Hide keyboard
     } catch (e) {
       _showSnackBar('Invalid URL format');
     }
