@@ -20,12 +20,10 @@ backend/src/main/java/xyz/stasiak/recipai/
     │   ├── ShoppingListItemDto.java                 # Shopping list item response DTO
     │   ├── CreateShoppingListRequest.java
     │   ├── UpdateShoppingListRequest.java
-    │   ├── CreateShoppingListItemRequest.java
-    │   ├── UpdateShoppingListItemRequest.java
-    │   └── MoveShoppingListItemRequest.java
+    │   ├── ShareShoppingListRequest.java
+    │   ├── UnshareShoppingListRequest.java
+    │   └── SharedUserDto.java
     └── exception/
         ├── ShoppingListNotFoundException.java
-        ├── ShoppingListAccessDeniedException.java
-        ├── ShoppingListItemNotFoundException.java
-        └── ShoppingListItemVersionMismatchException.java
+        └── ShoppingListAccessDeniedException.java
 ```

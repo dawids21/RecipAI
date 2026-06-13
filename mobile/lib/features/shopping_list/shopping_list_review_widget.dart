@@ -5,19 +5,18 @@ import '../../core/theme.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_review_item.dart';
-import 'shopping_list_review_service.dart';
-import 'shopping_list_sync_service.dart';
+
+// TODO(shopping-list-items): this widget needs a way to add the reviewed
+// generated items into a chosen shopping list (see _onAddButtonPressed).
 
 class ShoppingListReviewWidget extends StatefulWidget {
   final List<ShoppingListGeneratedItem> items;
   final ShoppingListListService shoppingListListService;
-  final ShoppingListSyncService shoppingListSyncService;
 
   const ShoppingListReviewWidget({
     super.key,
     required this.items,
     required this.shoppingListListService,
-    required this.shoppingListSyncService,
   });
 
   @override
@@ -28,16 +27,12 @@ class ShoppingListReviewWidget extends StatefulWidget {
 class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
   late List<ShoppingListGeneratedItem> _items;
   late Set<ShoppingListGeneratedItem> _selectedItems;
-  late ShoppingListReviewService _reviewService;
 
   @override
   void initState() {
     super.initState();
     _items = List.of(widget.items)..sort((a, b) => a.name.compareTo(b.name));
     _selectedItems = Set.of(_items);
-    _reviewService = ShoppingListReviewService(
-      syncService: widget.shoppingListSyncService,
-    );
   }
 
   void _onItemToggled(ShoppingListGeneratedItem item, bool selected) {
@@ -145,7 +140,9 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
     final selectedListId = await _showListSelectionDialog();
     if (selectedListId == null || !mounted) return;
 
-    _reviewService.addItemsToShoppingList(selectedListId, selectedItems);
+    // TODO(shopping-list-items): add `selectedItems` to the shopping list
+    // identified by `selectedListId`. Until then the success snackbar below is
+    // shown without anything actually being persisted.
 
     if (!mounted) return;
 

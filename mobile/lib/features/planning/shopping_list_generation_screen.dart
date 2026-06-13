@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/get_it.dart';
 import '../../core/theme.dart';
 import '../shopping_list/shopping_list_list_service.dart';
-import '../shopping_list/shopping_list_sync_service.dart';
 import 'meal_plan_list_service.dart';
 import 'shopping_list_generation_calendar_service.dart';
 import 'shopping_list_generation_review_step.dart';
@@ -14,7 +13,6 @@ import 'shopping_list_generation_service.dart';
 class ShoppingListGenerationScreen extends StatefulWidget {
   final MealPlanListService mealPlanListService;
   final ShoppingListListService shoppingListListService;
-  final ShoppingListSyncService shoppingListSyncService;
   final ShoppingListGenerationService generationService;
   final ShoppingListGenerationCalendarService calendarService;
 
@@ -22,7 +20,6 @@ class ShoppingListGenerationScreen extends StatefulWidget {
     super.key,
     required this.mealPlanListService,
     required this.shoppingListListService,
-    required this.shoppingListSyncService,
     required this.generationService,
     required this.calendarService,
   });
@@ -141,7 +138,8 @@ class _ShoppingListGenerationScreenState
                   ShoppingListGenerationReviewStep(
                     generationService: widget.generationService,
                     shoppingListListService: widget.shoppingListListService,
-                    shoppingListSyncService: widget.shoppingListSyncService,
+                    // TODO(shopping-list-items): forward the item-sync dependency
+                    // the review widget needs to add items.
                     onRetry: _onGenerateFromSelectDatesStep,
                   ),
                 ],

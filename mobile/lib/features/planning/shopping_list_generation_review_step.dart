@@ -5,20 +5,17 @@ import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../shopping_list/shopping_list_list_service.dart';
 import '../shopping_list/shopping_list_review_widget.dart';
-import '../shopping_list/shopping_list_sync_service.dart';
 import 'shopping_list_generation_service.dart';
 
 class ShoppingListGenerationReviewStep extends StatelessWidget {
   final ShoppingListGenerationService generationService;
   final ShoppingListListService shoppingListListService;
-  final ShoppingListSyncService shoppingListSyncService;
   final VoidCallback onRetry;
 
   const ShoppingListGenerationReviewStep({
     super.key,
     required this.generationService,
     required this.shoppingListListService,
-    required this.shoppingListSyncService,
     required this.onRetry,
   });
 
@@ -41,7 +38,8 @@ class ShoppingListGenerationReviewStep extends StatelessWidget {
                 child: ShoppingListReviewWidget(
                   items: data.items,
                   shoppingListListService: shoppingListListService,
-                  shoppingListSyncService: shoppingListSyncService,
+                  // TODO(shopping-list-items): forward the item-sync dependency
+                  // the review widget needs to add items.
                 ),
               ),
             ],

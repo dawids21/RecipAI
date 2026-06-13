@@ -28,7 +28,6 @@ import '../features/recipe/recipe_to_shopping_list_screen.dart';
 import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
-import '../features/shopping_list/shopping_list_sync_service.dart';
 import 'main_screen.dart';
 
 /// Route definitions with enum for type-safe navigation
@@ -218,7 +217,6 @@ GoRouter createAppRouter() {
                     recipeId: id,
                     recipeDetailService: getIt<RecipeDetailService>(),
                     shoppingListListService: getIt<ShoppingListListService>(),
-                    shoppingListSyncService: getIt<ShoppingListSyncService>(),
                   );
                 },
               ),
@@ -240,7 +238,6 @@ GoRouter createAppRouter() {
             builder: (context, state) => ShoppingListGenerationScreen(
               mealPlanListService: getIt<MealPlanListService>(),
               shoppingListListService: getIt<ShoppingListListService>(),
-              shoppingListSyncService: getIt<ShoppingListSyncService>(),
               generationService: getIt<ShoppingListGenerationService>(),
               calendarService: getIt<ShoppingListGenerationCalendarService>(),
             ),

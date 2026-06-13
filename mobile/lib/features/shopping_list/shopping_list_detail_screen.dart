@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/async_value.dart';
 import '../../core/get_it.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
@@ -12,7 +11,6 @@ import 'shopping_list_detail.dart';
 import 'shopping_list_detail_service.dart';
 import 'shopping_list_item_add_widget.dart';
 import 'shopping_list_item_widget.dart';
-import 'shopping_list_operation.dart';
 import 'shopping_list_rename_dialog.dart';
 import 'shopping_list_sharing_dialog.dart';
 
@@ -43,11 +41,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       widget.shoppingListId,
     );
     widget.shoppingListDetailService.loadSharedUsers(widget.shoppingListId);
-    widget.shoppingListDetailService.startSyncing(
-      listId: widget.shoppingListId,
-      onConflict: _handleConflict,
-      onError: _handleError,
-    );
+    // TODO(shopping-list-items): start keeping this list's items in sync while the
+    // screen is open, surfacing conflicts and errors to the user.
   }
 
   @override
@@ -61,28 +56,10 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      widget.shoppingListDetailService.pauseSyncing();
-    } else if (state == AppLifecycleState.resumed) {
-      widget.shoppingListDetailService.resumeSyncing();
-    }
   }
 
-  void _handleConflict() {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('List was updated by another user')),
-      );
-    }
-  }
-
-  void _handleError(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-    }
-  }
+  // TODO(shopping-list-items): handle sync conflicts (server/local divergence) and
+  // sync errors here, e.g. by reloading the list and notifying the user.
 
   Future<String?> _showRenameDialog(String currentName) async {
     return showDialog<String>(
@@ -181,33 +158,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
   void _saveEphemeralItem(ItemChanged result) {
     if (_ephemeralItemIndex == null) return;
 
-    final currentState =
-        widget.shoppingListDetailService.shoppingListDetail.value;
-    if (currentState is! AsyncData<ShoppingListDetail>) return;
-
-    final detail = currentState.value;
-    final uncheckedItems = detail.items.where((item) => !item.checked).toList();
-
-    if (_ephemeralItemIndex! >= uncheckedItems.length) return;
-
-    final afterItem = uncheckedItems[_ephemeralItemIndex!];
-    final afterIndex = detail.items.indexWhere(
-      (item) => item.id == afterItem.id,
-    );
-    final insertionIndex = afterIndex + 1;
-
-    final operation = AddItemOperation(
-      itemName: result.name,
-      itemQuantity: result.quantity,
-      itemUnit: result.unit,
-      index: insertionIndex,
-    );
-
-    widget.shoppingListDetailService.processOperation(operation);
-
     setState(() {
       _ephemeralItemIndex = null;
     });
+
+    // TODO(shopping-list-items): persist the newly entered item to the shopping
+    // list (the ephemeral row the user just filled in) and reflect it in the list.
   }
 
   void _discardEphemeralItem() {
@@ -254,25 +210,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       return;
     }
 
-    // Get unchecked items in array order (no sorting by position)
-    final sectionItems = detail.items.where((item) => !item.checked).toList();
-
-    // Get the moved item from section
-    final movedItem = sectionItems[oldIndex];
-
-    // Find global index of target
-    final targetItem = sectionItems[newIndex];
-    final globalNewIndex = detail.items.indexWhere(
-      (item) => item.id == targetItem.id,
-    );
-
-    // Create operation with global index
-    final operation = MoveItemOperation(
-      itemId: movedItem.id,
-      itemVersion: movedItem.version,
-      targetIndex: globalNewIndex,
-    );
-    widget.shoppingListDetailService.processOperation(operation);
+    // TODO(shopping-list-items): persist the new position of the reordered
+    // unchecked item.
   }
 
   void _onReorderChecked(
@@ -288,25 +227,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       return;
     }
 
-    // Get checked items in array order (no sorting by position)
-    final sectionItems = detail.items.where((item) => item.checked).toList();
-
-    // Get the moved item from section
-    final movedItem = sectionItems[oldIndex];
-
-    // Find global index of target
-    final targetItem = sectionItems[newIndex];
-    final globalNewIndex = detail.items.indexWhere(
-      (item) => item.id == targetItem.id,
-    );
-
-    // Create operation with global index
-    final operation = MoveItemOperation(
-      itemId: movedItem.id,
-      itemVersion: movedItem.version,
-      targetIndex: globalNewIndex,
-    );
-    widget.shoppingListDetailService.processOperation(operation);
+    // TODO(shopping-list-items): persist the new position of the reordered
+    // checked item.
   }
 
   ({List<Widget> unchecked, List<Widget> checked}) _buildSplitItemWidgets(
@@ -336,30 +258,15 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           index: i,
           showDragHandle: true,
           onEdit: (result) {
-            final operation = UpdateItemOperation(
-              itemId: item.id,
-              itemVersion: item.version,
-              itemName: result.name,
-              itemQuantity: result.quantity,
-              itemUnit: result.unit,
-            );
-            widget.shoppingListDetailService.processOperation(operation);
+            // TODO(shopping-list-items): persist edits to this item's name,
+            // quantity, and unit.
           },
           onDelete: () {
-            final operation = DeleteItemOperation(
-              itemId: item.id,
-              itemVersion: item.version,
-            );
-            widget.shoppingListDetailService.processOperation(operation);
+            // TODO(shopping-list-items): remove this item from the shopping list.
           },
           onCheckChanged: (checked) {
-            final operation = checked
-                ? CheckItemOperation(itemId: item.id, itemVersion: item.version)
-                : UncheckItemOperation(
-                    itemId: item.id,
-                    itemVersion: item.version,
-                  );
-            widget.shoppingListDetailService.processOperation(operation);
+            // TODO(shopping-list-items): persist this item's checked/unchecked
+            // state.
           },
           onSubmitted: () => _createEphemeralItemAfter(i),
         ),
@@ -411,30 +318,15 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           index: i,
           showDragHandle: true,
           onEdit: (result) {
-            final operation = UpdateItemOperation(
-              itemId: item.id,
-              itemVersion: item.version,
-              itemName: result.name,
-              itemQuantity: result.quantity,
-              itemUnit: result.unit,
-            );
-            widget.shoppingListDetailService.processOperation(operation);
+            // TODO(shopping-list-items): persist edits to this item's name,
+            // quantity, and unit.
           },
           onDelete: () {
-            final operation = DeleteItemOperation(
-              itemId: item.id,
-              itemVersion: item.version,
-            );
-            widget.shoppingListDetailService.processOperation(operation);
+            // TODO(shopping-list-items): remove this item from the shopping list.
           },
           onCheckChanged: (checked) {
-            final operation = checked
-                ? CheckItemOperation(itemId: item.id, itemVersion: item.version)
-                : UncheckItemOperation(
-                    itemId: item.id,
-                    itemVersion: item.version,
-                  );
-            widget.shoppingListDetailService.processOperation(operation);
+            // TODO(shopping-list-items): persist this item's checked/unchecked
+            // state.
           },
           onSubmitted: () => _createEphemeralItemAfter(i),
         ),
@@ -502,31 +394,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
               ),
             );
 
-            menuItems.add(
-              const PopupMenuItem<String>(
-                value: 'delete_all_checked',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_sweep),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Delete all checked'),
-                  ],
-                ),
-              ),
-            );
-
-            menuItems.add(
-              const PopupMenuItem<String>(
-                value: 'uncheck_all',
-                child: Row(
-                  children: [
-                    Icon(Icons.remove_done),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Uncheck all'),
-                  ],
-                ),
-              ),
-            );
+            // TODO(shopping-list-items): add the bulk "delete all checked items"
+            // and "uncheck all items" menu actions.
 
             if (detail.role == UserRole.owner) {
               menuItems.add(
@@ -556,12 +425,9 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                         _showSharingDialog();
                       } else if (value == 'delete') {
                         _deleteShoppingList(detail.id, detail.name);
-                      } else if (value == 'delete_all_checked') {
-                        widget.shoppingListDetailService
-                            .deleteAllCheckedItems();
-                      } else if (value == 'uncheck_all') {
-                        widget.shoppingListDetailService.uncheckAllItems();
                       }
+                      // TODO(shopping-list-items): handle the "delete all checked
+                      // items" and "uncheck all items" bulk actions here.
                     },
                     itemBuilder: (context) => menuItems,
                   ),
@@ -574,33 +440,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ValueListenableBuilder(
-                        valueListenable: widget.shoppingListDetailService
-                            .syncStatus(detail.id),
-                        builder: (context, isSyncing, child) => Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                detail.name,
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.small),
-                            if (isSyncing)
-                              const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(),
-                              )
-                            else
-                              Icon(
-                                Icons.check_circle,
-                                color: theme.colorScheme.primary,
-                                size: 24,
-                              ),
-                          ],
+                      // TODO(shopping-list-items): show a sync-status indicator
+                      // (e.g. "syncing…") above the title; currently static.
+                      Text(
+                        detail.name,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.medium),
@@ -651,13 +496,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                                   ShoppingListItemAddWidget(
                                     key: const ValueKey('add-item'),
                                     onAdd: (result) {
-                                      final operation = AddItemOperation(
-                                        itemName: result.name,
-                                        itemQuantity: result.quantity,
-                                        itemUnit: result.unit,
-                                      );
-                                      widget.shoppingListDetailService
-                                          .processOperation(operation);
+                                      // TODO(shopping-list-items): add the newly
+                                      // entered item to the shopping list.
                                     },
                                   ),
 

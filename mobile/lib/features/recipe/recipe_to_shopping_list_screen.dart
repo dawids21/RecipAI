@@ -5,20 +5,17 @@ import '../../shared/loading_widget.dart';
 import '../shopping_list/shopping_list_list_service.dart';
 import '../shopping_list/shopping_list_review_item.dart';
 import '../shopping_list/shopping_list_review_widget.dart';
-import '../shopping_list/shopping_list_sync_service.dart';
 import 'recipe_detail_service.dart';
 
 class RecipeToShoppingListScreen extends StatelessWidget {
   final String recipeId;
   final RecipeDetailService recipeDetailService;
   final ShoppingListListService shoppingListListService;
-  final ShoppingListSyncService shoppingListSyncService;
 
   const RecipeToShoppingListScreen({
     required this.recipeId,
     required this.recipeDetailService,
     required this.shoppingListListService,
-    required this.shoppingListSyncService,
     super.key,
   });
 
@@ -75,7 +72,8 @@ class RecipeToShoppingListScreen extends StatelessWidget {
                       child: ShoppingListReviewWidget(
                         items: reviewItems,
                         shoppingListListService: shoppingListListService,
-                        shoppingListSyncService: shoppingListSyncService,
+                        // TODO(shopping-list-items): forward the item-sync
+                        // dependency the review widget needs to add items.
                       ),
                     ),
                   ],

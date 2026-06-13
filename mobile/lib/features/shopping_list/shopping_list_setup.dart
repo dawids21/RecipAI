@@ -4,18 +4,13 @@ import '../auth/auth_service.dart';
 import 'shopping_list_detail_service.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
-import 'shopping_list_sync_service.dart';
+
+// TODO(shopping-list-items): register the dependency that drives item syncing
+// here and wire it into ShoppingListDetailService once it's designed.
 
 void setupShoppingList({ShoppingListRepository? shoppingListRepository}) {
   final repository = shoppingListRepository ?? ShoppingListRepository();
   getIt.registerSingleton<ShoppingListRepository>(repository);
-  getIt.registerSingleton<ShoppingListSyncService>(
-    ShoppingListSyncService(
-      repository: getIt<ShoppingListRepository>(),
-      authService: getIt<AuthService>(),
-    ),
-    dispose: (service) => service.dispose(),
-  );
   getIt.registerLazySingleton(
     () => ShoppingListListService(
       shoppingListRepository: getIt<ShoppingListRepository>(),
@@ -27,7 +22,7 @@ void setupShoppingList({ShoppingListRepository? shoppingListRepository}) {
       shoppingListRepository: getIt<ShoppingListRepository>(),
       authService: getIt<AuthService>(),
       shoppingListListService: getIt<ShoppingListListService>(),
-      syncService: getIt<ShoppingListSyncService>(),
+      // TODO(shopping-list-items): pass the item-sync dependency here.
     ),
     dispose: (service) => service.dispose(),
   );

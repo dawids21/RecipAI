@@ -6,15 +6,13 @@
   pull-to-refresh and navigation to detail screen on tap.
 - Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
   with dialog.
-- Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline item
-  management, drag-and-drop reordering, real-time sync status indicator, and optimistic UI updates. Items are organized
+- Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with item
+  widgets, drag-and-drop reordering UI (no-op until rewrite completes), and read-only item display. Items are organized
   into two sections: active items (unchecked) at the top and "Done" section at the bottom for checked items, separated
-  by the add item widget and a "Done" header. Each section uses ReorderableListView with custom drag handles for item
-  reordering within the section (drag-and-drop is restricted to within sections, not between them). The Done section
-  uses AnimatedSize for smooth expand/collapse transitions when items are checked/unchecked. Features PopupMenuButton
-  with actions: "Rename List", "Share List", "Delete all checked" (bulk delete checked items), and "Uncheck all"
-  (bulk uncheck checked items). Integrates with ShoppingListSyncService for background syncing (10-second polling)
-  and conflict resolution with user notifications.
+  by the add item widget and a "Done" header. Each section uses ReorderableListView with custom drag handles. The Done
+  section uses AnimatedSize for smooth expand/collapse transitions. Features PopupMenuButton with actions: "Rename List",
+  "Share List", and (for owners) "Delete List". Item-write operations (add/edit/check/delete/reorder) and sync status
+  indicator are stubbed pending the shopping-list-items rewrite.
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items. Smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit extraction
   using regex, TextField-based editing with focus management. Optional drag handle for reordering (using
@@ -22,9 +20,13 @@
   secondary text (e.g. source recipe name) below the item text.
 - Shopping List Item Add Widget (`shopping_list_item_add_widget.dart`) - Dedicated widget for adding new shopping list
   items with plus icon, "Add item..." hint text, smart text parsing (same as ShoppingListItemWidget), and automatic
-  field clearing with focus retention after submission for quick consecutive entry.
+  field clearing with focus retention after submission for quick consecutive entry. (Add operation is stubbed pending
+  the shopping-list-items rewrite.)
 - Shopping List Rename Dialog (`shopping_list_rename_dialog.dart`) - Stateful dialog widget for renaming shopping lists
   with TextField input, proper TextEditingController lifecycle management, and validation to prevent empty names.
+- Shopping List Review Widget (`shopping_list_review_widget.dart`) - Review widget with ReorderableListView, inline
+  editing, and checkbox selection for generated items. Allows users to select which generated items to add to a
+  shopping list. The actual queuing of items to the sync service is stubbed pending the shopping-list-items rewrite.
 
 ## Flow
 
