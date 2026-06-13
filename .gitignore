@@ -1,3 +1,9 @@
 # Claude Code local settings
 settings.local.json
 recipai_upload_keystore.jks
+
+# Google Play service account key (never commit)
+scripts/play-service-account.json
+
+# Python virtualenv for release scripts
+scripts/.venv/
