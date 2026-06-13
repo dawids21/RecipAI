@@ -1,13 +1,16 @@
 package xyz.stasiak.recipai
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import kotlin.random.Random
 
 object ShareIntentBridge {
@@ -17,15 +20,19 @@ object ShareIntentBridge {
     private var stagedPayload: Map<String, Any>? = null
     private var eventSink: EventChannel.EventSink? = null
     private var appContext: Context? = null
+    private var activity: Activity? = null
 
-    fun attach(messenger: BinaryMessenger, context: Context) {
+    fun attach(messenger: BinaryMessenger, context: Context, activity: Activity? = null) {
         appContext = context.applicationContext
+        this.activity = activity
         MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "consumeInitialShare") {
-                result.success(stagedPayload)
-                stagedPayload = null
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "consumeInitialShare" -> {
+                    result.success(stagedPayload)
+                    stagedPayload = null
+                }
+                "shareFile" -> shareFile(call.argument("path"), call.argument("mimeType"), result)
+                else -> result.notImplemented()
             }
         }
 
@@ -40,6 +47,41 @@ object ShareIntentBridge {
                 }
             }
         )
+    }
+
+    private fun shareFile(path: String?, mimeType: String?, result: MethodChannel.Result) {
+        val ctx = appContext
+        if (path == null || ctx == null) {
+            result.error("invalid_args", "Missing file path or context", null)
+            return
+        }
+
+        try {
+            val file = File(path)
+            val uri: Uri = FileProvider.getUriForFile(
+                ctx,
+                "${ctx.packageName}.fileprovider",
+                file
+            )
+
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType ?: "text/plain"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = Intent.createChooser(sendIntent, "Send logs")
+            val launcher = activity
+            if (launcher != null) {
+                launcher.startActivity(chooser)
+            } else {
+                chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ctx.startActivity(chooser)
+            }
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("share_failed", e.message, null)
+        }
     }
 
     fun stageInitialShare(intent: Intent) {

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_item.dart';
 
 import '../auth/auth_service.dart';
@@ -24,6 +25,8 @@ final class SyncFailed extends SyncEvent {
 }
 
 class ShoppingListSyncService {
+  static final _log = Logger('recipai.shopping_list.sync');
+
   final ShoppingListRepository _repository;
   final AuthService _authService;
 
@@ -49,7 +52,11 @@ class ShoppingListSyncService {
       List.unmodifiable(_operationQueues[listId] ?? const []);
 
   void queueOperation(String listId, ShoppingListOperation operation) {
-    _operationQueues.putIfAbsent(listId, () => []).add(operation);
+    final queue = _operationQueues.putIfAbsent(listId, () => [])..add(operation);
+    _log.info(
+      'queueOperation ${operation.runtimeType} '
+      '(listId=$listId, itemId=${operation.itemId}, depth=${queue.length})',
+    );
     _processQueue(listId);
   }
 
@@ -58,9 +65,14 @@ class ShoppingListSyncService {
 
     _isSyncing[listId] = true;
     _updateSyncStatus(listId);
+    _log.info('_processQueue started (listId=$listId)');
 
     while (_operationQueues[listId]?.isNotEmpty ?? false) {
       final operation = _operationQueues[listId]!.first;
+      _log.info(
+        '_processQueue dispatch ${operation.runtimeType} '
+        '(listId=$listId, itemId=${operation.itemId})',
+      );
 
       try {
         switch (operation) {
@@ -132,24 +144,42 @@ class ShoppingListSyncService {
       } on ShoppingListItemApiConflictException {
         final failedItemId = _operationQueues[listId]!.first.itemId;
         _operationQueues[listId]!.removeAt(0);
+        final dropped = _operationQueues[listId]!
+            .where((op) => op.itemId == failedItemId)
+            .length;
         _operationQueues[listId]!.removeWhere(
           (op) => op.itemId == failedItemId,
+        );
+        _log.info(
+          'conflict for itemId=$failedItemId '
+          '(listId=$listId, dropped=${dropped + 1} queue entries) -> SyncConflict',
         );
         _emit(listId, SyncConflict());
       } on ShoppingListItemApiException catch (e) {
         _operationQueues[listId]!.removeAt(0);
+        _log.warning('sync failed (listId=$listId): ${e.message} -> SyncFailed');
         _emit(listId, SyncFailed('Failed to process operation: ${e.message}'));
       } catch (e) {
-        // retry if operation failed due to connection error
+        // retry if operation failed due to connection error. Behaviour
+        // unchanged (still retries after 3 s); the error is now logged so the
+        // trace shows retry storms / offline loops instead of failing silently.
+        _log.warning('sync error (listId=$listId), retrying in 3 s', e);
         await Future.delayed(const Duration(seconds: 3));
       }
     }
 
     _isSyncing[listId] = false;
     _updateSyncStatus(listId);
+    _log.info('_processQueue finished (listId=$listId)');
   }
 
   void _emit(String listId, SyncEvent event) {
+    if (event is ItemSynced) {
+      _log.info(
+        'ItemSynced emitted '
+        '(listId=$listId, ${event.submittedItemId} -> ${event.serverItem.id})',
+      );
+    }
     final controller = _eventControllers.putIfAbsent(
       listId,
       () => StreamController<SyncEvent>.broadcast(),

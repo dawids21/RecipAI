@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Covers getApplicationSupportDirectory() on Android, which path_provider
+         maps to context.getFilesDir() (i.e. /data/data/<pkg>/files). The log
+         sink writes recipai.log here; this entry lets the FileProvider expose
+         it for ACTION_SEND. -->
+    <files-path
+            name="logs"
+            path="."/>
+</paths>

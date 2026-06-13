@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import '../../core/app_config.dart';
 import 'shopping_list.dart';
@@ -10,6 +11,8 @@ import 'shopping_list_item.dart';
 import 'shopping_list_permission.dart';
 
 class ShoppingListRepository {
+  static final _log = Logger('recipai.shopping_list.repository');
+
   final http.Client _client = http.Client();
   final String _baseUrl = AppConfig.apiBaseUrl;
 
@@ -71,12 +74,12 @@ class ShoppingListRepository {
     String id,
     String? idToken,
   ) async {
+    final url = '$_baseUrl/shopping-lists/$id';
+    final sw = Stopwatch()..start();
     try {
       final headers = _getAuthHeaders(idToken);
-      final response = await _client.get(
-        Uri.parse('$_baseUrl/shopping-lists/$id'),
-        headers: headers,
-      );
+      final response = await _client.get(Uri.parse(url), headers: headers);
+      _log.info('GET $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonMap = json.decode(response.body);
@@ -89,6 +92,7 @@ class ShoppingListRepository {
         );
       }
     } catch (e) {
+      _log.warning('GET $url failed (${sw.elapsedMilliseconds} ms)', e);
       throw Exception('Network error while fetching shopping list detail: $e');
     }
   }
@@ -163,21 +167,28 @@ class ShoppingListRepository {
       ...?(index != null ? {'index': index} : null),
     };
 
+    final url = '$_baseUrl/shopping-lists/$listId/item';
+    final sw = Stopwatch()..start();
     final response = await _client.post(
-      Uri.parse('$_baseUrl/shopping-lists/$listId/item'),
+      Uri.parse(url),
       headers: headers,
       body: json.encode(body),
     );
+    _log.info('POST $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
     if (response.statusCode == 400) {
+      _log.warning('POST $url failed: 400 Invalid item data');
       throw ShoppingListItemApiException('Invalid item data');
     } else if (response.statusCode == 401) {
+      _log.warning('POST $url failed: 401 Unauthorized');
       throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
+      _log.warning('POST $url failed: 403 Forbidden');
       throw ShoppingListItemApiException(
         'You do not have permission to add items to this list',
       );
     } else if (response.statusCode == 404) {
+      _log.warning('POST $url failed: 404 Shopping list not found');
       throw ShoppingListItemApiException('Shopping list not found');
     }
 
@@ -194,20 +205,24 @@ class ShoppingListRepository {
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
-    final response = await _client.delete(
-      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId'),
-      headers: headers,
-    );
+    final url = '$_baseUrl/shopping-lists/$listId/item/$itemId';
+    final sw = Stopwatch()..start();
+    final response = await _client.delete(Uri.parse(url), headers: headers);
+    _log.info('DELETE $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
     if (response.statusCode == 401) {
+      _log.warning('DELETE $url failed: 401 Unauthorized');
       throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
+      _log.warning('DELETE $url failed: 403 Forbidden');
       throw ShoppingListItemApiException(
         'You do not have permission to delete items from this list',
       );
     } else if (response.statusCode == 404) {
+      _log.warning('DELETE $url failed: 404 Item not found');
       throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
+      _log.warning('DELETE $url conflict: 412 Precondition Failed');
       throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
   }
@@ -222,23 +237,31 @@ class ShoppingListRepository {
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
+    final url = '$_baseUrl/shopping-lists/$listId/item/$itemId/move';
+    final sw = Stopwatch()..start();
     final response = await _client.post(
-      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId/move'),
+      Uri.parse(url),
       headers: headers,
       body: json.encode({'index': targetIndex}),
     );
+    _log.info('POST $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
     if (response.statusCode == 400) {
+      _log.warning('POST $url failed: 400 Invalid index');
       throw ShoppingListItemApiException('Invalid index');
     } else if (response.statusCode == 401) {
+      _log.warning('POST $url failed: 401 Unauthorized');
       throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
+      _log.warning('POST $url failed: 403 Forbidden');
       throw ShoppingListItemApiException(
         'You do not have permission to move items in this list',
       );
     } else if (response.statusCode == 404) {
+      _log.warning('POST $url failed: 404 Item not found');
       throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
+      _log.warning('POST $url conflict: 412 Precondition Failed');
       throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
 
@@ -255,20 +278,24 @@ class ShoppingListRepository {
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId/check'),
-      headers: headers,
-    );
+    final url = '$_baseUrl/shopping-lists/$listId/item/$itemId/check';
+    final sw = Stopwatch()..start();
+    final response = await _client.post(Uri.parse(url), headers: headers);
+    _log.info('POST $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
     if (response.statusCode == 401) {
+      _log.warning('POST $url failed: 401 Unauthorized');
       throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
+      _log.warning('POST $url failed: 403 Forbidden');
       throw ShoppingListItemApiException(
         'You do not have permission to check items in this list',
       );
     } else if (response.statusCode == 404) {
+      _log.warning('POST $url failed: 404 Item not found');
       throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
+      _log.warning('POST $url conflict: 412 Precondition Failed');
       throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
 
@@ -285,20 +312,24 @@ class ShoppingListRepository {
     final headers = _getAuthHeaders(idToken);
     headers['If-Match'] = version.toString();
 
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId/uncheck'),
-      headers: headers,
-    );
+    final url = '$_baseUrl/shopping-lists/$listId/item/$itemId/uncheck';
+    final sw = Stopwatch()..start();
+    final response = await _client.post(Uri.parse(url), headers: headers);
+    _log.info('POST $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
     if (response.statusCode == 401) {
+      _log.warning('POST $url failed: 401 Unauthorized');
       throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
+      _log.warning('POST $url failed: 403 Forbidden');
       throw ShoppingListItemApiException(
         'You do not have permission to uncheck items in this list',
       );
     } else if (response.statusCode == 404) {
+      _log.warning('POST $url failed: 404 Item not found');
       throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
+      _log.warning('POST $url conflict: 412 Precondition Failed');
       throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
 
@@ -324,23 +355,31 @@ class ShoppingListRepository {
       ...?(unit != null ? {'unit': unit} : null),
     };
 
+    final url = '$_baseUrl/shopping-lists/$listId/item/$itemId';
+    final sw = Stopwatch()..start();
     final response = await _client.put(
-      Uri.parse('$_baseUrl/shopping-lists/$listId/item/$itemId'),
+      Uri.parse(url),
       headers: headers,
       body: json.encode(body),
     );
+    _log.info('PUT $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
 
     if (response.statusCode == 400) {
+      _log.warning('PUT $url failed: 400 Invalid item data');
       throw ShoppingListItemApiException('Invalid item data');
     } else if (response.statusCode == 401) {
+      _log.warning('PUT $url failed: 401 Unauthorized');
       throw ShoppingListItemApiException('Unauthorized');
     } else if (response.statusCode == 403) {
+      _log.warning('PUT $url failed: 403 Forbidden');
       throw ShoppingListItemApiException(
         'You do not have permission to update items in this list',
       );
     } else if (response.statusCode == 404) {
+      _log.warning('PUT $url failed: 404 Item not found');
       throw ShoppingListItemApiException('Item not found');
     } else if (response.statusCode == 412) {
+      _log.warning('PUT $url conflict: 412 Precondition Failed');
       throw ShoppingListItemApiConflictException('412 Precondition Failed');
     }
 

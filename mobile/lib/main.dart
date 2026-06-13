@@ -8,6 +8,7 @@ import 'package:recipai_mobile/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_config.dart';
+import 'core/logging/logging_setup.dart';
 import 'core/preferences_service.dart';
 import 'core/routes.dart';
 import 'core/theme.dart';
@@ -28,6 +29,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GoogleSignIn.instance.initialize();
   await AppConfig.loadConfig();
+  await setupLogging();
 
   final prefs = await SharedPreferences.getInstance();
   getIt.registerSingleton(PreferencesService(prefs));

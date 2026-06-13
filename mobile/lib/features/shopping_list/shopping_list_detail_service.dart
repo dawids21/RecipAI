@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import '../../core/async_value.dart';
 import '../../core/widgets/sharing_dialog.dart';
@@ -14,6 +15,8 @@ import 'shopping_list_repository.dart';
 import 'shopping_list_sync_service.dart';
 
 class ShoppingListDetailService {
+  static final _log = Logger('recipai.shopping_list.detail');
+
   final ShoppingListRepository _shoppingListRepository;
   final AuthService _authService;
   final ShoppingListListService _shoppingListListService;
@@ -57,11 +60,24 @@ class ShoppingListDetailService {
     if (_isLoadShoppingListDetailRunning) return;
     _isLoadShoppingListDetailRunning = true;
 
+    _log.fine('loadShoppingListDetail start (listId=$id)');
     _shoppingListDetail.value = const AsyncValue.loading();
-    _shoppingListDetail.value = await AsyncValue.guardAsync(() async {
+    final result = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
       return _shoppingListRepository.fetchShoppingListDetail(id, token);
     });
+    _shoppingListDetail.value = result;
+
+    switch (result) {
+      case AsyncData(:final value):
+        _log.info(
+          'loadShoppingListDetail loaded (listId=$id, items=${value.items.length})',
+        );
+      case AsyncError(:final error):
+        _log.warning('loadShoppingListDetail failed (listId=$id)', error);
+      case AsyncLoading():
+        break;
+    }
 
     _isLoadShoppingListDetailRunning = false;
   }
@@ -70,11 +86,15 @@ class ShoppingListDetailService {
     if (_isRenameRunning) return;
     _isRenameRunning = true;
 
+    _log.info('renameShoppingList start (listId=$id)');
     try {
       final token = await _authService.idToken;
       await _shoppingListRepository.updateShoppingList(id, newName, token);
       await loadShoppingListDetail(id);
       await _shoppingListListService.loadShoppingLists();
+    } catch (e) {
+      _log.warning('renameShoppingList failed (listId=$id)', e);
+      rethrow;
     } finally {
       _isRenameRunning = false;
     }
@@ -84,10 +104,14 @@ class ShoppingListDetailService {
     if (_isDeleteRunning) return;
     _isDeleteRunning = true;
 
+    _log.info('deleteShoppingList start (listId=$id)');
     try {
       final token = await _authService.idToken;
       await _shoppingListRepository.deleteShoppingList(id, token);
       await _shoppingListListService.loadShoppingLists();
+    } catch (e) {
+      _log.warning('deleteShoppingList failed (listId=$id)', e);
+      rethrow;
     } finally {
       _isDeleteRunning = false;
     }
@@ -98,6 +122,7 @@ class ShoppingListDetailService {
     VoidCallback? onConflict,
     ValueChanged<String>? onError,
   }) {
+    _log.fine('startSyncing (listId=$listId)');
     _currentSyncingListId = listId;
     _onConflictCallback = onConflict;
     _onErrorCallback = onError;
@@ -111,6 +136,7 @@ class ShoppingListDetailService {
   }
 
   void stopSyncing() {
+    _log.fine('stopSyncing (listId=$_currentSyncingListId)');
     _periodicFetchTimer?.cancel();
     _periodicFetchTimer = null;
     _syncEventsSubscription?.cancel();
@@ -122,6 +148,7 @@ class ShoppingListDetailService {
 
   void pauseSyncing() {
     if (_currentSyncingListId != null) {
+      _log.fine('pauseSyncing (listId=$_currentSyncingListId)');
       _periodicFetchTimer?.cancel();
       _periodicFetchTimer = null;
     }
@@ -129,6 +156,7 @@ class ShoppingListDetailService {
 
   void resumeSyncing() {
     if (_currentSyncingListId != null) {
+      _log.fine('resumeSyncing (listId=$_currentSyncingListId)');
       _periodicFetchTimer = Timer.periodic(
         const Duration(seconds: 10),
         (_) => _onPeriodicFetch(),
@@ -147,9 +175,11 @@ class ShoppingListDetailService {
 
     if (_syncService.syncStatus(id).value == true ||
         _syncService.pendingOperations(id).isNotEmpty) {
+      _log.fine('_onPeriodicFetch skipped (listId=$id, syncing/pending)');
       return;
     }
 
+    _log.fine('_onPeriodicFetch running (listId=$id)');
     try {
       final token = await _authService.idToken;
       final detail = await _shoppingListRepository.fetchShoppingListDetail(
@@ -157,18 +187,25 @@ class ShoppingListDetailService {
         token,
       );
       _shoppingListDetail.value = AsyncData(detail);
-    } catch (_) {
-      // silent fail — matches old _syncList behaviour
+    } catch (e) {
+      // Behaviour preserved (silent to the user); previously-swallowed error is
+      // now logged so silent background failures are visible in the trace.
+      _log.warning('_onPeriodicFetch failed (listId=$id)', e);
     }
   }
 
   void _handleSyncEvent(SyncEvent event) {
     switch (event) {
-      case ItemSynced():
+      case ItemSynced(:final submittedItemId, :final serverItem):
+        _log.fine(
+          '_handleSyncEvent ItemSynced ($submittedItemId -> ${serverItem.id})',
+        );
         _handleItemSynced(event);
       case SyncConflict():
+        _log.info('_handleSyncEvent SyncConflict -> refetch');
         _handleConflict();
       case SyncFailed(:final message):
+        _log.warning('_handleSyncEvent SyncFailed: $message');
         _onErrorCallback?.call(message);
     }
   }
@@ -238,6 +275,19 @@ class ShoppingListDetailService {
     if (currentState is! AsyncData<ShoppingListDetail>) return;
 
     final detail = currentState.value;
+
+    // Item name is low sensitivity and useful for repro, but only logged for
+    // add/update where it carries meaning.
+    final name = switch (operation) {
+      AddItemOperation(:final itemName) => ' name="$itemName"',
+      UpdateItemOperation(:final itemName) => ' name="$itemName"',
+      _ => '',
+    };
+    _log.info(
+      'processOperation ${operation.runtimeType} '
+      '(itemId=${operation.itemId})$name',
+    );
+
     final updatedDetail = applyOperation(detail, operation);
 
     _shoppingListDetail.value = AsyncData(updatedDetail);
@@ -255,6 +305,7 @@ class ShoppingListDetailService {
 
   void deleteAllCheckedItems() {
     final checkedItems = _getCheckedItems();
+    _log.info('deleteAllCheckedItems (count=${checkedItems.length})');
     for (final item in checkedItems) {
       final operation = DeleteItemOperation(
         itemId: item.id,
@@ -266,6 +317,7 @@ class ShoppingListDetailService {
 
   void uncheckAllItems() {
     final checkedItems = _getCheckedItems();
+    _log.info('uncheckAllItems (count=${checkedItems.length})');
     for (final item in checkedItems) {
       final operation = UncheckItemOperation(
         itemId: item.id,

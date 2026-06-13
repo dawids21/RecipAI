@@ -40,4 +40,4 @@ if (FeatureFlags.myFeatureEnabled)
 
 | Flag | Env Variable | Default | Description |
 |---|---|---|---|
-| *(none)* | — | — | No active flags |
+| `loggingEnabled` | `LOGGING_ENABLED` | `false` | Gates the "Send logs" item in the main-screen app-bar overflow menu. Log capture is always on; only the share UI is behind the flag. |

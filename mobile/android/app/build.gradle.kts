@@ -61,3 +61,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Provides androidx.core.content.FileProvider, used to share the log file
+    // via ACTION_SEND in ShareIntentBridge.
+    implementation("androidx.core:core-ktx:1.13.1")
+}

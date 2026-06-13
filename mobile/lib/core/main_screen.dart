@@ -16,7 +16,9 @@ import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import '../shared/extensions.dart';
+import 'feature_flags.dart';
 import 'get_it.dart';
+import 'logging/share_logs.dart';
 import 'routes.dart';
 import 'theme.dart';
 
@@ -154,6 +156,8 @@ class _MainScreenState extends State<MainScreen> {
                 context.goNamed(AppRoute.shoppingListGeneration.name);
               } else if (value == 'logout') {
                 _onLogoutTap(context);
+              } else if (value == 'send_logs') {
+                shareLogs();
               }
             },
             itemBuilder: (context) {
@@ -197,6 +201,21 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
               );
+
+              if (FeatureFlags.loggingEnabled) {
+                menuItems.add(
+                  const PopupMenuItem<String>(
+                    value: 'send_logs',
+                    child: Row(
+                      children: [
+                        Icon(Icons.bug_report),
+                        SizedBox(width: AppSpacing.small),
+                        Text('Send logs'),
+                      ],
+                    ),
+                  ),
+                );
+              }
 
               return menuItems;
             },

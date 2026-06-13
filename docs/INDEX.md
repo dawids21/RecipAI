@@ -148,6 +148,9 @@ Standards for local persistence: `PreferencesService` is the only approved mecha
 ### Feature Flags (`mobile/standards/feature-flags.md`)
 Standards for feature flags: how to define flags using `bool.fromEnvironment()`, how to use them to gate UI rendering only, when to remove them, and the table of currently active flags.
 
+### Logging (`mobile/standards/logging.md`)
+Standards for logging: hierarchical logger naming (`recipai.<feature>.<layer>`), level conventions, redaction rules (never log bearer tokens or request/response bodies), and the rotating file-sink + share-via-platform-channel pattern.
+
 ### Widget Testing (`mobile/standards/widget-testing.md`)
 Standards for widget tests: repository-only mocking with mocktail (real services run on top), directory layout under `test/` mirroring `lib/`, `SharedPreferences.setMockInitialValues` and `PreferencesService` registration before `setup*()` calls, `GetIt.I.reset()` lifecycle and building a single-route `GoRouter` with a `NavigatorObserver` subclass for navigation assertions.
 
