@@ -1,7 +1,8 @@
 # Preferences Service Standard
 
-`PreferencesService` (`core/preferences_service.dart`) is the only approved way to persist local data. It wraps
-`SharedPreferences` with typed getter/setter pairs and private string key constants.
+`PreferencesService` (`core/preferences_service.dart`) is the approved way to persist small key/value local data. It
+wraps `SharedPreferences` with typed getter/setter pairs and private string key constants. Larger or
+structured local state (e.g. an offline-first feature's local store and change queue) may use a local database instead.
 
 ## Registration
 
