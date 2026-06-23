@@ -1,6 +1,7 @@
 ---
 name: task-planning
 description: Break a completed software design document into an ordered list of vertical-slice implementation tasks, producing a tasks.md that pairs with the design to feed a downstream implementation-planning step. Use this skill whenever the user has a design document and wants to break it down into implementable chunks, work items, vertical slices, or a task list. Trigger for phrases like "break this design into tasks", "what tasks does this design need", "task breakdown for the design", "plan the implementation tasks", "turn this design into work items", or when a design.md is being handed off for execution. Do NOT use for ad-hoc TODO lists, sprint planning across many features, or project-level roadmaps — this skill specifically translates one design into its implementation tasks.
+disable-model-invocation: true
 ---
 
 # Task Planning

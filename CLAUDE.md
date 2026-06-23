@@ -14,6 +14,8 @@
 - Do not stop at INDEX.md — follow the links and read the actual documentation files relevant to the task.
 - Follow standards in `docs/backend/standards/` and `docs/mobile/standards/` when writing code — they represent team
   decisions. If standards conflict with the task, ask the user.
+- When writing or editing a markdown document, keep it concise and do not repeat information — state each fact once and
+  cross-reference it instead of restating it.
 
 ### Standards Evolution
 
