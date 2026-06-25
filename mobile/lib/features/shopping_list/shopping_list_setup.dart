@@ -2,15 +2,25 @@ import 'package:recipai_mobile/core/get_it.dart';
 
 import '../auth/auth_service.dart';
 import 'shopping_list_detail_service.dart';
+import 'shopping_list_item_repository.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
 
-// TODO(shopping-list-items): register the dependency that drives item syncing
-// here and wire it into ShoppingListDetailService once it's designed.
-
-void setupShoppingList({ShoppingListRepository? shoppingListRepository}) {
+/// Registers the shopping-list feature. The database-backed
+/// [ShoppingListItemRepository] is opened by the caller (see `main()`) and
+/// injected here so setup stays synchronous; tests inject a mock instead.
+void setupShoppingList({
+  required ShoppingListItemRepository itemRepository,
+  ShoppingListRepository? shoppingListRepository,
+}) {
   final repository = shoppingListRepository ?? ShoppingListRepository();
   getIt.registerSingleton<ShoppingListRepository>(repository);
+
+  getIt.registerSingleton<ShoppingListItemRepository>(
+    itemRepository,
+    dispose: (r) => r.dispose(),
+  );
+
   getIt.registerLazySingleton(
     () => ShoppingListListService(
       shoppingListRepository: getIt<ShoppingListRepository>(),
@@ -22,7 +32,7 @@ void setupShoppingList({ShoppingListRepository? shoppingListRepository}) {
       shoppingListRepository: getIt<ShoppingListRepository>(),
       authService: getIt<AuthService>(),
       shoppingListListService: getIt<ShoppingListListService>(),
-      // TODO(shopping-list-items): pass the item-sync dependency here.
+      itemRepository: getIt<ShoppingListItemRepository>(),
     ),
     dispose: (service) => service.dispose(),
   );

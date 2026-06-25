@@ -7,12 +7,17 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
-import 'shopping_list_detail.dart';
+import 'local_shopping_list_item.dart';
 import 'shopping_list_detail_service.dart';
 import 'shopping_list_item_add_widget.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_rename_dialog.dart';
 import 'shopping_list_sharing_dialog.dart';
+
+typedef ShoppingListItems = ({
+  List<LocalShoppingListItem> active,
+  List<LocalShoppingListItem> done,
+});
 
 class ShoppingListDetailScreen extends StatefulWidget {
   final String shoppingListId;
@@ -31,18 +36,20 @@ class ShoppingListDetailScreen extends StatefulWidget {
 
 class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     with WidgetsBindingObserver {
-  int? _ephemeralItemIndex;
+  /// Index into the active items list after which the ephemeral input row is
+  /// anchored, or `null` when no ephemeral row is open. The row is placed (both
+  /// visually and position-wise) immediately after this item.
+  int? _ephemeralAfterIndex;
+
+  ShoppingListDetailService get service => widget.shoppingListDetailService;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget.shoppingListDetailService.loadShoppingListDetail(
-      widget.shoppingListId,
-    );
-    widget.shoppingListDetailService.loadSharedUsers(widget.shoppingListId);
-    // TODO(shopping-list-items): start keeping this list's items in sync while the
-    // screen is open, surfacing conflicts and errors to the user.
+    service.loadShoppingListDetail(widget.shoppingListId);
+    service.loadSharedUsers(widget.shoppingListId);
+    service.openShoppingList(widget.shoppingListId);
   }
 
   @override
@@ -55,11 +62,10 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-  }
+  void didChangeAppLifecycleState(AppLifecycleState state) {}
 
-  // TODO(shopping-list-items): handle sync conflicts (server/local divergence) and
-  // sync errors here, e.g. by reloading the list and notifying the user.
+  // TODO(shopping-list-items, T3): handle sync conflicts (server/local divergence)
+  // and sync errors here, e.g. by reloading the list and notifying the user.
 
   Future<String?> _showRenameDialog(String currentName) async {
     return showDialog<String>(
@@ -102,10 +108,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     if (newName == null) return;
 
     try {
-      await widget.shoppingListDetailService.renameShoppingList(
-        listId,
-        newName,
-      );
+      await service.renameShoppingList(listId, newName);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -126,7 +129,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     if (!shouldDelete) return;
 
     try {
-      await widget.shoppingListDetailService.deleteShoppingList(listId);
+      await service.deleteShoppingList(listId);
 
       if (mounted) {
         context.goNamed(AppRoute.main.name);
@@ -144,32 +147,44 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     await showDialog<void>(
       context: context,
       builder: (context) => ShoppingListSharingDialog(
-        shoppingListDetailService: widget.shoppingListDetailService,
+        shoppingListDetailService: service,
       ),
     );
   }
 
   void _createEphemeralItemAfter(int index) {
     setState(() {
-      _ephemeralItemIndex = index;
+      _ephemeralAfterIndex = index;
     });
   }
 
-  void _saveEphemeralItem(ItemChanged result) {
-    if (_ephemeralItemIndex == null) return;
-
+  /// Saves the typed ephemeral item after the active item at [afterLocalId].
+  /// Fire-and-forget: the store applies the create synchronously (in-memory +
+  /// notify) before its DB write-through, so the new item is already visible by
+  /// the next build — chaining (re-anchoring below) is handled synchronously by
+  /// the row's `onSubmitted`.
+  void _commitEphemeralItem(ItemChanged result, String afterLocalId) {
+    service.addItem(result, afterLocalId: afterLocalId);
     setState(() {
-      _ephemeralItemIndex = null;
+      _ephemeralAfterIndex = null;
     });
-
-    // TODO(shopping-list-items): persist the newly entered item to the shopping
-    // list (the ephemeral row the user just filled in) and reflect it in the list.
   }
 
   void _discardEphemeralItem() {
     setState(() {
-      _ephemeralItemIndex = null;
+      _ephemeralAfterIndex = null;
     });
+  }
+
+  /// Splits the flat item list into active and done sections, each sorted by
+  /// position. Pure presentation concern: the service exposes a single flat
+  /// list and the screen derives the displayed sections.
+  ShoppingListItems _splitSections(List<LocalShoppingListItem> flat) {
+    final active = flat.where((i) => !i.checked).toList()
+      ..sort((a, b) => a.compareTo(b));
+    final done = flat.where((i) => i.checked).toList()
+      ..sort((a, b) => a.compareTo(b));
+    return (active: active, done: done);
   }
 
   Widget _buildDoneSectionHeader() {
@@ -197,58 +212,19 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     );
   }
 
-  void _onReorderUnchecked(
-    ShoppingListDetail detail,
-    int oldIndex,
-    int newIndex,
-  ) {
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-
-    if (oldIndex == newIndex) {
-      return;
-    }
-
-    // TODO(shopping-list-items): persist the new position of the reordered
-    // unchecked item.
-  }
-
-  void _onReorderChecked(
-    ShoppingListDetail detail,
-    int oldIndex,
-    int newIndex,
-  ) {
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
-
-    if (oldIndex == newIndex) {
-      return;
-    }
-
-    // TODO(shopping-list-items): persist the new position of the reordered
-    // checked item.
-  }
-
   ({List<Widget> unchecked, List<Widget> checked}) _buildSplitItemWidgets(
-    ShoppingListDetail detail,
+    List<LocalShoppingListItem> activeItems,
+    List<LocalShoppingListItem> doneItems,
   ) {
-    // Filter items into unchecked and checked lists
-    // Keep the order from detail.items (array order) to preserve optimistic updates
-    final uncheckedItems = detail.items.where((item) => !item.checked).toList();
-    final checkedItems = detail.items.where((item) => item.checked).toList();
-
     final uncheckedWidgets = <Widget>[];
     final checkedWidgets = <Widget>[];
 
-    // Build unchecked section widgets
-    for (int i = 0; i < uncheckedItems.length; i++) {
-      final item = uncheckedItems[i];
+    for (int i = 0; i < activeItems.length; i++) {
+      final item = activeItems[i];
 
       uncheckedWidgets.add(
         ShoppingListItemWidget(
-          key: ValueKey(item.id),
+          key: ValueKey(item.localId),
           item: ItemDisplayData(
             name: item.name,
             quantity: item.quantity,
@@ -257,23 +233,15 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           ),
           index: i,
           showDragHandle: true,
-          onEdit: (result) {
-            // TODO(shopping-list-items): persist edits to this item's name,
-            // quantity, and unit.
-          },
-          onDelete: () {
-            // TODO(shopping-list-items): remove this item from the shopping list.
-          },
-          onCheckChanged: (checked) {
-            // TODO(shopping-list-items): persist this item's checked/unchecked
-            // state.
-          },
+          onEdit: (result) => service.editItem(item.localId, result),
+          onDelete: () => service.deleteItem(item.localId),
+          onCheckChanged: (checked) =>
+              service.toggleChecked(item.localId, checked),
           onSubmitted: () => _createEphemeralItemAfter(i),
         ),
       );
 
-      // Handle ephemeral item insertion in unchecked section only
-      if (_ephemeralItemIndex == i) {
+      if (_ephemeralAfterIndex == i) {
         uncheckedWidgets.add(
           ShoppingListItemWidget(
             key: const ValueKey('ephemeral-item'),
@@ -291,7 +259,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
               if (result.name.isEmpty) {
                 _discardEphemeralItem();
               } else {
-                _saveEphemeralItem(result);
+                _commitEphemeralItem(result, item.localId);
               }
             },
             onDelete: _discardEphemeralItem,
@@ -302,13 +270,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       }
     }
 
-    // Build checked section widgets
-    for (int i = 0; i < checkedItems.length; i++) {
-      final item = checkedItems[i];
+    for (int i = 0; i < doneItems.length; i++) {
+      final item = doneItems[i];
 
       checkedWidgets.add(
         ShoppingListItemWidget(
-          key: ValueKey(item.id),
+          key: ValueKey(item.localId),
           item: ItemDisplayData(
             name: item.name,
             quantity: item.quantity,
@@ -317,18 +284,11 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           ),
           index: i,
           showDragHandle: true,
-          onEdit: (result) {
-            // TODO(shopping-list-items): persist edits to this item's name,
-            // quantity, and unit.
-          },
-          onDelete: () {
-            // TODO(shopping-list-items): remove this item from the shopping list.
-          },
-          onCheckChanged: (checked) {
-            // TODO(shopping-list-items): persist this item's checked/unchecked
-            // state.
-          },
-          onSubmitted: () => _createEphemeralItemAfter(i),
+          onEdit: (result) => service.editItem(item.localId, result),
+          onDelete: () => service.deleteItem(item.localId),
+          onCheckChanged: (checked) =>
+              service.toggleChecked(item.localId, checked),
+          onSubmitted: () {},
         ),
       );
     }
@@ -341,7 +301,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     final theme = Theme.of(context);
 
     return ValueListenableBuilder(
-      valueListenable: widget.shoppingListDetailService.shoppingListDetail,
+      valueListenable: service.shoppingListDetail,
       builder: (context, asyncValueDetail, child) {
         return asyncValueDetail.when(
           loading: () => Scaffold(
@@ -360,8 +320,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
               top: false,
               child: ApiErrorWidget(
                 errorMessage: 'Error: $error',
-                onRetry: () => widget.shoppingListDetailService
-                    .loadShoppingListDetail(widget.shoppingListId),
+                onRetry: () =>
+                    service.loadShoppingListDetail(widget.shoppingListId),
               ),
             ),
           ),
@@ -394,8 +354,31 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
               ),
             );
 
-            // TODO(shopping-list-items): add the bulk "delete all checked items"
-            // and "uncheck all items" menu actions.
+            menuItems.add(
+              const PopupMenuItem<String>(
+                value: 'delete_checked',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_sweep),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Delete All Checked'),
+                  ],
+                ),
+              ),
+            );
+
+            menuItems.add(
+              const PopupMenuItem<String>(
+                value: 'uncheck_all',
+                child: Row(
+                  children: [
+                    Icon(Icons.check_box_outline_blank),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Uncheck All'),
+                  ],
+                ),
+              ),
+            );
 
             if (detail.role == UserRole.owner) {
               menuItems.add(
@@ -425,9 +408,11 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                         _showSharingDialog();
                       } else if (value == 'delete') {
                         _deleteShoppingList(detail.id, detail.name);
+                      } else if (value == 'delete_checked') {
+                        service.deleteAllChecked();
+                      } else if (value == 'uncheck_all') {
+                        service.uncheckAll();
                       }
-                      // TODO(shopping-list-items): handle the "delete all checked
-                      // items" and "uncheck all items" bulk actions here.
                     },
                     itemBuilder: (context) => menuItems,
                   ),
@@ -440,8 +425,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // TODO(shopping-list-items): show a sync-status indicator
-                      // (e.g. "syncing…") above the title; currently static.
+                      // TODO(shopping-list-items, T4): show a sync-status indicator
+                      // (e.g. "syncing…") above the title.
                       Text(
                         detail.name,
                         style: theme.textTheme.headlineMedium?.copyWith(
@@ -452,98 +437,118 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                       Card(
                         child: Padding(
                           padding: AppSpacing.cardMargin,
-                          child: Builder(
-                            builder: (context) {
-                              final splitWidgets = _buildSplitItemWidgets(
-                                detail,
-                              );
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Unchecked section with animation
-                                  AnimatedSize(
-                                    duration: AppAnimations.sectionTransition,
-                                    curve: AppAnimations.sectionCurve,
-                                    alignment: Alignment.topCenter,
-                                    child: splitWidgets.unchecked.isNotEmpty
-                                        ? ReorderableListView(
-                                            shrinkWrap: true,
-                                            physics:
-                                                const NeverScrollableScrollPhysics(),
-                                            buildDefaultDragHandles: false,
-                                            onReorder: (oldIndex, newIndex) =>
-                                                _onReorderUnchecked(
-                                                  detail,
+                          child: ValueListenableBuilder(
+                            valueListenable: service.items,
+                            builder: (context, asyncItems, _) {
+                              return asyncItems.when(
+                                loading: () => const LoadingWidget(),
+                                error: (e) => ApiErrorWidget(
+                                  errorMessage: 'Error loading items: $e',
+                                  onRetry: () => service.openShoppingList(
+                                    widget.shoppingListId,
+                                  ),
+                                ),
+                                data: (flatItems) {
+                                  final itemSections = _splitSections(
+                                    flatItems,
+                                  );
+                                  final splitWidgets = _buildSplitItemWidgets(
+                                    itemSections.active,
+                                    itemSections.done,
+                                  );
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      AnimatedSize(
+                                        duration:
+                                            AppAnimations.sectionTransition,
+                                        curve: AppAnimations.sectionCurve,
+                                        alignment: Alignment.topCenter,
+                                        child:
+                                            splitWidgets.unchecked.isNotEmpty
+                                            ? ReorderableListView(
+                                                shrinkWrap: true,
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                buildDefaultDragHandles: false,
+                                                onReorderItem: (
+                                                  oldIndex,
+                                                  newIndex,
+                                                ) => service.reorderItem(
+                                                  itemSections.active,
                                                   oldIndex,
                                                   newIndex,
                                                 ),
-                                            proxyDecorator:
-                                                (child, index, animation) {
-                                                  return Material(
-                                                    elevation: 8.0,
-                                                    color: theme
-                                                        .colorScheme
-                                                        .surfaceContainerLow,
-                                                    child: child,
-                                                  );
-                                                },
-                                            children: splitWidgets.unchecked,
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ),
+                                                proxyDecorator:
+                                                    (child, index, animation) {
+                                                      return Material(
+                                                        elevation: 8.0,
+                                                        color: theme
+                                                            .colorScheme
+                                                            .surfaceContainerLow,
+                                                        child: child,
+                                                      );
+                                                    },
+                                                children:
+                                                    splitWidgets.unchecked,
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
 
-                                  // Add item widget
-                                  ShoppingListItemAddWidget(
-                                    key: const ValueKey('add-item'),
-                                    onAdd: (result) {
-                                      // TODO(shopping-list-items): add the newly
-                                      // entered item to the shopping list.
-                                    },
-                                  ),
+                                      ShoppingListItemAddWidget(
+                                        key: const ValueKey('add-item'),
+                                        onAdd: (result) =>
+                                            service.addItem(result),
+                                      ),
 
-                                  // Done section header with animation
-                                  AnimatedCrossFade(
-                                    duration: AppAnimations.sectionTransition,
-                                    crossFadeState:
-                                        splitWidgets.checked.isNotEmpty
-                                        ? CrossFadeState.showFirst
-                                        : CrossFadeState.showSecond,
-                                    firstChild: _buildDoneSectionHeader(),
-                                    secondChild: const SizedBox.shrink(),
-                                  ),
+                                      AnimatedCrossFade(
+                                        duration:
+                                            AppAnimations.sectionTransition,
+                                        crossFadeState:
+                                            splitWidgets.checked.isNotEmpty
+                                            ? CrossFadeState.showFirst
+                                            : CrossFadeState.showSecond,
+                                        firstChild: _buildDoneSectionHeader(),
+                                        secondChild: const SizedBox.shrink(),
+                                      ),
 
-                                  // Done section with animation
-                                  AnimatedSize(
-                                    duration: AppAnimations.sectionTransition,
-                                    curve: AppAnimations.sectionCurve,
-                                    alignment: Alignment.topCenter,
-                                    child: splitWidgets.checked.isNotEmpty
-                                        ? ReorderableListView(
-                                            shrinkWrap: true,
-                                            physics:
-                                                const NeverScrollableScrollPhysics(),
-                                            buildDefaultDragHandles: false,
-                                            onReorder: (oldIndex, newIndex) =>
-                                                _onReorderChecked(
-                                                  detail,
+                                      AnimatedSize(
+                                        duration:
+                                            AppAnimations.sectionTransition,
+                                        curve: AppAnimations.sectionCurve,
+                                        alignment: Alignment.topCenter,
+                                        child: splitWidgets.checked.isNotEmpty
+                                            ? ReorderableListView(
+                                                shrinkWrap: true,
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                buildDefaultDragHandles: false,
+                                                onReorderItem: (
+                                                  oldIndex,
+                                                  newIndex,
+                                                ) => service.reorderItem(
+                                                  itemSections.done,
                                                   oldIndex,
                                                   newIndex,
                                                 ),
-                                            proxyDecorator:
-                                                (child, index, animation) {
-                                                  return Material(
-                                                    elevation: 8.0,
-                                                    color: theme
-                                                        .colorScheme
-                                                        .surfaceContainerLow,
-                                                    child: child,
-                                                  );
-                                                },
-                                            children: splitWidgets.checked,
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ),
-                                ],
+                                                proxyDecorator:
+                                                    (child, index, animation) {
+                                                      return Material(
+                                                        elevation: 8.0,
+                                                        color: theme
+                                                            .colorScheme
+                                                            .surfaceContainerLow,
+                                                        child: child,
+                                                      );
+                                                    },
+                                                children: splitWidgets.checked,
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
                             },
                           ),

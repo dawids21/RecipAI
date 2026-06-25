@@ -40,6 +40,7 @@ void main() {
   late MockRecipeRepository recipeRepository;
   late MockRecipesCollectionRepository recipesCollectionRepository;
   late MockShoppingListRepository shoppingListRepository;
+  late MockShoppingListItemRepository shoppingListItemRepository;
   late MockMealPlanRepository mealPlanRepository;
   late _NavPushSpy navSpy;
   late Widget app;
@@ -56,6 +57,7 @@ void main() {
     recipeRepository = MockRecipeRepository();
     recipesCollectionRepository = MockRecipesCollectionRepository();
     shoppingListRepository = MockShoppingListRepository();
+    shoppingListItemRepository = MockShoppingListItemRepository();
     mealPlanRepository = MockMealPlanRepository();
 
     when(
@@ -64,6 +66,9 @@ void main() {
     when(
       () => authRepository.getIdToken(),
     ).thenAnswer((_) async => 'fake-token');
+    when(
+      () => shoppingListItemRepository.listIdsWithOutbox(),
+    ).thenAnswer((_) async => const []);
 
     final prefs = await SharedPreferences.getInstance();
     GetIt.I.registerSingleton(PreferencesService(prefs));
@@ -73,7 +78,10 @@ void main() {
       recipesCollectionRepository: recipesCollectionRepository,
     );
     setupRecipe(recipeRepository: recipeRepository);
-    setupShoppingList(shoppingListRepository: shoppingListRepository);
+    setupShoppingList(
+      shoppingListRepository: shoppingListRepository,
+      itemRepository: shoppingListItemRepository,
+    );
     setupMealPlan(mealPlanRepository: mealPlanRepository);
 
     navSpy = _NavPushSpy();

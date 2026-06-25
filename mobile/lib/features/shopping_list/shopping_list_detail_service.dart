@@ -4,7 +4,10 @@ import 'package:logging/logging.dart';
 import '../../core/async_value.dart';
 import '../../core/widgets/sharing_dialog.dart';
 import '../auth/auth_service.dart';
+import 'local_shopping_list_item.dart';
 import 'shopping_list_detail.dart';
+import 'shopping_list_item_repository.dart';
+import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
 
@@ -14,17 +17,17 @@ class ShoppingListDetailService {
   final ShoppingListRepository _shoppingListRepository;
   final AuthService _authService;
   final ShoppingListListService _shoppingListListService;
-
-  // TODO(shopping-list-items): inject whatever dependency drives item syncing once
-  // the new item write/sync path is designed.
+  final ShoppingListItemRepository _itemRepository;
 
   ShoppingListDetailService({
     required ShoppingListRepository shoppingListRepository,
     required AuthService authService,
     required ShoppingListListService shoppingListListService,
+    required ShoppingListItemRepository itemRepository,
   }) : _shoppingListRepository = shoppingListRepository,
        _authService = authService,
-       _shoppingListListService = shoppingListListService;
+       _shoppingListListService = shoppingListListService,
+       _itemRepository = itemRepository;
 
   final ValueNotifier<AsyncValue<ShoppingListDetail>> _shoppingListDetail =
       ValueNotifier(const AsyncValue.loading());
@@ -36,6 +39,15 @@ class ShoppingListDetailService {
       ValueNotifier(const AsyncValue.loading());
 
   ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+
+  final ValueNotifier<AsyncValue<List<LocalShoppingListItem>>> _items =
+      ValueNotifier(const AsyncValue.loading());
+
+  ValueListenable<AsyncValue<List<LocalShoppingListItem>>> get items => _items;
+
+  String? _openListId;
+  ValueListenable<List<LocalShoppingListItem>>? _watchedListenable;
+  VoidCallback? _itemsListener;
 
   bool _isLoadShoppingListDetailRunning = false;
   bool _isRenameRunning = false;
@@ -68,6 +80,93 @@ class ShoppingListDetailService {
     }
 
     _isLoadShoppingListDetailRunning = false;
+  }
+
+  Future<void> openShoppingList(String listId) async {
+    _openListId = listId;
+    await _itemRepository.openList(listId);
+    final listenable = _itemRepository.watch(listId);
+    _watchedListenable = listenable;
+    _itemsListener = () => _items.value = AsyncValue.data(listenable.value);
+    listenable.addListener(_itemsListener!);
+    _items.value = AsyncValue.data(listenable.value);
+  }
+
+  /// Adds an item, inserting it after [afterLocalId] when given.
+  Future<void> addItem(ItemChanged parsed, {String? afterLocalId}) async {
+    final listId = _openListId;
+    if (listId == null) return;
+    await _itemRepository.applyCreate(
+      listId,
+      name: parsed.name,
+      quantity: parsed.quantity,
+      unit: parsed.unit,
+      afterLocalId: afterLocalId,
+    );
+  }
+
+  Future<void> editItem(String localId, ItemChanged parsed) async {
+    await _itemRepository.applyEdit(
+      localId,
+      name: parsed.name,
+      quantity: parsed.quantity,
+      unit: parsed.unit,
+    );
+  }
+
+  Future<void> toggleChecked(String localId, bool checked) async {
+    await _itemRepository.applyChecked(localId, checked);
+  }
+
+  Future<void> deleteItem(String localId) async {
+    await _itemRepository.applyDelete(localId);
+  }
+
+  /// Reorders the item at [oldIndex] to [newIndex] within [items] (a section
+  /// sorted by position), computing its new fractional position from the
+  /// neighbours at the destination.
+  Future<void> reorderItem(
+    List<LocalShoppingListItem> items,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    if (oldIndex == newIndex) return;
+    final item = items[oldIndex];
+    final newPosition = _reorderPosition(items, oldIndex, newIndex);
+    await _itemRepository.applyReorder(item.localId, newPosition);
+  }
+
+  /// Computes the fractional position for an item moved from [oldIndex] to
+  /// [correctedNewIndex] (after applying Flutter's reorder index correction).
+  /// Uses the sorted list WITHOUT the moved item to find the neighbours.
+  double _reorderPosition(
+    List<LocalShoppingListItem> items,
+    int oldIndex,
+    int correctedNewIndex,
+  ) {
+    final without = List.of(items)..removeAt(oldIndex);
+    if (without.isEmpty) return 1.0;
+    if (correctedNewIndex <= 0) return without.first.position / 2.0;
+    if (correctedNewIndex >= without.length) return without.last.position + 1.0;
+    return (without[correctedNewIndex - 1].position +
+            without[correctedNewIndex].position) /
+        2.0;
+  }
+
+  Future<void> deleteAllChecked() async {
+    final current = _items.value.valueOrNull;
+    if (current == null) return;
+    for (final item in current.where((i) => i.checked).toList()) {
+      await _itemRepository.applyDelete(item.localId);
+    }
+  }
+
+  Future<void> uncheckAll() async {
+    final current = _items.value.valueOrNull;
+    if (current == null) return;
+    for (final item in current.where((i) => i.checked).toList()) {
+      await _itemRepository.applyChecked(item.localId, false);
+    }
   }
 
   Future<void> renameShoppingList(String id, String newName) async {
@@ -105,10 +204,6 @@ class ShoppingListDetailService {
     }
   }
 
-  // TODO(shopping-list-items): this service should expose the item write/sync API
-  // for the detail screen — adding, editing, deleting, checking/unchecking, and
-  // reordering items; bulk "delete all checked" / "uncheck all"
-
   Future<void> loadSharedUsers(String id) async {
     if (_isLoadSharedUsersRunning) return;
     _isLoadSharedUsersRunning = true;
@@ -138,7 +233,6 @@ class ShoppingListDetailService {
     if (_isShareShoppingListRunning) return;
     _isShareShoppingListRunning = true;
 
-    // Get shoppingListId from current state
     final shoppingListDetail = _shoppingListDetail.value;
     if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
       _isShareShoppingListRunning = false;
@@ -156,7 +250,7 @@ class ShoppingListDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(shoppingListId); // Refresh list on success
+      await loadSharedUsers(shoppingListId);
       await _shoppingListListService.loadShoppingLists();
     }
 
@@ -171,7 +265,6 @@ class ShoppingListDetailService {
     if (_isUnshareShoppingListRunning) return;
     _isUnshareShoppingListRunning = true;
 
-    // Get shoppingListId from current state
     final shoppingListDetail = _shoppingListDetail.value;
     if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
       _isUnshareShoppingListRunning = false;
@@ -189,7 +282,7 @@ class ShoppingListDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(shoppingListId); // Refresh list on success
+      await loadSharedUsers(shoppingListId);
       await _shoppingListListService.loadShoppingLists();
     }
 
@@ -201,7 +294,11 @@ class ShoppingListDetailService {
   }
 
   void dispose() {
+    if (_itemsListener != null && _watchedListenable != null) {
+      _watchedListenable!.removeListener(_itemsListener!);
+    }
     _shoppingListDetail.dispose();
     _sharedUsers.dispose();
+    _items.dispose();
   }
 }

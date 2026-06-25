@@ -63,7 +63,7 @@ Files are organized by feature directory (`features/auth/`, `features/recipe/`, 
 
 | Layer      | Files               | Responsibility                                                                                         |
 |------------|---------------------|--------------------------------------------------------------------------------------------------------|
-| Repository | `*_repository.dart` | Stateless data access — HTTP calls, local storage. Returns raw types. No business logic.               |
+| Repository | `*_repository.dart` | Data access — HTTP calls, local storage. Returns raw types. No business logic. May hold a local cache or persistence state (e.g. in-memory cache + `ValueNotifier` over a local DB). |
 | Service    | `*_service.dart`    | Application state with `ValueNotifier<AsyncValue<T>>`. Coordinates repositories, manages side effects. |
 | View       | `*_screen.dart`     | UI rendering. Receives services via constructor. Uses `ValueListenableBuilder` for reactive rebuilds.  |
 
@@ -96,10 +96,11 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
   create/edit/delete and role-based actions (delete requires OWNER); local visibility toggles; meal entry management
   supporting recipe entries (with serving size) and placeholder entries (text-only); shopping list generation wizard
   (3-step: select plans → select dates → review items)
-- **`shopping_list`** — shopping list management with list creation and display, inline item management with smart
-  text parsing, drag-and-drop reordering within active/done sections, optimistic UI updates via operation queue
-  (ShoppingListSyncService), bulk operations (delete all checked, uncheck all), and background syncing with conflict
-  resolution
+- **`shopping_list`** — shopping list management with list creation and display, offline-first inline item management
+  with smart text parsing, drag-and-drop reordering within active/done sections, and bulk operations (delete all
+  checked, uncheck all). Item state lives in a local sqflite store (in-memory cache + `ValueNotifier` over the DB) with
+  an append-only outbox; edits render instantly and persist across restarts while offline. Server push/pull sync and
+  conflict resolution are in progress (see `docs/tasks/2026-06-13-shopping-list-items-rewrite/`)
 
 ### Routing
 

@@ -103,6 +103,7 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 | get_it | 9.2.0 | Service locator dependency injection |
 | http | 1.1.0 | REST API client |
 | shared_preferences | 2.2.2 | Local persistent storage |
+| sqflite | 2.4.3 | Offline-first local item store (shopping list items + outbox) |
 | image_picker | 1.2.0 | Camera/gallery image selection |
 | webview_flutter | 4.13.0 | In-app web content |
 | photo_view | 0.15.0 | Zoomable recipe image viewer |

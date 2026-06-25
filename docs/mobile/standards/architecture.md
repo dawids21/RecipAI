@@ -4,8 +4,9 @@
 
 All features follow a strict three-layer architecture with unidirectional data flow:
 
-- **Repository** (`*_repository.dart`): Stateless data access — HTTP calls, local storage. Returns raw types. No
-  business logic. No state.
+- **Repository** (`*_repository.dart`): Data access — HTTP calls, local storage. Returns raw types to services.
+  No business logic. May hold local cache or persistence state (e.g. an in-memory cache + `ValueNotifier` over a
+  local DB) — but must not depend on services or views.
 - **Service** (`*_service.dart`): Application state with `ValueNotifier<AsyncValue<T>>`. Coordinates repositories,
   manages side effects.
 - **View** (`*_screen.dart`): UI rendering. Receives services via constructor. Uses `ValueListenableBuilder` for

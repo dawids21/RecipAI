@@ -5,9 +5,12 @@ mobile/lib/features/shopping_list/
 ├── shopping_list.dart                  # Shopping list data model
 ├── shopping_list_item.dart             # Shopping list item data model
 ├── shopping_list_detail.dart           # Shopping list detail data model (includes items)
+├── local_shopping_list_item.dart       # Local item model with last-acked version, dirty, failed, and pending-delete flags
 ├── shopping_list_repository.dart       # Shopping list data access layer
+├── shopping_list_item_dao.dart         # sqflite DAO for the items + append-only outbox tables; OutboxKind enum
+├── shopping_list_item_repository.dart  # Local item store: in-memory cache + ValueNotifier over the DB, appends outbox entries
 ├── shopping_list_list_service.dart     # Shopping list list business logic with ValueNotifier
-├── shopping_list_detail_service.dart   # Shopping list detail business logic
+├── shopping_list_detail_service.dart   # Shopping list detail business logic; drives local item add/edit/check/delete/reorder and bulk ops
 ├── shopping_list_setup.dart            # Dependency injection setup for shopping list module
 ├── shopping_list_list.dart             # Reusable shopping list body widget
 ├── shopping_list_list_fab.dart         # Reusable shopping list FAB widget
