@@ -105,9 +105,6 @@ class _RecipeImageManagerState extends State<RecipeImageManager> {
 
   void _reorderImages(int oldIndex, int newIndex) {
     setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
       final item = _images.removeAt(oldIndex);
       _images.insert(newIndex, item);
     });
@@ -134,7 +131,7 @@ class _RecipeImageManagerState extends State<RecipeImageManager> {
                     ReorderableListView(
                       scrollDirection: Axis.horizontal,
                       shrinkWrap: true,
-                      onReorder: _reorderImages,
+                      onReorderItem: _reorderImages,
                       buildDefaultDragHandles: false,
                       proxyDecorator: (child, index, animation) {
                         return AnimatedBuilder(

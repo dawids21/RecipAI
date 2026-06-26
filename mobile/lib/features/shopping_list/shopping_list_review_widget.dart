@@ -70,9 +70,6 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
 
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
       final item = _items.removeAt(oldIndex);
       _items.insert(newIndex, item);
     });
@@ -205,7 +202,7 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
               : ReorderableListView(
                   padding: AppSpacing.screenPadding,
                   buildDefaultDragHandles: false,
-                  onReorder: _onReorder,
+                  onReorderItem: _onReorder,
                   proxyDecorator: (child, index, animation) => Material(
                     elevation: 8.0,
                     color: theme.colorScheme.surfaceContainerLow,
