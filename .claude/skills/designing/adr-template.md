@@ -2,16 +2,16 @@
 
 **Date:** <YYYY-MM-DD>
 **Status:** proposed
-**Related ADRs:** <links to other ADRs only — do NOT link to brainstorming or design files; they are ephemeral, this ADR is not.>
+**Related ADRs:** <links to other ADRs only — do NOT link to the HLD or requirements files; they are ephemeral, this ADR is not.>
 
 ## Context
 
 <What forces are at play. What problem this decision is responding to.
 
 This section must be self-contained. ADRs persist beyond any single task and
-its design doc — describe the situation, constraints, and forces directly,
-in the ADR's own words. Do not say "see the brainstorming" or link to a
-design file; once the task is closed those files lose relevance, and a future
+its HLD — describe the situation, constraints, and forces directly,
+in the ADR's own words. Do not say "see the HLD" or link to the requirements
+file; once the task is closed those files lose relevance, and a future
 reader must still be able to understand why this decision was made.>
 
 ## Decision

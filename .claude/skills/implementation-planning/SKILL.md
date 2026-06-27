@@ -1,16 +1,18 @@
 ---
 name: implementation-planning
-description: Create a detailed, PR-ready implementation plan for a single task by investigating the codebase and filling a structured template. Use whenever the user asks to plan, write, draft, or generate an implementation plan (or 'impl plan', 'task plan') based on an existing `design.md` in a `docs/tasks/<date>-<name>/` directory. Triggers on phrasings like "create implementation plan for task T2 in docs/tasks/2025-11-15-shopping-lists", "plan the implementation for…", "write an impl plan for T3", "draft the implementation plan based on design.md". Handles both single-task mode (no `tasks.md`; plan saved at `<task-dir>/implementation-plan.md`) and multi-task mode (`tasks.md` exists; plan saved at `<task-dir>/plans/T<N>-implementation-plan.md`).
+description: Create a detailed, PR-ready implementation plan for a single task by investigating the codebase and filling a structured template. Use whenever the user asks to plan, write, draft, or generate an implementation plan (or 'impl plan', 'task plan') based on an existing `task-design.md` in a `docs/tasks/<date>-<name>/` directory. Triggers on phrasings like "create implementation plan for task T2 in docs/tasks/2025-11-15-shopping-lists", "plan the implementation for…", "write an impl plan for T3", "draft the implementation plan based on task-design.md". Handles both single-task mode (no `tasks.md`; plan saved at `<task-dir>/implementation-plan.md`) and multi-task mode (`tasks.md` exists; plan saved at `<task-dir>/plans/T<N>-implementation-plan.md`).
+disable-model-invocation: true
 ---
 
 # Implementation Planning
 
 Produce a detailed, PR-ready implementation plan that an engineer (or another
 agent) can execute top-to-bottom without further interpretation. This is the
-terminal planning step in a requirements → brainstorming → design → tasks →
-implementation-plan workflow. The upstream planning is already done; this skill
-translates `design.md` (and, in multi-task mode, one entry from `tasks.md`)
-into a concrete, file-level plan grounded in the real codebase.
+terminal planning step in a requirements → designing (HLD) → task-planning →
+task-designing → implementation-planning workflow. The upstream planning is
+already done; this skill translates `task-design.md` (and, in multi-task mode,
+the matching entry from `tasks.md`) into a concrete, file-level plan grounded
+in the real codebase.
 
 ## Inputs
 
@@ -30,10 +32,11 @@ anything else.
 Detect the mode by inspecting the task directory:
 
 - **Multi-task mode** — `<task-dir>/tasks.md` exists. The user must have named a
-  specific task (T1, T2, …). Plan is written to
+  specific task (T1, T2, …). The task's design lives at
+  `<task-dir>/plans/T<N>-task-design.md`, and the plan is written to
   `<task-dir>/plans/T<N>-implementation-plan.md`.
-- **Single-task mode** — no `tasks.md` in `<task-dir>`. The entire `design.md`
-  is the basis for one plan. Plan is written to
+- **Single-task mode** — no `tasks.md` in `<task-dir>`. The design lives at
+  `<task-dir>/task-design.md` and is the basis for one plan, written to
   `<task-dir>/implementation-plan.md` (directly in the task directory, NOT in a
   `plans/` subfolder).
 
@@ -48,11 +51,14 @@ task IDs from `tasks.md` and ask which one to plan.
 
 ### 1. Confirm inputs and mode
 
-- Verify `<task-dir>/design.md` exists. If it's missing, stop — there is
-  nothing to plan from, and this skill refuses to guess a design.
 - Determine mode (see above).
 - In multi-task mode, find the named task inside `tasks.md`. If the task ID
   doesn't exist in `tasks.md`, stop and list the ones that do.
+- Verify the task's `task-design.md` exists at the mode-appropriate path
+  (`<task-dir>/task-design.md` in single-task mode,
+  `<task-dir>/plans/T<N>-task-design.md` in multi-task mode). If it's missing,
+  stop — there is nothing to plan from, and this skill refuses to guess a
+  design.
 
 ### 2. Gather context
 
@@ -63,19 +69,21 @@ into the template sections.
 - `docs/INDEX.md`, if it exists. Scan it for docs/standards relevant to what
   this task touches (persistence, API conventions, logging, testing,
   security, etc.).
-- `<task-dir>/design.md` in full. Pay special attention to:
-  - Required reading for implementation
-  - Module & component boundaries
-  - Data model changes
-  - Interface contracts
-  - Integration changes
-  - Resolved questions (so you don't re-decide them)
+- The task's `task-design.md` in full (single-task:
+  `<task-dir>/task-design.md`; multi-task: `<task-dir>/plans/T<N>-task-design.md`).
+  Pay special attention to:
+  - Required reading for implementation planning
+  - Components and responsibilities
+  - Interfaces and method signatures
+  - Data flow
+  - Pseudo-code (for non-trivial logic)
+  - Decisions made (so you don't re-decide them)
   - Assumptions to verify (which become risks if unresolved)
-- ADRs listed in `design.md`'s metadata and any ADRs linked from it.
+- Any ADRs linked from `task-design.md`.
 
 **Multi-task mode only**
 - The specific task entry in `tasks.md` — read **Scope**, **Out of scope**,
-  **Depends on**, **Design references**, **How to verify**, and **Risks /
+  **Depends on**, **HLD references**, **How to verify**, and **Risks /
   unknowns**. These constrain the plan's boundaries.
 - The `Summary` and `Cross-task notes` sections of `tasks.md` — they surface
   shared prerequisites, sequencing constraints, and parallelism.
@@ -84,7 +92,7 @@ into the template sections.
   note it in the response after writing the plan; don't block.
 
 **Project docs & standards**
-- Any file referenced from `design.md` > "Required reading for implementation".
+- Any file referenced from `task-design.md` > "Required reading for implementation planning".
 - Anything in `docs/INDEX.md` directly relevant to the task's scope.
 
 ### 3. Investigate the codebase
@@ -95,10 +103,10 @@ from reading the actual repo, not from the design document.
 
 Investigate along these axes, to whatever depth the task requires:
 
-- **Integration points** — for each file the design says will change, open
+- **Integration points** — for each file the task design says will change, open
   it and read enough surrounding context to understand the shape of the
   change.
-- **New components** — for each new unit the design introduces, locate 1–2
+- **New components** — for each new unit the task design introduces, locate 1–2
   existing siblings in the same package / folder / module whose patterns
   the new code should follow. Capture their naming, structure, and
   conventions so the plan can point to them as "code to mirror".
@@ -117,7 +125,7 @@ Investigate along these axes, to whatever depth the task requires:
 Keep a running list of filepaths as you go — these populate both
 **Required reading > Code to mirror** and **File inventory**.
 
-If the investigation surfaces something that contradicts `design.md` — a
+If the investigation surfaces something that contradicts `task-design.md` — a
 pattern that's no longer current, a file that's moved, a convention that
 has shifted — don't silently paper over it. Capture it under **Risks
 surfaced during planning**.
@@ -149,12 +157,12 @@ user, and ask whether to overwrite, create a `.v2` variant, or abort.
   where `<Task name>` matches the name used in `tasks.md`.
 - **Single-task mode** title: `# <Feature name> — Implementation Plan`
   (omit the `T<N>:` prefix).
-- **Date**: today's date in `YYYY-MM-DD` — not the date on `design.md`.
+- **Date**: today's date in `YYYY-MM-DD` — not the date on `task-design.md`.
 - **Status**: always `draft` for the first write.
 
 ### Required reading
 Three subsections: Docs & standards, Design & ADRs, Code to mirror. Pull
-only entries relevant to *this task* — don't copy `design.md`'s full list
+only entries relevant to *this task* — don't copy `task-design.md`'s full list
 verbatim. Every entry needs a one-line "why" note.
 
 If a subsection has no entries, write `_None._` under its heading — don't
@@ -190,7 +198,7 @@ Each step names:
   `curl` with the expected response, a query showing the new state.
   Spell out the command, not the intent.
 
-Don't restate *why* — the design.md has that. Focus on *what* and *how*.
+Don't restate *why* — the task-design.md has that. Focus on *what* and *how*.
 
 ### Test plan
 Case lists, not promises. `FooServiceTest — happy path, validation failure`
@@ -208,14 +216,14 @@ line). Always include at minimum:
 - Lint / formatter passes.
 - All tests pass.
 - `tasks.md` > "How to verify" for this task succeeds (multi-task mode),
-  or the design's user-visible outcome is demonstrably achieved (single-task mode).
-- Design's Assumptions to verify are resolved or explicitly deferred.
+  or the task design's user-visible outcome is demonstrably achieved (single-task mode).
+- Task design's Assumptions to verify are resolved or explicitly deferred.
 
 ### Risks surfaced during planning
 Only things that came up **while writing this plan** — not a restatement
 of `tasks.md` > "Risks / unknowns". Examples:
-- The existing pattern the design assumes has been refactored since the
-  design was written.
+- The existing pattern the task design assumes has been refactored since the
+  task design was written.
 - Two integration points conflict and one will need to be rewritten.
 - A migration can't be safely rolled back and needs a forward-only path.
 
@@ -225,31 +233,31 @@ If nothing new came up:
 
 ## Edge cases
 
-- **`design.md` missing** — stop. The skill refuses to generate a plan
+- **`task-design.md` missing** — stop. The skill refuses to generate a plan
   without a design.
 - **Task ID not in `tasks.md`** — stop and list the available IDs.
 - **Target plan file already exists** — stop and ask before overwriting.
-- **Unresolved `Assumptions to verify` in `design.md`** — proceed, but
+- **Unresolved `Assumptions to verify` in `task-design.md`** — proceed, but
   capture each unresolved assumption in Risks surfaced during planning
   and mention them in the reply.
 - **Task has `Depends on: T<N>` but no `T<N>-implementation-plan.md`** —
   proceed, but mention in the reply so the user can plan the
   prerequisites or reorder.
-- **Codebase investigation contradicts design.md** — capture in Risks
+- **Codebase investigation contradicts task-design.md** — capture in Risks
   surfaced during planning and flag in the reply; don't silently adjust
-  the plan to match the codebase, since the design may still be right and
+  the plan to match the codebase, since the task design may still be right and
   the code may be what needs to change.
 
 ## Example filepaths
 
 For a request *"create implementation plan for task T2 in docs/tasks/2025-11-15-shopping-lists"*:
 
-- Read: `docs/tasks/2025-11-15-shopping-lists/design.md`
 - Read: `docs/tasks/2025-11-15-shopping-lists/tasks.md` (find T2)
+- Read: `docs/tasks/2025-11-15-shopping-lists/plans/T2-task-design.md`
 - Write: `docs/tasks/2025-11-15-shopping-lists/plans/T2-implementation-plan.md`
 
 For a request *"plan the implementation for docs/tasks/2026-04-18-fix-auth-redirect"*:
 
-- Read: `docs/tasks/2026-04-18-fix-auth-redirect/design.md`
 - Read: `docs/tasks/2026-04-18-fix-auth-redirect/tasks.md` → doesn't exist → single-task mode
+- Read: `docs/tasks/2026-04-18-fix-auth-redirect/task-design.md`
 - Write: `docs/tasks/2026-04-18-fix-auth-redirect/implementation-plan.md`

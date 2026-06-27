@@ -1,37 +1,39 @@
 ---
 name: task-planning
-description: Break a completed software design document into an ordered list of vertical-slice implementation tasks, producing a tasks.md that pairs with the design to feed a downstream implementation-planning step. Use this skill whenever the user has a design document and wants to break it down into implementable chunks, work items, vertical slices, or a task list. Trigger for phrases like "break this design into tasks", "what tasks does this design need", "task breakdown for the design", "plan the implementation tasks", "turn this design into work items", or when a design.md is being handed off for execution. Do NOT use for ad-hoc TODO lists, sprint planning across many features, or project-level roadmaps — this skill specifically translates one design into its implementation tasks.
+description: Break a completed high-level design (HLD.md) into an ordered list of vertical-slice implementation tasks, producing a tasks.md that feeds the downstream task-designing and implementation-planning steps. Use this skill whenever the user has an HLD and wants to break it down into implementable chunks, work items, vertical slices, or a task list. Trigger for phrases like "break this HLD into tasks", "what tasks does this design need", "task breakdown for the design", "plan the implementation tasks", "split this into work items", or when an HLD.md is being handed off for execution. Do NOT use for ad-hoc TODO lists, sprint planning across many features, or project-level roadmaps — this skill specifically translates one HLD into its implementation tasks.
 disable-model-invocation: true
 ---
 
 # Task Planning
 
-Translates a completed `design.md` into a `tasks.md` — an ordered list of vertical-slice implementation tasks, each delivering a user-visible outcome. The output pairs with the design to feed the downstream implementation-planning step.
+Translates a completed `HLD.md` (high-level design) into a `tasks.md` — an ordered list of vertical-slice implementation tasks, each delivering a user-visible outcome. The output feeds the downstream task-designing and implementation-planning steps.
 
 ## Pipeline position
 
-This skill is step 4 of a 5-step workflow:
+This skill is the optional task-splitting step that follows high-level design:
 
-1. Requirements gathering (Socratic) → `requirements.md`
-2. Brainstorming (solution alternatives) → `brainstorming.md`
-3. Design → `design.md`
-4. **Task planning (this skill)** → `tasks.md`
+1. Requirements gathering → `requirements.md`
+2. High-level design (`/designing`) → `HLD.md`
+3. **Task planning (this skill, optional)** → `tasks.md`
+4. Task designing (per-task technical design) → `task-design.md`
 5. Implementation planning → per-task implementation plan
+6. Implementation → code
+
+This step is optional: run it when the HLD covers more than one cohesive unit of work. When the HLD is a single slice, skip straight to task-designing.
 
 ## Inputs
 
-- `design.md` — **required.** Must follow the structure of the design template.
+- `HLD.md` — **required.** Must follow the structure of the HLD template.
 
 ## Pre-flight check
 
-Before generating tasks, verify the design document is present and populated. Flag and ask whether to proceed if any of these sections are missing, empty, or contain unresolved placeholder text:
+Before generating tasks, verify the HLD is present and populated. Flag and ask whether to proceed if any of these are a problem:
 
-- **Module & component boundaries**
-- **Interface contracts**
-- **Flows & state**
-- **Assumptions to verify** (outstanding assumptions are fine; the section being entirely absent is not)
+- **Approach > Chosen** — the approach must be settled. If the HLD instead carries a **Deferred** note (the decision is still open, awaiting a spike/benchmark/conversation), you cannot reliably break it into tasks. Surface this and stop.
+- **Feature areas** — present, with **key behaviors** listed per area. This is the backbone of the task breakdown; if it's missing, empty, or still placeholder text, the breakdown will be unreliable.
+- **Out of scope** and **Open questions** — read these for context if present. They are legitimately absent when there's nothing to record (the HLD template deletes them when empty), so don't treat their absence as a gap — but unresolved open questions that block a task are worth flagging.
 
-Gaps in these areas produce unreliable task breakdowns. Surface the gap and let the user decide whether to proceed anyway, patch the design first, or abort.
+Surface any gap and let the user decide whether to proceed anyway, patch the HLD first, or abort.
 
 ## Core principle: vertical slices with user-visible outcomes
 
@@ -78,7 +80,7 @@ Start from [tasks-template.md](tasks-template.md) and fill it in. Place the comp
 docs/tasks/YYYY-MM-DD-<task-name>/tasks.md
 ```
 
-Keep tone and formatting aligned with `design.md` — this is a sibling artifact in the same pipeline, not a separate document family.
+Keep tone and formatting aligned with `HLD.md` — this is a sibling artifact in the same pipeline, not a separate document family.
 
 ### File-level content
 
@@ -92,17 +94,17 @@ Each task entry includes:
 
 - **ID and name** (e.g., `T1: S3 image upload`) — stable identifier used for cross-references
 - **User-visible outcome** — one sentence naming what someone can do after this task ships that they couldn't before. This is the anchor for the whole task.
-- **Scope** — terse bullets of what's included. Reference design sections by name; do not restate design content.
+- **Scope** — terse bullets of what's included. Reference HLD feature areas by name; do not restate HLD content.
 - **Out of scope** — what is explicitly *not* in this task and where it lives instead ("covered in T3", "deferred"). Primary guardrail against scope creep during implementation planning.
 - **Depends on** — task IDs of prerequisites, or "none"
-- **Design references** — pointers into `design.md` sections (and listed ADRs) the implementation planner should read most carefully
+- **HLD references** — pointers into `HLD.md` sections (feature areas, and listed ADRs) the downstream task-designing step should read most carefully
 - **How to verify** — concrete, observable verification: a curl command, a UI interaction, a manual test flow. Must confirm the user-visible outcome *at the slice boundary*, not internal implementation details.
 - **Risks / unknowns** (optional) — task-specific gotchas worth flagging to the implementation planner
 
 ### What tasks MUST NOT contain
 
 - Step-by-step implementation instructions or file-by-file change lists — that's the implementation-planning step's job
-- Restated design decisions or their rationale — those live in `design.md` and ADRs
+- Restated design decisions or their rationale — those live in `HLD.md` and ADRs
 - Acceptance criteria written as unit-test assertions or method signatures — keep acceptance observable at the slice boundary
 
 ## Files

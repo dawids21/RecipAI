@@ -51,7 +51,7 @@ Good deep-dive questions:
 Avoid:
 - Yes/no questions (they rarely surface new info)
 - Questions that just re-ask something already answered
-- Implementation-level questions ("which library should we use?", "should we use a queue or a cron?") — those belong in a later step. This skill locks down *what*, not *how*.
+- Any question about technical approach, system design, or solution shape. This is a hard line, not just a "no libraries" rule. "Which library should we use?" is out, but so is "should this be a queue or a cron?", "where should this state live?", "should we cache the result?", and "is this a new service or part of the existing one?". All of those are *how*, and *how* belongs to the design steps downstream. The conversation must stay entirely in the problem space — what the user wants, for whom, and why. When you catch yourself reaching for a solution-shaped question, translate it back into the need behind it: instead of "should we cache this?", ask "how fresh does this data need to be?"; instead of "queue or cron?", ask "how quickly does this have to happen after the trigger?".
 
 Return to dimensions that feel under-explored. If the user gave a thin answer to "anti-requirements" in the foundation round, come back to it.
 

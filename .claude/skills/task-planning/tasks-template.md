@@ -36,7 +36,7 @@ API consumer with curl, integrating developer, etc.>
 
 **Scope**
 
-<Terse bullets of what's included. Reference design sections by name rather
+<Terse bullets of what's included. Reference HLD feature areas by name rather
 than restating their content.
 
 - <bullet>
@@ -49,16 +49,16 @@ Primary guardrail against scope creep at implementation-planning time.
 
 - <thing> — covered in T<N>
 - <thing> — deferred
-- <thing> — lives in design.md > <section> but not built in this task>
+- <thing> — lives in HLD.md > <feature area> but not built in this task>
 
 **Depends on:** <task IDs, or "none">
 
-**Design references**
+**HLD references**
 
-<Pointers into `design.md` sections (and listed ADRs) the implementation
-planner should read most carefully for this task.
+<Pointers into `HLD.md` sections (feature areas, and listed ADRs) the
+task-designing step should read most carefully for this task.
 
-- `design.md` > <Section name>
+- `HLD.md` > Feature areas > <Area name>
 - `docs/ADRs/NNNN-<slug>.md`>
 
 **How to verify**
