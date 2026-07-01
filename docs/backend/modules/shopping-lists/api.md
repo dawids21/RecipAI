@@ -46,7 +46,7 @@
   ```
 - Success: 200 OK
 - Errors: 401 Unauthorized, 403 Forbidden (user lacks permission), 404 Not Found
-- Note: Items are ordered by `position` in ascending order. Quantity and unit can be null.
+- Note: Items are ordered by `position` ascending, ties broken by `id` ascending (`position` is not unique). Quantity and unit can be null.
 
 ### POST /shopping-lists
 - Description: Create a new shopping list and grant OWNER permission to the authenticated user
@@ -102,3 +102,30 @@
 - Success: 204 No Content
 - Errors: 400 Bad Request, 403 Forbidden (if user has no access, or trying to unshare OWNER), 404 Not Found
 - Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
+
+### POST /shopping-lists/{id}/items
+- Description: Create a new item on a shopping list. The client supplies `position`; creates never conflict (no `baseVersion`).
+- Authenticated: true
+- Roles: OWNER and EDITOR can create items
+- Request body: `{"name": "Milk", "quantity": 2.0, "unit": "liters", "position": 1.0}` (`quantity` and `unit` are nullable)
+- Example response: `{"id": "uuid", "name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0, "version": 0}`
+- Success: 201 Created
+- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list does not exist)
+
+### PUT /shopping-lists/{id}/items/{itemId}
+- Description: Update all mutable fields of an item (name, quantity, unit, checked, position) as one version-gated write — covers edits, check/uncheck, and reorders uniformly (first-action-wins).
+- Authenticated: true
+- Roles: OWNER and EDITOR can update items
+- Request body: `{"baseVersion": 0, "name": "Whole Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0}`
+- Example response: the updated item, e.g. `{"id": "uuid", "name": "Whole Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0, "version": 1}`
+- Success: 200 OK
+- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list or item does not exist, or item belongs to a different list)
+- **412 Precondition Failed**: `baseVersion` no longer matches the stored item's version (someone else changed it first). The response body is the **raw current item** (a `ShoppingListItemDto`, not a `ProblemDetail`) so the client can roll back to it directly.
+
+### DELETE /shopping-lists/{id}/items/{itemId}?baseVersion={n}
+- Description: Hard-delete an item, version-gated the same way as update. If the item was edited after the client's last read, the edit wins and the delete is rejected.
+- Authenticated: true
+- Roles: OWNER and EDITOR can delete items
+- Success: 204 No Content
+- Errors: 400 Bad Request (missing `baseVersion`), 401 Unauthorized, 403 Forbidden, 404 Not Found (list or item does not exist)
+- **412 Precondition Failed**: `baseVersion` is stale (edit-wins-over-delete). The response body is the raw winning `ShoppingListItemDto`.

@@ -3,8 +3,11 @@ package xyz.stasiak.recipai.shoppinglists;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
+import xyz.stasiak.recipai.shoppinglists.exception.ItemNotFoundException;
+import xyz.stasiak.recipai.shoppinglists.exception.ItemVersionConflictException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
@@ -48,16 +51,90 @@ class ShoppingListService {
         ShoppingList shoppingList = shoppingListRepository.findById(id)
                 .orElseThrow(() -> new ShoppingListNotFoundException(id));
 
-        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, id))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
+        ShoppingListPermission permission = requireEditorPermission(id, userEmail);
 
-        if (!permission.hasEditorRights()) {
-            throw new ShoppingListAccessDeniedException(id);
-        }
-
-        List<ShoppingListItem> items = shoppingListItemRepository.findByShoppingListIdOrderByPositionAsc(shoppingList.getId());
+        List<ShoppingListItem> items = shoppingListItemRepository.findByShoppingListIdOrderByPositionAscIdAsc(shoppingList.getId());
 
         return toDto(shoppingList, items, permission.getRole());
+    }
+
+    @Transactional
+    ShoppingListItemDto createItem(UUID listId, CreateShoppingListItemRequest request, String userEmail) {
+        log.debug("Creating item in shopping list: {} for user: {}", listId, userEmail);
+
+        requireEditorPermission(listId, userEmail);
+
+        ShoppingListItem item = new ShoppingListItem(listId, request.name(), request.quantity(), request.unit(), request.position());
+        ShoppingListItem savedItem = shoppingListItemRepository.save(item);
+
+        return toItemDto(savedItem);
+    }
+
+    @Transactional
+    ShoppingListItemDto updateItem(UUID listId, UUID itemId, UpdateShoppingListItemRequest request, String userEmail) {
+        log.debug("Updating item: {} in shopping list: {} for user: {}", itemId, listId, userEmail);
+
+        requireEditorPermission(listId, userEmail);
+
+        ShoppingListItem item = shoppingListItemRepository.findByIdAndShoppingListId(itemId, listId)
+                .orElseThrow(() -> new ItemNotFoundException(itemId));
+
+        if (!item.getVersion().equals(request.baseVersion())) {
+            throw new ItemVersionConflictException(toItemDto(item));
+        }
+
+        item.setName(request.name());
+        item.setQuantity(request.quantity());
+        item.setUnit(request.unit());
+        item.setChecked(request.checked());
+        item.setPosition(request.position());
+
+        try {
+            ShoppingListItem savedItem = shoppingListItemRepository.saveAndFlush(item);
+            return toItemDto(savedItem);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            ShoppingListItem winner = shoppingListItemRepository.findByIdAndShoppingListId(itemId, listId)
+                    .orElseThrow(() -> new ItemNotFoundException(itemId));
+            throw new ItemVersionConflictException(toItemDto(winner));
+        }
+    }
+
+    @Transactional
+    void deleteItem(UUID listId, UUID itemId, long baseVersion, String userEmail) {
+        log.debug("Deleting item: {} in shopping list: {} for user: {}", itemId, listId, userEmail);
+
+        requireEditorPermission(listId, userEmail);
+
+        ShoppingListItem item = shoppingListItemRepository.findByIdAndShoppingListId(itemId, listId)
+                .orElseThrow(() -> new ItemNotFoundException(itemId));
+
+        if (!item.getVersion().equals(baseVersion)) {
+            throw new ItemVersionConflictException(toItemDto(item));
+        }
+
+        try {
+            shoppingListItemRepository.delete(item);
+            shoppingListItemRepository.flush();
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            ShoppingListItem winner = shoppingListItemRepository.findByIdAndShoppingListId(itemId, listId)
+                    .orElseThrow(() -> new ItemNotFoundException(itemId));
+            throw new ItemVersionConflictException(toItemDto(winner));
+        }
+    }
+
+    private ShoppingListPermission requireEditorPermission(UUID listId, String userEmail) {
+        if (!shoppingListRepository.existsById(listId)) {
+            throw new ShoppingListNotFoundException(listId);
+        }
+
+        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, listId))
+                .orElseThrow(() -> new ShoppingListAccessDeniedException(listId));
+
+        if (!permission.hasEditorRights()) {
+            throw new ShoppingListAccessDeniedException(listId);
+        }
+
+        return permission;
     }
 
     @Transactional
@@ -85,15 +162,10 @@ class ShoppingListService {
     ShoppingListListDto updateById(UUID id, UpdateShoppingListRequest request, String userEmail) {
         log.debug("Updating shopping list with id: {} for user: {}", id, userEmail);
 
+        requireEditorPermission(id, userEmail);
+
         ShoppingList shoppingList = shoppingListRepository.findById(id)
                 .orElseThrow(() -> new ShoppingListNotFoundException(id));
-
-        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, id))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
-
-        if (!permission.hasEditorRights()) {
-            throw new ShoppingListAccessDeniedException(id);
-        }
 
         shoppingList.setName(request.name());
 

@@ -17,13 +17,17 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── dto/
     │   ├── ShoppingListListDto.java                 # Shopping list list response DTO
     │   ├── ShoppingListDto.java                     # Shopping list detail response DTO with items
-    │   ├── ShoppingListItemDto.java                 # Shopping list item response DTO
+    │   ├── ShoppingListItemDto.java                 # Shopping list item response DTO (also the 201/200/412 body)
     │   ├── CreateShoppingListRequest.java
     │   ├── UpdateShoppingListRequest.java
     │   ├── ShareShoppingListRequest.java
     │   ├── UnshareShoppingListRequest.java
-    │   └── SharedUserDto.java
+    │   ├── SharedUserDto.java
+    │   ├── CreateShoppingListItemRequest.java       # Create-item request DTO (no baseVersion — creates never conflict)
+    │   └── UpdateShoppingListItemRequest.java       # Update-item request DTO (baseVersion + full mutable item state)
     └── exception/
         ├── ShoppingListNotFoundException.java
-        └── ShoppingListAccessDeniedException.java
+        ├── ShoppingListAccessDeniedException.java
+        ├── ItemNotFoundException.java               # Item absent from its list -> 404
+        └── ItemVersionConflictException.java        # Stale baseVersion -> 412 with the winning item
 ```

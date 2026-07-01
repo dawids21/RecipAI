@@ -23,9 +23,8 @@
 - quantity: NUMERIC(12,3) NULL
 - unit: VARCHAR(64) NULL
 - checked: BOOLEAN NOT NULL DEFAULT FALSE
-- position: NUMERIC(15,6) NOT NULL
-- version: BIGINT NOT NULL
-- Constraints: UNIQUE(shopping_list_id, position) — ensures each item has a unique position within a list
+- position: NUMERIC(21,12) NOT NULL — a non-unique sort key; ties are broken by `id` at the read path
+- version: BIGINT NOT NULL — optimistic-locking version, the conflict gate for item writes
 
 ## Relationships
 
@@ -35,7 +34,7 @@
 - **shopping_list_permission.shopping_list_id** → **shopping_lists.id**: Foreign key relationship
 - **shopping_list_items** → **shopping_lists**: One-to-Many relationship
     - One shopping list can have many items
-    - Items are ordered by the `position` field
+    - Items are ordered by `position` ascending, ties broken by `id` ascending
     - When a shopping list is deleted, all its items are deleted (CASCADE)
 - **shopping_list_items.shopping_list_id** → **shopping_lists.id**: Foreign key with ON DELETE CASCADE
 

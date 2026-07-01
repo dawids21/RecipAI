@@ -11,6 +11,7 @@ import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -108,6 +109,40 @@ class ShoppingListIntegrationTest {
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
+    }
+
+    private ShoppingListItemDto createItem(RestClient client, UUID listId, CreateShoppingListItemRequest request) {
+        return client
+                .post()
+                .uri("/shopping-lists/" + listId + "/items")
+                .body(request)
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
+    private CreateShoppingListItemRequest itemRequest(String name, BigDecimal quantity, String unit, BigDecimal position) {
+        return new CreateShoppingListItemRequest(name, quantity, unit, position);
+    }
+
+    private ShoppingListItemDto updateItem(RestClient client, UUID listId, UUID itemId, UpdateShoppingListItemRequest request) {
+        return client
+                .put()
+                .uri("/shopping-lists/" + listId + "/items/" + itemId)
+                .body(request)
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+    }
+
+    private UpdateShoppingListItemRequest updateRequest(long baseVersion, String name, BigDecimal quantity, String unit, boolean checked, BigDecimal position) {
+        return new UpdateShoppingListItemRequest(baseVersion, name, quantity, unit, checked, position);
+    }
+
+    private void deleteItem(RestClient client, UUID listId, UUID itemId, long baseVersion) {
+        client
+                .delete()
+                .uri("/shopping-lists/" + listId + "/items/" + itemId + "?baseVersion=" + baseVersion)
+                .retrieve()
+                .toBodilessEntity();
     }
 
     @Test
@@ -546,5 +581,385 @@ class ShoppingListIntegrationTest {
         // Verify list still exists
         ShoppingListDto listDto = getShoppingList(user1Client, list.id());
         assertThat(listDto).isNotNull();
+    }
+
+    @Test
+    void shouldCreateItemWithVersionZero() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", new BigDecimal("2.0"), "liters", new BigDecimal("1.0")));
+
+        assertThat(item).isNotNull();
+        assertThat(item.id()).isNotNull();
+        assertThat(item.name()).isEqualTo("Milk");
+        assertThat(item.quantity()).isEqualByComparingTo("2.0");
+        assertThat(item.unit()).isEqualTo("liters");
+        assertThat(item.checked()).isFalse();
+        assertThat(item.position()).isEqualByComparingTo("1.000000000000");
+        assertThat(item.version()).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldShowCreatedItemInGetShoppingList() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("1.0")));
+
+        ShoppingListDto shoppingList = getShoppingList(client, list.id());
+        assertThat(shoppingList.items())
+                .extracting(ShoppingListItemDto::id)
+                .contains(item.id());
+    }
+
+    @Test
+    void shouldAllowTwoItemsAtSamePositionOrderedById() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        ShoppingListItemDto item1 = createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("5.0")));
+        ShoppingListItemDto item2 = createItem(client, list.id(), itemRequest("Cheese", null, null, new BigDecimal("5.0")));
+
+        ShoppingListDto shoppingList = getShoppingList(client, list.id());
+        var ids = shoppingList.items().stream().map(ShoppingListItemDto::id).toList();
+
+        assertThat(ids).containsExactlyInAnyOrder(item1.id(), item2.id());
+
+        // ordering under a tied position is stable across repeated reads (tie-broken by id)
+        ShoppingListDto shoppingListAgain = getShoppingList(client, list.id());
+        assertThat(shoppingListAgain.items().stream().map(ShoppingListItemDto::id).toList()).isEqualTo(ids);
+    }
+
+    @Test
+    void shouldReturn400WhenNameIsBlank() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        try {
+            createItem(client, list.id(), itemRequest("", null, null, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    @Test
+    void shouldReturn400WhenQuantityIsNegative() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        try {
+            createItem(client, list.id(), itemRequest("Milk", new BigDecimal("-1.0"), null, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    @Test
+    void shouldReturn400WhenPositionIsMissing() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        try {
+            createItem(client, list.id(), itemRequest("Milk", null, null, null));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    @Test
+    void shouldAcceptNullQuantityAndUnit() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Napkins", null, null, new BigDecimal("1.0")));
+
+        assertThat(item.quantity()).isNull();
+        assertThat(item.unit()).isNull();
+    }
+
+    @Test
+    void shouldReturn404WhenListDoesNotExistOnCreate() {
+        RestClient client = restClient();
+        UUID nonExistentId = UUID.randomUUID();
+
+        try {
+            createItem(client, nonExistentId, itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenCreatingItemWithoutPermission() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
+
+        try {
+            createItem(user2Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldAllowSharedEditorToCreateItem() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        ShoppingListListDto list = createShoppingList(user1Client, "Shared List");
+        shareShoppingList(user1Client, list.id(), "user2@example.com");
+
+        ShoppingListItemDto item = createItem(user2Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        assertThat(item).isNotNull();
+        assertThat(item.name()).isEqualTo("Milk");
+    }
+
+    @Test
+    void shouldUpdateItemWithBumpedVersion() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", new BigDecimal("1.0"), "liters", new BigDecimal("1.0")));
+
+        ShoppingListItemDto updated = updateItem(client, list.id(), item.id(),
+                updateRequest(item.version(), "Whole Milk", new BigDecimal("2.0"), "liters", true, new BigDecimal("2.0")));
+
+        assertThat(updated.name()).isEqualTo("Whole Milk");
+        assertThat(updated.quantity()).isEqualByComparingTo("2.0");
+        assertThat(updated.checked()).isTrue();
+        assertThat(updated.version()).isEqualTo(item.version() + 1);
+    }
+
+    @Test
+    void shouldChainSequentialUpdatesUsingReturnedVersion() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        ShoppingListItemDto firstUpdate = updateItem(client, list.id(), item.id(),
+                updateRequest(item.version(), "Milk 2%", null, null, false, new BigDecimal("1.0")));
+        ShoppingListItemDto secondUpdate = updateItem(client, list.id(), item.id(),
+                updateRequest(firstUpdate.version(), "Milk 1%", null, null, true, new BigDecimal("1.0")));
+
+        assertThat(secondUpdate.name()).isEqualTo("Milk 1%");
+        assertThat(secondUpdate.version()).isEqualTo(firstUpdate.version() + 1);
+    }
+
+    @Test
+    void shouldReturn412WithWinningItemWhenBaseVersionIsStale() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        updateItem(client, list.id(), item.id(),
+                updateRequest(item.version(), "Whole Milk", null, null, false, new BigDecimal("1.0")));
+
+        try {
+            updateItem(client, list.id(), item.id(),
+                    updateRequest(item.version(), "Skim Milk", null, null, false, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+            ShoppingListItemDto winner = ex.getResponseBodyAs(ShoppingListItemDto.class);
+            assertThat(winner).isNotNull();
+            assertThat(winner.name()).isEqualTo("Whole Milk");
+        }
+
+        ShoppingListDto shoppingList = getShoppingList(client, list.id());
+        assertThat(shoppingList.items())
+                .filteredOn(i -> i.id().equals(item.id()))
+                .extracting(ShoppingListItemDto::name)
+                .containsExactly("Whole Milk");
+    }
+
+    @Test
+    void shouldAllowMovingTwoDifferentItemsConcurrently() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item1 = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+        ShoppingListItemDto item2 = createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+
+        ShoppingListItemDto updated1 = updateItem(client, list.id(), item1.id(),
+                updateRequest(item1.version(), item1.name(), item1.quantity(), item1.unit(), item1.checked(), new BigDecimal("5.0")));
+        ShoppingListItemDto updated2 = updateItem(client, list.id(), item2.id(),
+                updateRequest(item2.version(), item2.name(), item2.quantity(), item2.unit(), item2.checked(), new BigDecimal("6.0")));
+
+        assertThat(updated1.position()).isEqualByComparingTo("5.0");
+        assertThat(updated2.position()).isEqualByComparingTo("6.0");
+    }
+
+    @Test
+    void shouldReturn412WhenMovingSameItemConcurrentlyFromStaleVersion() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        updateItem(client, list.id(), item.id(),
+                updateRequest(item.version(), item.name(), item.quantity(), item.unit(), item.checked(), new BigDecimal("5.0")));
+
+        try {
+            updateItem(client, list.id(), item.id(),
+                    updateRequest(item.version(), item.name(), item.quantity(), item.unit(), item.checked(), new BigDecimal("6.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+        }
+    }
+
+    @Test
+    void shouldReturn404WhenItemBelongsToDifferentList() {
+        RestClient client = restClient();
+        ShoppingListListDto list1 = createShoppingList(client, "List 1");
+        ShoppingListListDto list2 = createShoppingList(client, "List 2");
+        ShoppingListItemDto item = createItem(client, list1.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        try {
+            updateItem(client, list2.id(), item.id(),
+                    updateRequest(item.version(), "Milk", null, null, false, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn404WhenItemDoesNotExist() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        UUID nonExistentItemId = UUID.randomUUID();
+
+        try {
+            updateItem(client, list.id(), nonExistentItemId,
+                    updateRequest(0, "Milk", null, null, false, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenUpdatingItemWithoutPermission() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
+        ShoppingListItemDto item = createItem(user1Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        try {
+            updateItem(user2Client, list.id(), item.id(),
+                    updateRequest(item.version(), "Milk", null, null, false, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Test
+    void shouldReturn400WhenUpdateValidationFails() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        try {
+            updateItem(client, list.id(), item.id(),
+                    updateRequest(item.version(), "", null, null, false, new BigDecimal("1.0")));
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    @Test
+    void shouldDeleteItemAtCurrentVersion() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        deleteItem(client, list.id(), item.id(), item.version());
+
+        ShoppingListDto shoppingList = getShoppingList(client, list.id());
+        assertThat(shoppingList.items())
+                .extracting(ShoppingListItemDto::id)
+                .doesNotContain(item.id());
+    }
+
+    @Test
+    void shouldReturn412WithWinningItemWhenDeletingAfterConcurrentEdit() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        ShoppingListItemDto updated = updateItem(client, list.id(), item.id(),
+                updateRequest(item.version(), "Whole Milk", null, null, false, new BigDecimal("1.0")));
+
+        try {
+            deleteItem(client, list.id(), item.id(), item.version());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(412);
+            ShoppingListItemDto winner = ex.getResponseBodyAs(ShoppingListItemDto.class);
+            assertThat(winner).isNotNull();
+            assertThat(winner.name()).isEqualTo("Whole Milk");
+        }
+
+        ShoppingListDto shoppingList = getShoppingList(client, list.id());
+        assertThat(shoppingList.items())
+                .extracting(ShoppingListItemDto::id)
+                .contains(updated.id());
+    }
+
+    @Test
+    void shouldReturn404WhenDeletingAlreadyDeletedItem() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        deleteItem(client, list.id(), item.id(), item.version());
+
+        try {
+            deleteItem(client, list.id(), item.id(), item.version());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        }
+    }
+
+    @Test
+    void shouldReturn400WhenBaseVersionQueryParamIsMissing() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        try {
+            client.delete()
+                    .uri("/shopping-lists/" + list.id() + "/items/" + item.id())
+                    .retrieve()
+                    .toBodilessEntity();
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        }
+    }
+
+    @Test
+    void shouldReturn403WhenDeletingItemWithoutPermission() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
+        ShoppingListItemDto item = createItem(user1Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+        try {
+            deleteItem(user2Client, list.id(), item.id(), item.version());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
     }
 }

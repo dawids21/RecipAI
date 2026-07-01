@@ -24,7 +24,7 @@ Code is organized by feature (not by layer). Each feature package contains its o
 - **`recipes.collections`** — manages recipes collections with user-based permission control (CRUD with role-based access, sharing with OWNER/EDITOR roles, automatic removal of user-owned recipes from a collection when unshared)
 - **`extraction`** — extracts recipes from text/images using AI (Spring AI Gemini integration)
 - **`planning`** — manages meal plans with user-based permission control (CRUD with role-based access, sharing, meal plan entries with recipe or placeholder support, configurable owner plan limit, automatic conversion of recipe entries to placeholders on `RecipeDeleted` event, calendar view grouped by date, shopping list generation with serving size scaling and inaccessible recipe warnings)
-- **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, optimistic locking with If-Match headers for all item operations, comprehensive item management: update, move, check, uncheck)
+- **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, per-item `baseVersion` optimistic locking on item writes — a body field on update, a query param on delete — with update covering edits, reorders, and check-state as one version-gated write)
 - **`provisioning`** — transformation module that converts ingredients (with quantity multipliers) into shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; appends ingredient comments in parentheses to item names (e.g. `"salt (to taste)"`)
 - **`config.security`** — OAuth2 Resource Server — JWT token validation
 - **`config.s3`** — AWS S3 client configuration with presigned URL support
@@ -49,7 +49,7 @@ Controller → Service → Repository → Entity
 - **Facade pattern** — `RecipeFacade`, `ProvisioningFacade` for cross-module access
 - **Event-driven cascade** — `RecipeDeleted` event triggers cascading cleanup in meal plans
 - **Role-based access** — OWNER/EDITOR roles for recipe sharing
-- **Optimistic locking** — If-Match headers on shopping list operations
+- **Optimistic locking** — per-item `baseVersion` on shopping list item writes
 
 ---
 

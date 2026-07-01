@@ -62,6 +62,41 @@ class ShoppingListController {
         return ResponseEntity.ok(updatedList);
     }
 
+    @PostMapping("/{id}/items")
+    ResponseEntity<ShoppingListItemDto> createItem(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateShoppingListItemRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Creating item in shopping list: {} for user: {}", id, userEmail);
+        ShoppingListItemDto dto = shoppingListService.createItem(id, request, userEmail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    @PutMapping("/{id}/items/{itemId}")
+    ResponseEntity<ShoppingListItemDto> updateItem(
+            @PathVariable UUID id,
+            @PathVariable UUID itemId,
+            @Valid @RequestBody UpdateShoppingListItemRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Updating item: {} in shopping list: {} for user: {}", itemId, id, userEmail);
+        ShoppingListItemDto dto = shoppingListService.updateItem(id, itemId, request, userEmail);
+        return ResponseEntity.ok(dto);
+    }
+
+    @DeleteMapping("/{id}/items/{itemId}")
+    ResponseEntity<Void> deleteItem(
+            @PathVariable UUID id,
+            @PathVariable UUID itemId,
+            @RequestParam long baseVersion,
+            @AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Deleting item: {} in shopping list: {} for user: {}", itemId, id, userEmail);
+        shoppingListService.deleteItem(id, itemId, baseVersion, userEmail);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/users")
     List<SharedUserDto> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
