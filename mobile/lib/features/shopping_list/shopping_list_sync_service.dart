@@ -9,9 +9,9 @@ import '../auth/auth_service.dart';
 import 'shopping_list_item_dao.dart';
 import 'shopping_list_item_repository.dart';
 
-/// Per-list push sync state, rendered as the detail screen's persistent
-/// bottom failure banner.
-enum SyncStatus { syncing, notSyncing, failure }
+/// Per-list sync state, rendered as the detail screen's list-level indicator
+/// (and, for [failure], the persistent bottom retry banner).
+enum SyncStatus { syncing, notSyncing, failure, offline }
 
 /// Why a queued change was dropped, driving the rejection toast copy.
 enum RejectionOutcome { conflict, gone, rejected }
@@ -38,6 +38,7 @@ class RejectionEvent {
 class ShoppingListSyncService with WidgetsBindingObserver {
   static final _log = Logger('recipai.shopping_list.sync');
   static const _maxRetries = 5;
+  static const _pollInterval = Duration(seconds: 10);
 
   final ShoppingListItemRepository _itemRepository;
   final AuthService _authService;
@@ -48,10 +49,14 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   }) : _itemRepository = itemRepository,
        _authService = authService;
 
-  final _draining = <String>{};
+  /// Mutual-exclusion gate shared by push (drain) and pull (poll) per list —
+  /// a poll is dropped while a drain holds it, and a drain requested mid-poll
+  /// defers via [_pending] (§Serialization).
+  final _busy = <String>{};
   final _pending = <String>{};
   final _retry = <String, int>{};
   final _backoffTimers = <String, Timer>{};
+  final _pollTimers = <String, Timer>{};
   final _status = <String, ValueNotifier<SyncStatus>>{};
   final _rejections = StreamController<RejectionEvent>.broadcast();
 
@@ -78,7 +83,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// all call this. A kick arriving mid-drain is never lost: it sets
   /// [_pending], which [_drain] re-checks before it clears [_draining].
   void requestDrain(String listId) {
-    if (_draining.contains(listId)) {
+    if (_busy.contains(listId)) {
       _pending.add(listId);
       return;
     }
@@ -103,8 +108,21 @@ class ShoppingListSyncService with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      for (final timer in _pollTimers.values) {
+        timer.cancel();
+      }
+    } else if (state == AppLifecycleState.resumed) {
       unawaited(_fanOutPending());
+      for (final listId in _pollTimers.keys.toList()) {
+        _pollTimers[listId]?.cancel();
+        _pollTimers[listId] = Timer.periodic(
+          _pollInterval,
+          (_) => unawaited(_poll(listId)),
+        );
+        unawaited(_poll(listId));
+      }
     }
   }
 
@@ -115,20 +133,62 @@ class ShoppingListSyncService with WidgetsBindingObserver {
     }
   }
 
+  /// Starts polling [listId]: an immediate poll (the cold-start item load)
+  /// then a periodic timer every [_pollInterval].
+  void startPolling(String listId) {
+    _pollTimers.remove(listId)?.cancel();
+    unawaited(_poll(listId));
+    _pollTimers[listId] = Timer.periodic(
+      _pollInterval,
+      (_) => unawaited(_poll(listId)),
+    );
+  }
+
+  /// Stops polling [listId] (screen closed).
+  void stopPolling(String listId) {
+    _pollTimers.remove(listId)?.cancel();
+  }
+
+  bool _canReconcile(String listId) => !_busy.contains(listId);
+
+  Future<void> _poll(String listId) async {
+    if (!_canReconcile(listId)) return; // a drain holds _busy; next tick retries
+    _busy.add(listId);
+    try {
+      final token = await _authService.idToken;
+      final items = await _itemRepository.fetchServerItems(listId, token);
+      await _itemRepository.reconcileFromServer(listId, items);
+      if (_statusNotifier(listId).value == SyncStatus.offline) {
+        _setStatus(listId, SyncStatus.notSyncing);
+      }
+      _log.fine('poll ok (listId=$listId, items=${items.length})');
+    } on ShoppingListNetworkException {
+      _setStatus(listId, SyncStatus.offline);
+      _log.fine('poll offline (listId=$listId)');
+    } catch (e) {
+      _log.warning('poll failed, store untouched (listId=$listId)', e);
+    } finally {
+      _busy.remove(listId);
+      if (_pending.remove(listId)) {
+        requestDrain(listId);
+      }
+    }
+  }
+
   Future<void> _drain(String listId) async {
-    _draining.add(listId);
+    _busy.add(listId);
     _setStatus(listId, SyncStatus.syncing);
     _log.fine('drain start (listId=$listId)');
     try {
       do {
         _pending.remove(listId);
         final drainedEmpty = await _drainPass(listId);
-        if (!drainedEmpty) return; // stalled on transient; backoff/failure set
+        if (!drainedEmpty) return; // stalled on transient; backoff/failure/offline set
       } while (_pending.contains(listId));
       _setStatus(listId, SyncStatus.notSyncing);
       _log.fine('drain idle (listId=$listId)');
     } finally {
-      _draining.remove(listId);
+      _busy.remove(listId);
     }
   }
 
@@ -159,6 +219,12 @@ class ShoppingListSyncService with WidgetsBindingObserver {
           'Item push discarded: ${e.reason.name} (listId=$listId, itemLocalId=${entry.itemLocalId})',
         );
         _emit(RejectionEvent(listId, item?.name ?? '', outcome));
+      } on ShoppingListNetworkException {
+        _setStatus(listId, SyncStatus.offline);
+        _log.fine(
+          'Item push offline, entry retries on next signal (listId=$listId)',
+        );
+        return false;
       } catch (e) {
         final attempt = (_retry[listId] ?? 0) + 1;
         _retry[listId] = attempt;
@@ -240,6 +306,10 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       timer.cancel();
     }
     _backoffTimers.clear();
+    for (final timer in _pollTimers.values) {
+      timer.cancel();
+    }
+    _pollTimers.clear();
     for (final notifier in _status.values) {
       notifier.dispose();
     }

@@ -197,6 +197,122 @@ class ShoppingListItemRepository {
     });
   }
 
+  // ── HTTP: item read (pull) ──
+
+  /// GET /shopping-lists/{listId} -> parses the `items[]` array. Only a 2xx
+  /// with a parseable body is a result; every other outcome (network/timeout,
+  /// 401/403/404/5xx) throws — the poll caller leaves the store untouched
+  /// rather than risk mistaking a permission/lifecycle error for "the list is
+  /// now empty".
+  Future<List<ShoppingListItem>> fetchServerItems(
+    String listId,
+    String? idToken,
+  ) async {
+    final url = '$_baseUrl/shopping-lists/$listId';
+    final sw = Stopwatch()..start();
+    final http.Response response;
+    try {
+      response = await _client.get(
+        Uri.parse(url),
+        headers: _getAuthHeaders(idToken),
+      );
+    } catch (e) {
+      _log.warning('GET $url failed (${sw.elapsedMilliseconds} ms)', e);
+      throw ShoppingListNetworkException();
+    }
+    _log.info(
+      'GET $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)',
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch shopping list items: ${response.statusCode}');
+    }
+    final body = json.decode(response.body) as Map<String, dynamic>;
+    final items = body['items'] as List;
+    return items
+        .map((item) => ShoppingListItem.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Full-list diff into the store (DB + cache coherent, one transaction).
+  /// Resident-or-DB, mirroring the T3 reconcile-mutation pattern. Adopt is
+  /// version-gated so an out-of-order/stale response can never regress an
+  /// item already at a newer [LocalShoppingListItem.lastAckedVersion]; a
+  /// dirty item is never touched (fields or last-acked version) and never
+  /// hard-deleted — its own push resolves it.
+  Future<void> reconcileFromServer(
+    String listId,
+    List<ShoppingListItem> serverItems,
+  ) async {
+    final resident = _cache.containsKey(listId);
+    final locals = resident
+        ? _cache[listId]!.values.toList()
+        : await _dao.readItems(listId);
+    final localByServerId = {
+      for (final item in locals)
+        if (item.serverId != null) item.serverId!: item,
+    };
+
+    final updatedByLocalId = <String, LocalShoppingListItem>{};
+    final deletedLocalIds = <String>{};
+
+    await _dao.transaction((txn) async {
+      for (final s in serverItems) {
+        final local = localByServerId[s.id];
+        if (local == null) {
+          final inserted = LocalShoppingListItem(
+            localId: _uuid.v4(),
+            serverId: s.id,
+            listId: listId,
+            name: s.name,
+            quantity: s.quantity,
+            unit: s.unit,
+            checked: s.checked,
+            position: s.position,
+            lastAckedVersion: s.version,
+            dirty: false,
+            failed: false,
+            pendingDelete: false,
+          );
+          updatedByLocalId[inserted.localId] = inserted;
+          await _dao.upsertItemTxn(txn, inserted);
+        } else if (!local.dirty && s.version >= local.lastAckedVersion!) {
+          final adopted = local.copyWith(
+            name: s.name,
+            quantity: s.quantity,
+            unit: s.unit,
+            checked: s.checked,
+            position: s.position,
+            lastAckedVersion: s.version,
+            pendingDelete: false,
+          );
+          updatedByLocalId[adopted.localId] = adopted;
+          await _dao.upsertItemTxn(txn, adopted);
+        }
+        // else: dirty (or a stale response) -> keep local untouched.
+      }
+
+      final serverIds = {for (final s in serverItems) s.id};
+      for (final local in locals) {
+        if (local.serverId != null &&
+            !serverIds.contains(local.serverId) &&
+            !local.dirty) {
+          deletedLocalIds.add(local.localId);
+          await _dao.deleteItemRowTxn(txn, local.localId);
+        }
+      }
+    });
+
+    if (resident) {
+      final listCache = _cache[listId]!;
+      updatedByLocalId.forEach((localId, item) => listCache[localId] = item);
+      for (final localId in deletedLocalIds) {
+        listCache.remove(localId);
+      }
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
+  }
+
   // ── HTTP: item write endpoints (§Response classification in T3 design) ──
 
   /// POST /shopping-lists/{listId}/items -> 201 ShoppingListItem (version 0).
@@ -221,7 +337,7 @@ class ShoppingListItemRepository {
       );
     } catch (e) {
       _log.warning('POST $url failed (${sw.elapsedMilliseconds} ms)', e);
-      throw Exception('Network error while creating item: $e');
+      throw ShoppingListNetworkException();
     }
     _log.info(
       'POST $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)',
@@ -268,7 +384,7 @@ class ShoppingListItemRepository {
       );
     } catch (e) {
       _log.warning('PUT $url failed (${sw.elapsedMilliseconds} ms)', e);
-      throw Exception('Network error while updating item: $e');
+      throw ShoppingListNetworkException();
     }
     _log.info(
       'PUT $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)',
@@ -313,7 +429,7 @@ class ShoppingListItemRepository {
       );
     } catch (e) {
       _log.warning('DELETE $url failed (${sw.elapsedMilliseconds} ms)', e);
-      throw Exception('Network error while deleting item: $e');
+      throw ShoppingListNetworkException();
     }
     _log.info(
       'DELETE $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)',
@@ -504,6 +620,13 @@ class OutboxPayload {
       position: map['position'] as double,
     );
   }
+}
+
+/// Thrown for a caught network/timeout failure on any item HTTP call (read or
+/// write) — distinguishes "offline" from a non-2xx server response so the
+/// sync service can map it to [SyncStatus.offline] specifically.
+class ShoppingListNetworkException implements Exception {
+  const ShoppingListNetworkException();
 }
 
 /// Thrown when a push is rejected with 412: the server's current winning

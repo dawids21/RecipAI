@@ -12,13 +12,17 @@
   (unchecked) at the top and "Done" section at the bottom for checked items, separated by the add item widget and a
   "Done" header. Each section uses ReorderableListView with custom drag handles. The Done section uses AnimatedSize for
   smooth expand/collapse transitions. Features PopupMenuButton with actions: "Rename List", "Share List", "Delete All
-  Checked", "Uncheck All" (both expand into per-item local operations), and (for owners) "Delete List". The sync status
-  indicator is stubbed pending the pull-sync rewrite (T4).
+  Checked", "Uncheck All" (both expand into per-item local operations), and (for owners) "Delete List". A list-level sync
+  indicator next to the title reflects the current sync state (syncing / synced / offline / failure); a background
+  poll refreshes the list from the server every 10s while it is open, diffing others' changes into the local store,
+  and a retry banner surfaces on push failure.
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items. Smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit extraction
   using regex, TextField-based editing with focus management. Optional drag handle for reordering (using
   ReorderableDragStartListener), positioned on the left before the checkbox. Optional `subtitle` parameter shows
-  secondary text (e.g. source recipe name) below the item text.
+  secondary text (e.g. source recipe name) below the item text. When a remote change arrives while the item's field
+  is focused, the field is overwritten with the server value and an "updated elsewhere" toast is shown
+  (`onOverwrite`).
 - Shopping List Item Add Widget (`shopping_list_item_add_widget.dart`) - Dedicated widget for adding new shopping list
   items with plus icon, "Add item..." hint text, smart text parsing (same as ShoppingListItemWidget), and automatic
   field clearing with focus retention after submission for quick consecutive entry.

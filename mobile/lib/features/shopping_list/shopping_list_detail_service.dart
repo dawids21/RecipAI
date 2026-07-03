@@ -94,7 +94,14 @@ class ShoppingListDetailService {
     _itemsListener = () => _items.value = AsyncValue.data(listenable.value);
     listenable.addListener(_itemsListener!);
     _items.value = AsyncValue.data(listenable.value);
+    // Kick the immediate pull (cold-start refresh) BEFORE requesting the drain.
+    // startPolling's immediate poll must grab the per-list sync gate first so
+    // the drain defers behind it (via _pending) and runs the moment the poll
+    // completes. Requesting the drain first lets it hold the gate and drop this
+    // immediate poll, delaying the first server refresh until the next tick.
+    _syncService.startPolling(listId);
     _syncService.requestDrain(listId);
+    await loadShoppingListDetail(listId);
   }
 
   /// This list's sync status (syncing / notSyncing / failure), driving the
@@ -325,6 +332,9 @@ class ShoppingListDetailService {
   }
 
   void dispose() {
+    if (_openListId != null) {
+      _syncService.stopPolling(_openListId!);
+    }
     if (_itemsListener != null && _watchedListenable != null) {
       _watchedListenable!.removeListener(_itemsListener!);
     }

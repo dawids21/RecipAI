@@ -17,6 +17,15 @@ class ItemDisplayData {
     this.checked = false,
     bool? strikethrough,
   }) : strikethrough = strikethrough ?? checked;
+
+  /// Compares the fields a remote change can affect — used by
+  /// `didUpdateWidget` to distinguish a real content change from an ordinary
+  /// rebuild (a fresh [ItemDisplayData] instance with the same values).
+  bool hasSameContentAs(ItemDisplayData other) =>
+      name == other.name &&
+      quantity == other.quantity &&
+      unit == other.unit &&
+      checked == other.checked;
 }
 
 class ItemChanged {
@@ -43,6 +52,7 @@ class ShoppingListItemWidget extends StatefulWidget {
   final bool autoFocus;
   final bool allowEmpty;
   final String? subtitle;
+  final VoidCallback? onOverwrite;
 
   const ShoppingListItemWidget({
     super.key,
@@ -57,6 +67,7 @@ class ShoppingListItemWidget extends StatefulWidget {
     this.autoFocus = false,
     this.allowEmpty = false,
     this.subtitle,
+    this.onOverwrite,
   });
 
   @override
@@ -93,9 +104,11 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
   @override
   void didUpdateWidget(ShoppingListItemWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update controller text if item changed externally
-    if (oldWidget.item != widget.item && !_focusNode.hasFocus) {
+    if (!widget.item.hasSameContentAs(oldWidget.item)) {
       _controller.text = _formatItem();
+      if (_focusNode.hasFocus) {
+        widget.onOverwrite?.call();
+      }
     }
   }
 

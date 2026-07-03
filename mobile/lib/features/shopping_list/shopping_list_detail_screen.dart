@@ -51,7 +51,6 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    service.loadShoppingListDetail(widget.shoppingListId);
     service.loadSharedUsers(widget.shoppingListId);
     service.openShoppingList(widget.shoppingListId);
     _rejectionSubscription = service.rejections.listen(_showRejectionToast);
@@ -81,6 +80,51 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showOverwriteToast() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('This item was updated elsewhere and refreshed'),
+      ),
+    );
+  }
+
+  Widget _buildSyncIndicator() {
+    final theme = Theme.of(context);
+    const size = 28.0;
+    return ValueListenableBuilder(
+      valueListenable: service.syncStatus,
+      builder: (context, status, _) {
+        final Widget indicator = switch (status) {
+          SyncStatus.syncing => SizedBox(
+            width: size,
+            height: size,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          SyncStatus.notSyncing => Icon(
+            Icons.check_circle,
+            size: size,
+            color: theme.colorScheme.primary,
+          ),
+          SyncStatus.offline => Icon(
+            Icons.cloud_off,
+            size: size,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          SyncStatus.failure => Icon(
+            Icons.priority_high,
+            size: size,
+            color: theme.colorScheme.error,
+          ),
+        };
+        return SizedBox(width: size, height: size, child: indicator);
+      },
+    );
   }
 
   Widget _buildSyncFailureBanner() {
@@ -291,6 +335,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           onCheckChanged: (checked) =>
               service.toggleChecked(item.localId, checked),
           onSubmitted: () => _createEphemeralItemAfter(i),
+          onOverwrite: _showOverwriteToast,
         ),
       );
 
@@ -342,6 +387,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
           onCheckChanged: (checked) =>
               service.toggleChecked(item.localId, checked),
           onSubmitted: () {},
+          onOverwrite: _showOverwriteToast,
         ),
       );
     }
@@ -479,13 +525,20 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // TODO(shopping-list-items, T4): show a sync-status indicator
-                      // (e.g. "syncing…") above the title.
-                      Text(
-                        detail.name,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              detail.name,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.small),
+                          _buildSyncIndicator(),
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.medium),
                       Card(
