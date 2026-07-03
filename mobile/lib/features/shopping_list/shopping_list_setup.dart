@@ -5,6 +5,7 @@ import 'shopping_list_detail_service.dart';
 import 'shopping_list_item_repository.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
+import 'shopping_list_sync_service.dart';
 
 /// Registers the shopping-list feature. The database-backed
 /// [ShoppingListItemRepository] is opened by the caller (see `main()`) and
@@ -21,6 +22,15 @@ void setupShoppingList({
     dispose: (r) => r.dispose(),
   );
 
+  getIt.registerSingleton<ShoppingListSyncService>(
+    ShoppingListSyncService(
+      itemRepository: getIt<ShoppingListItemRepository>(),
+      authService: getIt<AuthService>(),
+    ),
+    dispose: (s) => s.dispose(),
+  );
+  getIt<ShoppingListSyncService>().start();
+
   getIt.registerLazySingleton(
     () => ShoppingListListService(
       shoppingListRepository: getIt<ShoppingListRepository>(),
@@ -33,6 +43,7 @@ void setupShoppingList({
       authService: getIt<AuthService>(),
       shoppingListListService: getIt<ShoppingListListService>(),
       itemRepository: getIt<ShoppingListItemRepository>(),
+      syncService: getIt<ShoppingListSyncService>(),
     ),
     dispose: (service) => service.dispose(),
   );

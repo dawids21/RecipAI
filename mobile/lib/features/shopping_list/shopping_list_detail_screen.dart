@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,6 +15,7 @@ import 'shopping_list_item_add_widget.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_rename_dialog.dart';
 import 'shopping_list_sharing_dialog.dart';
+import 'shopping_list_sync_service.dart';
 
 typedef ShoppingListItems = ({
   List<LocalShoppingListItem> active,
@@ -40,6 +43,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
   /// anchored, or `null` when no ephemeral row is open. The row is placed (both
   /// visually and position-wise) immediately after this item.
   int? _ephemeralAfterIndex;
+  StreamSubscription<RejectionEvent>? _rejectionSubscription;
 
   ShoppingListDetailService get service => widget.shoppingListDetailService;
 
@@ -50,11 +54,13 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     service.loadShoppingListDetail(widget.shoppingListId);
     service.loadSharedUsers(widget.shoppingListId);
     service.openShoppingList(widget.shoppingListId);
+    _rejectionSubscription = service.rejections.listen(_showRejectionToast);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _rejectionSubscription?.cancel();
     if (getIt.isRegistered<ShoppingListDetailService>()) {
       getIt.resetLazySingleton<ShoppingListDetailService>();
     }
@@ -64,8 +70,56 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {}
 
-  // TODO(shopping-list-items, T3): handle sync conflicts (server/local divergence)
-  // and sync errors here, e.g. by reloading the list and notifying the user.
+  void _showRejectionToast(RejectionEvent event) {
+    if (!mounted) return;
+    final message = switch (event.outcome) {
+      RejectionOutcome.conflict =>
+        '"${event.itemName}" was changed elsewhere and rolled back',
+      RejectionOutcome.gone => '"${event.itemName}" no longer exists',
+      RejectionOutcome.rejected => '"${event.itemName}" could not be synced',
+    };
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _buildSyncFailureBanner() {
+    final theme = Theme.of(context);
+    return ValueListenableBuilder(
+      valueListenable: service.syncStatus,
+      builder: (context, status, _) {
+        if (status != SyncStatus.failure) return const SizedBox.shrink();
+        return Material(
+          color: theme.colorScheme.errorContainer,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.medium,
+                vertical: AppSpacing.small,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Some changes failed to sync',
+                      style: TextStyle(
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: service.retrySync,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<String?> _showRenameDialog(String currentName) async {
     return showDialog<String>(
@@ -146,9 +200,8 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
-      builder: (context) => ShoppingListSharingDialog(
-        shoppingListDetailService: service,
-      ),
+      builder: (context) =>
+          ShoppingListSharingDialog(shoppingListDetailService: service),
     );
   }
 
@@ -418,6 +471,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                   ),
                 ],
               ),
+              bottomNavigationBar: _buildSyncFailureBanner(),
               body: SafeArea(
                 top: false,
                 child: SingleChildScrollView(
@@ -465,21 +519,19 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                                             AppAnimations.sectionTransition,
                                         curve: AppAnimations.sectionCurve,
                                         alignment: Alignment.topCenter,
-                                        child:
-                                            splitWidgets.unchecked.isNotEmpty
+                                        child: splitWidgets.unchecked.isNotEmpty
                                             ? ReorderableListView(
                                                 shrinkWrap: true,
                                                 physics:
                                                     const NeverScrollableScrollPhysics(),
                                                 buildDefaultDragHandles: false,
-                                                onReorderItem: (
-                                                  oldIndex,
-                                                  newIndex,
-                                                ) => service.reorderItem(
-                                                  itemSections.active,
-                                                  oldIndex,
-                                                  newIndex,
-                                                ),
+                                                onReorderItem:
+                                                    (oldIndex, newIndex) =>
+                                                        service.reorderItem(
+                                                          itemSections.active,
+                                                          oldIndex,
+                                                          newIndex,
+                                                        ),
                                                 proxyDecorator:
                                                     (child, index, animation) {
                                                       return Material(
@@ -524,14 +576,13 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
                                                 physics:
                                                     const NeverScrollableScrollPhysics(),
                                                 buildDefaultDragHandles: false,
-                                                onReorderItem: (
-                                                  oldIndex,
-                                                  newIndex,
-                                                ) => service.reorderItem(
-                                                  itemSections.done,
-                                                  oldIndex,
-                                                  newIndex,
-                                                ),
+                                                onReorderItem:
+                                                    (oldIndex, newIndex) =>
+                                                        service.reorderItem(
+                                                          itemSections.done,
+                                                          oldIndex,
+                                                          newIndex,
+                                                        ),
                                                 proxyDecorator:
                                                     (child, index, animation) {
                                                       return Material(

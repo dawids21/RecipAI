@@ -109,6 +109,61 @@ class ShoppingListItemDao {
       'payload': jsonEncode(payload),
     });
   }
+
+  /// The oldest queued entry for [listId] (lowest `seq`), or `null` if empty.
+  Future<OutboxEntry?> nextOutboxEntry(String listId) async {
+    final rows = await _db.query(
+      'outbox',
+      where: 'list_id = ?',
+      whereArgs: [listId],
+      orderBy: 'seq ASC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return OutboxEntry.fromMap(rows.first);
+  }
+
+  /// Distinct list ids with at least one pending outbox entry.
+  Future<List<String>> listIdsWithOutbox() async {
+    final rows = await _db.rawQuery('SELECT DISTINCT list_id FROM outbox');
+    return rows.map((row) => row['list_id'] as String).toList();
+  }
+
+  /// Reads a single item row by [localId], or `null` if it no longer exists.
+  Future<LocalShoppingListItem?> readItem(String localId) async {
+    final rows = await _db.query(
+      'items',
+      where: 'local_id = ?',
+      whereArgs: [localId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return LocalShoppingListItem.fromMap(rows.first);
+  }
+
+  Future<void> deleteOutboxEntryTxn(Transaction txn, int seq) {
+    return txn.delete('outbox', where: 'seq = ?', whereArgs: [seq]);
+  }
+
+  Future<void> deleteOutboxForItemTxn(Transaction txn, String localId) {
+    return txn.delete(
+      'outbox',
+      where: 'item_local_id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<int> countOutboxForItemTxn(Transaction txn, String localId) async {
+    final result = await txn.rawQuery(
+      'SELECT COUNT(*) AS c FROM outbox WHERE item_local_id = ?',
+      [localId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<void> deleteItemRowTxn(Transaction txn, String localId) {
+    return txn.delete('items', where: 'local_id = ?', whereArgs: [localId]);
+  }
 }
 
 enum OutboxKind {
@@ -121,4 +176,31 @@ enum OutboxKind {
 
   /// Parses a persisted [wire] value. Throws if it does not match a known kind.
   static OutboxKind fromWire(String wire) => OutboxKind.values.byName(wire);
+}
+
+/// A single queued outbox row, decoded for push.
+class OutboxEntry {
+  final int seq;
+  final String itemLocalId;
+  final String listId;
+  final OutboxKind kind;
+  final Map<String, dynamic> payload;
+
+  const OutboxEntry({
+    required this.seq,
+    required this.itemLocalId,
+    required this.listId,
+    required this.kind,
+    required this.payload,
+  });
+
+  factory OutboxEntry.fromMap(Map<String, dynamic> map) {
+    return OutboxEntry(
+      seq: map['seq'] as int,
+      itemLocalId: map['item_local_id'] as String,
+      listId: map['list_id'] as String,
+      kind: OutboxKind.fromWire(map['kind'] as String),
+      payload: jsonDecode(map['payload'] as String) as Map<String, dynamic>,
+    );
+  }
 }

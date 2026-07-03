@@ -77,7 +77,9 @@ class ShoppingListRepository {
     try {
       final headers = _getAuthHeaders(idToken);
       final response = await _client.get(Uri.parse(url), headers: headers);
-      _log.info('GET $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)');
+      _log.info(
+        'GET $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)',
+      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonMap = json.decode(response.body);
@@ -148,9 +150,6 @@ class ShoppingListRepository {
       throw Exception('Network error: $e');
     }
   }
-
-  // TODO(shopping-list-items): add the item write endpoints this repository should
-  // call — create, update, delete, move (reorder), check, and uncheck an item.
 
   Future<List<ShoppingListPermission>> fetchSharedUsers(
     String shoppingListId,

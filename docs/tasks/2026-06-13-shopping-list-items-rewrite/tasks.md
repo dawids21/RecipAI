@@ -138,8 +138,11 @@ persistent push failures surface a single bottom **"retry all"** toast.
 
 - Sync service background loop drains the outbox to the T1 write endpoints
   **FIFO per item, one in flight**, sending as the base the item's **last-acked
-  server version read at push time**. Different items push in parallel; only
-  same-item pushes serialise.
+  server version read at push time**.
+- **Outbox entries carry full item snapshots (revises T2).** Each create/update
+  entry stores the full mutable field set rather than per-field deltas, so a
+  queued edit pushes the exact state it was made against and a later queued edit
+  cannot leak into an earlier push.
 - **Reconcile on accept**: adopt the returned version as the item's last-acked
   version, drop that entry, and clear **dirty** only once no entries for the
   item remain.

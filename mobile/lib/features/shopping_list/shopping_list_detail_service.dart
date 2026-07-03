@@ -10,6 +10,7 @@ import 'shopping_list_item_repository.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
+import 'shopping_list_sync_service.dart';
 
 class ShoppingListDetailService {
   static final _log = Logger('recipai.shopping_list.detail');
@@ -18,16 +19,19 @@ class ShoppingListDetailService {
   final AuthService _authService;
   final ShoppingListListService _shoppingListListService;
   final ShoppingListItemRepository _itemRepository;
+  final ShoppingListSyncService _syncService;
 
   ShoppingListDetailService({
     required ShoppingListRepository shoppingListRepository,
     required AuthService authService,
     required ShoppingListListService shoppingListListService,
     required ShoppingListItemRepository itemRepository,
+    required ShoppingListSyncService syncService,
   }) : _shoppingListRepository = shoppingListRepository,
        _authService = authService,
        _shoppingListListService = shoppingListListService,
-       _itemRepository = itemRepository;
+       _itemRepository = itemRepository,
+       _syncService = syncService;
 
   final ValueNotifier<AsyncValue<ShoppingListDetail>> _shoppingListDetail =
       ValueNotifier(const AsyncValue.loading());
@@ -90,7 +94,22 @@ class ShoppingListDetailService {
     _itemsListener = () => _items.value = AsyncValue.data(listenable.value);
     listenable.addListener(_itemsListener!);
     _items.value = AsyncValue.data(listenable.value);
+    _syncService.requestDrain(listId);
   }
+
+  /// This list's sync status (syncing / notSyncing / failure), driving the
+  /// detail screen's persistent bottom failure banner.
+  ValueListenable<SyncStatus> get syncStatus =>
+      _syncService.syncStatusFor(_openListId!);
+
+  /// Rejection events for this list only; the screen, while mounted,
+  /// subscribes and shows a toast per event.
+  Stream<RejectionEvent> get rejections =>
+      _syncService.rejections.where((e) => e.listId == _openListId);
+
+  /// Re-kicks this list's stalled queue (from the failure banner's retry
+  /// button).
+  Future<void> retrySync() => _syncService.retry(_openListId!);
 
   /// Adds an item, inserting it after [afterLocalId] when given.
   Future<void> addItem(ItemChanged parsed, {String? afterLocalId}) async {
@@ -103,6 +122,7 @@ class ShoppingListDetailService {
       unit: parsed.unit,
       afterLocalId: afterLocalId,
     );
+    _syncService.requestDrain(listId);
   }
 
   Future<void> editItem(String localId, ItemChanged parsed) async {
@@ -112,14 +132,17 @@ class ShoppingListDetailService {
       quantity: parsed.quantity,
       unit: parsed.unit,
     );
+    _requestDrainForOpenList();
   }
 
   Future<void> toggleChecked(String localId, bool checked) async {
     await _itemRepository.applyChecked(localId, checked);
+    _requestDrainForOpenList();
   }
 
   Future<void> deleteItem(String localId) async {
     await _itemRepository.applyDelete(localId);
+    _requestDrainForOpenList();
   }
 
   /// Reorders the item at [oldIndex] to [newIndex] within [items] (a section
@@ -134,6 +157,7 @@ class ShoppingListDetailService {
     final item = items[oldIndex];
     final newPosition = _reorderPosition(items, oldIndex, newIndex);
     await _itemRepository.applyReorder(item.localId, newPosition);
+    _requestDrainForOpenList();
   }
 
   /// Computes the fractional position for an item moved from [oldIndex] to
@@ -159,6 +183,7 @@ class ShoppingListDetailService {
     for (final item in current.where((i) => i.checked).toList()) {
       await _itemRepository.applyDelete(item.localId);
     }
+    _requestDrainForOpenList();
   }
 
   Future<void> uncheckAll() async {
@@ -167,6 +192,12 @@ class ShoppingListDetailService {
     for (final item in current.where((i) => i.checked).toList()) {
       await _itemRepository.applyChecked(item.localId, false);
     }
+    _requestDrainForOpenList();
+  }
+
+  void _requestDrainForOpenList() {
+    final listId = _openListId;
+    if (listId != null) _syncService.requestDrain(listId);
   }
 
   Future<void> renameShoppingList(String id, String newName) async {

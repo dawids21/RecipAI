@@ -171,8 +171,7 @@ wired to a **reject-based** server:
    This is the **source of truth for the UI**, which is what makes edits instant
    and fully functional offline (req §1.2, §3.1, §3.3). Each local item tracks
    its **last-acked server version** (the version the server last confirmed for
-   it — the base for the next push, §2.2), its **dirty** flag, and a **failed**
-   flag.
+   it — the base for the next push, §2.2) and its **dirty** flag.
 
 2. **Local outbox (pending-change queue)** — an append-only, per-device queue of
    **immutable per-edit entries** (item id + new values + a monotonic **seq** for
@@ -204,9 +203,7 @@ relaxed (the over-strict sentence removed) so a local database is permitted here
 3. **Push (background), FIFO per item.** When online, drain the outbox to the
    matching write endpoint. For a given item, push entries **in order, one in
    flight at a time**, sending as the base the item's **last-acked server
-   version** read at that moment. (Different items push in parallel — only
-   same-item pushes serialise, so different-item writes never contend,
-   decision §0.3.)
+   version** read at that moment.
 4. **Reconcile on accept.** Server returns the new authoritative item → adopt its
    version as the item's **last-acked version** and drop that entry. If more
    entries for the item remain, the next pushes against the just-adopted version
@@ -246,13 +243,13 @@ relaxed (the over-strict sentence removed) so a local database is permitted here
   whenever there is no connectivity **or** the outbox is non-empty. No per-item
   *pending* markers.
 - **Transient push failure** (server unreachable / flaky network, *not* a 412):
-  retry a few times with backoff; if still failing, mark that item's change
+  retry a few times with backoff; if still failing, the **sync state** becomes
   **failed**.
 - **Failure surface — single persistent bottom toast, no per-item marker.** While
-  any change is in the failed state, show **one persistent toast/banner pinned to
+  the **sync state** is **failed**, show **one persistent toast/banner pinned to
   the bottom** of the screen carrying a **"retry all"** button that re-pushes
-  every failed change at once. There is **no per-item failed marker**; the toast
-  is the only failure affordance and disappears once nothing is failed.
+  the pending changes at once. There is **no per-item failed marker**; the toast
+  is the only failure affordance and disappears once the sync recovers.
 
   > **Deviation from req §4.** Requirements §4 calls for a *per-item* failed
   > marker plus a retry-all action. By decision, this design drops the per-item
@@ -284,7 +281,7 @@ the project's **Repository → Service → View** architecture:
   the local store / outbox reads and writes. No business logic.
 - **A sync service** — owns the background loop: drains the outbox (push), polls
   `GET /shopping-lists/{id}` and diffs it into the local store (pull, §2.3), runs
-  retry/backoff, tracks list-level sync state and the failed set, and emits
+  retry/backoff, tracks list-level sync state, and emits
   **rejection notifications**. Exposes sync state read-only via
   `ValueNotifier<AsyncValue<…>>`.
 - **The detail service** — owns the **list-of-items** UI state for the open
@@ -308,7 +305,7 @@ store, and the screen ignorant of sync plumbing.
 
 Every action below has the **same shape**: apply to the local store instantly,
 enqueue intent, let sync push it, and surface the outcome (accept silently /
-reject via toast + rollback / failure via marker). None of them block on the
+reject via toast + rollback / failure via the persistent bottom toast). None of them block on the
 network.
 
 - **Add item** — parse the typed text into name/quantity/unit, insert locally at
@@ -339,7 +336,7 @@ network.
   enqueue **one update per item**. Each independently gated; partial outcomes
   possible, each toasted (req §6).
 
-- **Retry all failed** — re-push every change currently marked failed (req §4).
+- **Retry all failed** — re-push the outstanding changes (req §4).
   Not a per-item action; triggered from the single persistent bottom failure
   toast (§2.4), the only failure affordance.
 
