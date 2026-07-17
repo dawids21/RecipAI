@@ -14,6 +14,14 @@ already done; this skill translates `task-design.md` (and, in multi-task mode,
 the matching entry from `tasks.md`) into a concrete, file-level plan grounded
 in the real codebase.
 
+## Scope: code, not docs
+
+The plan covers implementation — source, tests, config, migrations,
+dependencies. Documentation is refreshed later by its own `docs-updating` step,
+so read `docs/INDEX.md` and standards as *inputs* for conventions, but don't
+plan updates to README, `docs/INDEX.md`, ADRs, or other prose files. The one
+exception is a doc `task-design.md` explicitly names as a deliverable of this task.
+
 ## Inputs
 
 The user provides a **task directory path** and, in multi-task mode, a **task ID**.

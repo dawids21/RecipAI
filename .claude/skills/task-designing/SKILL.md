@@ -92,16 +92,27 @@ Split them in two:
 
 Take the substantive ones to the user **one at a time** with the `AskUserQuestion`
 tool — a single question per call, never batched, so each decision gets full focus.
-Give the realistic options, each with a short and honest description, and **always
-include an explicit "I don't know" option**.
+Give the realistic options, each with a short and honest description.
+
+**Every one of these calls must include an explicit "I don't know" option as the
+last choice — no exceptions, even when one answer looks obviously right to you.**
+The user frequently hasn't formed an opinion yet; without that option they're forced
+to guess or rubber-stamp your framing, which defeats the point of asking. If you
+catch yourself omitting it because the choice "feels clear," that's exactly the case
+where the user most needs a way to say "explain this to me first."
 
 - If the user picks a concrete option, record it and move to the next decision.
-- If the user picks **"I don't know"**, treat it as a request for help, not a
-  default to fill in. Research the real options (codebase, prior art, any
-  `research/*.md`, external docs), then lay each one out with concrete pros and cons
-  *for this task*, and keep the conversation going — answering follow-ups, narrowing
-  down — until the user **explicitly commits** to one. Do not move to the next
-  decision, and do not pick for them, until they've said which option they want.
+- If the user picks **"I don't know"**, they're asking you to help them think, not
+  to decide for them — and this is where the interaction changes shape. **Stop using
+  `AskUserQuestion` for this decision and drop into a normal chat message.** Research
+  the real options (codebase, prior art, any `research/*.md`, external docs), lay each
+  one out in prose with concrete pros and cons *for this task*, end with your
+  recommendation, and hand it back. Then let the user reply in their **own words** —
+  answer follow-ups, narrow down, go back and forth as long as they need. Do **not**
+  re-open the same decision with another `AskUserQuestion` call (that just traps them
+  in the same menu they already stepped out of), and do **not** pick for them. Only
+  once they've committed in a normal message do you record the choice and move to the
+  next decision.
 
 Only once **every** substantive decision is settled do you move on. The resolved
 choices and their rationale become the design's **Decisions made** section.
