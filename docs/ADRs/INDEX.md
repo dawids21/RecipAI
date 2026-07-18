@@ -14,3 +14,7 @@ consequences. Read an ADR before changing code in the area it covers.
   At ~30–40 items per list the client re-fetches the whole list and diffs it
   locally instead of using a delta/cursor; a per-list change counter would
   serialise all writes and make different-item edits contend (req §2.4/§2.7).
+- [ADR-0004: Shopping-list items are serialised through a dedicated store aggregate](0004-shopping-list-item-store-aggregate.md) —
+  A new store object owns the item cache/notifiers/outbox and serialises every
+  read-modify-write per list (network kept outside the section), closing the
+  poll-vs-edit cache clobber and shrinking `_busy` to a single-flight-drain guard.
