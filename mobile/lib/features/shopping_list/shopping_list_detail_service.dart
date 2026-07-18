@@ -3,9 +3,9 @@ import 'package:logging/logging.dart';
 
 import '../../core/async_value.dart';
 import '../../core/widgets/sharing_dialog.dart';
+import '../../shared/user_role.dart';
 import '../auth/auth_service.dart';
 import 'local_shopping_list_item.dart';
-import 'shopping_list_detail.dart';
 import 'shopping_list_item_repository.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
@@ -33,11 +33,15 @@ class ShoppingListDetailService {
        _itemRepository = itemRepository,
        _syncService = syncService;
 
-  final ValueNotifier<AsyncValue<ShoppingListDetail>> _shoppingListDetail =
-      ValueNotifier(const AsyncValue.loading());
+  /// The current user's role for the open list, gating owner-only actions
+  /// (e.g. "Delete List"). Defaults to [UserRole.editor] — i.e. no delete
+  /// rights — and is upgraded once [loadSharedUsers] resolves and confirms the
+  /// user is an owner. Sourced from the `/users` request, not the detail fetch.
+  final ValueNotifier<UserRole> _currentUserRole = ValueNotifier(
+    UserRole.editor,
+  );
 
-  ValueListenable<AsyncValue<ShoppingListDetail>> get shoppingListDetail =>
-      _shoppingListDetail;
+  ValueListenable<UserRole> get currentUserRole => _currentUserRole;
 
   final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
       ValueNotifier(const AsyncValue.loading());
@@ -53,38 +57,11 @@ class ShoppingListDetailService {
   ValueListenable<List<LocalShoppingListItem>>? _watchedListenable;
   VoidCallback? _itemsListener;
 
-  bool _isLoadShoppingListDetailRunning = false;
   bool _isRenameRunning = false;
   bool _isDeleteRunning = false;
   bool _isLoadSharedUsersRunning = false;
   bool _isShareShoppingListRunning = false;
   bool _isUnshareShoppingListRunning = false;
-
-  Future<void> loadShoppingListDetail(String id) async {
-    if (_isLoadShoppingListDetailRunning) return;
-    _isLoadShoppingListDetailRunning = true;
-
-    _log.fine('loadShoppingListDetail start (listId=$id)');
-    _shoppingListDetail.value = const AsyncValue.loading();
-    final result = await AsyncValue.guardAsync(() async {
-      final token = await _authService.idToken;
-      return _shoppingListRepository.fetchShoppingListDetail(id, token);
-    });
-    _shoppingListDetail.value = result;
-
-    switch (result) {
-      case AsyncData(:final value):
-        _log.info(
-          'loadShoppingListDetail loaded (listId=$id, items=${value.items.length})',
-        );
-      case AsyncError(:final error):
-        _log.warning('loadShoppingListDetail failed (listId=$id)', error);
-      case AsyncLoading():
-        break;
-    }
-
-    _isLoadShoppingListDetailRunning = false;
-  }
 
   Future<void> openShoppingList(String listId) async {
     _openListId = listId;
@@ -101,7 +78,6 @@ class ShoppingListDetailService {
     // immediate poll, delaying the first server refresh until the next tick.
     _syncService.startPolling(listId);
     _syncService.requestDrain(listId);
-    await loadShoppingListDetail(listId);
   }
 
   /// This list's sync status (syncing / notSyncing / failure), driving the
@@ -215,7 +191,6 @@ class ShoppingListDetailService {
     try {
       final token = await _authService.idToken;
       await _shoppingListRepository.updateShoppingList(id, newName, token);
-      await loadShoppingListDetail(id);
       await _shoppingListListService.loadShoppingLists();
     } catch (e) {
       _log.warning('renameShoppingList failed (listId=$id)', e);
@@ -255,6 +230,12 @@ class ShoppingListDetailService {
         token,
       );
       final currentUserEmail = _authService.email;
+      for (final permission in permissions) {
+        if (permission.email == currentUserEmail) {
+          _currentUserRole.value = permission.role;
+          break;
+        }
+      }
       return permissions.map((permission) {
         return SharedUser(
           email: permission.email,
@@ -271,12 +252,11 @@ class ShoppingListDetailService {
     if (_isShareShoppingListRunning) return;
     _isShareShoppingListRunning = true;
 
-    final shoppingListDetail = _shoppingListDetail.value;
-    if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
+    final shoppingListId = _openListId;
+    if (shoppingListId == null) {
       _isShareShoppingListRunning = false;
       throw Exception('Shopping list not loaded');
     }
-    final shoppingListId = shoppingListDetail.value.id;
 
     final result = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
@@ -303,12 +283,11 @@ class ShoppingListDetailService {
     if (_isUnshareShoppingListRunning) return;
     _isUnshareShoppingListRunning = true;
 
-    final shoppingListDetail = _shoppingListDetail.value;
-    if (shoppingListDetail is! AsyncData<ShoppingListDetail>) {
+    final shoppingListId = _openListId;
+    if (shoppingListId == null) {
       _isUnshareShoppingListRunning = false;
       throw Exception('Shopping list not loaded');
     }
-    final shoppingListId = shoppingListDetail.value.id;
 
     final result = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
@@ -338,7 +317,7 @@ class ShoppingListDetailService {
     if (_itemsListener != null && _watchedListenable != null) {
       _watchedListenable!.removeListener(_itemsListener!);
     }
-    _shoppingListDetail.dispose();
+    _currentUserRole.dispose();
     _sharedUsers.dispose();
     _items.dispose();
   }

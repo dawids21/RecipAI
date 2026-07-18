@@ -24,11 +24,18 @@ typedef ShoppingListItems = ({
 
 class ShoppingListDetailScreen extends StatefulWidget {
   final String shoppingListId;
+
+  /// The list name carried over from the previous screen (the list of lists),
+  /// avoiding a network fetch just to render the header. Null when the route is
+  /// entered without it (e.g. app-restart route restoration); a generic title
+  /// is shown until known.
+  final String? shoppingListName;
   final ShoppingListDetailService shoppingListDetailService;
 
   const ShoppingListDetailScreen({
     super.key,
     required this.shoppingListId,
+    this.shoppingListName,
     required this.shoppingListDetailService,
   });
 
@@ -37,20 +44,23 @@ class ShoppingListDetailScreen extends StatefulWidget {
       _ShoppingListDetailScreenState();
 }
 
-class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
-    with WidgetsBindingObserver {
+class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
   /// Index into the active items list after which the ephemeral input row is
   /// anchored, or `null` when no ephemeral row is open. The row is placed (both
   /// visually and position-wise) immediately after this item.
   int? _ephemeralAfterIndex;
   StreamSubscription<RejectionEvent>? _rejectionSubscription;
 
+  /// The header list name. Seeded from the nav argument and kept live locally
+  /// (e.g. updated after a successful rename), since it is no longer sourced
+  /// from a detail fetch.
+  late String? _listName = widget.shoppingListName;
+
   ShoppingListDetailService get service => widget.shoppingListDetailService;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     service.loadSharedUsers(widget.shoppingListId);
     service.openShoppingList(widget.shoppingListId);
     _rejectionSubscription = service.rejections.listen(_showRejectionToast);
@@ -58,16 +68,12 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _rejectionSubscription?.cancel();
     if (getIt.isRegistered<ShoppingListDetailService>()) {
       getIt.resetLazySingleton<ShoppingListDetailService>();
     }
     super.dispose();
   }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {}
 
   void _showRejectionToast(RejectionEvent event) {
     if (!mounted) return;
@@ -209,6 +215,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
       await service.renameShoppingList(listId, newName);
 
       if (mounted) {
+        setState(() => _listName = newName);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Shopping list renamed successfully')),
         );
@@ -395,277 +402,232 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen>
     return (unchecked: uncheckedWidgets, checked: checkedWidgets);
   }
 
+  /// Builds the popup menu. Rebuilt each time the menu opens, so the owner-only
+  /// "Delete List" item appears as soon as the role request
+  /// ([ShoppingListDetailService.loadSharedUsers]) has resolved for an owner.
+  List<PopupMenuItem<String>> _buildMenuItems() {
+    final menuItems = <PopupMenuItem<String>>[
+      const PopupMenuItem<String>(
+        value: 'rename',
+        child: Row(
+          children: [
+            Icon(Icons.edit),
+            SizedBox(width: AppSpacing.small),
+            Text('Rename List'),
+          ],
+        ),
+      ),
+      const PopupMenuItem<String>(
+        value: 'share',
+        child: Row(
+          children: [
+            Icon(Icons.share),
+            SizedBox(width: AppSpacing.small),
+            Text('Share List'),
+          ],
+        ),
+      ),
+      const PopupMenuItem<String>(
+        value: 'delete_checked',
+        child: Row(
+          children: [
+            Icon(Icons.delete_sweep),
+            SizedBox(width: AppSpacing.small),
+            Text('Delete All Checked'),
+          ],
+        ),
+      ),
+      const PopupMenuItem<String>(
+        value: 'uncheck_all',
+        child: Row(
+          children: [
+            Icon(Icons.check_box_outline_blank),
+            SizedBox(width: AppSpacing.small),
+            Text('Uncheck All'),
+          ],
+        ),
+      ),
+    ];
+
+    if (service.currentUserRole.value == UserRole.owner) {
+      menuItems.add(
+        const PopupMenuItem<String>(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete),
+              SizedBox(width: AppSpacing.small),
+              Text('Delete List'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return menuItems;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final listName = _listName ?? 'Shopping List';
 
-    return ValueListenableBuilder(
-      valueListenable: service.shoppingListDetail,
-      builder: (context, asyncValueDetail, child) {
-        return asyncValueDetail.when(
-          loading: () => Scaffold(
-            appBar: AppBar(
-              title: const Text('Shopping List Details'),
-              backgroundColor: theme.colorScheme.inversePrimary,
-            ),
-            body: const SafeArea(top: false, child: LoadingWidget()),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Shopping List Details'),
+        backgroundColor: theme.colorScheme.inversePrimary,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'rename') {
+                _renameShoppingList(widget.shoppingListId, listName);
+              } else if (value == 'share') {
+                _showSharingDialog();
+              } else if (value == 'delete') {
+                _deleteShoppingList(widget.shoppingListId, listName);
+              } else if (value == 'delete_checked') {
+                service.deleteAllChecked();
+              } else if (value == 'uncheck_all') {
+                service.uncheckAll();
+              }
+            },
+            itemBuilder: (context) => _buildMenuItems(),
           ),
-          error: (error) => Scaffold(
-            appBar: AppBar(
-              title: const Text('Shopping List Details'),
-              backgroundColor: theme.colorScheme.inversePrimary,
-            ),
-            body: SafeArea(
-              top: false,
-              child: ApiErrorWidget(
-                errorMessage: 'Error: $error',
-                onRetry: () =>
-                    service.loadShoppingListDetail(widget.shoppingListId),
-              ),
-            ),
-          ),
-          data: (detail) {
-            final menuItems = <PopupMenuItem<String>>[];
-
-            menuItems.add(
-              const PopupMenuItem<String>(
-                value: 'rename',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Rename List'),
-                  ],
-                ),
-              ),
-            );
-
-            menuItems.add(
-              const PopupMenuItem<String>(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Share List'),
-                  ],
-                ),
-              ),
-            );
-
-            menuItems.add(
-              const PopupMenuItem<String>(
-                value: 'delete_checked',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_sweep),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Delete All Checked'),
-                  ],
-                ),
-              ),
-            );
-
-            menuItems.add(
-              const PopupMenuItem<String>(
-                value: 'uncheck_all',
-                child: Row(
-                  children: [
-                    Icon(Icons.check_box_outline_blank),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Uncheck All'),
-                  ],
-                ),
-              ),
-            );
-
-            if (detail.role == UserRole.owner) {
-              menuItems.add(
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete),
-                      SizedBox(width: AppSpacing.small),
-                      Text('Delete List'),
-                    ],
+        ],
+      ),
+      bottomNavigationBar: _buildSyncFailureBanner(),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: AppSpacing.screenPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      listName,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-              );
-            }
-
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text('Shopping List Details'),
-                backgroundColor: theme.colorScheme.inversePrimary,
-                actions: [
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'rename') {
-                        _renameShoppingList(detail.id, detail.name);
-                      } else if (value == 'share') {
-                        _showSharingDialog();
-                      } else if (value == 'delete') {
-                        _deleteShoppingList(detail.id, detail.name);
-                      } else if (value == 'delete_checked') {
-                        service.deleteAllChecked();
-                      } else if (value == 'uncheck_all') {
-                        service.uncheckAll();
-                      }
-                    },
-                    itemBuilder: (context) => menuItems,
-                  ),
+                  const SizedBox(width: AppSpacing.small),
+                  _buildSyncIndicator(),
                 ],
               ),
-              bottomNavigationBar: _buildSyncFailureBanner(),
-              body: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  padding: AppSpacing.screenPadding,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              detail.name,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.small),
-                          _buildSyncIndicator(),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
-                      Card(
-                        child: Padding(
-                          padding: AppSpacing.cardMargin,
-                          child: ValueListenableBuilder(
-                            valueListenable: service.items,
-                            builder: (context, asyncItems, _) {
-                              return asyncItems.when(
-                                loading: () => const LoadingWidget(),
-                                error: (e) => ApiErrorWidget(
-                                  errorMessage: 'Error loading items: $e',
-                                  onRetry: () => service.openShoppingList(
-                                    widget.shoppingListId,
-                                  ),
-                                ),
-                                data: (flatItems) {
-                                  final itemSections = _splitSections(
-                                    flatItems,
-                                  );
-                                  final splitWidgets = _buildSplitItemWidgets(
-                                    itemSections.active,
-                                    itemSections.done,
-                                  );
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      AnimatedSize(
-                                        duration:
-                                            AppAnimations.sectionTransition,
-                                        curve: AppAnimations.sectionCurve,
-                                        alignment: Alignment.topCenter,
-                                        child: splitWidgets.unchecked.isNotEmpty
-                                            ? ReorderableListView(
-                                                shrinkWrap: true,
-                                                physics:
-                                                    const NeverScrollableScrollPhysics(),
-                                                buildDefaultDragHandles: false,
-                                                onReorderItem:
-                                                    (oldIndex, newIndex) =>
-                                                        service.reorderItem(
-                                                          itemSections.active,
-                                                          oldIndex,
-                                                          newIndex,
-                                                        ),
-                                                proxyDecorator:
-                                                    (child, index, animation) {
-                                                      return Material(
-                                                        elevation: 8.0,
-                                                        color: theme
-                                                            .colorScheme
-                                                            .surfaceContainerLow,
-                                                        child: child,
-                                                      );
-                                                    },
-                                                children:
-                                                    splitWidgets.unchecked,
-                                              )
-                                            : const SizedBox.shrink(),
-                                      ),
-
-                                      ShoppingListItemAddWidget(
-                                        key: const ValueKey('add-item'),
-                                        onAdd: (result) =>
-                                            service.addItem(result),
-                                      ),
-
-                                      AnimatedCrossFade(
-                                        duration:
-                                            AppAnimations.sectionTransition,
-                                        crossFadeState:
-                                            splitWidgets.checked.isNotEmpty
-                                            ? CrossFadeState.showFirst
-                                            : CrossFadeState.showSecond,
-                                        firstChild: _buildDoneSectionHeader(),
-                                        secondChild: const SizedBox.shrink(),
-                                      ),
-
-                                      AnimatedSize(
-                                        duration:
-                                            AppAnimations.sectionTransition,
-                                        curve: AppAnimations.sectionCurve,
-                                        alignment: Alignment.topCenter,
-                                        child: splitWidgets.checked.isNotEmpty
-                                            ? ReorderableListView(
-                                                shrinkWrap: true,
-                                                physics:
-                                                    const NeverScrollableScrollPhysics(),
-                                                buildDefaultDragHandles: false,
-                                                onReorderItem:
-                                                    (oldIndex, newIndex) =>
-                                                        service.reorderItem(
-                                                          itemSections.done,
-                                                          oldIndex,
-                                                          newIndex,
-                                                        ),
-                                                proxyDecorator:
-                                                    (child, index, animation) {
-                                                      return Material(
-                                                        elevation: 8.0,
-                                                        color: theme
-                                                            .colorScheme
-                                                            .surfaceContainerLow,
-                                                        child: child,
-                                                      );
-                                                    },
-                                                children: splitWidgets.checked,
-                                              )
-                                            : const SizedBox.shrink(),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
+              const SizedBox(height: AppSpacing.medium),
+              Card(
+                child: Padding(
+                  padding: AppSpacing.cardMargin,
+                  child: ValueListenableBuilder(
+                    valueListenable: service.items,
+                    builder: (context, asyncItems, _) {
+                      return asyncItems.when(
+                        loading: () => const LoadingWidget(),
+                        error: (e) => ApiErrorWidget(
+                          errorMessage: 'Error loading items: $e',
+                          onRetry: () =>
+                              service.openShoppingList(widget.shoppingListId),
                         ),
-                      ),
-                    ],
+                        data: (flatItems) {
+                          final itemSections = _splitSections(flatItems);
+                          final splitWidgets = _buildSplitItemWidgets(
+                            itemSections.active,
+                            itemSections.done,
+                          );
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AnimatedSize(
+                                duration: AppAnimations.sectionTransition,
+                                curve: AppAnimations.sectionCurve,
+                                alignment: Alignment.topCenter,
+                                child: splitWidgets.unchecked.isNotEmpty
+                                    ? ReorderableListView(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        buildDefaultDragHandles: false,
+                                        onReorderItem: (oldIndex, newIndex) =>
+                                            service.reorderItem(
+                                              itemSections.active,
+                                              oldIndex,
+                                              newIndex,
+                                            ),
+                                        proxyDecorator:
+                                            (child, index, animation) {
+                                              return Material(
+                                                elevation: 8.0,
+                                                color: theme
+                                                    .colorScheme
+                                                    .surfaceContainerLow,
+                                                child: child,
+                                              );
+                                            },
+                                        children: splitWidgets.unchecked,
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+
+                              ShoppingListItemAddWidget(
+                                key: const ValueKey('add-item'),
+                                onAdd: (result) => service.addItem(result),
+                              ),
+
+                              AnimatedCrossFade(
+                                duration: AppAnimations.sectionTransition,
+                                crossFadeState: splitWidgets.checked.isNotEmpty
+                                    ? CrossFadeState.showFirst
+                                    : CrossFadeState.showSecond,
+                                firstChild: _buildDoneSectionHeader(),
+                                secondChild: const SizedBox.shrink(),
+                              ),
+
+                              AnimatedSize(
+                                duration: AppAnimations.sectionTransition,
+                                curve: AppAnimations.sectionCurve,
+                                alignment: Alignment.topCenter,
+                                child: splitWidgets.checked.isNotEmpty
+                                    ? ReorderableListView(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        buildDefaultDragHandles: false,
+                                        onReorderItem: (oldIndex, newIndex) =>
+                                            service.reorderItem(
+                                              itemSections.done,
+                                              oldIndex,
+                                              newIndex,
+                                            ),
+                                        proxyDecorator:
+                                            (child, index, animation) {
+                                              return Material(
+                                                elevation: 8.0,
+                                                color: theme
+                                                    .colorScheme
+                                                    .surfaceContainerLow,
+                                                child: child,
+                                              );
+                                            },
+                                        children: splitWidgets.checked,
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ),
-            );
-          },
-        );
-      },
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

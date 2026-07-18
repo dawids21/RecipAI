@@ -17,8 +17,6 @@ class ShoppingListItemDao {
     return openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
-  static Future<void> createSchema(Database db) => _onCreate(db, 1);
-
   static Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE items (
@@ -59,28 +57,6 @@ class ShoppingListItemDao {
       whereArgs: [listId],
     );
     return rows.map(LocalShoppingListItem.fromMap).toList();
-  }
-
-  Future<void> upsertItem(LocalShoppingListItem item) async {
-    await _db.insert(
-      'items',
-      item.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<void> appendOutbox(
-    String localId,
-    String listId,
-    OutboxKind kind,
-    Map<String, dynamic> payload,
-  ) async {
-    await _db.insert('outbox', {
-      'item_local_id': localId,
-      'list_id': listId,
-      'kind': kind.wire,
-      'payload': jsonEncode(payload),
-    });
   }
 
   Future<T> transaction<T>(Future<T> Function(Transaction txn) fn) {

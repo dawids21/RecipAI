@@ -26,6 +26,7 @@ class _ShoppingListListState extends State<ShoppingListList> {
     context.goNamed(
       AppRoute.shoppingListDetail.name,
       pathParameters: {'id': shoppingList.id},
+      extra: shoppingList.name,
     );
   }
 

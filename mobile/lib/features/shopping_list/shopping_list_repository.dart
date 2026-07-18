@@ -1,16 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:logging/logging.dart';
 
 import '../../core/app_config.dart';
 import 'shopping_list.dart';
-import 'shopping_list_detail.dart';
 import 'shopping_list_permission.dart';
 
 class ShoppingListRepository {
-  static final _log = Logger('recipai.shopping_list.repository');
-
   final http.Client _client = http.Client();
   final String _baseUrl = AppConfig.apiBaseUrl;
 
@@ -65,35 +61,6 @@ class ShoppingListRepository {
       }
     } catch (e) {
       throw Exception('Network error while creating shopping list: $e');
-    }
-  }
-
-  Future<ShoppingListDetail> fetchShoppingListDetail(
-    String id,
-    String? idToken,
-  ) async {
-    final url = '$_baseUrl/shopping-lists/$id';
-    final sw = Stopwatch()..start();
-    try {
-      final headers = _getAuthHeaders(idToken);
-      final response = await _client.get(Uri.parse(url), headers: headers);
-      _log.info(
-        'GET $url -> ${response.statusCode} (${sw.elapsedMilliseconds} ms)',
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonMap = json.decode(response.body);
-        return ShoppingListDetail.fromJson(jsonMap);
-      } else if (response.statusCode == 404) {
-        throw Exception('Shopping list not found');
-      } else {
-        throw Exception(
-          'Failed to load shopping list detail: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      _log.warning('GET $url failed (${sw.elapsedMilliseconds} ms)', e);
-      throw Exception('Network error while fetching shopping list detail: $e');
     }
   }
 

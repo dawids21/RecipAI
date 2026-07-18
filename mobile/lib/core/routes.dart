@@ -247,8 +247,10 @@ GoRouter createAppRouter() {
             name: AppRoute.shoppingListDetail.name,
             builder: (context, state) {
               final id = state.pathParameters['id']!;
+              final name = state.extra as String?;
               return ShoppingListDetailScreen(
                 shoppingListId: id,
+                shoppingListName: name,
                 shoppingListDetailService: getIt<ShoppingListDetailService>(),
               );
             },
