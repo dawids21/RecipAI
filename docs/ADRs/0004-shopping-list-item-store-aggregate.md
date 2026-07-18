@@ -23,13 +23,24 @@ only serialises poll-vs-push per list; it does not guard UI mutations against
 reconciles at all, because those mutations run in a different object (the
 repository) and take no lock.
 
+A second, independent race is **not** closed by serialising local sections. On
+reconnect a poll and a drain run concurrently: the poll fetches server state
+**outside** any store lock, so its snapshot can predate an item the drain then
+pushes. When the poll's reconcile later runs against that stale snapshot, the
+item now carries a `serverId`, is `!dirty`, and is absent from the snapshot — so
+the reconcile's deletion pass deletes the freshly-synced item (and the symmetric
+case re-inserts a just-deleted one). The adopt/upsert path is version-gated, but
+the deletion and insert passes gate on presence, not snapshot recency, so
+dirty-/version-gating does **not** cover this — poll and push must be mutually
+excluded across their HTTP calls.
+
 This is preventive hardening plus a simplification: the author wants the
 `_busy`/`_pending` gating reduced and the divergence class eliminated. Dart is
 single-isolate, so "serialise" means ensuring one logical critical section (across
 all its `await`s) completes before the next begins — an async serialiser, not a
-thread mutex. A hard constraint: the critical section must be **local-only**, so
-it cannot be held across the item HTTP calls, or all access to a list would stall
-behind a slow request.
+thread mutex. A hard constraint: the **store's** critical section must be
+**local-only**, so it cannot be held across the item HTTP calls, or every UI
+access to a list would stall behind a slow request.
 
 ## Decision
 
@@ -47,11 +58,25 @@ The serialised section is local-only: it wraps the pre-read and the
 response-reconcile, never the HTTP call. The sync service performs its pull and
 push reconciliation **through** the store.
 
-`_busy` loses its store-exclusion and pull-vs-in-flight-push roles — the store's
-per-list lock plus the unchanged dirty-gating and version-gating cover both. A
-minimal **single-flight-drain guard** remains in the sync service (at most one
-drain loop per list, extra kicks coalesced) purely so two drains can't read the
-same outbox head and double-push it across the network; it holds no store state.
+`_busy` is replaced by two locks at different layers, one for each race:
+
+- The **store's per-list lock** (above) absorbs `_busy`'s store-exclusion role,
+  guarding UI mutations against reconciles. It is local-only and never spans HTTP.
+- A **separate sync-level per-list lock** absorbs `_busy`'s pull-vs-in-flight-push
+  role, which dirty-/version-gating does not cover (see Context). It serialises a
+  poll (`fetchServerItems` + `reconcileFromServer`) against each push entry
+  (fetch + push + ack), and **must span HTTP** — the race needs a push's ack to
+  fall between a poll's fetch and its reconcile, so a lock wrapping only the local
+  reconcile would not close it. Its scope is **one operation**, released between
+  operations and never across a backoff wait, so cross-list concurrency is
+  preserved and neither loop starves. It nests outside the store lock; no
+  deadlock, since the store never calls back into the sync service. It does not
+  block the UI, which mutates through the store lock.
+
+A minimal **single-flight-drain guard** also remains in the sync service (at most
+one drain loop per list, extra kicks coalesced) purely so two drains can't read
+the same outbox head and double-push it across the network; it holds no store
+state.
 
 Conflict-resolution semantics are unchanged: the store only guarantees the
 existing dirty-/version-gating rules apply atomically, not which value wins.
@@ -90,7 +115,11 @@ and the local-only-section rule are fixed here.
 - The cache becomes private to the store, so "all local access through one
   serialised point" is enforced by structure, not discipline.
 - The sync service simplifies: `_busy`/`_pending` collapse to a single-flight-drain
-  guard, and a poll's reconcile may run alongside a drain without being dropped.
+  guard plus a per-list sync lock. Per list, poll and drain take turns rather than
+  overlap: on reconnect a device no longer fetches fresh state while flushing its
+  queue (a pending push waits behind a slow poll fetch and vice versa, bounded by
+  the request timeout). The UI never blocks, since it mutates through the store
+  lock, not the sync lock.
 - Larger blast radius than a facade: local logic relocates from the repository,
   DI re-wires, and every sync-service call site changes — the relocation is the
   main place a transcription bug could hide, so it needs careful review and the

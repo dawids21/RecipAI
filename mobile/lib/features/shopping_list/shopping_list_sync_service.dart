@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
+import 'package:synchronized/synchronized.dart';
 
 import '../auth/auth_service.dart';
 import 'shopping_list_item_dao.dart';
@@ -16,6 +17,11 @@ enum SyncStatus { syncing, notSyncing, failure, offline }
 
 /// Why a queued change was dropped, driving the rejection toast copy.
 enum RejectionOutcome { conflict, gone, rejected }
+
+/// Outcome of pushing a single outbox entry, telling [_drainPass] whether to
+/// keep draining ([pushed]), stop because the queue is empty ([empty]), or stop
+/// because it stalled on a transient/offline failure ([stalled]).
+enum _PushResult { empty, pushed, stalled }
 
 /// A view-drained notification of a dropped outbox entry. The screen for
 /// [listId], if open, renders a toast; otherwise the event has no subscriber
@@ -53,10 +59,16 @@ class ShoppingListSyncService with WidgetsBindingObserver {
        _store = store,
        _authService = authService;
 
+  /// Per-list sync lock, held across one poll (fetch+reconcile) OR one push
+  /// entry (fetch+push+ack) — never across backoff waits — so a poll's reconcile
+  /// can never straddle a push's ack. Released between operations, so cross-list
+  /// concurrency and per-entry interleaving are preserved (ADR-0004). This is an
+  /// outer lock over the store's per-list lock; the two never deadlock because
+  /// the store never calls back into the sync service.
+  final _syncLocks = <String, Lock>{};
+
   /// Single-flight-drain guard — at most one drain loop per list; a kick
-  /// arriving mid-drain is coalesced into [_pending] (§Serialization). Pull
-  /// (poll) is ungated: the store's per-list lock plus dirty-/version-gating
-  /// keep a poll from regressing an in-flight push (ADR-0004).
+  /// arriving mid-drain is coalesced into [_pending] (§Serialization).
   final _draining = <String>{};
   final _pending = <String>{};
   final _retry = <String, int>{};
@@ -83,6 +95,9 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   void _setStatus(String listId, SyncStatus status) {
     _statusNotifier(listId).value = status;
   }
+
+  Lock _syncLockFor(String listId) =>
+      _syncLocks.putIfAbsent(listId, () => Lock());
 
   /// Coalesced per-list kick — append / openList / resume / backoff / retry
   /// all call this. A kick arriving mid-drain is never lost: it sets
@@ -156,9 +171,15 @@ class ShoppingListSyncService with WidgetsBindingObserver {
 
   Future<void> _poll(String listId) async {
     try {
-      final token = await _authService.idToken;
-      final items = await _itemRepository.fetchServerItems(listId, token);
-      await _store.reconcileFromServer(listId, items);
+      // Fetch and reconcile under the sync lock as one unit, so a concurrent
+      // push's ack can never land between this snapshot and its reconcile and
+      // make the reconcile's deletion/insert pass act on stale server state.
+      final items = await _syncLockFor(listId).synchronized(() async {
+        final token = await _authService.idToken;
+        final items = await _itemRepository.fetchServerItems(listId, token);
+        await _store.reconcileFromServer(listId, items);
+        return items;
+      });
       if (_statusNotifier(listId).value == SyncStatus.offline) {
         _setStatus(listId, SyncStatus.notSyncing);
       }
@@ -193,54 +214,78 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// Drains [listId]'s queue one entry at a time. Returns `true` once the
   /// queue is empty, `false` if it stalled on a transient failure (the head
   /// entry blocks this list's queue until backoff/retry).
+  ///
+  /// Each entry is pushed under the sync lock (fetch+push+ack as one unit); the
+  /// lock is released between entries and before any backoff wait, so a poll can
+  /// interleave between two pushes but never straddle a single push's ack.
   Future<bool> _drainPass(String listId) async {
     while (true) {
-      final entry = await _store.nextOutboxEntry(listId);
-      if (entry == null) return true;
-
-      try {
-        await _pushOne(entry);
-        _retry[listId] = 0;
-      } on ItemVersionConflictException catch (e) {
-        await _store.cascadeDiscard(listId, entry.itemLocalId, e.winner);
-        _log.warning(
-          'Item push rejected: conflict (listId=$listId, itemLocalId=${entry.itemLocalId})',
-        );
-        _emit(RejectionEvent(listId, e.winner.name, RejectionOutcome.conflict));
-      } on ItemDiscardedException catch (e) {
-        final item = await _store.readItem(entry.itemLocalId);
-        await _store.discardItem(listId, entry.itemLocalId);
-        final outcome = e.reason == DiscardReason.gone
-            ? RejectionOutcome.gone
-            : RejectionOutcome.rejected;
-        _log.severe(
-          'Item push discarded: ${e.reason.name} (listId=$listId, itemLocalId=${entry.itemLocalId})',
-        );
-        _emit(RejectionEvent(listId, item?.name ?? '', outcome));
-      } on ShoppingListNetworkException {
-        _setStatus(listId, SyncStatus.offline);
-        _log.fine(
-          'Item push offline, entry retries on next signal (listId=$listId)',
-        );
-        return false;
-      } catch (e) {
-        final attempt = (_retry[listId] ?? 0) + 1;
-        _retry[listId] = attempt;
-        if (attempt <= _maxRetries) {
-          _log.warning(
-            'Item push failed transiently, retry $attempt/$_maxRetries (listId=$listId)',
-            e,
-          );
-          _armBackoffTimer(listId, attempt);
-        } else {
-          _log.warning(
-            'Item push failed, list entering failure state (listId=$listId)',
-            e,
-          );
-          _setStatus(listId, SyncStatus.failure);
-        }
-        return false;
+      final result = await _syncLockFor(
+        listId,
+      ).synchronized(() => _pushHeadEntry(listId));
+      switch (result) {
+        case _PushResult.empty:
+          return true;
+        case _PushResult.stalled:
+          return false;
+        case _PushResult.pushed:
+          continue; // drain the next entry under a fresh lock acquisition
       }
+    }
+  }
+
+  /// Pushes [listId]'s head outbox entry and reconciles the outcome, all under
+  /// the caller-held sync lock. Arming a backoff timer only schedules a future
+  /// kick — it does not wait — so the lock is not held across the backoff.
+  Future<_PushResult> _pushHeadEntry(String listId) async {
+    final entry = await _store.nextOutboxEntry(listId);
+    if (entry == null) return _PushResult.empty;
+
+    try {
+      await _pushOne(entry);
+      _retry[listId] = 0;
+      return _PushResult.pushed;
+    } on ItemVersionConflictException catch (e) {
+      await _store.cascadeDiscard(listId, entry.itemLocalId, e.winner);
+      _log.warning(
+        'Item push rejected: conflict (listId=$listId, itemLocalId=${entry.itemLocalId})',
+      );
+      _emit(RejectionEvent(listId, e.winner.name, RejectionOutcome.conflict));
+      return _PushResult.pushed;
+    } on ItemDiscardedException catch (e) {
+      final item = await _store.readItem(entry.itemLocalId);
+      await _store.discardItem(listId, entry.itemLocalId);
+      final outcome = e.reason == DiscardReason.gone
+          ? RejectionOutcome.gone
+          : RejectionOutcome.rejected;
+      _log.severe(
+        'Item push discarded: ${e.reason.name} (listId=$listId, itemLocalId=${entry.itemLocalId})',
+      );
+      _emit(RejectionEvent(listId, item?.name ?? '', outcome));
+      return _PushResult.pushed;
+    } on ShoppingListNetworkException {
+      _setStatus(listId, SyncStatus.offline);
+      _log.fine(
+        'Item push offline, entry retries on next signal (listId=$listId)',
+      );
+      return _PushResult.stalled;
+    } catch (e) {
+      final attempt = (_retry[listId] ?? 0) + 1;
+      _retry[listId] = attempt;
+      if (attempt <= _maxRetries) {
+        _log.warning(
+          'Item push failed transiently, retry $attempt/$_maxRetries (listId=$listId)',
+          e,
+        );
+        _armBackoffTimer(listId, attempt);
+      } else {
+        _log.warning(
+          'Item push failed, list entering failure state (listId=$listId)',
+          e,
+        );
+        _setStatus(listId, SyncStatus.failure);
+      }
+      return _PushResult.stalled;
     }
   }
 
