@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import '../auth/auth_service.dart';
 import 'shopping_list_item_dao.dart';
 import 'shopping_list_item_repository.dart';
+import 'shopping_list_item_store_service.dart';
 
 /// Per-list sync state, rendered as the detail screen's list-level indicator
 /// (and, for [failure], the persistent bottom retry banner).
@@ -41,18 +42,22 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   static const _pollInterval = Duration(seconds: 10);
 
   final ShoppingListItemRepository _itemRepository;
+  final ShoppingListItemStoreService _store;
   final AuthService _authService;
 
   ShoppingListSyncService({
     required ShoppingListItemRepository itemRepository,
+    required ShoppingListItemStoreService store,
     required AuthService authService,
   }) : _itemRepository = itemRepository,
+       _store = store,
        _authService = authService;
 
-  /// Mutual-exclusion gate shared by push (drain) and pull (poll) per list —
-  /// a poll is dropped while a drain holds it, and a drain requested mid-poll
-  /// defers via [_pending] (§Serialization).
-  final _busy = <String>{};
+  /// Single-flight-drain guard — at most one drain loop per list; a kick
+  /// arriving mid-drain is coalesced into [_pending] (§Serialization). Pull
+  /// (poll) is ungated: the store's per-list lock plus dirty-/version-gating
+  /// keep a poll from regressing an in-flight push (ADR-0004).
+  final _draining = <String>{};
   final _pending = <String>{};
   final _retry = <String, int>{};
   final _backoffTimers = <String, Timer>{};
@@ -83,7 +88,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// all call this. A kick arriving mid-drain is never lost: it sets
   /// [_pending], which [_drain] re-checks before it clears [_draining].
   void requestDrain(String listId) {
-    if (_busy.contains(listId)) {
+    if (_draining.contains(listId)) {
       _pending.add(listId);
       return;
     }
@@ -127,7 +132,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   }
 
   Future<void> _fanOutPending() async {
-    final listIds = await _itemRepository.listIdsWithOutbox();
+    final listIds = await _store.listIdsWithOutbox();
     for (final listId in listIds) {
       requestDrain(listId);
     }
@@ -149,15 +154,11 @@ class ShoppingListSyncService with WidgetsBindingObserver {
     _pollTimers.remove(listId)?.cancel();
   }
 
-  bool _canReconcile(String listId) => !_busy.contains(listId);
-
   Future<void> _poll(String listId) async {
-    if (!_canReconcile(listId)) return; // a drain holds _busy; next tick retries
-    _busy.add(listId);
     try {
       final token = await _authService.idToken;
       final items = await _itemRepository.fetchServerItems(listId, token);
-      await _itemRepository.reconcileFromServer(listId, items);
+      await _store.reconcileFromServer(listId, items);
       if (_statusNotifier(listId).value == SyncStatus.offline) {
         _setStatus(listId, SyncStatus.notSyncing);
       }
@@ -167,28 +168,25 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       _log.fine('poll offline (listId=$listId)');
     } catch (e) {
       _log.warning('poll failed, store untouched (listId=$listId)', e);
-    } finally {
-      _busy.remove(listId);
-      if (_pending.remove(listId)) {
-        requestDrain(listId);
-      }
     }
   }
 
   Future<void> _drain(String listId) async {
-    _busy.add(listId);
+    _draining.add(listId);
     _setStatus(listId, SyncStatus.syncing);
     _log.fine('drain start (listId=$listId)');
     try {
       do {
         _pending.remove(listId);
         final drainedEmpty = await _drainPass(listId);
-        if (!drainedEmpty) return; // stalled on transient; backoff/failure/offline set
+        if (!drainedEmpty) {
+          return; // stalled on transient; backoff/failure/offline set
+        }
       } while (_pending.contains(listId));
       _setStatus(listId, SyncStatus.notSyncing);
       _log.fine('drain idle (listId=$listId)');
     } finally {
-      _busy.remove(listId);
+      _draining.remove(listId);
     }
   }
 
@@ -197,21 +195,21 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// entry blocks this list's queue until backoff/retry).
   Future<bool> _drainPass(String listId) async {
     while (true) {
-      final entry = await _itemRepository.nextOutboxEntry(listId);
+      final entry = await _store.nextOutboxEntry(listId);
       if (entry == null) return true;
 
       try {
         await _pushOne(entry);
         _retry[listId] = 0;
       } on ItemVersionConflictException catch (e) {
-        await _itemRepository.cascadeDiscard(entry.itemLocalId, e.winner);
+        await _store.cascadeDiscard(listId, entry.itemLocalId, e.winner);
         _log.warning(
           'Item push rejected: conflict (listId=$listId, itemLocalId=${entry.itemLocalId})',
         );
         _emit(RejectionEvent(listId, e.winner.name, RejectionOutcome.conflict));
       } on ItemDiscardedException catch (e) {
-        final item = await _itemRepository.readItem(entry.itemLocalId);
-        await _itemRepository.discardItem(entry.itemLocalId);
+        final item = await _store.readItem(entry.itemLocalId);
+        await _store.discardItem(listId, entry.itemLocalId);
         final outcome = e.reason == DiscardReason.gone
             ? RejectionOutcome.gone
             : RejectionOutcome.rejected;
@@ -247,7 +245,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   }
 
   Future<void> _pushOne(OutboxEntry entry) async {
-    final item = (await _itemRepository.readItem(entry.itemLocalId))!;
+    final item = (await _store.readItem(entry.itemLocalId))!;
     final token = await _authService.idToken;
     switch (entry.kind) {
       case OutboxKind.create:
@@ -256,7 +254,8 @@ class ShoppingListSyncService with WidgetsBindingObserver {
           OutboxPayload.fromMap(entry.payload),
           token,
         );
-        await _itemRepository.reconcileAck(
+        await _store.reconcileAck(
+          entry.listId,
           entry.itemLocalId,
           winner,
           entry.seq,
@@ -269,7 +268,8 @@ class ShoppingListSyncService with WidgetsBindingObserver {
           snapshot: OutboxPayload.fromMap(entry.payload),
           idToken: token,
         );
-        await _itemRepository.reconcileAck(
+        await _store.reconcileAck(
+          entry.listId,
           entry.itemLocalId,
           winner,
           entry.seq,
@@ -281,7 +281,11 @@ class ShoppingListSyncService with WidgetsBindingObserver {
           item.lastAckedVersion!,
           token,
         );
-        await _itemRepository.reconcileDeleteAck(entry.itemLocalId, entry.seq);
+        await _store.reconcileDeleteAck(
+          entry.listId,
+          entry.itemLocalId,
+          entry.seq,
+        );
     }
   }
 

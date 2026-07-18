@@ -43,10 +43,14 @@ class LocalShoppingListItem {
   }) {
     return LocalShoppingListItem(
       localId: localId ?? this.localId,
-      serverId: identical(serverId, _sentinel) ? this.serverId : serverId as String?,
+      serverId: identical(serverId, _sentinel)
+          ? this.serverId
+          : serverId as String?,
       listId: listId ?? this.listId,
       name: name ?? this.name,
-      quantity: identical(quantity, _sentinel) ? this.quantity : quantity as double?,
+      quantity: identical(quantity, _sentinel)
+          ? this.quantity
+          : quantity as double?,
       unit: identical(unit, _sentinel) ? this.unit : unit as String?,
       checked: checked ?? this.checked,
       position: position ?? this.position,

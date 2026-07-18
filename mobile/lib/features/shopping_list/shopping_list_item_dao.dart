@@ -59,11 +59,88 @@ class ShoppingListItemDao {
     return rows.map(LocalShoppingListItem.fromMap).toList();
   }
 
-  Future<T> transaction<T>(Future<T> Function(Transaction txn) fn) {
-    return _db.transaction(fn);
+  /// Upserts [item] and appends one outbox entry for it, atomically. Covers
+  /// create/edit/check/reorder/delete, which differ only in [kind]/[payload].
+  Future<void> writeItemAppendingOutbox(
+    LocalShoppingListItem item,
+    OutboxKind kind,
+    Map<String, dynamic> payload,
+  ) {
+    return _db.transaction((txn) async {
+      await _upsertItem(txn, item);
+      await _appendOutbox(txn, item.localId, item.listId, kind, payload);
+    });
   }
 
-  Future<void> upsertItemTxn(Transaction txn, LocalShoppingListItem item) {
+  /// Persists a pull's diff atomically: batch-upserts [upserts] and
+  /// batch-deletes [deletedLocalIds]. The diff itself (version gating, dirty
+  /// checks, uuid minting) is computed by the caller; this only writes it.
+  Future<void> writeServerDiff({
+    required List<LocalShoppingListItem> upserts,
+    required Set<String> deletedLocalIds,
+  }) {
+    return _db.transaction((txn) async {
+      for (final item in upserts) {
+        await _upsertItem(txn, item);
+      }
+      for (final localId in deletedLocalIds) {
+        await _deleteItemRow(txn, localId);
+      }
+    });
+  }
+
+  /// Drops the acked outbox entry, counts what remains for the item, and
+  /// upserts [current] adopting [serverId]/[version] with `dirty` set to
+  /// whether entries remain — all atomically. Returns the updated row.
+  Future<LocalShoppingListItem> writeItemDroppingEntry(
+    LocalShoppingListItem current, {
+    required String? serverId,
+    required int? version,
+    required int ackedSeq,
+  }) {
+    return _db.transaction((txn) async {
+      await _deleteOutboxEntry(txn, ackedSeq);
+      final remaining = await _countOutboxForItem(txn, current.localId);
+      final updated = current.copyWith(
+        serverId: serverId,
+        lastAckedVersion: version,
+        dirty: remaining > 0,
+      );
+      await _upsertItem(txn, updated);
+      return updated;
+    });
+  }
+
+  /// Hard-removes the item row and drops its acked outbox entry, atomically.
+  Future<void> deleteItemDroppingEntry(String localId, int ackedSeq) {
+    return _db.transaction((txn) async {
+      await _deleteItemRow(txn, localId);
+      await _deleteOutboxEntry(txn, ackedSeq);
+    });
+  }
+
+  /// Upserts [item] and drops every queued outbox entry for [localId],
+  /// atomically.
+  Future<void> writeItemClearingOutbox(
+    LocalShoppingListItem item,
+    String localId,
+  ) {
+    return _db.transaction((txn) async {
+      await _upsertItem(txn, item);
+      await _deleteOutboxForItem(txn, localId);
+    });
+  }
+
+  /// Hard-removes the item row and drops every queued outbox entry for
+  /// [localId], atomically.
+  Future<void> deleteItemClearingOutbox(String localId) {
+    return _db.transaction((txn) async {
+      await _deleteItemRow(txn, localId);
+      await _deleteOutboxForItem(txn, localId);
+    });
+  }
+
+  Future<void> _upsertItem(Transaction txn, LocalShoppingListItem item) {
     return txn.insert(
       'items',
       item.toMap(),
@@ -71,7 +148,7 @@ class ShoppingListItemDao {
     );
   }
 
-  Future<void> appendOutboxTxn(
+  Future<void> _appendOutbox(
     Transaction txn,
     String localId,
     String listId,
@@ -84,6 +161,30 @@ class ShoppingListItemDao {
       'kind': kind.wire,
       'payload': jsonEncode(payload),
     });
+  }
+
+  Future<void> _deleteOutboxEntry(Transaction txn, int seq) {
+    return txn.delete('outbox', where: 'seq = ?', whereArgs: [seq]);
+  }
+
+  Future<void> _deleteOutboxForItem(Transaction txn, String localId) {
+    return txn.delete(
+      'outbox',
+      where: 'item_local_id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  Future<int> _countOutboxForItem(Transaction txn, String localId) async {
+    final result = await txn.rawQuery(
+      'SELECT COUNT(*) AS c FROM outbox WHERE item_local_id = ?',
+      [localId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<void> _deleteItemRow(Transaction txn, String localId) {
+    return txn.delete('items', where: 'local_id = ?', whereArgs: [localId]);
   }
 
   /// The oldest queued entry for [listId] (lowest `seq`), or `null` if empty.
@@ -117,29 +218,6 @@ class ShoppingListItemDao {
     return LocalShoppingListItem.fromMap(rows.first);
   }
 
-  Future<void> deleteOutboxEntryTxn(Transaction txn, int seq) {
-    return txn.delete('outbox', where: 'seq = ?', whereArgs: [seq]);
-  }
-
-  Future<void> deleteOutboxForItemTxn(Transaction txn, String localId) {
-    return txn.delete(
-      'outbox',
-      where: 'item_local_id = ?',
-      whereArgs: [localId],
-    );
-  }
-
-  Future<int> countOutboxForItemTxn(Transaction txn, String localId) async {
-    final result = await txn.rawQuery(
-      'SELECT COUNT(*) AS c FROM outbox WHERE item_local_id = ?',
-      [localId],
-    );
-    return Sqflite.firstIntValue(result) ?? 0;
-  }
-
-  Future<void> deleteItemRowTxn(Transaction txn, String localId) {
-    return txn.delete('items', where: 'local_id = ?', whereArgs: [localId]);
-  }
 }
 
 enum OutboxKind {

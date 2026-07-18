@@ -19,6 +19,7 @@ import 'package:recipai_mobile/features/recipe/collection/recipes_collection_lis
 import 'package:recipai_mobile/features/planning/meal_plan_calendar_service.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_list_service.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_visibility_service.dart';
+import 'package:recipai_mobile/features/shopping_list/shopping_list_item_store_service.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_list_service.dart';
 import 'package:recipai_mobile/features/auth/auth_service.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_setup.dart';
@@ -41,6 +42,7 @@ void main() {
   late MockRecipesCollectionRepository recipesCollectionRepository;
   late MockShoppingListRepository shoppingListRepository;
   late MockShoppingListItemRepository shoppingListItemRepository;
+  late MockShoppingListItemDao shoppingListItemDao;
   late MockMealPlanRepository mealPlanRepository;
   late _NavPushSpy navSpy;
   late Widget app;
@@ -58,6 +60,7 @@ void main() {
     recipesCollectionRepository = MockRecipesCollectionRepository();
     shoppingListRepository = MockShoppingListRepository();
     shoppingListItemRepository = MockShoppingListItemRepository();
+    shoppingListItemDao = MockShoppingListItemDao();
     mealPlanRepository = MockMealPlanRepository();
 
     when(
@@ -67,7 +70,7 @@ void main() {
       () => authRepository.getIdToken(),
     ).thenAnswer((_) async => 'fake-token');
     when(
-      () => shoppingListItemRepository.listIdsWithOutbox(),
+      () => shoppingListItemDao.listIdsWithOutbox(),
     ).thenAnswer((_) async => const []);
 
     final prefs = await SharedPreferences.getInstance();
@@ -81,6 +84,7 @@ void main() {
     setupShoppingList(
       shoppingListRepository: shoppingListRepository,
       itemRepository: shoppingListItemRepository,
+      store: ShoppingListItemStoreService(dao: shoppingListItemDao),
     );
     setupMealPlan(mealPlanRepository: mealPlanRepository);
 

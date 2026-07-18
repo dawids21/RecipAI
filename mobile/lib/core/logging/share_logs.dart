@@ -16,8 +16,7 @@ Future<void> shareLogs() async {
   final sink = getIt<AppLogSink>();
   final file = await sink.currentLogFileForSharing();
 
-  await const MethodChannel('recipai/share').invokeMethod('shareFile', {
-    'path': file.path,
-    'mimeType': 'text/plain',
-  });
+  await const MethodChannel(
+    'recipai/share',
+  ).invokeMethod('shareFile', {'path': file.path, 'mimeType': 'text/plain'});
 }

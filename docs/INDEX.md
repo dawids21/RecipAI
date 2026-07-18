@@ -131,7 +131,7 @@ Located in `docs/mobile/standards/`
 Standards for the three-layer Repository-Service-View architecture: responsibilities of each layer, rules about cross-layer access, feature-based directory layout, and file naming conventions.
 
 ### State Management (`mobile/standards/state-management.md`)
-Standards for managing async state: how to use `ValueNotifier<AsyncValue<T>>`, how to expose state read-only to views, how to prevent concurrent calls with boolean flags, error handling via `AsyncValue.guardAsync()`, and the `dispose()` requirement on service classes.
+Standards for managing async state: `ValueNotifier<AsyncValue<T>>` as the default (not required) shape, how to expose state read-only to views, guarding against concurrent calls (boolean flags, per-key locks, single-flight drains), error handling via `AsyncValue.guardAsync()`, and the `dispose()` requirement on service classes.
 
 ### Dependency Injection (`mobile/standards/dependency-injection.md`)
 Standards for using `get_it`: how to write per-feature setup functions, constructor-based injection rules, how to pass external dependencies to setup functions, and when to use singleton vs lazySingleton vs StatefulWidget for state scoping.

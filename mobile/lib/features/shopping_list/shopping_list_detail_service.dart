@@ -6,7 +6,7 @@ import '../../core/widgets/sharing_dialog.dart';
 import '../../shared/user_role.dart';
 import '../auth/auth_service.dart';
 import 'local_shopping_list_item.dart';
-import 'shopping_list_item_repository.dart';
+import 'shopping_list_item_store_service.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
@@ -18,19 +18,19 @@ class ShoppingListDetailService {
   final ShoppingListRepository _shoppingListRepository;
   final AuthService _authService;
   final ShoppingListListService _shoppingListListService;
-  final ShoppingListItemRepository _itemRepository;
+  final ShoppingListItemStoreService _store;
   final ShoppingListSyncService _syncService;
 
   ShoppingListDetailService({
     required ShoppingListRepository shoppingListRepository,
     required AuthService authService,
     required ShoppingListListService shoppingListListService,
-    required ShoppingListItemRepository itemRepository,
+    required ShoppingListItemStoreService store,
     required ShoppingListSyncService syncService,
   }) : _shoppingListRepository = shoppingListRepository,
        _authService = authService,
        _shoppingListListService = shoppingListListService,
-       _itemRepository = itemRepository,
+       _store = store,
        _syncService = syncService;
 
   /// The current user's role for the open list, gating owner-only actions
@@ -65,17 +65,12 @@ class ShoppingListDetailService {
 
   Future<void> openShoppingList(String listId) async {
     _openListId = listId;
-    await _itemRepository.openList(listId);
-    final listenable = _itemRepository.watch(listId);
+    await _store.openList(listId);
+    final listenable = _store.watch(listId);
     _watchedListenable = listenable;
     _itemsListener = () => _items.value = AsyncValue.data(listenable.value);
     listenable.addListener(_itemsListener!);
     _items.value = AsyncValue.data(listenable.value);
-    // Kick the immediate pull (cold-start refresh) BEFORE requesting the drain.
-    // startPolling's immediate poll must grab the per-list sync gate first so
-    // the drain defers behind it (via _pending) and runs the moment the poll
-    // completes. Requesting the drain first lets it hold the gate and drop this
-    // immediate poll, delaying the first server refresh until the next tick.
     _syncService.startPolling(listId);
     _syncService.requestDrain(listId);
   }
@@ -98,7 +93,8 @@ class ShoppingListDetailService {
   Future<void> addItem(ItemChanged parsed, {String? afterLocalId}) async {
     final listId = _openListId;
     if (listId == null) return;
-    await _itemRepository.applyCreate(
+    _log.info('addItem name="${parsed.name}"');
+    await _store.applyCreate(
       listId,
       name: parsed.name,
       quantity: parsed.quantity,
@@ -109,7 +105,9 @@ class ShoppingListDetailService {
   }
 
   Future<void> editItem(String localId, ItemChanged parsed) async {
-    await _itemRepository.applyEdit(
+    _log.info('editItem (localId=$localId) name="${parsed.name}"');
+    await _store.applyEdit(
+      _openListId!,
       localId,
       name: parsed.name,
       quantity: parsed.quantity,
@@ -119,12 +117,14 @@ class ShoppingListDetailService {
   }
 
   Future<void> toggleChecked(String localId, bool checked) async {
-    await _itemRepository.applyChecked(localId, checked);
+    _log.info('toggleChecked (localId=$localId, checked=$checked)');
+    await _store.applyChecked(_openListId!, localId, checked);
     _requestDrainForOpenList();
   }
 
   Future<void> deleteItem(String localId) async {
-    await _itemRepository.applyDelete(localId);
+    _log.info('deleteItem (localId=$localId)');
+    await _store.applyDelete(_openListId!, localId);
     _requestDrainForOpenList();
   }
 
@@ -138,8 +138,9 @@ class ShoppingListDetailService {
   ) async {
     if (oldIndex == newIndex) return;
     final item = items[oldIndex];
+    _log.info('reorderItem (localId=${item.localId}, newIndex=$newIndex)');
     final newPosition = _reorderPosition(items, oldIndex, newIndex);
-    await _itemRepository.applyReorder(item.localId, newPosition);
+    await _store.applyReorder(_openListId!, item.localId, newPosition);
     _requestDrainForOpenList();
   }
 
@@ -161,20 +162,20 @@ class ShoppingListDetailService {
   }
 
   Future<void> deleteAllChecked() async {
-    final current = _items.value.valueOrNull;
-    if (current == null) return;
-    for (final item in current.where((i) => i.checked).toList()) {
-      await _itemRepository.applyDelete(item.localId);
-    }
+    final listId = _openListId;
+    if (listId == null) return;
+    final count = _items.value.valueOrNull?.where((i) => i.checked).length ?? 0;
+    _log.info('deleteAllChecked (count=$count)');
+    await _store.deleteAllChecked(listId);
     _requestDrainForOpenList();
   }
 
   Future<void> uncheckAll() async {
-    final current = _items.value.valueOrNull;
-    if (current == null) return;
-    for (final item in current.where((i) => i.checked).toList()) {
-      await _itemRepository.applyChecked(item.localId, false);
-    }
+    final listId = _openListId;
+    if (listId == null) return;
+    final count = _items.value.valueOrNull?.where((i) => i.checked).length ?? 0;
+    _log.info('uncheckAll (count=$count)');
+    await _store.uncheckAll(listId);
     _requestDrainForOpenList();
   }
 

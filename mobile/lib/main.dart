@@ -20,7 +20,7 @@ import 'features/extraction/share_intent_setup.dart';
 import 'features/planning/meal_plan_setup.dart';
 import 'features/recipe/collection/recipes_collection_setup.dart';
 import 'features/recipe/recipe_setup.dart';
-import 'features/shopping_list/shopping_list_item_repository.dart';
+import 'features/shopping_list/shopping_list_item_store_service.dart';
 import 'features/shopping_list/shopping_list_setup.dart';
 
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -40,7 +40,7 @@ void main() async {
   setupRecipe();
   setupRecipesCollection();
   setupMealPlan();
-  setupShoppingList(itemRepository: await ShoppingListItemRepository.open());
+  setupShoppingList(store: await ShoppingListItemStoreService.open());
   setupExtraction();
 
   final appRouter = createAppRouter();

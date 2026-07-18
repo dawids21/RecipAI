@@ -91,6 +91,9 @@ dependencies:
   # SQLite local database for offline-first item storage
   sqflite: ^2.4.3
 
+  # Per-list async lock for the shopping-list item store
+  synchronized: ^3.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
