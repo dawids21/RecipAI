@@ -73,6 +73,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   final _pending = <String>{};
   final _retry = <String, int>{};
   final _backoffTimers = <String, Timer>{};
+  final _offlineTimers = <String, Timer>{};
   final _pollTimers = <String, Timer>{};
   final _status = <String, ValueNotifier<SyncStatus>>{};
   final _rejections = StreamController<RejectionEvent>.broadcast();
@@ -180,12 +181,9 @@ class ShoppingListSyncService with WidgetsBindingObserver {
         await _store.reconcileFromServer(listId, items);
         return items;
       });
-      if (_statusNotifier(listId).value == SyncStatus.offline) {
-        _setStatus(listId, SyncStatus.notSyncing);
-      }
+      requestDrain(listId);
       _log.fine('poll ok (listId=$listId, items=${items.length})');
     } on ShoppingListNetworkException {
-      _setStatus(listId, SyncStatus.offline);
       _log.fine('poll offline (listId=$listId)');
     } catch (e) {
       _log.warning('poll failed, store untouched (listId=$listId)', e);
@@ -194,7 +192,6 @@ class ShoppingListSyncService with WidgetsBindingObserver {
 
   Future<void> _drain(String listId) async {
     _draining.add(listId);
-    _setStatus(listId, SyncStatus.syncing);
     _log.fine('drain start (listId=$listId)');
     try {
       do {
@@ -240,10 +237,12 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   Future<_PushResult> _pushHeadEntry(String listId) async {
     final entry = await _store.nextOutboxEntry(listId);
     if (entry == null) return _PushResult.empty;
+    _setStatus(listId, SyncStatus.syncing);
 
     try {
       await _pushOne(entry);
       _retry[listId] = 0;
+      _offlineTimers.remove(listId)?.cancel();
       return _PushResult.pushed;
     } on ItemVersionConflictException catch (e) {
       await _store.cascadeDiscard(listId, entry.itemLocalId, e.winner);
@@ -251,6 +250,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
         'Item push rejected: conflict (listId=$listId, itemLocalId=${entry.itemLocalId})',
       );
       _emit(RejectionEvent(listId, e.winner.name, RejectionOutcome.conflict));
+      _offlineTimers.remove(listId)?.cancel();
       return _PushResult.pushed;
     } on ItemDiscardedException catch (e) {
       final item = await _store.readItem(entry.itemLocalId);
@@ -262,9 +262,11 @@ class ShoppingListSyncService with WidgetsBindingObserver {
         'Item push discarded: ${e.reason.name} (listId=$listId, itemLocalId=${entry.itemLocalId})',
       );
       _emit(RejectionEvent(listId, item?.name ?? '', outcome));
+      _offlineTimers.remove(listId)?.cancel();
       return _PushResult.pushed;
     } on ShoppingListNetworkException {
       _setStatus(listId, SyncStatus.offline);
+      _armOfflineTimer(listId);
       _log.fine(
         'Item push offline, entry retries on next signal (listId=$listId)',
       );
@@ -343,6 +345,17 @@ class ShoppingListSyncService with WidgetsBindingObserver {
     });
   }
 
+  /// Re-kicks a stalled offline drain at a fixed interval, so closed lists
+  /// (which don't poll) still flush once connectivity returns. Offline is not
+  /// a failure: this never touches [_retry] and never escalates to
+  /// [SyncStatus.failure].
+  void _armOfflineTimer(String listId) {
+    if (_offlineTimers.containsKey(listId)) return;
+    _offlineTimers[listId] = Timer.periodic(_pollInterval, (_) {
+      requestDrain(listId);
+    });
+  }
+
   void _emit(RejectionEvent event) {
     if (!_rejections.isClosed) {
       _rejections.add(event);
@@ -355,6 +368,10 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       timer.cancel();
     }
     _backoffTimers.clear();
+    for (final timer in _offlineTimers.values) {
+      timer.cancel();
+    }
+    _offlineTimers.clear();
     for (final timer in _pollTimers.values) {
       timer.cancel();
     }

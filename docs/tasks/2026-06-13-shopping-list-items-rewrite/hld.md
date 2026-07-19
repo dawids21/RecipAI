@@ -214,6 +214,14 @@ relaxed (the over-strict sentence removed) so a local database is permitted here
    rejected entry **and every later queued entry for the same item** (the whole
    offline set loses together — req §3.6). Rejections are **discarded, never
    retried** (req §4). Raise **one** per-item rejection notification (req §2.3).
+6. **Offline stalls self-reschedule.** A push that fails on connectivity (not a
+   412) is **not** retried with backoff (offline ≠ transient failure); instead
+   it re-kicks itself via two triggers, so a closed list flushes without
+   requiring an app resume: the poller re-kicks the drain on every successful
+   poll (fast path when the list is open), and a fixed ~10s offline timer
+   re-kicks it directly (covers closed lists, which don't poll). Neither
+   trigger counts toward the transient-retry budget or the failed state
+   (§2.4).
 
 ### 2.3 Pulling others' changes — full-list diff
 
@@ -242,6 +250,12 @@ relaxed (the over-strict sentence removed) so a local database is permitted here
 - **List-level indicator** only: show a subtle "offline / not synced" indicator
   whenever there is no connectivity **or** the outbox is non-empty. No per-item
   *pending* markers.
+- **The drain is the sole writer of sync state** — the poller never sets it, so
+  poll and push can never race each other into a stale indicator. One accepted
+  tradeoff follows: an idle device (empty outbox) that goes offline keeps
+  showing the tick until the next local mutation, whose drain then flips it to
+  offline. This is acceptable — the tick means "no pending local changes",
+  which stays true while idle-offline.
 - **Transient push failure** (server unreachable / flaky network, *not* a 412):
   retry a few times with backoff; if still failing, the **sync state** becomes
   **failed**.
