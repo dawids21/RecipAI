@@ -88,15 +88,6 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _showOverwriteToast() {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('This item was updated elsewhere and refreshed'),
-      ),
-    );
-  }
-
   Widget _buildSyncIndicator() {
     final theme = Theme.of(context);
     const size = 28.0;
@@ -342,7 +333,6 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
           onCheckChanged: (checked) =>
               service.toggleChecked(item.localId, checked),
           onSubmitted: () => _createEphemeralItemAfter(i),
-          onOverwrite: _showOverwriteToast,
         ),
       );
 
@@ -394,7 +384,6 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
           onCheckChanged: (checked) =>
               service.toggleChecked(item.localId, checked),
           onSubmitted: () {},
-          onOverwrite: _showOverwriteToast,
         ),
       );
     }

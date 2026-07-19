@@ -52,7 +52,6 @@ class ShoppingListItemWidget extends StatefulWidget {
   final bool autoFocus;
   final bool allowEmpty;
   final String? subtitle;
-  final VoidCallback? onOverwrite;
 
   const ShoppingListItemWidget({
     super.key,
@@ -67,7 +66,6 @@ class ShoppingListItemWidget extends StatefulWidget {
     this.autoFocus = false,
     this.allowEmpty = false,
     this.subtitle,
-    this.onOverwrite,
   });
 
   @override
@@ -106,9 +104,6 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
     super.didUpdateWidget(oldWidget);
     if (!widget.item.hasSameContentAs(oldWidget.item)) {
       _controller.text = _formatItem();
-      if (_focusNode.hasFocus) {
-        widget.onOverwrite?.call();
-      }
     }
   }
 
@@ -208,6 +203,10 @@ class _ShoppingListItemWidgetState extends State<ShoppingListItemWidget> {
                         _parseAndSave();
                         widget.onSubmitted?.call();
                       }
+                      // Re-focus this row's own (reused) node after every
+                      // submit so the keyboard stays up across consecutive
+                      // entries — the ephemeral row keeps the same State
+                      // (constant ValueKey), so autoFocus only fires once.
                       _focusNode.requestFocus();
                     },
                     onTapOutside: (_) {

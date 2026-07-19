@@ -21,8 +21,7 @@
   using regex, TextField-based editing with focus management. Optional drag handle for reordering (using
   ReorderableDragStartListener), positioned on the left before the checkbox. Optional `subtitle` parameter shows
   secondary text (e.g. source recipe name) below the item text. When a remote change arrives while the item's field
-  is focused, the field is overwritten with the server value and an "updated elsewhere" toast is shown
-  (`onOverwrite`).
+  is focused, the field is silently overwritten with the server value (no toast).
 - Shopping List Item Add Widget (`shopping_list_item_add_widget.dart`) - Dedicated widget for adding new shopping list
   items with plus icon, "Add item..." hint text, smart text parsing (same as ShoppingListItemWidget), and automatic
   field clearing with focus retention after submission for quick consecutive entry.
