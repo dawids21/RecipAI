@@ -182,7 +182,11 @@ class ShoppingListItemStoreService {
             pendingDelete: false,
           );
           updatedByLocalId[inserted.localId] = inserted;
-        } else if (!local.dirty && s.version >= local.lastAckedVersion!) {
+        } else if (!local.dirty && s.version > local.lastAckedVersion!) {
+          // Strict `>` on purpose: an equal version means the local row is
+          // already at this exact acked state, so adopting would rebuild an
+          // identical item and fire a redundant DB write + notifier rebuild.
+          // Don't relax to `>=` — that reintroduces the spurious-update churn.
           final adopted = local.copyWith(
             name: s.name,
             quantity: s.quantity,

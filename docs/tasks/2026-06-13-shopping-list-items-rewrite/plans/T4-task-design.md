@@ -292,8 +292,9 @@ reconcileFromServer(listId, serverItems):            # store; one DAO txn; resid
                         lastAckedVersion=s.version, dirty=false, failed=false,
                         pendingDelete=false)
         cache[ins.localId] = ins; upsertTxn(ins)
-      else if not local.dirty and s.version >= local.lastAckedVersion:
+      else if not local.dirty and s.version > local.lastAckedVersion:
                                                         # adopt server value (fields + version)
+                                                        # equal version = identical acked state, adopting is redundant
         upd = local.copyWith(fields<-s, lastAckedVersion=s.version, pendingDelete=false)
         cache[local.localId] = upd; upsertTxn(upd)
       # else dirty -> KEEP local, do NOT touch fields or lastAckedVersion (push owns it)
@@ -344,8 +345,9 @@ didUpdateWidget(old):
   is resident when the immediate poll reconciles.
 - **Poll interval 10s** — the low end of req §1.4's 10–30s, for snappier propagation
   at negligible cost (30–40 items).
-- **Adopt is version-gated: `s.version >= local.lastAckedVersion`** *(added in
-  review)* — `_busy` prevents *concurrent* reconciles, but not out-of-order *arrival*:
+- **Adopt is version-gated: `s.version > local.lastAckedVersion`** *(added in
+  review)* — equal version = identical acked state, adopting is redundant. `_busy`
+  prevents *concurrent* reconciles, but not out-of-order *arrival*:
   the immediate poll on open can resolve after a fresher periodic poll has already run
   (§Serialization ordering caveat). Without a version check, that stale response would
   silently regress the item's fields back in time until the next poll corrects it. The
