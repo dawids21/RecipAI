@@ -109,8 +109,12 @@ class ShoppingListItemStoreService {
 
   Future<void> deleteAllChecked(String listId) {
     return _lockFor(listId).synchronized(() async {
-      final checked = _cache[listId]!.values
-          .where((i) => i.checked)
+      final resident = _cache.containsKey(listId);
+      final items = resident
+          ? _cache[listId]!.values
+          : await _dao.readItems(listId);
+      final checked = items
+          .where((i) => !i.pendingDelete && i.checked)
           .map((i) => i.localId)
           .toList();
       for (final localId in checked) {
@@ -121,8 +125,12 @@ class ShoppingListItemStoreService {
 
   Future<void> uncheckAll(String listId) {
     return _lockFor(listId).synchronized(() async {
-      final checked = _cache[listId]!.values
-          .where((i) => i.checked)
+      final resident = _cache.containsKey(listId);
+      final items = resident
+          ? _cache[listId]!.values
+          : await _dao.readItems(listId);
+      final checked = items
+          .where((i) => !i.pendingDelete && i.checked)
           .map((i) => i.localId)
           .toList();
       for (final localId in checked) {
@@ -321,8 +329,11 @@ class ShoppingListItemStoreService {
     String? unit,
     String? afterLocalId,
   ) async {
-    final listCache = _cache[listId]!;
-    final visible = listCache.values.where((i) => !i.pendingDelete).toList()
+    final resident = _cache.containsKey(listId);
+    final items = resident
+        ? _cache[listId]!.values
+        : await _dao.readItems(listId);
+    final visible = items.where((i) => !i.pendingDelete).toList()
       ..sort((a, b) => a.compareTo(b));
 
     double position;
@@ -355,8 +366,10 @@ class ShoppingListItemStoreService {
       pendingDelete: false,
     );
 
-    listCache[item.localId] = item;
-    _notifiers[listId]!.value = _visibleItems(listId);
+    if (resident) {
+      _cache[listId]![item.localId] = item;
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
     await _dao.writeItemAppendingOutbox(item, OutboxKind.create, {
       'name': item.name,
       'quantity': item.quantity,
@@ -373,15 +386,19 @@ class ShoppingListItemStoreService {
     double? quantity,
     String? unit,
   ) async {
-    final item = _cache[listId]![localId]!;
+    final resident = _cache.containsKey(listId);
+    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    if (item == null) return;
     final updated = item.copyWith(
       name: name,
       quantity: quantity,
       unit: unit,
       dirty: true,
     );
-    _cache[listId]![localId] = updated;
-    _notifiers[listId]!.value = _visibleItems(listId);
+    if (resident) {
+      _cache[listId]![localId] = updated;
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
     await _dao.writeItemAppendingOutbox(
       updated,
       OutboxKind.update,
@@ -390,10 +407,14 @@ class ShoppingListItemStoreService {
   }
 
   Future<void> _checkItem(String listId, String localId, bool checked) async {
-    final item = _cache[listId]![localId]!;
+    final resident = _cache.containsKey(listId);
+    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    if (item == null) return;
     final updated = item.copyWith(checked: checked, dirty: true);
-    _cache[listId]![localId] = updated;
-    _notifiers[listId]!.value = _visibleItems(listId);
+    if (resident) {
+      _cache[listId]![localId] = updated;
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
     await _dao.writeItemAppendingOutbox(
       updated,
       OutboxKind.update,
@@ -406,10 +427,14 @@ class ShoppingListItemStoreService {
     String localId,
     double newPosition,
   ) async {
-    final item = _cache[listId]![localId]!;
+    final resident = _cache.containsKey(listId);
+    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    if (item == null) return;
     final updated = item.copyWith(position: newPosition, dirty: true);
-    _cache[listId]![localId] = updated;
-    _notifiers[listId]!.value = _visibleItems(listId);
+    if (resident) {
+      _cache[listId]![localId] = updated;
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
     await _dao.writeItemAppendingOutbox(
       updated,
       OutboxKind.update,
@@ -418,10 +443,14 @@ class ShoppingListItemStoreService {
   }
 
   Future<void> _deleteItem(String listId, String localId) async {
-    final item = _cache[listId]![localId]!;
+    final resident = _cache.containsKey(listId);
+    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    if (item == null) return;
     final updated = item.copyWith(pendingDelete: true, dirty: true);
-    _cache[listId]![localId] = updated;
-    _notifiers[listId]!.value = _visibleItems(listId);
+    if (resident) {
+      _cache[listId]![localId] = updated;
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
     await _dao.writeItemAppendingOutbox(updated, OutboxKind.delete, {});
   }
 
