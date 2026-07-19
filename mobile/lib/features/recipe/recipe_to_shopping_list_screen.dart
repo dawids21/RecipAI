@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
+import '../shopping_list/shopping_list_item_import_service.dart';
 import '../shopping_list/shopping_list_list_service.dart';
 import '../shopping_list/shopping_list_review_item.dart';
 import '../shopping_list/shopping_list_review_widget.dart';
@@ -11,11 +12,13 @@ class RecipeToShoppingListScreen extends StatelessWidget {
   final String recipeId;
   final RecipeDetailService recipeDetailService;
   final ShoppingListListService shoppingListListService;
+  final ShoppingListItemImportService importService;
 
   const RecipeToShoppingListScreen({
     required this.recipeId,
     required this.recipeDetailService,
     required this.shoppingListListService,
+    required this.importService,
     super.key,
   });
 
@@ -72,8 +75,7 @@ class RecipeToShoppingListScreen extends StatelessWidget {
                       child: ShoppingListReviewWidget(
                         items: reviewItems,
                         shoppingListListService: shoppingListListService,
-                        // TODO(shopping-list-items): forward the item-sync
-                        // dependency the review widget needs to add items.
+                        importService: importService,
                       ),
                     ),
                   ],

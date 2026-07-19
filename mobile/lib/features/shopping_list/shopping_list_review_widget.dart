@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
+import 'shopping_list_item_import_service.dart';
 import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_review_item.dart';
 
-// TODO(shopping-list-items): this widget needs a way to add the reviewed
-// generated items into a chosen shopping list (see _onAddButtonPressed).
-
 class ShoppingListReviewWidget extends StatefulWidget {
   final List<ShoppingListGeneratedItem> items;
   final ShoppingListListService shoppingListListService;
+  final ShoppingListItemImportService importService;
 
   const ShoppingListReviewWidget({
     super.key,
     required this.items,
     required this.shoppingListListService,
+    required this.importService,
   });
 
   @override
@@ -140,9 +140,15 @@ class _ShoppingListReviewWidgetState extends State<ShoppingListReviewWidget> {
     final selectedListId = await _showListSelectionDialog();
     if (selectedListId == null || !mounted) return;
 
-    // TODO(shopping-list-items): add `selectedItems` to the shopping list
-    // identified by `selectedListId`. Until then the success snackbar below is
-    // shown without anything actually being persisted.
+    try {
+      await widget.importService.importItems(selectedListId, selectedItems);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to add items: $error')));
+      return;
+    }
 
     if (!mounted) return;
 

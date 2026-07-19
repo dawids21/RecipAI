@@ -30,7 +30,7 @@
   with TextField input, proper TextEditingController lifecycle management, and validation to prevent empty names.
 - Shopping List Review Widget (`shopping_list_review_widget.dart`) - Review widget with ReorderableListView, inline
   editing, and checkbox selection for generated items. Allows users to select which generated items to add to a
-  shopping list. The actual queuing of items to the sync service is stubbed pending the shopping-list-items rewrite.
+  shopping list; selected items are queued to the chosen list via `ShoppingListItemImportService` and synced.
 
 ## Flow
 

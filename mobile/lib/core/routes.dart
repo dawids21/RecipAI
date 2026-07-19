@@ -27,6 +27,7 @@ import '../features/recipe/recipe_picker_screen.dart';
 import '../features/recipe/recipe_to_shopping_list_screen.dart';
 import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
+import '../features/shopping_list/shopping_list_item_import_service.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import 'main_screen.dart';
 
@@ -217,6 +218,7 @@ GoRouter createAppRouter() {
                     recipeId: id,
                     recipeDetailService: getIt<RecipeDetailService>(),
                     shoppingListListService: getIt<ShoppingListListService>(),
+                    importService: getIt<ShoppingListItemImportService>(),
                   );
                 },
               ),
@@ -240,6 +242,7 @@ GoRouter createAppRouter() {
               shoppingListListService: getIt<ShoppingListListService>(),
               generationService: getIt<ShoppingListGenerationService>(),
               calendarService: getIt<ShoppingListGenerationCalendarService>(),
+              importService: getIt<ShoppingListItemImportService>(),
             ),
           ),
           GoRoute(

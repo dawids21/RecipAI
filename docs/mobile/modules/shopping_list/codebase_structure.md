@@ -13,6 +13,7 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_sync_service.dart     # Background pull/push sync: 10s poll reconcile + single-flight-drain of the outbox, routed through the store
 ├── shopping_list_list_service.dart     # Shopping list list business logic with ValueNotifier
 ├── shopping_list_detail_service.dart   # Shopping list detail business logic; drives local item add/edit/check/delete/reorder and bulk ops
+├── shopping_list_item_import_service.dart # Bulk-imports reviewed generated items into a chosen (possibly non-open) list via the store, then requests a sync drain
 ├── shopping_list_setup.dart            # Dependency injection setup for shopping list module
 ├── shopping_list_list.dart             # Reusable shopping list body widget
 ├── shopping_list_list_fab.dart         # Reusable shopping list FAB widget

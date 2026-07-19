@@ -2,6 +2,7 @@ import 'package:recipai_mobile/core/get_it.dart';
 
 import '../auth/auth_service.dart';
 import 'shopping_list_detail_service.dart';
+import 'shopping_list_item_import_service.dart';
 import 'shopping_list_item_repository.dart';
 import 'shopping_list_item_store_service.dart';
 import 'shopping_list_list_service.dart';
@@ -38,6 +39,13 @@ void setupShoppingList({
     dispose: (s) => s.dispose(),
   );
   getIt<ShoppingListSyncService>().start();
+
+  getIt.registerLazySingleton(
+    () => ShoppingListItemImportService(
+      store: getIt<ShoppingListItemStoreService>(),
+      syncService: getIt<ShoppingListSyncService>(),
+    ),
+  );
 
   getIt.registerLazySingleton(
     () => ShoppingListListService(
