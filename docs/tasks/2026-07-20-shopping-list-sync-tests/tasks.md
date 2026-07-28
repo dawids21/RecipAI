@@ -172,8 +172,6 @@ its own fixed end state.
 
 **Out of scope**
 
-- Production code changes — the sync seams landed in T1 and the test DB factory
-  in T2.
 - The drain loop's single-flight coalescing guard — HLD Out of scope.
 
 **Depends on:** T2 (and its structural review sign-off)

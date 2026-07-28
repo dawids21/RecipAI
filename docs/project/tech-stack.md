@@ -111,6 +111,8 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 | fuzzy | 0.5.1 | Local fuzzy search |
 | intl | — | Internationalization |
 | flutter_lints | 6.0.0 | Linting |
+| mocktail | 1.0.5 | Repository mocking in widget tests |
+| sqflite_common_ffi | 2.4.2 | In-memory SQLite for sync-path unit tests |
 
 ---
 

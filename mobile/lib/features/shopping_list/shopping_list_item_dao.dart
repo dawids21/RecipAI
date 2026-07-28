@@ -165,6 +165,15 @@ class ShoppingListItemDao {
     return rows.map((row) => row['list_id'] as String).toList();
   }
 
+  /// Count of pending outbox entries for [listId].
+  Future<int> outboxCount(String listId) async {
+    final result = await _db.rawQuery(
+      'SELECT COUNT(*) AS c FROM outbox WHERE list_id = ?',
+      [listId],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   /// Reads a single item row by [localId], or `null` if it no longer exists.
   Future<LocalShoppingListItem?> readItem(String localId) async {
     final rows = await _db.query(
