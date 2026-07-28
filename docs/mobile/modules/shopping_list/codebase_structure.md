@@ -10,7 +10,7 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_item_dao.dart         # sqflite DAO for the items + append-only outbox tables; OutboxKind enum
 ├── shopping_list_item_repository.dart  # HTTP item endpoints (fetch/create/update/delete); OutboxPayload + item exception types
 ├── shopping_list_item_store_service.dart # Local item store aggregate: in-memory cache + per-list ValueNotifier + per-list Lock over the DAO/outbox; serialises every read-modify-write per list (ADR-0004)
-├── shopping_list_sync_service.dart     # Background pull/push sync: 10s poll reconcile + single-flight-drain of the outbox, routed through the store
+├── shopping_list_sync_service.dart     # Background sync: scheduler-driven poll (fetch+reconcile) and a decoupled drain timer draining the outbox, routed through the store (ADR-0005)
 ├── shopping_list_list_service.dart     # Shopping list list business logic with ValueNotifier
 ├── shopping_list_detail_service.dart   # Shopping list detail business logic; drives local item add/edit/check/delete/reorder and bulk ops
 ├── shopping_list_item_import_service.dart # Bulk-imports reviewed generated items into a chosen (possibly non-open) list via the store, then requests a sync drain

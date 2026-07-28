@@ -12,6 +12,7 @@ mobile/
 │   │   ├── get_it.dart                 # Global GetIt instance
 │   │   ├── feature_flags.dart          # Feature flags configuration using environment variables
 │   │   ├── preferences_service.dart    # SharedPreferences wrapper for local storage (recipe filter, plan visibility)
+│   │   ├── scheduler.dart              # Scheduler/ScheduledTimer abstraction over dart:async Timer, injected into services for testability (ADR-0005)
 │   │   ├── theme.dart                  # App theme and spacing constants
 │   │   ├── logging/                    # Logging infrastructure (capture always on; flag gates share UI only)
 │   │   │   ├── logging_setup.dart      # Wires root logger to AppLogSink, registers sink in get_it

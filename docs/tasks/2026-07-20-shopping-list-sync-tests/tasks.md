@@ -77,8 +77,8 @@ does today.
   add/edit/check/delete an item, background then foreground the app, confirm
   changes converge and the sync indicator behaves as before.
 - The new scheduler seam and `@visibleForTesting` push / reconcile steps are
-  present and callable — a throwaway `flutter test` snippet constructing the
-  service with an inert scheduler and awaiting one push step compiles and runs.
+  present and callable (verified by T2's suite constructing the service with an
+  inert scheduler).
 
 **Risks / unknowns**
 

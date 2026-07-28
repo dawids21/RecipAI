@@ -6,7 +6,9 @@ import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:synchronized/synchronized.dart';
 
+import '../../core/scheduler.dart';
 import '../auth/auth_service.dart';
+import 'shopping_list_item.dart';
 import 'shopping_list_item_dao.dart';
 import 'shopping_list_item_repository.dart';
 import 'shopping_list_item_store_service.dart';
@@ -21,7 +23,7 @@ enum RejectionOutcome { conflict, gone, rejected }
 /// Outcome of pushing a single outbox entry, telling [_drainPass] whether to
 /// keep draining ([pushed]), stop because the queue is empty ([empty]), or stop
 /// because it stalled on a transient/offline failure ([stalled]).
-enum _PushResult { empty, pushed, stalled }
+enum PushResult { empty, pushed, stalled }
 
 /// A view-drained notification of a dropped outbox entry. The screen for
 /// [listId], if open, renders a toast; otherwise the event has no subscriber
@@ -50,14 +52,17 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   final ShoppingListItemRepository _itemRepository;
   final ShoppingListItemStoreService _store;
   final AuthService _authService;
+  final Scheduler _scheduler;
 
   ShoppingListSyncService({
     required ShoppingListItemRepository itemRepository,
     required ShoppingListItemStoreService store,
     required AuthService authService,
+    required Scheduler scheduler,
   }) : _itemRepository = itemRepository,
        _store = store,
-       _authService = authService;
+       _authService = authService,
+       _scheduler = scheduler;
 
   /// Per-list sync lock, held across one poll (fetch+reconcile) OR one push
   /// entry (fetch+push+ack) — never across backoff waits — so a poll's reconcile
@@ -72,9 +77,10 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   final _draining = <String>{};
   final _pending = <String>{};
   final _retry = <String, int>{};
-  final _backoffTimers = <String, Timer>{};
-  final _offlineTimers = <String, Timer>{};
-  final _pollTimers = <String, Timer>{};
+  final _backoffTimers = <String, ScheduledTimer>{};
+  final _offlineTimers = <String, ScheduledTimer>{};
+  final _pollTimers = <String, ScheduledTimer>{};
+  final _drainTimers = <String, ScheduledTimer>{};
   final _status = <String, ValueNotifier<SyncStatus>>{};
   final _rejections = StreamController<RejectionEvent>.broadcast();
 
@@ -103,12 +109,12 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// Coalesced per-list kick — append / openList / resume / backoff / retry
   /// all call this. A kick arriving mid-drain is never lost: it sets
   /// [_pending], which [_drain] re-checks before it clears [_draining].
-  void requestDrain(String listId) {
+  Future<void> requestDrain(String listId) {
     if (_draining.contains(listId)) {
       _pending.add(listId);
-      return;
+      return Future.value();
     }
-    unawaited(_drain(listId));
+    return _drain(listId);
   }
 
   /// Resets [listId]'s retry counter and re-kicks its drain (from its
@@ -116,7 +122,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   Future<void> retry(String listId) async {
     _retry[listId] = 0;
     _backoffTimers.remove(listId)?.cancel();
-    requestDrain(listId);
+    unawaited(requestDrain(listId));
   }
 
   /// Registers the app-lifecycle observer and fans out a drain over every
@@ -124,7 +130,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// viewing still flush.
   Future<void> start() async {
     WidgetsBinding.instance.addObserver(this);
-    await _fanOutPending();
+    await fanOutPending();
   }
 
   @override
@@ -134,54 +140,77 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       for (final timer in _pollTimers.values) {
         timer.cancel();
       }
+      for (final timer in _drainTimers.values) {
+        timer.cancel();
+      }
     } else if (state == AppLifecycleState.resumed) {
-      unawaited(_fanOutPending());
+      unawaited(fanOutPending());
       for (final listId in _pollTimers.keys.toList()) {
         _pollTimers[listId]?.cancel();
-        _pollTimers[listId] = Timer.periodic(
+        _pollTimers[listId] = _scheduler.periodic(
           _pollInterval,
-          (_) => unawaited(_poll(listId)),
+          () => unawaited(_poll(listId)),
+        );
+        _drainTimers[listId]?.cancel();
+        _drainTimers[listId] = _scheduler.periodic(
+          _pollInterval,
+          () => unawaited(requestDrain(listId)),
         );
         unawaited(_poll(listId));
       }
     }
   }
 
-  Future<void> _fanOutPending() async {
+  /// Fans a drain over every list with a pending outbox, awaiting each drain
+  /// to quiescence so this future resolves once the whole fan-out settles.
+  @visibleForTesting
+  Future<void> fanOutPending() async {
     final listIds = await _store.listIdsWithOutbox();
-    for (final listId in listIds) {
-      requestDrain(listId);
-    }
+    await Future.wait([for (final listId in listIds) requestDrain(listId)]);
   }
 
   /// Starts polling [listId]: an immediate poll (the cold-start item load)
-  /// then a periodic timer every [_pollInterval].
+  /// then a periodic timer every [_pollInterval]; also arms the per-list
+  /// drain timer that owns the periodic drain-kick now that polling is
+  /// drain-free.
   void startPolling(String listId) {
     _pollTimers.remove(listId)?.cancel();
     unawaited(_poll(listId));
-    _pollTimers[listId] = Timer.periodic(
+    _pollTimers[listId] = _scheduler.periodic(
       _pollInterval,
-      (_) => unawaited(_poll(listId)),
+      () => unawaited(_poll(listId)),
+    );
+    _drainTimers.remove(listId)?.cancel();
+    _drainTimers[listId] = _scheduler.periodic(
+      _pollInterval,
+      () => unawaited(requestDrain(listId)),
     );
   }
 
   /// Stops polling [listId] (screen closed).
   void stopPolling(String listId) {
     _pollTimers.remove(listId)?.cancel();
+    _drainTimers.remove(listId)?.cancel();
+  }
+
+  /// Fetches [listId]'s items from the server and reconciles them into the
+  /// store, under the sync lock as one unit, so a concurrent push's ack can
+  /// never land between this snapshot and its reconcile and make the
+  /// reconcile's deletion/insert pass act on stale server state. A pure pull:
+  /// no longer kicks a drain (that is the drain timer's job).
+  @visibleForTesting
+  Future<List<ShoppingListItem>> fetchAndReconcile(String listId) {
+    return _syncLockFor(listId).synchronized(() async {
+      final token = await _authService.idToken;
+      final items = await _itemRepository.fetchServerItems(listId, token);
+      await _store.reconcileFromServer(listId, items);
+      return items;
+    });
   }
 
   Future<void> _poll(String listId) async {
     try {
-      // Fetch and reconcile under the sync lock as one unit, so a concurrent
-      // push's ack can never land between this snapshot and its reconcile and
-      // make the reconcile's deletion/insert pass act on stale server state.
-      final items = await _syncLockFor(listId).synchronized(() async {
-        final token = await _authService.idToken;
-        final items = await _itemRepository.fetchServerItems(listId, token);
-        await _store.reconcileFromServer(listId, items);
-        return items;
-      });
-      requestDrain(listId);
+      final items = await fetchAndReconcile(listId);
       _log.fine('poll ok (listId=$listId, items=${items.length})');
     } on ShoppingListNetworkException {
       _log.fine('poll offline (listId=$listId)');
@@ -217,33 +246,38 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// interleave between two pushes but never straddle a single push's ack.
   Future<bool> _drainPass(String listId) async {
     while (true) {
-      final result = await _syncLockFor(
-        listId,
-      ).synchronized(() => _pushHeadEntry(listId));
+      final result = await pushNextEntry(listId);
       switch (result) {
-        case _PushResult.empty:
+        case PushResult.empty:
           return true;
-        case _PushResult.stalled:
+        case PushResult.stalled:
           return false;
-        case _PushResult.pushed:
+        case PushResult.pushed:
           continue; // drain the next entry under a fresh lock acquisition
       }
     }
   }
 
-  /// Pushes [listId]'s head outbox entry and reconciles the outcome, all under
-  /// the caller-held sync lock. Arming a backoff timer only schedules a future
-  /// kick — it does not wait — so the lock is not held across the backoff.
-  Future<_PushResult> _pushHeadEntry(String listId) async {
+  /// Pushes [listId]'s single head outbox entry and reconciles the outcome,
+  /// acquiring the sync lock for the duration of the call (so a direct call
+  /// still exercises the real per-entry locking). Arming a backoff timer only
+  /// schedules a future kick — it does not wait — so the lock is not held
+  /// across the backoff.
+  @visibleForTesting
+  Future<PushResult> pushNextEntry(String listId) {
+    return _syncLockFor(listId).synchronized(() => _pushHeadEntry(listId));
+  }
+
+  Future<PushResult> _pushHeadEntry(String listId) async {
     final entry = await _store.nextOutboxEntry(listId);
-    if (entry == null) return _PushResult.empty;
+    if (entry == null) return PushResult.empty;
     _setStatus(listId, SyncStatus.syncing);
 
     try {
       await _pushOne(entry);
       _retry[listId] = 0;
       _offlineTimers.remove(listId)?.cancel();
-      return _PushResult.pushed;
+      return PushResult.pushed;
     } on ItemVersionConflictException catch (e) {
       await _store.cascadeDiscard(listId, entry.itemLocalId, e.winner);
       _log.warning(
@@ -251,7 +285,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       );
       _emit(RejectionEvent(listId, e.winner.name, RejectionOutcome.conflict));
       _offlineTimers.remove(listId)?.cancel();
-      return _PushResult.pushed;
+      return PushResult.pushed;
     } on ItemDiscardedException catch (e) {
       final item = await _store.readItem(entry.itemLocalId);
       await _store.discardItem(listId, entry.itemLocalId);
@@ -263,14 +297,14 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       );
       _emit(RejectionEvent(listId, item?.name ?? '', outcome));
       _offlineTimers.remove(listId)?.cancel();
-      return _PushResult.pushed;
+      return PushResult.pushed;
     } on ShoppingListNetworkException {
       _setStatus(listId, SyncStatus.offline);
       _armOfflineTimer(listId);
       _log.fine(
         'Item push offline, entry retries on next signal (listId=$listId)',
       );
-      return _PushResult.stalled;
+      return PushResult.stalled;
     } catch (e) {
       final attempt = (_retry[listId] ?? 0) + 1;
       _retry[listId] = attempt;
@@ -287,7 +321,7 @@ class ShoppingListSyncService with WidgetsBindingObserver {
         );
         _setStatus(listId, SyncStatus.failure);
       }
-      return _PushResult.stalled;
+      return PushResult.stalled;
     }
   }
 
@@ -339,9 +373,9 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   void _armBackoffTimer(String listId, int attempt) {
     _backoffTimers.remove(listId)?.cancel();
     final seconds = math.min(math.pow(2, attempt - 1).toInt(), 30);
-    _backoffTimers[listId] = Timer(Duration(seconds: seconds), () {
+    _backoffTimers[listId] = _scheduler.oneShot(Duration(seconds: seconds), () {
       _backoffTimers.remove(listId);
-      requestDrain(listId);
+      unawaited(requestDrain(listId));
     });
   }
 
@@ -351,8 +385,8 @@ class ShoppingListSyncService with WidgetsBindingObserver {
   /// [SyncStatus.failure].
   void _armOfflineTimer(String listId) {
     if (_offlineTimers.containsKey(listId)) return;
-    _offlineTimers[listId] = Timer.periodic(_pollInterval, (_) {
-      requestDrain(listId);
+    _offlineTimers[listId] = _scheduler.periodic(_pollInterval, () {
+      unawaited(requestDrain(listId));
     });
   }
 
@@ -376,6 +410,10 @@ class ShoppingListSyncService with WidgetsBindingObserver {
       timer.cancel();
     }
     _pollTimers.clear();
+    for (final timer in _drainTimers.values) {
+      timer.cancel();
+    }
+    _drainTimers.clear();
     for (final notifier in _status.values) {
       notifier.dispose();
     }

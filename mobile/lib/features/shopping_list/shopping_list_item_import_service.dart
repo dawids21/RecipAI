@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:logging/logging.dart';
 
 import 'shopping_list_item_store_service.dart';
@@ -12,7 +14,10 @@ class ShoppingListItemImportService {
   final ShoppingListItemStoreService store;
   final ShoppingListSyncService syncService;
 
-  ShoppingListItemImportService({required this.store, required this.syncService});
+  ShoppingListItemImportService({
+    required this.store,
+    required this.syncService,
+  });
 
   Future<void> importItems(
     String listId,
@@ -27,6 +32,6 @@ class ShoppingListItemImportService {
         unit: item.unit,
       );
     }
-    syncService.requestDrain(listId);
+    unawaited(syncService.requestDrain(listId));
   }
 }

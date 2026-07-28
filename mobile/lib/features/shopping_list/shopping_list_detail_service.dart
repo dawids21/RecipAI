@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
@@ -72,7 +74,7 @@ class ShoppingListDetailService {
     listenable.addListener(_itemsListener!);
     _items.value = AsyncValue.data(listenable.value);
     _syncService.startPolling(listId);
-    _syncService.requestDrain(listId);
+    unawaited(_syncService.requestDrain(listId));
   }
 
   /// This list's sync status (syncing / notSyncing / failure), driving the
@@ -101,7 +103,7 @@ class ShoppingListDetailService {
       unit: parsed.unit,
       afterLocalId: afterLocalId,
     );
-    _syncService.requestDrain(listId);
+    unawaited(_syncService.requestDrain(listId));
   }
 
   Future<void> editItem(String localId, ItemChanged parsed) async {
@@ -181,7 +183,7 @@ class ShoppingListDetailService {
 
   void _requestDrainForOpenList() {
     final listId = _openListId;
-    if (listId != null) _syncService.requestDrain(listId);
+    if (listId != null) unawaited(_syncService.requestDrain(listId));
   }
 
   Future<void> renameShoppingList(String id, String newName) async {

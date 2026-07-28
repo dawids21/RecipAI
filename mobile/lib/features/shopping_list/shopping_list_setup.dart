@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:recipai_mobile/core/get_it.dart';
 
+import '../../core/scheduler.dart';
 import '../auth/auth_service.dart';
 import 'shopping_list_detail_service.dart';
 import 'shopping_list_item_import_service.dart';
@@ -16,6 +19,7 @@ void setupShoppingList({
   required ShoppingListItemStoreService store,
   ShoppingListItemRepository? itemRepository,
   ShoppingListRepository? shoppingListRepository,
+  Scheduler? scheduler,
 }) {
   final repository = shoppingListRepository ?? ShoppingListRepository();
   getIt.registerSingleton<ShoppingListRepository>(repository);
@@ -35,10 +39,11 @@ void setupShoppingList({
       itemRepository: getIt<ShoppingListItemRepository>(),
       store: getIt<ShoppingListItemStoreService>(),
       authService: getIt<AuthService>(),
+      scheduler: scheduler ?? RealScheduler(),
     ),
     dispose: (s) => s.dispose(),
   );
-  getIt<ShoppingListSyncService>().start();
+  unawaited(getIt<ShoppingListSyncService>().start());
 
   getIt.registerLazySingleton(
     () => ShoppingListItemImportService(
