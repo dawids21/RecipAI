@@ -27,6 +27,8 @@ SERVICE_ACCOUNT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "play-service-account.json"
 )
 SCOPES = ["https://www.googleapis.com/auth/androidpublisher"]
+# Resumable upload chunk size; must be a multiple of 256 KiB.
+CHUNK_SIZE = 4 * 1024 * 1024
 
 
 def parse_args() -> argparse.Namespace:
@@ -100,12 +102,25 @@ def main() -> None:
 
         from googleapiclient.http import MediaFileUpload
 
+        size_mb = os.path.getsize(args.aab) / (1024 * 1024)
+        print(f"uploading {args.aab} ({size_mb:.1f} MiB)")
+
+        # Chunked so upload progress is visible; the default 100 MiB chunk would
+        # send the whole bundle in one silent request.
         media = MediaFileUpload(
-            args.aab, mimetype="application/octet-stream", resumable=True
+            args.aab,
+            mimetype="application/octet-stream",
+            chunksize=CHUNK_SIZE,
+            resumable=True,
         )
-        bundle = edits.bundles().upload(
+        request = edits.bundles().upload(
             packageName=args.package, editId=edit_id, media_body=media
-        ).execute()
+        )
+        bundle = None
+        while bundle is None:
+            status, bundle = request.next_chunk()
+            if status is not None:
+                print(f"  {status.progress() * 100:5.1f}%", flush=True)
         version_code = bundle["versionCode"]
         print(f"uploaded bundle versionCode {version_code}")
 
