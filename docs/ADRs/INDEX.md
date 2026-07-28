@@ -18,3 +18,8 @@ consequences. Read an ADR before changing code in the area it covers.
   A new store object owns the item cache/notifiers/outbox and serialises every
   read-modify-write per list (network kept outside the section), closing the
   poll-vs-edit cache clobber and shrinking `_busy` to a single-flight-drain guard.
+- [ADR-0005: Shopping-list sync is made deterministically testable via an injected scheduler and a single-entry push seam](0005-shopping-list-sync-test-seam.md) —
+  All timer creation is routed through an injected scheduler (inert in tests),
+  polling is decoupled from draining, and the single-entry push is an awaitable
+  test-visible step with the sync lock moved inside it — so tests fix one exact
+  push/reconcile ordering with no dependence on timers.
