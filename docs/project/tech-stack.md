@@ -13,7 +13,7 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 - **Rationale**: Modern LTS with strong Spring Boot ecosystem; record types and pattern matching used for concise DTOs and clean code
 - **Key Features Used**: Records for DTOs, sealed classes, text blocks, Lombok-reduced boilerplate
 
-### Dart 3.8.1
+### Dart 3.12.2
 - **Usage**: ~100% of mobile codebase
 - **Rationale**: Required by Flutter; null-safe, strong typing, fast hot-reload for UI development
 - **Key Features Used**: Sealed classes (`AsyncValue`), extension methods, async/await
@@ -22,7 +22,7 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 
 ## Frameworks
 
-### Mobile — Flutter 3.32
+### Mobile — Flutter 3.44.4
 - Cross-platform UI toolkit; targets Android only
 - Material Design 3 theming via `ThemeData` with seed color
 - flutter_localizations for i18n support (en_US, en_GB, pl)
@@ -97,15 +97,15 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 
 | Dependency | Version | Purpose |
 |-----------|---------|---------|
-| go_router | 17.1.0 | Declarative navigation with enum-based routes |
-| firebase_auth | 6.0.2 | User authentication |
-| google_sign_in | 7.1.1 | OAuth2 sign-in |
-| get_it | 9.2.0 | Service locator dependency injection |
-| http | 1.1.0 | REST API client |
-| shared_preferences | 2.2.2 | Local persistent storage |
+| go_router | 17.3.0 | Declarative navigation with enum-based routes |
+| firebase_auth | 6.5.6 | User authentication |
+| google_sign_in | 7.2.0 | OAuth2 sign-in |
+| get_it | 9.2.1 | Service locator dependency injection |
+| http | 1.6.0 | REST API client |
+| shared_preferences | 2.5.5 | Local persistent storage |
 | sqflite | 2.4.3 | Offline-first local item store (shopping list items + outbox) |
-| image_picker | 1.2.0 | Camera/gallery image selection |
-| webview_flutter | 4.13.0 | In-app web content |
+| image_picker | 1.2.3 | Camera/gallery image selection |
+| webview_flutter | 4.14.1 | In-app web content |
 | photo_view | 0.15.0 | Zoomable recipe image viewer |
 | flutter_speed_dial | 7.0.0 | Floating action button with sub-actions |
 | fuzzy | 0.5.1 | Local fuzzy search |
@@ -136,6 +136,6 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 
 ---
 
-*Last Updated*: 2026-04-09
+*Last Updated*: 2026-07-28
 *Auto-detected*: tech stack, dependencies, versions, build tools, CI/CD config, infrastructure
 *User-provided*: hosting details (VPS for backend, AWS S3 for assets)
