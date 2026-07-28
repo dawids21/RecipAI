@@ -7,7 +7,8 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_detail.dart           # Shopping list detail data model (includes items)
 ├── local_shopping_list_item.dart       # Local item model with last-acked version, dirty, failed, and pending-delete flags
 ├── shopping_list_repository.dart       # Shopping list data access layer
-├── shopping_list_item_dao.dart         # sqflite DAO for the items + append-only outbox tables; OutboxKind enum
+├── shopping_list_item_database_factory.dart # Owns item DB creation: opens the on-device DB and holds the single-sourced items + outbox schema (shared with the in-memory test DB)
+├── shopping_list_item_dao.dart         # sqflite DAO over an injected Database for the items + append-only outbox tables; OutboxKind enum
 ├── shopping_list_item_repository.dart  # HTTP item endpoints (fetch/create/update/delete); OutboxPayload + item exception types
 ├── shopping_list_item_store_service.dart # Local item store aggregate: in-memory cache + per-list ValueNotifier + per-list Lock over the DAO/outbox; serialises every read-modify-write per list (ADR-0004)
 ├── shopping_list_sync_service.dart     # Background sync: scheduler-driven poll (fetch+reconcile) and a decoupled drain timer draining the outbox, routed through the store (ADR-0005)

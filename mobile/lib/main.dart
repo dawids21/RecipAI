@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'core/app_config.dart';
 import 'core/logging/logging_setup.dart';
@@ -20,7 +21,7 @@ import 'features/extraction/share_intent_setup.dart';
 import 'features/planning/meal_plan_setup.dart';
 import 'features/recipe/collection/recipes_collection_setup.dart';
 import 'features/recipe/recipe_setup.dart';
-import 'features/shopping_list/shopping_list_item_store_service.dart';
+import 'features/shopping_list/shopping_list_item_database_factory.dart';
 import 'features/shopping_list/shopping_list_setup.dart';
 
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -35,12 +36,16 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   getIt.registerSingleton(PreferencesService(prefs));
 
+  getIt.registerSingleton<Database>(
+    await const ShoppingListItemDatabaseFactory().open(),
+  );
+
   // DI
   setupAuth();
   setupRecipe();
   setupRecipesCollection();
   setupMealPlan();
-  setupShoppingList(store: await ShoppingListItemStoreService.open());
+  setupShoppingList();
   setupExtraction();
 
   final appRouter = createAppRouter();

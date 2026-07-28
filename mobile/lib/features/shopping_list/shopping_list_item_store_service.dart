@@ -16,13 +16,6 @@ class ShoppingListItemStoreService {
 
   ShoppingListItemStoreService({required ShoppingListItemDao dao}) : _dao = dao;
 
-  /// Opens the on-device database and builds the production store.
-  /// Called from `main()` so feature setup can stay synchronous.
-  static Future<ShoppingListItemStoreService> open() async {
-    final db = await ShoppingListItemDao.openShoppingListDatabase();
-    return ShoppingListItemStoreService(dao: ShoppingListItemDao(db));
-  }
-
   final _cache = <String, Map<String, LocalShoppingListItem>>{};
   final _notifiers = <String, ValueNotifier<List<LocalShoppingListItem>>>{};
   final _locks = <String, Lock>{};

@@ -36,7 +36,7 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 
 ### Testing
 - **Backend**: JUnit Jupiter + Spring Boot Test + Testcontainers (integration tests against real PostgreSQL)
-- **Mobile**: flutter_test + mocktail (widget tests pump the real screen against mocked repositories)
+- **Mobile**: flutter_test + mocktail (widget tests pump the real screen against mocked repositories); sync-path unit tests run against an in-memory SQLite DB via sqflite_common_ffi
 
 ---
 

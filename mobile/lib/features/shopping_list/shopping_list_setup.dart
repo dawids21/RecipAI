@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:recipai_mobile/core/get_it.dart';
+import 'package:sqflite/sqflite.dart';
 
 import '../../core/scheduler.dart';
 import '../auth/auth_service.dart';
 import 'shopping_list_detail_service.dart';
+import 'shopping_list_item_dao.dart';
 import 'shopping_list_item_import_service.dart';
 import 'shopping_list_item_repository.dart';
 import 'shopping_list_item_store_service.dart';
@@ -12,11 +14,11 @@ import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
 import 'shopping_list_sync_service.dart';
 
-/// Registers the shopping-list feature. The database-backed
-/// [ShoppingListItemStoreService] is opened by the caller (see `main()`) and
-/// injected here so setup stays synchronous; tests inject a mock instead.
+/// Registers the shopping-list feature. The production
+/// [ShoppingListItemStoreService] is built over the [Database] the caller
+/// opened and registered (see `main()`); tests inject a mock [store] instead.
 void setupShoppingList({
-  required ShoppingListItemStoreService store,
+  ShoppingListItemStoreService? store,
   ShoppingListItemRepository? itemRepository,
   ShoppingListRepository? shoppingListRepository,
   Scheduler? scheduler,
@@ -25,7 +27,8 @@ void setupShoppingList({
   getIt.registerSingleton<ShoppingListRepository>(repository);
 
   getIt.registerSingleton<ShoppingListItemStoreService>(
-    store,
+    store ??
+        ShoppingListItemStoreService(dao: ShoppingListItemDao(getIt<Database>())),
     dispose: (s) => s.dispose(),
   );
 
