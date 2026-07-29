@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Theme applied to the Android Window while the process is starting.
+         Deliberately not duplicated under values-night: the launch screen uses the
+         app icon background in both light and dark mode. -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
+        <!-- Android 12+ draws a system splash screen with the launcher icon on top
+             of this colour instead of using android:windowBackground. -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
     </style>
     <!-- Theme applied to the Android Window as soon as the process has started.
          This theme determines the color of the Android Window while your
@@ -13,6 +18,8 @@
 
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- Same colour as the launch screen so there is no flash between the
+             splash screen and Flutter's first frame. -->
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 </resources>

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#00000000</color>
+    <!-- Matches the app icon background (assets/graphics/icon.svg) so the launch
+         screen blends into the icon instead of showing a white/black backdrop. -->
+    <color name="splash_background">#FF8A65</color>
 </resources>
