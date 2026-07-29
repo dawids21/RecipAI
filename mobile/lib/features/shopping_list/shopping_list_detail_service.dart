@@ -93,9 +93,9 @@ class ShoppingListDetailService {
 
   /// Adds an item, inserting it after [afterLocalId] when given.
   Future<void> addItem(ItemChanged parsed, {String? afterLocalId}) async {
+    _log.info('addItem name="${parsed.name}"');
     final listId = _openListId;
     if (listId == null) return;
-    _log.info('addItem name="${parsed.name}"');
     await _store.applyCreate(
       listId,
       name: parsed.name,
@@ -138,9 +138,9 @@ class ShoppingListDetailService {
     int oldIndex,
     int newIndex,
   ) async {
-    if (oldIndex == newIndex) return;
     final item = items[oldIndex];
     _log.info('reorderItem (localId=${item.localId}, newIndex=$newIndex)');
+    if (oldIndex == newIndex) return;
     final newPosition = _reorderPosition(items, oldIndex, newIndex);
     await _store.applyReorder(_openListId!, item.localId, newPosition);
     _requestDrainForOpenList();
@@ -164,19 +164,19 @@ class ShoppingListDetailService {
   }
 
   Future<void> deleteAllChecked() async {
-    final listId = _openListId;
-    if (listId == null) return;
     final count = _items.value.valueOrNull?.where((i) => i.checked).length ?? 0;
     _log.info('deleteAllChecked (count=$count)');
+    final listId = _openListId;
+    if (listId == null) return;
     await _store.deleteAllChecked(listId);
     _requestDrainForOpenList();
   }
 
   Future<void> uncheckAll() async {
-    final listId = _openListId;
-    if (listId == null) return;
     final count = _items.value.valueOrNull?.where((i) => i.checked).length ?? 0;
     _log.info('uncheckAll (count=$count)');
+    final listId = _openListId;
+    if (listId == null) return;
     await _store.uncheckAll(listId);
     _requestDrainForOpenList();
   }
