@@ -12,11 +12,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+val uploadKeyProperties = Properties()
+val uploadKeyPropertiesFile = rootProject.file("upload-key.properties")
+if (uploadKeyPropertiesFile.exists()) {
+    uploadKeyProperties.load(FileInputStream(uploadKeyPropertiesFile))
 }
+val debugKeystoreFile = rootProject.file("debug_keystore.jks")
 
 android {
     namespace = "xyz.stasiak.recipai"
@@ -40,11 +41,19 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            storeFile = debugKeystoreFile
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+            if (uploadKeyPropertiesFile.exists()) {
+                keyAlias = uploadKeyProperties["keyAlias"] as String
+                keyPassword = uploadKeyProperties["keyPassword"] as String
+                storeFile = uploadKeyProperties["storeFile"]?.let { file(it) }
+                storePassword = uploadKeyProperties["storePassword"] as String
+            }
         }
     }
 
@@ -52,6 +61,20 @@ android {
         release {
             signingConfig = signingConfigs.getByName("release")
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val wantsDebugSigning = allTasks.any {
+        it.name.contains("Debug") || it.name.contains("Profile")
+    }
+    val wantsRelease = allTasks.any { it.name.contains("Release") }
+
+    if (wantsDebugSigning && !debugKeystoreFile.exists()) {
+        throw GradleException("Shared debug keystore missing. Run ./recipai.sh setup")
+    }
+    if (wantsRelease && !uploadKeyPropertiesFile.exists()) {
+        throw GradleException("Upload signing not configured. Build with ./recipai.sh build-mobile")
     }
 }
 
