@@ -84,7 +84,7 @@ Keep tone and formatting aligned with `HLD.md` — this is a sibling artifact in
 
 ### File-level content
 
-- **Metadata:** date, status (draft / final)
+- **Metadata:** date
 - **Summary:** ordered list of all tasks (ID + one-line name) so the reader sees the full shape before diving in. Order by dependency and value delivery, not alphabetically or by size.
 - **Cross-task notes** (optional): parallelism opportunities, shared prerequisites, sequencing constraints, feature-flag coordination
 

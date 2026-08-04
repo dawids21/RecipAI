@@ -1,7 +1,6 @@
 # <Task name> — High-level design
 
 **Date:** <YYYY-MM-DD>
-**Status:** draft
 **ADRs:** <ADR files written for this task, e.g., docs/ADRs/0007-image-storage-backend.md. "None" if there are no new ADRs.>
 
 ## Summary

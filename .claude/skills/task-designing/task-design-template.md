@@ -1,7 +1,6 @@
 # <Task ID / Feature name> — Task Design
 
 **Date:** <YYYY-MM-DD>
-**Status:** draft
 
 ## Summary
 

@@ -1,7 +1,6 @@
 # <Feature / design name> — Tasks
 
 **Date:** <YYYY-MM-DD>
-**Status:** draft
 
 ## Summary
 

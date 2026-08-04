@@ -2,7 +2,6 @@
 
 **Date:** <YYYY-MM-DD>
 **Type:** <feature | refactor>
-**Status:** requirements
 
 ## Summary
 

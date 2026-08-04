@@ -166,7 +166,6 @@ user, and ask whether to overwrite, create a `.v2` variant, or abort.
 - **Single-task mode** title: `# <Feature name> — Implementation Plan`
   (omit the `T<N>:` prefix).
 - **Date**: today's date in `YYYY-MM-DD` — not the date on `task-design.md`.
-- **Status**: always `draft` for the first write.
 
 ### Required reading
 Three subsections: Docs & standards, Design & ADRs, Code to mirror. Pull

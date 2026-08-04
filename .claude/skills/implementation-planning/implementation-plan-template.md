@@ -1,7 +1,6 @@
 # <Task ID>: <Task name> — Implementation Plan
 
 **Date:** <YYYY-MM-DD>
-**Status:** draft
 
 ## Required reading
 
