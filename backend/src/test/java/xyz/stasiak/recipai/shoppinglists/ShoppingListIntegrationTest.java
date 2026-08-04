@@ -13,6 +13,7 @@ import xyz.stasiak.recipai.shoppinglists.dto.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -121,7 +122,11 @@ class ShoppingListIntegrationTest {
     }
 
     private CreateShoppingListItemRequest itemRequest(String name, BigDecimal quantity, String unit, BigDecimal position) {
-        return new CreateShoppingListItemRequest(name, quantity, unit, position);
+        return new CreateShoppingListItemRequest(name, quantity, unit, false, position);
+    }
+
+    private CreateShoppingListItemRequest itemRequest(String name, BigDecimal quantity, String unit, boolean checked, BigDecimal position) {
+        return new CreateShoppingListItemRequest(name, quantity, unit, checked, position);
     }
 
     private ShoppingListItemDto updateItem(RestClient client, UUID listId, UUID itemId, UpdateShoppingListItemRequest request) {
@@ -598,6 +603,37 @@ class ShoppingListIntegrationTest {
         assertThat(item.checked()).isFalse();
         assertThat(item.position()).isEqualByComparingTo("1.000000000000");
         assertThat(item.version()).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldCreateItemAsCheckedWhenCheckedIsTrue() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", new BigDecimal("2.0"), "liters", true, new BigDecimal("1.0")));
+
+        assertThat(item.checked()).isTrue();
+
+        ShoppingListDto shoppingList = getShoppingList(client, list.id());
+        assertThat(shoppingList.items())
+                .filteredOn(i -> i.id().equals(item.id()))
+                .extracting(ShoppingListItemDto::checked)
+                .containsExactly(true);
+    }
+
+    @Test
+    void shouldCreateItemAsUncheckedWhenCheckedIsOmitted() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "Groceries");
+
+        ShoppingListItemDto item = client
+                .post()
+                .uri("/shopping-lists/" + list.id() + "/items")
+                .body(Map.of("name", "Milk", "quantity", new BigDecimal("2.0"), "unit", "liters", "position", new BigDecimal("1.0")))
+                .retrieve()
+                .body(ShoppingListItemDto.class);
+
+        assertThat(item.checked()).isFalse();
     }
 
     @Test

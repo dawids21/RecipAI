@@ -94,13 +94,13 @@ class ShoppingListItemStoreService {
     ).synchronized(() => _reorderItem(listId, localId, newPosition));
   }
 
-  Future<void> applyDelete(String listId, String localId) {
+  Future<LocalShoppingListItem?> applyDelete(String listId, String localId) {
     return _lockFor(listId).synchronized(() => _deleteItem(listId, localId));
   }
 
   // ── bulk (single lock acquisition, one atomic section) ──
 
-  Future<void> deleteAllChecked(String listId) {
+  Future<List<LocalShoppingListItem>> deleteAllChecked(String listId) {
     return _lockFor(listId).synchronized(() async {
       final resident = _cache.containsKey(listId);
       final items = resident
@@ -110,13 +110,16 @@ class ShoppingListItemStoreService {
           .where((i) => !i.pendingDelete && i.checked)
           .map((i) => i.localId)
           .toList();
+      final removed = <LocalShoppingListItem>[];
       for (final localId in checked) {
-        await _deleteItem(listId, localId);
+        final snapshot = await _deleteItem(listId, localId);
+        if (snapshot != null) removed.add(snapshot);
       }
+      return removed;
     });
   }
 
-  Future<void> uncheckAll(String listId) {
+  Future<List<String>> uncheckAll(String listId) {
     return _lockFor(listId).synchronized(() async {
       final resident = _cache.containsKey(listId);
       final items = resident
@@ -128,6 +131,32 @@ class ShoppingListItemStoreService {
           .toList();
       for (final localId in checked) {
         await _checkItem(listId, localId, false);
+      }
+      return checked;
+    });
+  }
+
+  /// Re-creates each of [snapshots] as a fresh row (undo of a delete).
+  Future<void> applyRestore(
+    String listId,
+    List<LocalShoppingListItem> snapshots,
+  ) {
+    return _lockFor(listId).synchronized(() async {
+      for (final snapshot in snapshots) {
+        await _restoreItem(listId, snapshot);
+      }
+    });
+  }
+
+  /// Sets [checked] on every item in [localIds] (undo of an uncheck-all).
+  Future<void> applyCheckedAll(
+    String listId,
+    List<String> localIds,
+    bool checked,
+  ) {
+    return _lockFor(listId).synchronized(() async {
+      for (final localId in localIds) {
+        await _checkItem(listId, localId, checked);
       }
     });
   }
@@ -376,6 +405,42 @@ class ShoppingListItemStoreService {
     });
   }
 
+  /// Re-creates [snapshot] as a fresh row: new `localId`, unsynced, carrying
+  /// name/quantity/unit/checked/position verbatim from the captured
+  /// pre-delete state. Queues a `create` outbox entry, mirroring `_createItem`.
+  Future<void> _restoreItem(
+    String listId,
+    LocalShoppingListItem snapshot,
+  ) async {
+    final resident = _cache.containsKey(listId);
+    final item = LocalShoppingListItem(
+      localId: _uuid.v4(),
+      serverId: null,
+      listId: listId,
+      name: snapshot.name,
+      quantity: snapshot.quantity,
+      unit: snapshot.unit,
+      checked: snapshot.checked,
+      position: snapshot.position,
+      lastAckedVersion: null,
+      dirty: true,
+      failed: false,
+      pendingDelete: false,
+    );
+
+    if (resident) {
+      _cache[listId]![item.localId] = item;
+      _notifiers[listId]!.value = _visibleItems(listId);
+    }
+    await _dao.writeItemAppendingOutbox(item, OutboxKind.create, {
+      'name': item.name,
+      'quantity': item.quantity,
+      'unit': item.unit,
+      'checked': item.checked,
+      'position': item.position,
+    });
+  }
+
   Future<void> _editItem(
     String listId,
     String localId,
@@ -384,7 +449,9 @@ class ShoppingListItemStoreService {
     String? unit,
   ) async {
     final resident = _cache.containsKey(listId);
-    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    final item = resident
+        ? _cache[listId]![localId]
+        : await _dao.readItem(localId);
     if (item == null) return;
     final updated = item.copyWith(
       name: name,
@@ -405,7 +472,9 @@ class ShoppingListItemStoreService {
 
   Future<void> _checkItem(String listId, String localId, bool checked) async {
     final resident = _cache.containsKey(listId);
-    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    final item = resident
+        ? _cache[listId]![localId]
+        : await _dao.readItem(localId);
     if (item == null) return;
     final updated = item.copyWith(checked: checked, dirty: true);
     if (resident) {
@@ -425,7 +494,9 @@ class ShoppingListItemStoreService {
     double newPosition,
   ) async {
     final resident = _cache.containsKey(listId);
-    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
+    final item = resident
+        ? _cache[listId]![localId]
+        : await _dao.readItem(localId);
     if (item == null) return;
     final updated = item.copyWith(position: newPosition, dirty: true);
     if (resident) {
@@ -439,16 +510,22 @@ class ShoppingListItemStoreService {
     );
   }
 
-  Future<void> _deleteItem(String listId, String localId) async {
+  Future<LocalShoppingListItem?> _deleteItem(
+    String listId,
+    String localId,
+  ) async {
     final resident = _cache.containsKey(listId);
-    final item = resident ? _cache[listId]![localId] : await _dao.readItem(localId);
-    if (item == null) return;
+    final item = resident
+        ? _cache[listId]![localId]
+        : await _dao.readItem(localId);
+    if (item == null) return null;
     final updated = item.copyWith(pendingDelete: true, dirty: true);
     if (resident) {
       _cache[listId]![localId] = updated;
       _notifiers[listId]!.value = _visibleItems(listId);
     }
     await _dao.writeItemAppendingOutbox(updated, OutboxKind.delete, {});
+    return item;
   }
 
   /// The full mutable field set of [item], stored as the outbox entry's

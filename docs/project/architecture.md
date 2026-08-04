@@ -98,7 +98,8 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
   (3-step: select plans → select dates → review items)
 - **`shopping_list`** — shopping list management with list creation and display, offline-first inline item management
   with smart text parsing, drag-and-drop reordering within active/done sections, and bulk operations (delete all
-  checked, uncheck all). Item state lives in a local sqflite store (in-memory cache + `ValueNotifier` over the DB) with
+  checked, uncheck all). The three destructive actions offer a single-step snackbar undo, scoped to the detail
+  screen's lifetime and replayed as an ordinary local mutation. Item state lives in a local sqflite store (in-memory cache + `ValueNotifier` over the DB) with
   an append-only outbox; edits render instantly and persist across restarts while offline. Item state syncs to the
   server by pushing the outbox (FIFO drain with version-gated conflict resolution) and pulling via a background
   full-list poll that diffs others' changes into the local store

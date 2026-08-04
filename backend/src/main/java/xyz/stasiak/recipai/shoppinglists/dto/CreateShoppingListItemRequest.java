@@ -11,6 +11,7 @@ public record CreateShoppingListItemRequest(
         @NotBlank @Size(max = 255) String name,
         @PositiveOrZero BigDecimal quantity,
         @Size(max = 64) String unit,
+        boolean checked,
         @NotNull BigDecimal position
 ) {
 }

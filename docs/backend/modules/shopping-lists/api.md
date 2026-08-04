@@ -107,10 +107,11 @@
 - Description: Create a new item on a shopping list. The client supplies `position`; creates never conflict (no `baseVersion`).
 - Authenticated: true
 - Roles: OWNER and EDITOR can create items
-- Request body: `{"name": "Milk", "quantity": 2.0, "unit": "liters", "position": 1.0}` (`quantity` and `unit` are nullable)
+- Request body: `{"name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0}` (`quantity` and `unit` are nullable)
 - Example response: `{"id": "uuid", "name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0, "version": 0}`
 - Success: 201 Created
 - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list does not exist)
+- Note: `checked` is optional and defaults to `false` when omitted. It exists so a client can re-create an item in its checked state — the mobile undo of "Delete All Checked" restores items straight into the Done section.
 
 ### PUT /shopping-lists/{id}/items/{itemId}
 - Description: Update all mutable fields of an item (name, quantity, unit, checked, position) as one version-gated write — covers edits, check/uncheck, and reorders uniformly (first-action-wins).

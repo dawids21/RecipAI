@@ -45,13 +45,13 @@ class ShoppingListItem {
     @Column(nullable = false)
     private Long version;
 
-    ShoppingListItem(UUID shoppingListId, String name, BigDecimal quantity, String unit, BigDecimal position) {
+    ShoppingListItem(UUID shoppingListId, String name, BigDecimal quantity, String unit, boolean checked, BigDecimal position) {
         this.shoppingListId = shoppingListId;
         this.name = name;
         this.quantity = quantity;
         this.unit = unit;
         this.position = normalizePositionScale(position);
-        this.checked = false;
+        this.checked = checked;
     }
 
     void check() {

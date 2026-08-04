@@ -243,20 +243,23 @@ void main() {
   });
 
   group('store-op happy paths', () {
-    test('create is pushed and accepted, converging all four surfaces', () async {
-      await store.openList(listId);
-      await store.applyCreate(listId, name: 'Milk', quantity: 2, unit: 'l');
+    test(
+      'create is pushed and accepted, converging all four surfaces',
+      () async {
+        await store.openList(listId);
+        await store.applyCreate(listId, name: 'Milk', quantity: 2, unit: 'l');
 
-      expect(await sync.pushNextEntry(listId), PushResult.pushed);
+        expect(await sync.pushNextEntry(listId), PushResult.pushed);
 
-      final row = (await dbItems(listId)).single;
-      expect(row.serverId, isNotNull);
-      expect(row.lastAckedVersion, 0);
-      expect(row.dirty, isFalse);
-      expect(backendItems(listId).single.name, 'Milk');
-      expect(visibleItems(listId).single.serverId, row.serverId);
-      expect(await outboxEmpty(listId), isTrue);
-    });
+        final row = (await dbItems(listId)).single;
+        expect(row.serverId, isNotNull);
+        expect(row.lastAckedVersion, 0);
+        expect(row.dirty, isFalse);
+        expect(backendItems(listId).single.name, 'Milk');
+        expect(visibleItems(listId).single.serverId, row.serverId);
+        expect(await outboxEmpty(listId), isTrue);
+      },
+    );
 
     test('edit is pushed and accepted', () async {
       final localId = await seedAcceptedItem(listId, serverItem());
@@ -329,38 +332,34 @@ void main() {
       expect(await outboxEmpty(listId), isTrue);
     });
 
-    test('deleteAllChecked queues every checked item and drains clean', () async {
-      await seedAcceptedItem(
-        listId,
-        serverItem(id: 'server-1', checked: true),
-      );
-      await seedAcceptedItem(
-        listId,
-        serverItem(id: 'server-2', name: 'Bread', position: 2),
-      );
-      await seedAcceptedItem(
-        listId,
-        serverItem(id: 'server-3', name: 'Eggs', position: 3, checked: true),
-      );
+    test(
+      'deleteAllChecked queues every checked item and drains clean',
+      () async {
+        await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-1', checked: true),
+        );
+        await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-2', name: 'Bread', position: 2),
+        );
+        await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-3', name: 'Eggs', position: 3, checked: true),
+        );
 
-      await store.deleteAllChecked(listId);
-      await sync.requestDrain(listId);
+        await store.deleteAllChecked(listId);
+        await sync.requestDrain(listId);
 
-      expect(
-        (await dbItems(listId)).map((row) => row.serverId),
-        ['server-2'],
-      );
-      expect(
-        backendItems(listId).map((item) => item.id),
-        ['server-2'],
-      );
-      expect(
-        visibleItems(listId).map((item) => item.serverId),
-        ['server-2'],
-      );
-      expect(await outboxEmpty(listId), isTrue);
-      expect(sync.syncStatusFor(listId).value, SyncStatus.notSyncing);
-    });
+        expect((await dbItems(listId)).map((row) => row.serverId), [
+          'server-2',
+        ]);
+        expect(backendItems(listId).map((item) => item.id), ['server-2']);
+        expect(visibleItems(listId).map((item) => item.serverId), ['server-2']);
+        expect(await outboxEmpty(listId), isTrue);
+        expect(sync.syncStatusFor(listId).value, SyncStatus.notSyncing);
+      },
+    );
   });
 
   group('push outcomes', () {
@@ -648,12 +647,7 @@ void main() {
       () async {
         await store.openList('list-1');
         await store.openList('list-2');
-        await store.applyCreate(
-          'list-1',
-          name: 'Milk',
-          quantity: 2,
-          unit: 'l',
-        );
+        await store.applyCreate('list-1', name: 'Milk', quantity: 2, unit: 'l');
         await store.applyCreate(
           'list-2',
           name: 'Bread',
@@ -678,6 +672,180 @@ void main() {
         expect(visibleItems('list-2').single.name, 'Bread');
         expect(await outboxEmpty('list-2'), isTrue);
         expect(sync.syncStatusFor('list-2').value, SyncStatus.notSyncing);
+      },
+    );
+  });
+
+  group('undo capture and replay', () {
+    test('applyDelete returns the pre-state of the deleted row', () async {
+      final localId = await seedAcceptedItem(
+        listId,
+        serverItem(name: 'Milk', quantity: 2, unit: 'l', position: 3.5),
+      );
+
+      final captured = await store.applyDelete(listId, localId);
+
+      expect(captured, isNotNull);
+      expect(captured!.name, 'Milk');
+      expect(captured.quantity, 2);
+      expect(captured.unit, 'l');
+      expect(captured.position, 3.5);
+      expect(captured.checked, isFalse);
+    });
+
+    test('applyDelete returns null for an unknown localId', () async {
+      await store.openList(listId);
+
+      final captured = await store.applyDelete(listId, 'missing-local-id');
+
+      expect(captured, isNull);
+      expect(await outboxCount(listId), 0);
+    });
+
+    test(
+      'deleteAllChecked returns every checked item and skips unchecked ones',
+      () async {
+        final checkedId1 = await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-1', name: 'Milk', checked: true),
+        );
+        await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-2', name: 'Bread', position: 2),
+        );
+        final checkedId2 = await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-3', name: 'Eggs', position: 3, checked: true),
+        );
+
+        final removed = await store.deleteAllChecked(listId);
+
+        expect(
+          removed.map((i) => i.localId),
+          containsAll([checkedId1, checkedId2]),
+        );
+        expect(removed, hasLength(2));
+      },
+    );
+
+    test(
+      'deleteAllChecked returns an empty list when nothing is checked',
+      () async {
+        await seedAcceptedItem(listId, serverItem());
+
+        final removed = await store.deleteAllChecked(listId);
+
+        expect(removed, isEmpty);
+        expect(await outboxCount(listId), 0);
+      },
+    );
+
+    test('uncheckAll returns the ids it actually flipped', () async {
+      final checkedId = await seedAcceptedItem(
+        listId,
+        serverItem(id: 'server-1', checked: true),
+      );
+      final uncheckedId = await seedAcceptedItem(
+        listId,
+        serverItem(id: 'server-2', name: 'Bread', position: 2),
+      );
+
+      final flipped = await store.uncheckAll(listId);
+
+      expect(flipped, [checkedId]);
+      expect(flipped, isNot(contains(uncheckedId)));
+    });
+
+    test('uncheckAll returns an empty list when nothing is checked', () async {
+      await seedAcceptedItem(listId, serverItem());
+
+      final flipped = await store.uncheckAll(listId);
+
+      expect(flipped, isEmpty);
+    });
+
+    test(
+      'applyRestore re-creates each snapshot with a fresh localId and the original position and checked state',
+      () async {
+        final localId = await seedAcceptedItem(
+          listId,
+          serverItem(
+            name: 'Milk',
+            quantity: 2,
+            unit: 'l',
+            position: 3.5,
+            checked: true,
+          ),
+        );
+        final snapshot = await store.applyDelete(listId, localId);
+
+        await store.applyRestore(listId, [snapshot!]);
+
+        final restored = visibleItems(listId).single;
+        expect(restored.localId, isNot(snapshot.localId));
+        expect(restored.serverId, isNull);
+        expect(restored.lastAckedVersion, isNull);
+        expect(restored.dirty, isTrue);
+        expect(restored.name, 'Milk');
+        expect(restored.quantity, 2);
+        expect(restored.unit, 'l');
+        expect(restored.position, 3.5);
+        expect(restored.checked, isTrue);
+      },
+    );
+
+    test('a restored item pushes as a create carrying checked', () async {
+      final localId = await seedAcceptedItem(listId, serverItem(checked: true));
+      final snapshot = await store.applyDelete(listId, localId);
+      await store.applyRestore(listId, [snapshot!]);
+
+      await sync.requestDrain(listId);
+
+      final backendItem = backendItems(listId).single;
+      expect(backendItem.checked, isTrue);
+      expect(await outboxEmpty(listId), isTrue);
+    });
+
+    test('applyRestore leaves the original tombstone untouched', () async {
+      final localId = await seedAcceptedItem(listId, serverItem());
+      final snapshot = await store.applyDelete(listId, localId);
+
+      await store.applyRestore(listId, [snapshot!]);
+
+      final tombstone = (await dbItems(
+        listId,
+      )).firstWhere((row) => row.localId == localId);
+      expect(tombstone.pendingDelete, isTrue);
+      final entry = await dao.nextOutboxEntry(listId);
+      expect(entry, isNotNull);
+      expect(entry!.itemLocalId, localId);
+      expect(entry.kind, OutboxKind.delete);
+    });
+
+    test(
+      'applyCheckedAll(..., true) re-checks exactly the given ids',
+      () async {
+        final targetId = await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-1'),
+        );
+        final untouchedId = await seedAcceptedItem(
+          listId,
+          serverItem(id: 'server-2', name: 'Bread', position: 2),
+        );
+
+        await store.applyCheckedAll(listId, [targetId], true);
+
+        final target = visibleItems(
+          listId,
+        ).firstWhere((i) => i.localId == targetId);
+        final untouched = visibleItems(
+          listId,
+        ).firstWhere((i) => i.localId == untouchedId);
+        expect(target.checked, isTrue);
+        expect(target.dirty, isTrue);
+        expect(untouched.checked, isFalse);
+        expect(untouched.dirty, isFalse);
       },
     );
   });

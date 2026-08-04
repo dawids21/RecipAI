@@ -13,6 +13,7 @@ import 'shopping_list_item_widget.dart';
 import 'shopping_list_list_service.dart';
 import 'shopping_list_repository.dart';
 import 'shopping_list_sync_service.dart';
+import 'undoable_action.dart';
 
 class ShoppingListDetailService {
   static final _log = Logger('recipai.shopping_list.detail');
@@ -58,6 +59,10 @@ class ShoppingListDetailService {
   String? _openListId;
   ValueListenable<List<LocalShoppingListItem>>? _watchedListenable;
   VoidCallback? _itemsListener;
+
+  /// The most recent destructive action's captured inverse, replayable by
+  /// [undoLast]. A plain field, not a notifier — nothing observes it.
+  UndoableAction? _pendingUndo;
 
   bool _isRenameRunning = false;
   bool _isDeleteRunning = false;
@@ -124,10 +129,12 @@ class ShoppingListDetailService {
     _requestDrainForOpenList();
   }
 
-  Future<void> deleteItem(String localId) async {
+  Future<UndoableAction?> deleteItem(String localId) async {
     _log.info('deleteItem (localId=$localId)');
-    await _store.applyDelete(_openListId!, localId);
+    final removed = await _store.applyDelete(_openListId!, localId);
     _requestDrainForOpenList();
+    if (removed == null) return null;
+    return _pendingUndo = DeletedItemsUndo([removed]);
   }
 
   /// Reorders the item at [oldIndex] to [newIndex] within [items] (a section
@@ -163,21 +170,44 @@ class ShoppingListDetailService {
         2.0;
   }
 
-  Future<void> deleteAllChecked() async {
-    final count = _items.value.valueOrNull?.where((i) => i.checked).length ?? 0;
-    _log.info('deleteAllChecked (count=$count)');
+  Future<UndoableAction?> deleteAllChecked() async {
     final listId = _openListId;
-    if (listId == null) return;
-    await _store.deleteAllChecked(listId);
+    if (listId == null) return null;
+    final removed = await _store.deleteAllChecked(listId);
     _requestDrainForOpenList();
+    _log.info('deleteAllChecked (count=${removed.length})');
+    if (removed.isEmpty) return null;
+    return _pendingUndo = DeletedItemsUndo(removed);
   }
 
-  Future<void> uncheckAll() async {
-    final count = _items.value.valueOrNull?.where((i) => i.checked).length ?? 0;
-    _log.info('uncheckAll (count=$count)');
+  Future<UndoableAction?> uncheckAll() async {
+    final listId = _openListId;
+    if (listId == null) return null;
+    final flipped = await _store.uncheckAll(listId);
+    _requestDrainForOpenList();
+    _log.info('uncheckAll (count=${flipped.length})');
+    if (flipped.isEmpty) return null;
+    return _pendingUndo = UncheckedItemsUndo(flipped);
+  }
+
+  /// Replays the most recent destructive action's inverse, if any: deleted
+  /// items are re-created (fresh identity), unchecked items are re-checked.
+  /// Clears the slot before replaying, so a late or duplicate tap is a no-op.
+  Future<void> undoLast() async {
+    final action = _pendingUndo;
+    if (action == null) return;
+    _pendingUndo = null;
+
     final listId = _openListId;
     if (listId == null) return;
-    await _store.uncheckAll(listId);
+
+    _log.info('undoLast (${action.runtimeType}, count=${action.itemCount})');
+    switch (action) {
+      case DeletedItemsUndo(:final items):
+        await _store.applyRestore(listId, items);
+      case UncheckedItemsUndo(:final localIds):
+        await _store.applyCheckedAll(listId, localIds, true);
+    }
     _requestDrainForOpenList();
   }
 
@@ -314,6 +344,7 @@ class ShoppingListDetailService {
   }
 
   void dispose() {
+    _pendingUndo = null;
     if (_openListId != null) {
       _syncService.stopPolling(_openListId!);
     }

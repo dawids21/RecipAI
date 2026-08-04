@@ -80,6 +80,7 @@ class ShoppingListItemRepository {
           'name': snapshot.name,
           'quantity': snapshot.quantity,
           'unit': snapshot.unit,
+          'checked': snapshot.checked,
           'position': snapshot.position,
         }),
       );

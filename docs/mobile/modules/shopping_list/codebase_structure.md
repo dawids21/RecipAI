@@ -10,10 +10,11 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_item_database_factory.dart # Owns item DB creation: opens the on-device DB and holds the single-sourced items + outbox schema (shared with the in-memory test DB)
 ├── shopping_list_item_dao.dart         # sqflite DAO over an injected Database for the items + append-only outbox tables; OutboxKind enum
 ├── shopping_list_item_repository.dart  # HTTP item endpoints (fetch/create/update/delete); OutboxPayload + item exception types
-├── shopping_list_item_store_service.dart # Local item store aggregate: in-memory cache + per-list ValueNotifier + per-list Lock over the DAO/outbox; serialises every read-modify-write per list (ADR-0004)
+├── shopping_list_item_store_service.dart # Local item store aggregate: in-memory cache + per-list ValueNotifier + per-list Lock over the DAO/outbox; serialises every read-modify-write per list (ADR-0004); destructive ops return the pre-state they captured under the lock, and a restore path re-creates a deleted item as a fresh row
 ├── shopping_list_sync_service.dart     # Background sync: scheduler-driven poll (fetch+reconcile) and a decoupled drain timer draining the outbox, routed through the store (ADR-0005)
 ├── shopping_list_list_service.dart     # Shopping list list business logic with ValueNotifier
-├── shopping_list_detail_service.dart   # Shopping list detail business logic; drives local item add/edit/check/delete/reorder and bulk ops
+├── shopping_list_detail_service.dart   # Shopping list detail business logic; drives local item add/edit/check/delete/reorder and bulk ops; holds the single-slot pending undo and replays it through the store
+├── undoable_action.dart                # Sealed capture of the last destructive action's inverse: DeletedItemsUndo (full pre-state) / UncheckedItemsUndo (affected ids)
 ├── shopping_list_item_import_service.dart # Bulk-imports reviewed generated items into a chosen (possibly non-open) list via the store, then requests a sync drain
 ├── shopping_list_setup.dart            # Dependency injection setup for shopping list module
 ├── shopping_list_list.dart             # Reusable shopping list body widget

@@ -64,7 +64,7 @@ class ShoppingListService {
 
         requireEditorPermission(listId, userEmail);
 
-        ShoppingListItem item = new ShoppingListItem(listId, request.name(), request.quantity(), request.unit(), request.position());
+        ShoppingListItem item = new ShoppingListItem(listId, request.name(), request.quantity(), request.unit(), request.checked(), request.position());
         ShoppingListItem savedItem = shoppingListItemRepository.save(item);
 
         return toItemDto(savedItem);
