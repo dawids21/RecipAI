@@ -23,3 +23,7 @@ consequences. Read an ADR before changing code in the area it covers.
   polling is decoupled from draining, and the single-entry push is an awaitable
   test-visible step with the sync lock moved inside it — so tests fix one exact
   push/reconcile ordering with no dependence on timers.
+- [ADR-0006: Usage limits are owned end-to-end by a shared limits module keyed by an opaque subject](0006-shared-limits-module.md) —
+  A shared `limits` module owns configuration, recorded usage and verification for
+  every capped resource; callers ask and release against an opaque subject (user
+  or list) and hold no limit knowledge, accepting drift risk for one uniform ask.

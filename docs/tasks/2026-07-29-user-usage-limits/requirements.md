@@ -37,14 +37,14 @@ None of these vary per user, and the extraction path has no limit at all.
   ever", another "2 extractions per day".
 - Resources in scope:
 
-  | Resource | Kind | Scope of the count |
-  |---|---|---|
-  | AI extractions | stock or flow | per user |
-  | Recipes owned | stock | per user (owner only) |
-  | Shopping lists owned | stock | per user (owner only) |
-  | Items per shopping list | stock | per list |
-  | Meal plans owned | stock | per user (owner only) — replaces the existing `maxOwnedPlans` |
-  | Collections owned | stock | per user (owner only) |
+  | Resource | Scope of the count |
+  |---|---|
+  | AI extractions | per user |
+  | Recipes owned | per user (owner only) |
+  | Shopping lists owned | per user (owner only) |
+  | Items per shopping list | per list |
+  | Meal plans owned | per user (owner only) — replaces the existing `maxOwnedPlans` |
+  | Collections owned | per user (owner only) |
 
 - When a user attempts an action that would exceed a limit, the action is rejected and the user is
   told why. Existing content remains fully readable and editable.
@@ -68,8 +68,8 @@ None of these vary per user, and the extraction path has no limit at all.
 
 ## Constraints & assumptions
 
-- Users are identified by their Firebase JWT subject. The backend currently has no user table —
-  identity exists only as a token claim.
+- Users are identified by their Firebase JWT. The backend currently has no user table — identity
+  exists only as a token claim.
 - **All extraction attempts count**, regardless of outcome. A call that reaches Gemini and returns
   garbage, or one that fails afterwards with a server error, still consumes the user's budget. The
   cost is incurred whether or not the user gets a usable recipe.
@@ -117,8 +117,7 @@ None of these vary per user, and the extraction path has no limit at all.
 ### Backend
 
 Each module below has a creation path that needs a limit check and an existing `*ExceptionHandler`
-where a limit-exceeded response fits. `planning`'s `MealPlanLimitExceededException` → HTTP 409 is the
-existing precedent to follow.
+where a limit-exceeded response fits.
 
 - `extraction` — `/extract/text`, `/extract/image`
 - `recipes` — recipe creation
