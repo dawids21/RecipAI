@@ -10,8 +10,14 @@ sealed class SharePayload {
     if (type == 'text') {
       final text = map['text'] as String?;
       if (text == null || text.isEmpty) return null;
-      if (text.trim().isUrl) {
-        return UrlSharePayload(text.trim());
+      final trimmed = text.trim();
+      if (trimmed.isUrl) {
+        return UrlSharePayload(trimmed);
+      }
+      // Apps commonly share a URL wrapped in text ("Check this recipe: <url>").
+      final embeddedUrl = trimmed.firstUrl;
+      if (embeddedUrl != null) {
+        return UrlSharePayload(embeddedUrl);
       }
       return NonUrlTextSharePayload(text);
     }

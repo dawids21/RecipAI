@@ -14,6 +14,9 @@
 - Extraction Dialog (`extraction_dialog.dart`) - Modal dialog for choosing between URL and image extraction methods with
   Material Design buttons.
 - Web Recipe Extractor (`web_recipe_extractor.dart`) - Utility class for extracting HTML content from WebView.
+- Share Intent Service (`share_intent_service.dart`) - Receives shares from the Android share sheet over the
+  `recipai/share` platform channel (method channel for cold start, event channel for warm start), classifies the
+  payload, and routes it to the matching extraction screen with the content pre-filled.
 
 ## Flow
 
@@ -25,3 +28,16 @@
    filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
 3. **Successful Image Extraction** → Create Recipe Screen with pre-filled extracted data, pending image, and collection
    (if filter active) via InitialRecipeFormData → Recipe creation → Back to Main Screen
+
+#### Share Intent Flow
+
+1. **Android share sheet → RecipAI** → ShareIntentService classifies the payload:
+   - **Text containing a URL** → URL Extraction Screen with the URL pre-filled and the WebView loaded. The URL is taken
+     as-is when the whole text is a URL, otherwise the first URL embedded in the text is extracted (e.g. "Check this
+     recipe: https://cookbook.com/recipe1"). Only `http(s)://` and `www.`-prefixed URLs are recognised inside text —
+     bare domains would too easily match ordinary prose — and `www.` matches are normalised to `https://`.
+   - **Image** → Image Extraction Screen with the image preview ready.
+   - **Text without a URL** → Main Screen with a snackbar explaining that only URLs and images can be extracted.
+2. From there both screens continue through the Extraction Flow above — the user triggers extraction themselves.
+3. **Unauthenticated user** → login screen; the shared content is discarded and the user lands on the Main Screen after
+   signing in.

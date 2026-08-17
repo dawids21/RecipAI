@@ -26,13 +26,22 @@ mobile/
 │   │   ├── error_message_widget.dart   # General error message widget
 │   │   ├── error_icon.dart             # Error icon widget
 │   │   ├── serving_size_input.dart     # Reusable serving size input widget with increment/decrement controls
-│   │   ├── extensions.dart             # Extension methods (IsoDateFormat for DateTime, ColorExtension for Color)
+│   │   ├── extensions.dart             # Extension methods (DateTimeLocalizations and IsoDateFormat for DateTime, UrlString for URL detection/extraction, ColorExtension for Color)
 │   │   └── user_role.dart              # UserRole enum with API conversion methods
 ├── assets/
 │   └── config/
 │       └── app_config.json             # App configuration file
 ├── android/                            # Android-specific configuration and native code
-├── test/
+├── test/                               # Mirrors lib/ (see Widget Testing standard)
+│   ├── features/
+│   │   ├── extraction/
+│   │   │   └── share_payload_test.dart # Share payload classification (URL, URL-in-text, non-URL text, image)
+│   │   ├── recipe/
+│   │   │   └── main_screen_recipes_tab_widget_test.dart # Recipes tab widget test
+│   │   └── shopping_list/
+│   │       └── shopping_list_sync_service_test.dart     # Outbox drain and poll sync
+│   ├── shared/
+│   │   └── extensions_test.dart        # URL detection and in-text URL extraction
 │   └── support/
 │       └── mocks.dart                  # mocktail Mock* class declarations for all repositories
 ├── pubspec.yaml                        # Flutter dependencies and project configuration

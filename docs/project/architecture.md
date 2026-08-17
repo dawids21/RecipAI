@@ -91,7 +91,8 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
   sharing (OWNER/EDITOR roles), and "Add to Shopping List" flow; includes the `collection` sub-feature for managing
   recipe collections with CRUD and sharing
 - **`extraction`** — recipe extraction from URLs (WebView-based with smart URL/search detection) and images
-  (camera/gallery); extracted data is passed to the recipe create screen via InitialRecipeFormData
+  (camera/gallery); extracted data is passed to the recipe create screen via InitialRecipeFormData. Also reachable as an
+  Android share target, which extracts the URL from the shared text and pre-fills the extraction screen
 - **`planning`** — meal plan calendar with weekly agenda view across multiple plans; plan management drawer with
   create/edit/delete and role-based actions (delete requires OWNER); local visibility toggles; meal entry management
   supporting recipe entries (with serving size) and placeholder entries (text-only); shopping list generation wizard

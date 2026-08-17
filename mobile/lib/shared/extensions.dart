@@ -43,7 +43,58 @@ extension UrlString on String {
 
     return domainPattern.hasMatch(trimmed);
   }
+
+  /// Returns the first URL embedded in free-form text, or null when there is
+  /// none. Used for shares that mix a URL with surrounding text, e.g.
+  /// "Check this recipe: https://cookbook.com/recipe1".
+  ///
+  /// Only scheme-prefixed and `www.`-prefixed URLs are recognised — bare
+  /// domains are too easily confused with ordinary prose ("done.Next time...").
+  /// The result always carries a scheme so it can be loaded directly.
+  String? get firstUrl {
+    for (final match in _urlInTextPattern.allMatches(this)) {
+      final candidate = _stripTrailingPunctuation(match.group(0)!);
+      final withScheme = candidate.startsWith(_schemePattern)
+          ? candidate
+          : 'https://$candidate';
+      final uri = Uri.tryParse(withScheme);
+      if (uri == null) continue;
+      if (uri.host.contains('.') || uri.host == 'localhost') return withScheme;
+    }
+    return null;
+  }
 }
+
+final _schemePattern = RegExp(r'^https?://', caseSensitive: false);
+
+final _urlInTextPattern = RegExp(
+  r'(?:https?://|www\.)[^\s<>"]+',
+  caseSensitive: false,
+);
+
+const _trailingPunctuation = '.,;:!?\'"…»';
+
+const _closingBrackets = {')': '(', ']': '[', '}': '{'};
+
+/// Trailing sentence punctuation is far more likely to belong to the sentence
+/// than to the URL. A closing bracket is only dropped when it has no opener
+/// inside the URL, so paths like `/wiki/Pierogi_(dish)` survive.
+String _stripTrailingPunctuation(String url) {
+  var result = url;
+  while (result.isNotEmpty) {
+    final last = result[result.length - 1];
+    final opener = _closingBrackets[last];
+    if (opener != null) {
+      if (_count(result, opener) >= _count(result, last)) break;
+    } else if (!_trailingPunctuation.contains(last)) {
+      break;
+    }
+    result = result.substring(0, result.length - 1);
+  }
+  return result;
+}
+
+int _count(String text, String character) => text.split(character).length - 1;
 
 extension ColorExtension on Color {
   String toHexString() {
