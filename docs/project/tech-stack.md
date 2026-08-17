@@ -8,7 +8,7 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 
 ## Languages
 
-### Java 25
+### Java 26
 - **Usage**: ~100% of backend codebase
 - **Rationale**: Modern LTS with strong Spring Boot ecosystem; record types and pattern matching used for concise DTOs and clean code
 - **Key Features Used**: Records for DTOs, sealed classes, text blocks, Lombok-reduced boilerplate
@@ -27,10 +27,10 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 - Material Design 3 theming via `ThemeData` with seed color
 - flutter_localizations for i18n support (en_US, en_GB, pl)
 
-### Backend — Spring Boot 3.5.10 (Spring Framework 6.2.x)
+### Backend — Spring Boot 4.1.0 (Spring Framework 7.0.8)
 - Spring Data JPA — ORM and data access
 - Spring Security + OAuth2 Resource Server — JWT authentication
-- Spring AI 1.1.2 — AI recipe extraction via Google Genai
+- Spring AI 2.0.0 — AI recipe extraction via Google Genai
 - Spring Boot Actuator — health monitoring and metrics
 - Spring Boot Docker Compose — local dev database orchestration
 
@@ -83,13 +83,13 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 
 | Dependency | Version | Purpose |
 |-----------|---------|---------|
-| Spring Boot | 3.5.10 | Application framework |
-| Spring AI | 1.1.2 | AI recipe extraction (Google Genai) |
+| Spring Boot | 4.1.0 | Application framework |
+| Spring AI | 2.0.0 | AI recipe extraction (Google Genai) |
 | Spring Security OAuth2 | — | JWT authentication |
 | PostgreSQL driver | — | Database connectivity |
 | Flyway | core | Database schema migrations |
-| Lombok | 1.18.38 | Boilerplate code generation |
-| AWS SDK for Java | 2.40.7 | S3 image storage |
+| Lombok | 1.18.46 | Boilerplate code generation |
+| AWS SDK for Java | 2.52.0 | S3 image storage |
 | Thumbnailator | 0.4.21 | Recipe image thumbnail generation |
 | Testcontainers | — | Integration test database |
 
@@ -136,6 +136,6 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 
 ---
 
-*Last Updated*: 2026-07-28
+*Last Updated*: 2026-08-12
 *Auto-detected*: tech stack, dependencies, versions, build tools, CI/CD config, infrastructure
 *User-provided*: hosting details (VPS for backend, AWS S3 for assets)

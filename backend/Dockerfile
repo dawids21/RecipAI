@@ -1,7 +1,7 @@
 # Multi-stage build for RecipAI Spring Boot API
 
 # Build stage
-FROM eclipse-temurin:25-jdk-alpine AS builder
+FROM eclipse-temurin:26-jdk-alpine AS builder
 WORKDIR /app
 
 # Install Maven
@@ -16,7 +16,7 @@ COPY src ./src
 RUN mvn package -DskipTests -B
 
 # Runtime stage
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:26-jre-alpine
 WORKDIR /app
 
 # Install wget for health checks

@@ -13,6 +13,8 @@ spring:
     properties:
       hibernate:
         default_schema: recipai
+        type:
+          json_format_mapper: jackson3
   flyway:
     enabled: true
     default-schema: recipai
@@ -21,10 +23,9 @@ spring:
       genai:
         api-key: ${SPRING_AI_API_KEY}
         chat:
-          options:
-            model: gemini-2.5-flash
-            # model: gemini-3-flash-preview
-            # thinking-level: low
+          model: gemini-2.5-flash
+          # model: gemini-3-flash-preview
+          # thinking-level: low
   security:
     oauth2:
       resourceserver:

@@ -1,7 +1,7 @@
 package xyz.stasiak.recipai.recipes;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -84,8 +84,8 @@ public class RecipeFacade {
 
     private String extractSourceUrl(JsonNode data) {
         JsonNode sourceUrl = data.path("sourceUrl");
-        if (sourceUrl.isTextual()) {
-            return sourceUrl.asText();
+        if (sourceUrl.isString()) {
+            return sourceUrl.asString();
         }
         return null;
     }

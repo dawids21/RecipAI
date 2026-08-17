@@ -10,8 +10,8 @@ import org.hibernate.validator.constraints.URL;
 import java.util.List;
 
 public record RecipeData(
-        @NotNull @NotEmpty @Valid List<Ingredient> ingredients,
-        @NotNull @NotEmpty @Valid List<Instruction> instructions,
+        @NotNull @NotEmpty List<@Valid Ingredient> ingredients,
+        @NotNull @NotEmpty List<@Valid Instruction> instructions,
         @URL String sourceUrl,
         @Positive @Max(100) Integer servingSize
 ) {

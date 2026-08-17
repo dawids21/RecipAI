@@ -1,7 +1,7 @@
 package xyz.stasiak.recipai.recipes;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -236,7 +236,7 @@ class RecipeService {
             }
 
             if (jsonNode.has("sourceUrl") && !jsonNode.get("sourceUrl").isNull()) {
-                sourceUrl = jsonNode.get("sourceUrl").asText();
+                sourceUrl = jsonNode.get("sourceUrl").asString();
             }
 
             if (jsonNode.has("servingSize") && !jsonNode.get("servingSize").isNull()) {

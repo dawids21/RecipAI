@@ -7,8 +7,8 @@ import java.util.List;
 
 public record ExtractedRecipe(
         @NotBlank String name,
-        @NotNull @NotEmpty @Valid List<ExtractedIngredient> ingredients,
-        @NotNull @NotEmpty @Valid List<ExtractedInstruction> instructions,
+        @NotNull @NotEmpty List<@Valid ExtractedIngredient> ingredients,
+        @NotNull @NotEmpty List<@Valid ExtractedInstruction> instructions,
         @Positive @Max(100) Integer servingSize
 ) {
 }
