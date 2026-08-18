@@ -14,6 +14,8 @@ logging:
     # org.hibernate.orm.jdbc.bind: TRACE
 
 recipai:
+  limits:
+    enabled: false
   meal-plan:
     max-owned-plans: 50
   s3:

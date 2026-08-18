@@ -35,6 +35,8 @@ spring:
     default-property-inclusion: non_null
 
 recipai:
+  limits:
+    enabled: true
   s3:
     bucket-name: recipai-data
     region: eu-central-1

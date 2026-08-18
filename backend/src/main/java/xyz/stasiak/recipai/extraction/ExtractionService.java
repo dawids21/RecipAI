@@ -8,6 +8,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.content.Media;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 
 import java.util.Map;
 
@@ -16,9 +17,14 @@ import java.util.Map;
 @Slf4j
 class ExtractionService {
 
-    private final ChatClient chatClient;
+    static final String EXTRACTION_RESOURCE = "EXTRACTION";
 
-    public ExtractedRecipe extractFromText(String text) {
+    private final ChatClient chatClient;
+    private final LimitsFacade limitsFacade;
+
+    public ExtractedRecipe extractFromText(String text, String userEmail) {
+        limitsFacade.reserve(userEmail, EXTRACTION_RESOURCE);
+
         log.debug("Extracting recipe from text with {} characters", text.length());
 
         PromptTemplate promptTemplate = new PromptTemplate("Extract recipe data from this page given as body text content.\nInclude the number of servings if available in the source.\nFor each ingredient: extract numeric quantities as a number into 'quantity'; extract non-numeric descriptors (e.g. \"to taste\", \"a pinch\", \"fresh\") into 'comment'; leave 'quantity' null when there is no numeric quantity.\n<CONTENT>{content}</CONTENT>");
@@ -29,7 +35,7 @@ class ExtractionService {
                 .entity(ExtractedRecipe.class);
 
         if (extractedRecipe == null) {
-            throw new IllegalStateException("Failed to extract recipe from text.");
+            throw new ExtractionFailedException("Failed to extract recipe from text.");
         }
 
         log.debug("Extracted recipe from text with name: {}", extractedRecipe.name());
@@ -37,7 +43,9 @@ class ExtractionService {
         return extractedRecipe;
     }
 
-    public ExtractedRecipe extractFromImage(Media imageMedia) {
+    public ExtractedRecipe extractFromImage(Media imageMedia, String userEmail) {
+        limitsFacade.reserve(userEmail, EXTRACTION_RESOURCE);
+
         log.debug("Extracting recipe from image media");
 
         UserMessage userMessage = UserMessage.builder()
@@ -50,7 +58,7 @@ class ExtractionService {
                 .entity(ExtractedRecipe.class);
 
         if (extractedRecipe == null) {
-            throw new IllegalStateException("Failed to extract recipe from image.");
+            throw new ExtractionFailedException("Failed to extract recipe from image.");
         }
 
         log.debug("Extracted recipe from image with name: {}", extractedRecipe.name());

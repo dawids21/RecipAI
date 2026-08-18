@@ -1,0 +1,58 @@
+package xyz.stasiak.recipai.limits;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+class LimitService {
+
+    private final LimitConfigRepository limitConfigRepository;
+    private final LimitUsageRepository limitUsageRepository;
+    private final Clock clock;
+
+    @Transactional
+    void reserve(String subject, String resource) {
+        LimitConfig config = limitConfigRepository.resolve(resource, subject)
+                .orElseThrow(() -> {
+                    log.error("No limit configuration found for resource: {}", resource);
+                    return new LimitConfigurationMissingException(resource);
+                });
+
+        Instant now = clock.instant();
+        Instant cutoff = config.getPeriod() == null ? Instant.EPOCH : config.getPeriod().cutoffFrom(now);
+
+        int granted = limitUsageRepository.reserve(resource, subject, now, cutoff, config.getMaxValue());
+        if (granted == 1) {
+            return;
+        }
+
+        // A maximum of zero refuses before any usage row exists, so the standing is not always stored.
+        Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, subject));
+        int used = usage.map(row -> row.getUsed()).orElse(0);
+
+        Long retryAfterSeconds = null;
+        if (config.getKind() == LimitKind.FLOW && config.getPeriod() != null && usage.isPresent()) {
+            Instant nextStart = config.getPeriod().nextStart(usage.get().getPeriodStart());
+            retryAfterSeconds = Math.max(1, Duration.between(now, nextStart).getSeconds());
+        }
+
+        log.warn("Limit exceeded for resource: {}, subject: {}, used: {}, limit: {}",
+                resource, subject, used, config.getMaxValue());
+        throw new LimitExceededException(resource, config.getKind(), config.getMaxValue(), used, retryAfterSeconds);
+    }
+
+    @Transactional(readOnly = true)
+    Optional<LimitUsageDetails> currentUsage(String subject, String resource) {
+        return limitUsageRepository.findById(new LimitUsageId(resource, subject))
+                .map(usage -> new LimitUsageDetails(usage.getUsed(), usage.getPeriodStart()));
+    }
+}
