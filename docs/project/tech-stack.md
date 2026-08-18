@@ -35,7 +35,7 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 - Spring Boot Docker Compose — local dev database orchestration
 
 ### Testing
-- **Backend**: JUnit Jupiter + Spring Boot Test + Testcontainers (integration tests against real PostgreSQL)
+- **Backend**: JUnit Jupiter + Spring Boot Test + Testcontainers (integration tests against real PostgreSQL); ArchUnit enforces module boundaries (e.g. `limits` may not depend on any other feature package)
 - **Mobile**: flutter_test + mocktail (widget tests pump the real screen against mocked repositories); sync-path unit tests run against an in-memory SQLite DB via sqflite_common_ffi
 
 ---
@@ -92,6 +92,7 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 | AWS SDK for Java | 2.52.0 | S3 image storage |
 | Thumbnailator | 0.4.21 | Recipe image thumbnail generation |
 | Testcontainers | — | Integration test database |
+| ArchUnit | 1.5.0 | Module boundary architecture tests |
 
 ### Mobile
 

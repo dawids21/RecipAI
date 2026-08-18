@@ -1,5 +1,30 @@
 # Extraction API
 
+Both endpoints consume one unit of the caller's `EXTRACTION` budget, reserved *before* the AI
+provider is called and identified by the `email` claim of the JWT. A refused call consumes nothing;
+a call that reaches the provider and then fails still consumes its unit — there is no refund. See
+`docs/backend/modules/limits/` for how the budget is configured and changed.
+
+## Refusal Response
+
+A call past the budget returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Limit Exceeded",
+  "status": 429,
+  "detail": "Limit for EXTRACTION reached (2 of 2 used)",
+  "resource": "EXTRACTION",
+  "kind": "FLOW",
+  "limit": 2,
+  "used": 2
+}
+```
+
+`retryAfterSeconds` and the `Retry-After` header are present only when the cap restarts on a period.
+The seeded `EXTRACTION` cap is an "N ever" allowance, so it carries neither.
+
 ### POST /extract/text
 - Description: Extract recipe information from text
 - Authenticated: true
@@ -26,7 +51,7 @@
   }
   ```
 - Success: 200 OK
-- Errors: 400 Bad request
+- Errors: 400 Bad request, 429 Too many requests (extraction budget exhausted), 500 Internal server error (`Extraction Failed` — the AI provider returned no recipe)
 
 ### POST /extract/image
 - Description: Extract recipe information from an uploaded image file (JPEG/PNG)
@@ -49,4 +74,4 @@
   }
   ```
 - Success: 200 OK
-- Errors: 400 Bad request (unsupported file type), 413 Payload too large
+- Errors: 400 Bad request (`Unsupported Image Type` — validated before any budget is reserved), 413 Payload too large, 429 Too many requests (extraction budget exhausted), 500 Internal server error (`Extraction Failed` — the AI provider returned no recipe)

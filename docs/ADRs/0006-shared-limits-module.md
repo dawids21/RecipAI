@@ -1,7 +1,7 @@
 # ADR-0006: Usage limits are owned end-to-end by a shared limits module keyed by an opaque subject
 
 **Date:** 2026-08-13
-**Status:** proposed
+**Status:** accepted
 **Related ADRs:** None
 
 ## Context

@@ -64,11 +64,15 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `api.md` — all `/meal-plans` endpoints including calendar view and shopping list generation
 - `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
+#### Limits (`backend/modules/limits/`)
+- `codebase_structure.md` — file tree, module boundary, reserve/resolution behaviour, the 429 refusal contract, and the `recipai.limits.enabled` kill-switch (no HTTP endpoints)
+- `db.md` — `limit_config`, `limit_usage` tables and the seeded `EXTRACTION` default
+
 #### Provisioning (`backend/modules/provisioning/`)
 - `codebase_structure.md` — file tree (no HTTP endpoints, no DB tables)
 
 #### Config (`backend/modules/config/`)
-- `codebase_structure.md` — file tree for `config.s3`, `config.security`
+- `codebase_structure.md` — file tree for `config.s3`, `config.security`, `config.time`
 
 ---
 
@@ -86,7 +90,7 @@ Standards for feature module organisation: how to expose cross-module access via
 Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.
 
 ### Integration Tests (`backend/standards/integration-tests.md`)
-Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, and test method naming convention.
+Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, and reading otherwise-inaccessible state through a facade method rather than hand-written SQL.
 
 ---
 
