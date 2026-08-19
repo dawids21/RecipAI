@@ -9,7 +9,7 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── UserRole.java                        # Enum for OWNER/EDITOR roles
     ├── RecipePermissionRepository.java      # Role-based user-recipe data access
     ├── RecipeRepository.java                # Recipe data access with user filtering (all, by collection, unassigned, accessible)
-    ├── RecipeService.java                   # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management (upload, update, reorder, delete)
+    ├── RecipeService.java                   # Recipe business logic with role-based sharing, collection assignment validation, collection-based access control, and image management (upload, update, reorder, delete); owns the RECIPE resource key, reserving one unit on create and releasing one on delete
     ├── RecipeController.java                # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
     ├── RecipeFacade.java                    # Public facade for use by other modules
     ├── RecipeIngredientsResult.java         # Result record holding list of RecipeWithIngredients and names of inaccessible recipes
@@ -52,7 +52,7 @@ backend/src/main/java/xyz/stasiak/recipai/
         ├── UserRole.java                                # Enum for OWNER/EDITOR roles
         ├── RecipesCollectionRepository.java             # Collection data access
         ├── RecipesCollectionPermissionRepository.java   # Collection permission data access
-        ├── RecipesCollectionService.java                # Collection business logic with automatic removal of user-owned recipes when unshared
+        ├── RecipesCollectionService.java                # Collection business logic with automatic removal of user-owned recipes when unshared; owns the RECIPES_COLLECTION resource key, reserving one unit on create and releasing one on delete
         ├── RecipesCollectionController.java             # Collection REST endpoints
         ├── RecipesCollectionsExceptionHandler.java      # Exception handling
         ├── dto/

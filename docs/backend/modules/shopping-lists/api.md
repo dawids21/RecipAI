@@ -1,5 +1,32 @@
 # Shopping Lists API
 
+Creating a shopping list consumes one unit of the owner's `SHOPPING_LIST` budget, reserved *before*
+anything is written and keyed by the `email` claim of the JWT; deleting one returns the unit. It is a
+stock cap: a refusal does not resolve itself by waiting, and only creation is blocked — reading,
+editing, sharing and every item operation keep working while the owner is over the cap. Sharing never
+charges the recipient. Item endpoints consume no budget. See `docs/backend/modules/limits/` for how the
+cap is configured and changed.
+
+## Refusal Response
+
+A create past the cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Limit Exceeded",
+  "status": 429,
+  "detail": "Limit for SHOPPING_LIST reached (2 of 2 used)",
+  "resource": "SHOPPING_LIST",
+  "kind": "STOCK",
+  "limit": 2,
+  "used": 2
+}
+```
+
+Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
+restarts — the owner has to delete a list or have the cap raised.
+
 ### GET /shopping-lists
 - Description: Get all shopping lists ordered by creation date (oldest first)
 - Authenticated: true
@@ -54,7 +81,7 @@
 - Request body: `{"name": "My Shopping List"}`
 - Example response: `{"id": "uuid", "name": "My Shopping List"}`
 - Success: 201 Created
-- Errors: 400 Bad Request (validation error), 401 Unauthorized
+- Errors: 400 Bad Request (validation error), 401 Unauthorized, 429 Too many requests (shopping list cap reached)
 
 ### PUT /shopping-lists/{id}
 - Description: Update the name of an existing shopping list
@@ -71,7 +98,7 @@
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the shopping list, all items (via database CASCADE), and all permissions.
+- Note: Deletes the shopping list, all items (via database CASCADE), and all permissions, and returns the owner's `SHOPPING_LIST` unit.
 
 ### GET /shopping-lists/{id}/users
 - Description: Get all users that a shopping list is shared with, including their roles

@@ -11,7 +11,7 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── ShoppingListRepository.java                  # Shopping list data access
     ├── ShoppingListItemRepository.java              # Shopping list item data access
     ├── ShoppingListPermissionRepository.java        # Permission queries repository
-    ├── ShoppingListService.java                     # Shopping list business logic with items and permissions
+    ├── ShoppingListService.java                     # Shopping list business logic with items and permissions; owns the SHOPPING_LIST resource key, reserving one unit on create and releasing one on delete
     ├── ShoppingListController.java                  # Shopping list REST endpoints with JWT authentication
     ├── ShoppingListsExceptionHandler.java           # Exception handling with ProblemDetail
     ├── dto/

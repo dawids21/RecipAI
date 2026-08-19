@@ -1,5 +1,33 @@
 # Recipes & Collections API
 
+Creating a recipe or a collection consumes one unit of the owner's `RECIPE` or `RECIPES_COLLECTION`
+budget, reserved *before* anything is written and keyed by the `email` claim of the JWT. Deleting one
+returns the unit. Both are stock caps: a refusal does not resolve itself by waiting, and only creation
+is blocked — reading, editing and sharing keep working while the owner is over the cap. Sharing never
+charges the recipient, and editing a shared record spends nothing; a recipe an EDITOR creates in someone
+else's collection is charged to the EDITOR, who owns it. See `docs/backend/modules/limits/` for how the
+caps are configured and changed.
+
+## Refusal Response
+
+A create past the cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Limit Exceeded",
+  "status": 429,
+  "detail": "Limit for RECIPE reached (5 of 5 used)",
+  "resource": "RECIPE",
+  "kind": "STOCK",
+  "limit": 5,
+  "used": 5
+}
+```
+
+Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
+restarts — the owner has to delete something or have the cap raised.
+
 ## Recipes
 
 ### GET /recipes
@@ -116,7 +144,7 @@
   ```
 - Example response: Same structure as GET /recipes/{uuid}
 - Success: 201 Created
-- Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection doesn't exist)
+- Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection doesn't exist), 429 Too many requests (recipe cap reached)
 - Note: `recipesCollectionId`, `sourceUrl`, and `images` are optional. The `images` field is an array of UUIDs (max 2) for image metadata tracking when creating recipes via JSON. When `recipesCollectionId` is provided, user must have EDITOR or OWNER access to the collection.
 
 ### POST /recipes (Multipart)
@@ -141,6 +169,7 @@
     - 400 Bad request (invalid data, unsupported image format, image size exceeds 5MB, more than 2 images, or mismatch between image UUIDs and files)
     - 403 Forbidden (if user lacks access to specified collection)
     - 404 Not Found (if collection doesn't exist)
+    - 429 Too many requests (recipe cap reached — nothing is written and no image is uploaded)
 - Note: Images are stored in S3 and automatically resized to create thumbnails. Only JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The extension in the filename is normalized (jpeg → jpg).
 
 ### PUT /recipes/{uuid} (JSON)
@@ -209,7 +238,7 @@
 - Authenticated: true
 - Success: 204 No Content
 - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-- Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes. When a recipe is deleted, a `RecipeDeleted` event is published.
+- Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes. When a recipe is deleted, a `RecipeDeleted` event is published and the owner's `RECIPE` unit is returned.
 
 ### GET /recipes/{uuid}/shared_users
 - Description: Get all users that a recipe is shared with, including their roles
@@ -264,7 +293,7 @@
 - Request body: `{"name": "My Collection"}`
 - Example response: `{"id": "uuid", "name": "My Collection"}`
 - Success: 201 Created
-- Errors: 400 Bad Request (blank name), 401 Unauthorized
+- Errors: 400 Bad Request (blank name), 401 Unauthorized, 429 Too many requests (collection cap reached)
 
 ### PUT /collections/{id}
 - Description: Update the name of an existing recipes collection
@@ -281,7 +310,7 @@
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the collection and all permissions. Recipes in the collection have their `recipes_collection_id` set to null (ON DELETE SET NULL).
+- Note: Deletes the collection and all permissions, and returns the owner's `RECIPES_COLLECTION` unit. Recipes in the collection have their `recipes_collection_id` set to null (ON DELETE SET NULL) — they are not deleted, so no recipe unit is returned.
 
 ### GET /collections/{id}/users
 - Description: Get all users that a recipes collection is shared with, including their roles

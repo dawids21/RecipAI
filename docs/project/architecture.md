@@ -19,13 +19,13 @@ Code is organized by feature (not by layer). Each feature package contains its o
 
 ### Feature Modules
 
-- **`recipes`** — manages user-scoped recipe CRUD with role-based sharing (OWNER/EDITOR), optional collection assignment, collection-based access control, filtering by collection or unassigned status, image management (upload, reorder, delete), source URLs; publishes a `RecipeDeleted` event when a recipe is deleted
+- **`recipes`** — manages user-scoped recipe CRUD with role-based sharing (OWNER/EDITOR), optional collection assignment, collection-based access control, filtering by collection or unassigned status, image management (upload, reorder, delete), source URLs, an owner-scoped cap on how many recipes a user may keep; publishes a `RecipeDeleted` event when a recipe is deleted
 - **`recipes.images`** — manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and presigned URL generation (maximum 2 images per recipe)
-- **`recipes.collections`** — manages recipes collections with user-based permission control (CRUD with role-based access, sharing with OWNER/EDITOR roles, automatic removal of user-owned recipes from a collection when unshared)
+- **`recipes.collections`** — manages recipes collections with user-based permission control (CRUD with role-based access, sharing with OWNER/EDITOR roles, automatic removal of user-owned recipes from a collection when unshared, an owner-scoped cap on how many collections a user may keep)
 - **`extraction`** — extracts recipes from text/images using AI (Spring AI Gemini integration); identifies the caller from the JWT and reserves one unit of that user's `EXTRACTION` budget before calling the provider, so a failed extraction still consumes its unit
-- **`limits`** — owns per-subject usage caps for every capped resource: configuration and recorded usage in the database, override-then-default resolution read on every check (so a limit raised by SQL applies on the next request, with no restart), check-and-reserve as one indivisible conditional upsert, stock versus flow caps with lazy period restart, and the shared HTTP 429 refusal. Holds no domain knowledge — callers pass an opaque subject and resource key (see ADR-0006). `extraction` is its only consumer today
+- **`limits`** — owns per-subject usage caps for every capped resource: configuration and recorded usage in the database, override-then-default resolution read on every check (so a limit raised by SQL applies on the next request, with no restart), check-and-reserve as one indivisible conditional upsert, stock versus flow caps with lazy period restart, and the shared HTTP 429 refusal. Holds no domain knowledge — callers pass an opaque subject and resource key (see ADR-0006). Consumed by `extraction`, `recipes`, `recipes.collections` and `shoppinglists`; a repeatable migration rebuilds recorded usage from the owning modules' permission tables, serving as both the rollout seed and the repair for a missed release
 - **`planning`** — manages meal plans with user-based permission control (CRUD with role-based access, sharing, meal plan entries with recipe or placeholder support, configurable owner plan limit, automatic conversion of recipe entries to placeholders on `RecipeDeleted` event, calendar view grouped by date, shopping list generation with serving size scaling and inaccessible recipe warnings)
-- **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, per-item `baseVersion` optimistic locking on item writes — a body field on update, a query param on delete — with update covering edits, reorders, and check-state as one version-gated write)
+- **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, per-item `baseVersion` optimistic locking on item writes — a body field on update, a query param on delete — with update covering edits, reorders, and check-state as one version-gated write; an owner-scoped cap on how many lists a user may keep)
 - **`provisioning`** — transformation module that converts ingredients (with quantity multipliers) into shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; appends ingredient comments in parentheses to item names (e.g. `"salt (to taste)"`)
 - **`config.security`** — OAuth2 Resource Server — JWT token validation; under the `dev` profile a bypass decoder takes the bearer token as the caller instead (see `docs/backend/standards/configuration-profiles.md`)
 - **`config.s3`** — AWS S3 client configuration with presigned URL support
@@ -52,7 +52,7 @@ Controller → Service → Repository → Entity
 - **Event-driven cascade** — `RecipeDeleted` event triggers cascading cleanup in meal plans
 - **Role-based access** — OWNER/EDITOR roles for recipe sharing
 - **Optimistic locking** — per-item `baseVersion` on shopping list item writes
-- **Usage limits** — database-backed per-user caps resolved per request and enforced by a single conditional upsert; refusals surface as HTTP 429 with the subject's standing
+- **Usage limits** — database-backed per-user caps resolved per request and enforced by a single conditional upsert; refusals surface as HTTP 429 with the subject's standing. Owner-scoped caps reserve on create and release on delete
 
 ---
 

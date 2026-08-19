@@ -65,8 +65,8 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
 #### Limits (`backend/modules/limits/`)
-- `codebase_structure.md` — file tree, module boundary, reserve/resolution behaviour, the 429 refusal contract, and the `recipai.limits.enabled` kill-switch (no HTTP endpoints)
-- `db.md` — `limit_config`, `limit_usage` tables and the seeded `EXTRACTION` default
+- `codebase_structure.md` — file tree, module boundary, reserve/release/resolution behaviour, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules (no HTTP endpoints)
+- `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables
 
 #### Provisioning (`backend/modules/provisioning/`)
 - `codebase_structure.md` — file tree (no HTTP endpoints, no DB tables)
@@ -90,7 +90,7 @@ Standards for feature module organisation: how to expose cross-module access via
 Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.
 
 ### Integration Tests (`backend/standards/integration-tests.md`)
-Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, and reading otherwise-inaccessible state through a facade method rather than hand-written SQL.
+Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, reading otherwise-inaccessible state through a facade method rather than hand-written SQL, and how to test a suite whose module is capped by `limits`.
 
 ---
 
