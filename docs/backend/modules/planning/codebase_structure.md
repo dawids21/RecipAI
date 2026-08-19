@@ -12,11 +12,9 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── MealPlanEntryRepository.java                # Meal plan entry data access with calendar view query (JPQL projection)
     ├── MealPlanCalendarEntryProjection.java        # Projection interface for calendar entries
     ├── MealPlanPermissionRepository.java           # Permission queries repository
-    ├── MealPlanService.java                        # Meal plan business logic with entries, permissions and sharing
+    ├── MealPlanService.java                        # Meal plan business logic with entries, permissions and sharing; MEAL_PLAN_RESOURCE reserved on create, released on delete
     ├── MealPlanCalendarService.java                # Calendar view service with date range validation and grouping by date
     ├── MealPlanController.java                     # Meal plan REST endpoints with JWT authentication, sharing, and calendar endpoints
-    ├── MealPlanConfig.java                         # Configuration for meal plan limits
-    ├── MealPlanProperties.java                     # Configuration properties
     ├── PlanningExceptionHandler.java               # Exception handling with ProblemDetail
     ├── dto/
     │   ├── GenerateShoppingListItemsRequest.java   # Request DTO with planIds and selectedDates

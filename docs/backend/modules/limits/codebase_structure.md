@@ -73,3 +73,4 @@ limits off; see `docs/backend/standards/integration-tests.md`.
   owner-keyed
 - `shoppinglists` — reserves one unit of `SHOPPING_LIST` on create, releases on delete; owner-keyed.
   Item creation and deletion are untouched by `limits`.
+- `planning` — reserves one unit of `MEAL_PLAN` on create, releases on delete; owner-keyed

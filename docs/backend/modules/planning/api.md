@@ -1,5 +1,31 @@
 # Planning API
 
+Creating a meal plan consumes one unit of the owner's `MEAL_PLAN` budget, reserved *before* anything
+is written and keyed by the `email` claim of the JWT. Deleting one returns the unit. It is a stock cap:
+a refusal does not resolve itself by waiting, and only creation is blocked — reading, editing and
+sharing keep working while the owner is over the cap. Sharing never charges the recipient. See
+`docs/backend/modules/limits/` for how the cap is configured and changed.
+
+## Refusal Response
+
+A create past the cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Limit Exceeded",
+  "status": 429,
+  "detail": "Limit for MEAL_PLAN reached (2 of 2 used)",
+  "resource": "MEAL_PLAN",
+  "kind": "STOCK",
+  "limit": 2,
+  "used": 2
+}
+```
+
+Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
+restarts — the owner has to delete something or have the cap raised.
+
 ### GET /meal-plans
 - Description: Get all meal plans accessible by the authenticated user, ordered by creation date (oldest first)
 - Authenticated: true
@@ -21,7 +47,7 @@
 ### POST /meal-plans
 - Description: Create a new meal plan and grant OWNER permission to the authenticated user
 - Authenticated: true
-- Note: Automatically creates a permission record with OWNER role. There is a max number of plans owned per user (configured via `recipai.meal-plan.max-owned-plans`).
+- Note: Automatically creates a permission record with OWNER role. There is a max number of plans owned per user, configured as the `MEAL_PLAN` limit in `limit_config`.
 - Request body:
   ```json
   {
@@ -40,7 +66,7 @@
   }
   ```
 - Success: 201 Created
-- Errors: 400 Bad Request (blank name, invalid color format), 401 Unauthorized, 409 Conflict (plan limit exceeded)
+- Errors: 400 Bad Request (blank name, invalid color format), 401 Unauthorized, 429 Too many requests (plan cap reached)
 - Note: Color must be a valid hex color in format `#RRGGBB` (e.g., `#FF5733`).
 
 ### PUT /meal-plans/{id}
@@ -58,7 +84,7 @@
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the meal plan, all entries (via database CASCADE), and all permissions.
+- Note: Deletes the meal plan, all entries (via database CASCADE), and all permissions, and releases one unit of the owner's `MEAL_PLAN` budget.
 
 ### POST /meal-plans/{planId}/entries
 - Description: Create a new entry in a meal plan

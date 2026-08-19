@@ -35,8 +35,8 @@ not references into another module's tables — see `docs/ADRs/0006-shared-limit
 
 ## Seeded Configuration
 
-`V15__limits_schema.sql` seeds the one default row T1 needs, and `V16__owner_scoped_limit_config.sql`
-adds the three owner-scoped defaults:
+`V15__limits_schema.sql` seeds the one default row T1 needs, `V16__owner_scoped_limit_config.sql`
+adds the three owner-scoped defaults, and `V17__meal_plan_limit_config.sql` adds a fourth:
 
 | resource             | subject | kind  | max_value | period |
 |----------------------|---------|-------|-----------|--------|
@@ -44,6 +44,7 @@ adds the three owner-scoped defaults:
 | `RECIPE`             | NULL    | STOCK | 5         | NULL   |
 | `RECIPES_COLLECTION` | NULL    | STOCK | 2         | NULL   |
 | `SHOPPING_LIST`      | NULL    | STOCK | 2         | NULL   |
+| `MEAL_PLAN`          | NULL    | STOCK | 2         | NULL   |
 
 A `FLOW` cap with no period is an "N ever" allowance. Operators raise or lower a limit by editing
 `limit_config` directly — the change applies on the next request, with no restart. A subject override
@@ -52,16 +53,16 @@ is inserted separately (e.g. the developer's own account); it is never seeded by
 ## Recompute
 
 `R__recompute_limit_usage.sql` is a repeatable migration that rebuilds `limit_usage` for `RECIPE`,
-`RECIPES_COLLECTION` and `SHOPPING_LIST` from their owning module's permission tables
-(`recipe_permission`, `recipes_collection_permission`, `shopping_list_permission`), counting rows with
-`role = 'OWNER'`. It runs once at rollout, seeding usage for pre-existing owners, and again whenever a
-later task extends the file, re-asserting every resource's count. It also serves as the drift repair
-for a missed release: re-running it (by hand, or by bumping the file so its checksum changes) makes
-`limit_usage` match the permission tables again. A subject whose effective configuration is `FLOW` is
-excluded — the recompute would overwrite its `used`/`period_start` window with a stock count, so it
-leaves that subject's row untouched. "Effective" resolves the same way a check does, the subject's own
-override first and the resource default second, so flipping a default to `FLOW` spares every subject
-that has no override.
+`RECIPES_COLLECTION`, `SHOPPING_LIST` and `MEAL_PLAN` from their owning module's permission tables
+(`recipe_permission`, `recipes_collection_permission`, `shopping_list_permission`,
+`meal_plan_permissions`), counting rows with `role = 'OWNER'`. It runs once at rollout, seeding usage
+for pre-existing owners, and again whenever a later task extends the file, re-asserting every
+resource's count. It also serves as the drift repair for a missed release: re-running it (by hand,
+or by bumping the file so its checksum changes) makes `limit_usage` match the permission tables
+again. A subject whose effective configuration is `FLOW` is excluded — the recompute would overwrite
+its `used`/`period_start` window with a stock count, so it leaves that subject's row untouched.
+"Effective" resolves the same way a check does, the subject's own override first and the resource
+default second, so flipping a default to `FLOW` spares every subject that has no override.
 
 ## Indexes
 
