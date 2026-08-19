@@ -12,9 +12,6 @@ interface MealPlanPermissionRepository extends JpaRepository<MealPlanPermission,
     @Query("DELETE FROM MealPlanPermission mpp WHERE mpp.id.planId = ?1")
     void deleteAllByPlanId(UUID planId);
 
-    @Query("SELECT COUNT(mpp) FROM MealPlanPermission mpp WHERE mpp.id.email = ?1 AND mpp.role = 'OWNER'")
-    long countOwnedByEmail(String email);
-
     @Query("SELECT mpp FROM MealPlanPermission mpp WHERE mpp.id.planId = ?1 ORDER BY mpp.role DESC")
     List<MealPlanPermission> findAllByPlanId(UUID planId);
 }

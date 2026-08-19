@@ -16,7 +16,5 @@ logging:
 recipai:
   limits:
     enabled: false
-  meal-plan:
-    max-owned-plans: 50
   s3:
     presigned-url-expiration-minutes: 60

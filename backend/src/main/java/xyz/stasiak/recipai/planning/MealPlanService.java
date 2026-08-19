@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.exception.*;
 import xyz.stasiak.recipai.provisioning.ProvisioningFacade;
@@ -29,12 +30,14 @@ import java.util.stream.Collectors;
 @Slf4j
 class MealPlanService {
 
-    private final MealPlanProperties properties;
+    static final String MEAL_PLAN_RESOURCE = "MEAL_PLAN";
+
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanPermissionRepository permissionRepository;
     private final MealPlanEntryRepository entryRepository;
     private final RecipeFacade recipeFacade;
     private final ProvisioningFacade provisioningFacade;
+    private final LimitsFacade limitsFacade;
 
     List<MealPlanDto> findAll(String userEmail) {
         log.debug("Fetching all meal plans for user: {}", userEmail);
@@ -49,12 +52,9 @@ class MealPlanService {
 
     @Transactional
     MealPlanDto create(CreateMealPlanRequest request, String userEmail) {
-        log.debug("Creating meal plan with name: {} for user: {}", request.name(), userEmail);
+        limitsFacade.reserve(userEmail, MEAL_PLAN_RESOURCE);
 
-        long ownedCount = permissionRepository.countOwnedByEmail(userEmail);
-        if (ownedCount >= properties.maxOwnedPlans()) {
-            throw new MealPlanLimitExceededException(properties.maxOwnedPlans());
-        }
+        log.debug("Creating meal plan with name: {} for user: {}", request.name(), userEmail);
 
         MealPlan mealPlan = new MealPlan(request.name(), request.color());
         MealPlan savedPlan = mealPlanRepository.save(mealPlan);
@@ -104,6 +104,8 @@ class MealPlanService {
 
         permissionRepository.deleteAllByPlanId(id);
         mealPlanRepository.deleteById(id);
+
+        limitsFacade.release(userEmail, MEAL_PLAN_RESOURCE);
     }
 
     @Transactional

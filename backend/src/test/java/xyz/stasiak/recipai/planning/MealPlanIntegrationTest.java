@@ -1,24 +1,36 @@
 package xyz.stasiak.recipai.planning;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.dto.SharedUserDto;
 import xyz.stasiak.recipai.recipes.*;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,9 +44,6 @@ class MealPlanIntegrationTest {
 
     @LocalServerPort
     private int port;
-
-    @Value("${recipai.meal-plan.max-owned-plans}")
-    private int maxOwnedPlans;
 
     private RestClient restClient() {
         return restClient(TestSecurityConfiguration.AUTH_TOKEN);
@@ -334,22 +343,6 @@ class MealPlanIntegrationTest {
             fail("Should have thrown exception");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        }
-    }
-
-    @Test
-    void shouldEnforcePlanLimit() {
-        RestClient client = restClient();
-
-        for (int i = 0; i < maxOwnedPlans; i++) {
-            createMealPlan(client, "Plan " + i, "#FF5733");
-        }
-
-        try {
-            createMealPlan(client, "Plan over limit", "#FF5733");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.CONFLICT.value());
         }
     }
 
@@ -1120,6 +1113,243 @@ class MealPlanIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
             assertThat(ex.getResponseBodyAsString()).contains("Date range cannot exceed 3 months");
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "recipai.limits.enabled=true")
+    class LimitsEnforced {
+
+        private static final String SUBJECT = "user@example.com";
+
+        @Autowired
+        private LimitsFacade limitsFacade;
+
+        @Autowired
+        private JdbcClient jdbcClient;
+
+        @Autowired
+        private DataSource dataSource;
+
+        @BeforeEach
+        void seedOverride() {
+            seedConfigOverride(SUBJECT, 2);
+        }
+
+        @AfterEach
+        void tearDown() {
+            for (String token : List.of(
+                    TestSecurityConfiguration.AUTH_TOKEN,
+                    TestSecurityConfiguration.AUTH_TOKEN_USER_1,
+                    TestSecurityConfiguration.AUTH_TOKEN_USER_2)) {
+                RestClient client = restClient(token);
+                for (MealPlanDto plan : getAllMealPlans(client)) {
+                    try {
+                        deleteMealPlan(client, plan.id());
+                    } catch (RestClientResponseException ignored) {
+                        // not the owner, ignore
+                    }
+                }
+            }
+
+            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'MEAL_PLAN' AND subject IS NOT NULL").update();
+            jdbcClient.sql("""
+                            DELETE FROM recipai.limit_usage
+                             WHERE resource = 'MEAL_PLAN' AND subject NOT IN (:subject, :user1, :user2)
+                            """)
+                    .param("subject", SUBJECT)
+                    .param("user1", "user1@example.com")
+                    .param("user2", "user2@example.com")
+                    .update();
+
+            assertThat(usedFor(SUBJECT)).isZero();
+        }
+
+        private int usedFor(String subject) {
+            return limitsFacade.currentUsage(subject, MealPlanService.MEAL_PLAN_RESOURCE)
+                    .map(LimitUsageDetails::used)
+                    .orElse(0);
+        }
+
+        private void seedConfigOverride(String subject, int maxValue) {
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                            VALUES (:id, 'MEAL_PLAN', :subject, 'STOCK', :maxValue, NULL)
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("subject", subject)
+                    .param("maxValue", maxValue)
+                    .update();
+        }
+
+        @Test
+        void shouldRefuseThirdCreateWithLimitDetails() {
+            RestClient client = restClient();
+            createMealPlan(client, "Plan 1", "#FF5733");
+            createMealPlan(client, "Plan 2", "#FF5733");
+
+            try {
+                createMealPlan(client, "Plan 3", "#FF5733");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+                assertThat(ex.getResponseHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body.get("resource")).isEqualTo("MEAL_PLAN");
+                assertThat(body.get("kind")).isEqualTo("STOCK");
+                assertThat(body.get("limit")).isEqualTo(2);
+                assertThat(body.get("used")).isEqualTo(2);
+            }
+        }
+
+        @Test
+        void shouldCarryNoRetryAfterOnStockRefusal() {
+            RestClient client = restClient();
+            createMealPlan(client, "Plan 1", "#FF5733");
+            createMealPlan(client, "Plan 2", "#FF5733");
+
+            try {
+                createMealPlan(client, "Plan 3", "#FF5733");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getResponseHeaders().get("Retry-After")).isNull();
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body).doesNotContainKey("retryAfterSeconds");
+            }
+        }
+
+        @Test
+        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+            RestClient client = restClient();
+            MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
+            createMealPlan(client, "Plan 2", "#FF5733");
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'MEAL_PLAN' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            List<MealPlanDto> plans = getAllMealPlans(client);
+            assertThat(plans).extracting(MealPlanDto::id).contains(plan1.id());
+
+            MealPlanDto updated = updateMealPlan(client, plan1.id(), "Plan 1 Updated", "#00FF00");
+            assertThat(updated.name()).isEqualTo("Plan 1 Updated");
+
+            try {
+                createMealPlan(client, "Plan 3", "#FF5733");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+        }
+
+        @Test
+        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+            RestClient client = restClient();
+            MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
+            createMealPlan(client, "Plan 2", "#FF5733");
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+
+            deleteMealPlan(client, plan1.id());
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            createMealPlan(client, "Plan 3", "#FF5733");
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+        }
+
+        @Test
+        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+            RestClient client = restClient();
+            MealPlanDto plan = createMealPlan(client, "Shared Plan", "#FF5733");
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            shareMealPlan(client, plan.id(), "user2@example.com");
+            assertThat(usedFor("user2@example.com")).isZero();
+
+            unshareMealPlan(client, plan.id(), "user2@example.com");
+            assertThat(usedFor("user2@example.com")).isZero();
+        }
+
+        @Test
+        void shouldRepairDriftToActualOwnedCountViaRecompute() {
+            RestClient client = restClient();
+            createMealPlan(client, "Plan 1", "#FF5733");
+            createMealPlan(client, "Plan 2", "#FF5733");
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+
+            jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'MEAL_PLAN' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+            assertThat(usedFor(SUBJECT)).isEqualTo(99);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+        }
+
+        @Test
+        void shouldClearUsageForSubjectThatOwnsNothing() {
+            String ghost = "ghost@example.com";
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('MEAL_PLAN', :subject, 5, now())
+                            """)
+                    .param("subject", ghost)
+                    .update();
+            assertThat(usedFor(ghost)).isEqualTo(5);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(limitsFacade.currentUsage(ghost, MealPlanService.MEAL_PLAN_RESOURCE)).isEmpty();
+        }
+
+        @Test
+        void shouldSpareFlowConfiguredSubjectFromRecompute() {
+            String flowSubject = "flow-subject@example.com";
+            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                            VALUES (:id, 'MEAL_PLAN', :subject, 'FLOW', 5, NULL)
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("subject", flowSubject)
+                    .update();
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('MEAL_PLAN', :subject, 3, :periodStart)
+                            """)
+                    .param("subject", flowSubject)
+                    .param("periodStart", Timestamp.from(periodStart))
+                    .update();
+
+            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
+
+            RecomputeMigration.run(dataSource);
+
+            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
+            assertThat(after.used()).isEqualTo(before.used());
+            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+        }
+
+        @Test
+        void shouldChangeNothingOnSecondRecomputeRun() {
+            RestClient client = restClient();
+            createMealPlan(client, "Plan 1", "#FF5733");
+
+            RecomputeMigration.run(dataSource);
+            int firstRun = usedFor(SUBJECT);
+
+            RecomputeMigration.run(dataSource);
+            int secondRun = usedFor(SUBJECT);
+
+            assertThat(secondRun).isEqualTo(firstRun);
+            assertThat(secondRun).isEqualTo(1);
         }
     }
 }

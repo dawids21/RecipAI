@@ -75,3 +75,26 @@ SELECT 'SHOPPING_LIST', p.email, COUNT(*), now()
        ) IS DISTINCT FROM 'FLOW'
  GROUP BY p.email
     ON CONFLICT (resource, subject) DO NOTHING;
+
+-- MEAL_PLAN
+DELETE FROM limit_usage u
+ WHERE u.resource = 'MEAL_PLAN'
+   AND COALESCE(
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = u.resource AND c.subject = u.subject),
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = u.resource AND c.subject IS NULL)
+       ) IS DISTINCT FROM 'FLOW';
+
+INSERT INTO limit_usage (resource, subject, used, period_start)
+SELECT 'MEAL_PLAN', p.email, COUNT(*), now()
+  FROM meal_plan_permissions p
+ WHERE p.role = 'OWNER'
+   AND COALESCE(
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = 'MEAL_PLAN' AND c.subject = p.email),
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = 'MEAL_PLAN' AND c.subject IS NULL)
+       ) IS DISTINCT FROM 'FLOW'
+ GROUP BY p.email
+    ON CONFLICT (resource, subject) DO NOTHING;

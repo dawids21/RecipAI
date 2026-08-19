@@ -39,16 +39,6 @@ class PlanningExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler(MealPlanLimitExceededException.class)
-    public ProblemDetail handleMealPlanLimitExceeded(MealPlanLimitExceededException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT,
-                ex.getMessage()
-        );
-        problemDetail.setTitle("Meal Plan Limit Exceeded");
-        return problemDetail;
-    }
-
     @ExceptionHandler(InvalidMealPlanEntryException.class)
     public ProblemDetail handleInvalidMealPlanEntry(InvalidMealPlanEntryException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
