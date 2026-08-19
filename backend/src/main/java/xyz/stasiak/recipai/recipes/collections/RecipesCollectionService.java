@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionNotFoundException;
@@ -17,9 +18,12 @@ import java.util.UUID;
 @Slf4j
 public class RecipesCollectionService {
 
+    static final String RECIPES_COLLECTION_RESOURCE = "RECIPES_COLLECTION";
+
     private final RecipesCollectionRepository recipesCollectionRepository;
     private final RecipesCollectionPermissionRepository permissionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final LimitsFacade limitsFacade;
 
     List<RecipesCollectionListDto> findAll(String userEmail) {
         log.debug("Fetching all recipes collections for user: {}", userEmail);
@@ -48,6 +52,8 @@ public class RecipesCollectionService {
 
     @Transactional
     RecipesCollectionListDto create(CreateRecipesCollectionRequest request, String userEmail) {
+        limitsFacade.reserve(userEmail, RECIPES_COLLECTION_RESOURCE);
+
         log.debug("Creating recipes collection with name: {} for user: {}", request.name(), userEmail);
 
         RecipesCollection recipesCollection = new RecipesCollection(request.name());
@@ -100,6 +106,8 @@ public class RecipesCollectionService {
         permissionRepository.deleteAllByRecipesCollectionId(id);
 
         recipesCollectionRepository.deleteById(id);
+
+        limitsFacade.release(userEmail, RECIPES_COLLECTION_RESOURCE);
     }
 
     void shareRecipesCollection(String targetEmail, UUID recipesCollectionId, String requesterEmail) {

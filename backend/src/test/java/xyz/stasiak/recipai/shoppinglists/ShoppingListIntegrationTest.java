@@ -1,17 +1,33 @@
 package xyz.stasiak.recipai.shoppinglists;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,7 +37,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 @Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "recipai.limits.enabled=false")
 class ShoppingListIntegrationTest {
 
     @LocalServerPort
@@ -996,6 +1012,285 @@ class ShoppingListIntegrationTest {
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "recipai.limits.enabled=true")
+    class LimitsEnforced {
+
+        private static final String SUBJECT = "user@example.com";
+
+        @Autowired
+        private LimitsFacade limitsFacade;
+
+        @Autowired
+        private JdbcClient jdbcClient;
+
+        @Autowired
+        private DataSource dataSource;
+
+        @BeforeEach
+        void seedOverride() {
+            seedConfigOverride(SUBJECT, 2);
+        }
+
+        @AfterEach
+        void tearDown() {
+            for (String token : List.of(
+                    TestSecurityConfiguration.AUTH_TOKEN,
+                    TestSecurityConfiguration.AUTH_TOKEN_USER_1,
+                    TestSecurityConfiguration.AUTH_TOKEN_USER_2)) {
+                RestClient client = restClient(token);
+                for (ShoppingListListDto list : getAllShoppingLists(client)) {
+                    try {
+                        deleteShoppingList(client, list.id());
+                    } catch (RestClientResponseException ignored) {
+                        // not the owner, ignore
+                    }
+                }
+            }
+
+            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'SHOPPING_LIST' AND subject IS NOT NULL").update();
+            jdbcClient.sql("""
+                            DELETE FROM recipai.limit_usage
+                             WHERE resource = 'SHOPPING_LIST' AND subject NOT IN (:subject, :user1, :user2)
+                            """)
+                    .param("subject", SUBJECT)
+                    .param("user1", "user1@example.com")
+                    .param("user2", "user2@example.com")
+                    .update();
+
+            assertThat(usedFor(SUBJECT)).isZero();
+        }
+
+        private int usedFor(String subject) {
+            return limitsFacade.currentUsage(subject, ShoppingListService.SHOPPING_LIST_RESOURCE)
+                    .map(LimitUsageDetails::used)
+                    .orElse(0);
+        }
+
+        private void seedConfigOverride(String subject, int maxValue) {
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                            VALUES (:id, 'SHOPPING_LIST', :subject, 'STOCK', :maxValue, NULL)
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("subject", subject)
+                    .param("maxValue", maxValue)
+                    .update();
+        }
+
+        @Test
+        void shouldRefuseThirdCreateWithLimitDetails() {
+            RestClient client = restClient();
+            createShoppingList(client, "List 1");
+            createShoppingList(client, "List 2");
+
+            try {
+                createShoppingList(client, "List 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+                assertThat(ex.getResponseHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body.get("resource")).isEqualTo("SHOPPING_LIST");
+                assertThat(body.get("kind")).isEqualTo("STOCK");
+                assertThat(body.get("limit")).isEqualTo(2);
+                assertThat(body.get("used")).isEqualTo(2);
+            }
+        }
+
+        @Test
+        void shouldCarryNoRetryAfterOnStockRefusal() {
+            RestClient client = restClient();
+            createShoppingList(client, "List 1");
+            createShoppingList(client, "List 2");
+
+            try {
+                createShoppingList(client, "List 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getResponseHeaders().get("Retry-After")).isNull();
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body).doesNotContainKey("retryAfterSeconds");
+            }
+        }
+
+        @Test
+        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+            RestClient client = restClient();
+            ShoppingListListDto list1 = createShoppingList(client, "List 1");
+            createShoppingList(client, "List 2");
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'SHOPPING_LIST' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            ShoppingListDto fetched = getShoppingList(client, list1.id());
+            assertThat(fetched.id()).isEqualTo(list1.id());
+
+            ShoppingListListDto updated = updateShoppingList(client, list1.id(), "List 1 Updated");
+            assertThat(updated.name()).isEqualTo("List 1 Updated");
+
+            try {
+                createShoppingList(client, "List 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+        }
+
+        @Test
+        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+            RestClient client = restClient();
+            ShoppingListListDto list1 = createShoppingList(client, "List 1");
+            createShoppingList(client, "List 2");
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+
+            deleteShoppingList(client, list1.id());
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            createShoppingList(client, "List 3");
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+        }
+
+        @Test
+        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "Shared List");
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            shareShoppingList(client, list.id(), "user2@example.com");
+            assertThat(usedFor("user2@example.com")).isZero();
+
+            unshareShoppingList(client, list.id(), "user2@example.com");
+            assertThat(usedFor("user2@example.com")).isZero();
+        }
+
+        @Test
+        void shouldNotMoveListStandingWhenAddingAndDeletingItems() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List With Items");
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            deleteItem(client, list.id(), item.id(), item.version());
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+        }
+
+        @Test
+        void shouldRepairDriftToActualOwnedCountViaRecompute() {
+            RestClient client = restClient();
+            createShoppingList(client, "List 1");
+            createShoppingList(client, "List 2");
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+
+            jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'SHOPPING_LIST' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+            assertThat(usedFor(SUBJECT)).isEqualTo(99);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+        }
+
+        @Test
+        void shouldClearUsageForSubjectThatOwnsNothing() {
+            String ghost = "ghost@example.com";
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('SHOPPING_LIST', :subject, 5, now())
+                            """)
+                    .param("subject", ghost)
+                    .update();
+            assertThat(usedFor(ghost)).isEqualTo(5);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(limitsFacade.currentUsage(ghost, ShoppingListService.SHOPPING_LIST_RESOURCE)).isEmpty();
+        }
+
+        @Test
+        void shouldSpareFlowConfiguredSubjectFromRecompute() {
+            String flowSubject = "flow-subject@example.com";
+            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                            VALUES (:id, 'SHOPPING_LIST', :subject, 'FLOW', 5, NULL)
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("subject", flowSubject)
+                    .update();
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('SHOPPING_LIST', :subject, 3, :periodStart)
+                            """)
+                    .param("subject", flowSubject)
+                    .param("periodStart", Timestamp.from(periodStart))
+                    .update();
+
+            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+
+            RecomputeMigration.run(dataSource);
+
+            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+            assertThat(after.used()).isEqualTo(before.used());
+            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+        }
+
+        @Test
+        void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
+            String defaultFlowSubject = "default-flow@example.com";
+            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('SHOPPING_LIST', :subject, 3, :periodStart)
+                            """)
+                    .param("subject", defaultFlowSubject)
+                    .param("periodStart", Timestamp.from(periodStart))
+                    .update();
+            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'SHOPPING_LIST' AND subject IS NULL")
+                    .update();
+
+            LimitUsageDetails before = limitsFacade.currentUsage(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+
+            try {
+                RecomputeMigration.run(dataSource);
+            } finally {
+                jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = 'SHOPPING_LIST' AND subject IS NULL")
+                        .update();
+            }
+
+            LimitUsageDetails after = limitsFacade.currentUsage(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+            assertThat(after.used()).isEqualTo(before.used());
+            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+        }
+
+        @Test
+        void shouldChangeNothingOnSecondRecomputeRun() {
+            RestClient client = restClient();
+            createShoppingList(client, "List 1");
+
+            RecomputeMigration.run(dataSource);
+            int firstRun = usedFor(SUBJECT);
+
+            RecomputeMigration.run(dataSource);
+            int secondRun = usedFor(SUBJECT);
+
+            assertThat(secondRun).isEqualTo(firstRun);
+            assertThat(secondRun).isEqualTo(1);
         }
     }
 }

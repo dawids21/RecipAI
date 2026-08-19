@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.RecipesCollectionService;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionUnshared;
@@ -26,12 +27,15 @@ import java.util.UUID;
 @Slf4j
 class RecipeService {
 
+    static final String RECIPE_RESOURCE = "RECIPE";
+
     private final RecipeRepository recipeRepository;
     private final RecipePermissionRepository recipePermissionRepository;
     private final ObjectMapper objectMapper;
     private final RecipesCollectionService recipesCollectionService;
     private final RecipeImagesService recipeImagesService;
     private final ApplicationEventPublisher eventPublisher;
+    private final LimitsFacade limitsFacade;
 
     public List<RecipeListDto> findAll(String userEmail) {
         log.debug("Finding all accessible recipes for user {}", userEmail);
@@ -91,6 +95,8 @@ class RecipeService {
 
     @Transactional
     public RecipeDetailsDto save(CreateRecipeRequest request, List<MultipartFile> images, String userEmail) {
+        limitsFacade.reserve(userEmail, RECIPE_RESOURCE);
+
         log.debug("Creating recipe with name: {} for user: {}", request.name(), userEmail);
 
         Recipe recipe = new Recipe();
@@ -201,6 +207,8 @@ class RecipeService {
         recipeRepository.deleteById(id);
 
         recipeImagesService.deleteAllImages(id);
+
+        limitsFacade.release(userEmail, RECIPE_RESOURCE);
     }
 
     private RecipeDetailsDto toDetailsDto(Recipe recipe, UserRole userRole, String collectionName, List<RecipeImageDto> images) {

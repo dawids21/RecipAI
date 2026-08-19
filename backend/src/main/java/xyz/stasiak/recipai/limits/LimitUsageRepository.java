@@ -22,4 +22,12 @@ interface LimitUsageRepository extends JpaRepository<LimitUsage, LimitUsageId> {
             """, nativeQuery = true)
     int reserve(@Param("resource") String resource, @Param("subject") String subject,
                 @Param("now") Instant now, @Param("cutoff") Instant cutoff, @Param("max") int max);
+
+    @Modifying
+    @Query(value = """
+            UPDATE {h-schema}limit_usage
+               SET used = GREATEST(used - 1, 0)
+             WHERE resource = :resource AND subject = :subject
+            """, nativeQuery = true)
+    int release(@Param("resource") String resource, @Param("subject") String subject);
 }

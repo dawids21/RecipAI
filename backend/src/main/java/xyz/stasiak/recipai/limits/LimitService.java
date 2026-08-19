@@ -50,6 +50,21 @@ class LimitService {
         throw new LimitExceededException(resource, config.getKind(), config.getMaxValue(), used, retryAfterSeconds);
     }
 
+    @Transactional
+    void release(String subject, String resource) {
+        Optional<LimitConfig> config = limitConfigRepository.resolve(resource, subject);
+        if (config.isEmpty()) {
+            log.error("No limit configuration found for resource: {}", resource);
+            return;
+        }
+
+        if (config.get().getKind() == LimitKind.FLOW) {
+            return;
+        }
+
+        limitUsageRepository.release(resource, subject);
+    }
+
     @Transactional(readOnly = true)
     Optional<LimitUsageDetails> currentUsage(String subject, String resource) {
         return limitUsageRepository.findById(new LimitUsageId(resource, subject))

@@ -31,6 +31,15 @@ public class LimitsFacade {
         limitService.reserve(subject, resource);
     }
 
+    public void release(String subject, String resource) {
+        if (!limitsProperties.enabled()) {
+            log.debug("Limits disabled, skipping release of resource: {} for subject: {}", resource, subject);
+            return;
+        }
+        log.debug("Releasing resource: {} for subject: {}", resource, subject);
+        limitService.release(subject, resource);
+    }
+
     public Optional<LimitUsageDetails> currentUsage(String subject, String resource) {
         log.debug("Getting current usage of resource: {} for subject: {}", resource, subject);
         return limitService.currentUsage(subject, resource);

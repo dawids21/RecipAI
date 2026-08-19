@@ -360,6 +360,127 @@ class LimitsIntegrationTest {
         assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(5);
     }
 
+    @Test
+    void shouldDecrementUsedByOneForStockConfiguredSubject() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+        seedUsage(resource, subject, 3, Instant.now());
+
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldLeaveUsedUnchangedForFlowConfiguredSubject() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "FLOW", 5, null);
+        seedUsage(resource, subject, 3, Instant.now());
+
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(3);
+    }
+
+    @Test
+    void shouldLeaveUsedUnchangedWhenSubjectFlowOverrideShadowsStockDefault() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+        seedConfig(resource, subject, "FLOW", 5, null);
+        seedUsage(resource, subject, 3, Instant.now());
+
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(3);
+    }
+
+    @Test
+    void shouldFloorAtZeroWhenReleasingTwiceFromUsedOne() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+        seedUsage(resource, subject, 1, Instant.now());
+
+        limitsFacade.release(subject, resource);
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(0);
+    }
+
+    @Test
+    void shouldCreateNoRowWhenReleasingWithNoUsageRowPresent() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldReturnSilentlyWhenNoConfigurationResolvesAtAllOnRelease() {
+        String resource = newResource();
+        String subject = newSubject();
+
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldAdmitReserveRefusedAtCapAfterOneRelease() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 1, null);
+
+        limitsFacade.reserve(subject, resource);
+        assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
+                .isInstanceOf(LimitExceededException.class);
+
+        limitsFacade.release(subject, resource);
+        limitsFacade.reserve(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldLeaveUsedAtExactlyZeroUnderConcurrentReleases() throws Exception {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+        seedUsage(resource, subject, 1, Instant.now());
+
+        int threadCount = 8;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(executor.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();
+                    limitsFacade.release(subject, resource);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }));
+        }
+        ready.await();
+        start.countDown();
+        for (Future<?> future : futures) {
+            future.get();
+        }
+        executor.shutdown();
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(0);
+    }
+
     private static String newResource() {
         return "TEST_LIMIT_" + UUID.randomUUID();
     }

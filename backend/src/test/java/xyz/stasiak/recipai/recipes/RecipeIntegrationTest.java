@@ -1,29 +1,46 @@
 package xyz.stasiak.recipai.recipes;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 import xyz.stasiak.recipai.recipes.collections.dto.ShareRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.UnshareRecipesCollectionRequest;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 @SuppressWarnings("SameParameterValue")
 @Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "recipai.limits.enabled=false")
 class RecipeIntegrationTest {
 
     @LocalServerPort
@@ -1025,5 +1042,286 @@ class RecipeIntegrationTest {
 
         assertThat(result.recipes()).isEmpty();
         assertThat(result.inaccessibleRecipeNames()).isEmpty();
+    }
+
+    @Nested
+    @TestPropertySource(properties = "recipai.limits.enabled=true")
+    class LimitsEnforced {
+
+        private static final String SUBJECT = "user@example.com";
+
+        @Autowired
+        private LimitsFacade limitsFacade;
+
+        @Autowired
+        private JdbcClient jdbcClient;
+
+        @Autowired
+        private DataSource dataSource;
+
+        @BeforeEach
+        void seedOverride() {
+            seedConfigOverride(SUBJECT, 2);
+        }
+
+        @AfterEach
+        void tearDown() {
+            for (String token : List.of(
+                    TestSecurityConfiguration.AUTH_TOKEN,
+                    TestSecurityConfiguration.AUTH_TOKEN_USER_1,
+                    TestSecurityConfiguration.AUTH_TOKEN_USER_2)) {
+                RestClient client = restClient(token);
+                for (RecipeListDto recipe : getAllRecipes(client)) {
+                    try {
+                        deleteRecipe(client, recipe.id());
+                    } catch (RestClientResponseException ignored) {
+                        // not the owner, ignore
+                    }
+                }
+            }
+
+            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'RECIPE' AND subject IS NOT NULL").update();
+            jdbcClient.sql("""
+                            DELETE FROM recipai.limit_usage
+                             WHERE resource = 'RECIPE' AND subject NOT IN (:subject, :user1, :user2)
+                            """)
+                    .param("subject", SUBJECT)
+                    .param("user1", "user1@example.com")
+                    .param("user2", "user2@example.com")
+                    .update();
+
+            assertThat(usedFor(SUBJECT)).isZero();
+        }
+
+        private int usedFor(String subject) {
+            return limitsFacade.currentUsage(subject, RecipeService.RECIPE_RESOURCE)
+                    .map(LimitUsageDetails::used)
+                    .orElse(0);
+        }
+
+        private void seedConfigOverride(String subject, int maxValue) {
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                            VALUES (:id, 'RECIPE', :subject, 'STOCK', :maxValue, NULL)
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("subject", subject)
+                    .param("maxValue", maxValue)
+                    .update();
+        }
+
+        @Test
+        void shouldRefuseThirdCreateWithLimitDetails() {
+            RestClient client = restClient();
+            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+
+            try {
+                createRecipe(client, "Recipe 3", createTestRecipeData(), null);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+                assertThat(ex.getResponseHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body.get("resource")).isEqualTo("RECIPE");
+                assertThat(body.get("kind")).isEqualTo("STOCK");
+                assertThat(body.get("limit")).isEqualTo(2);
+                assertThat(body.get("used")).isEqualTo(2);
+            }
+        }
+
+        @Test
+        void shouldCarryNoRetryAfterOnStockRefusal() {
+            RestClient client = restClient();
+            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+
+            try {
+                createRecipe(client, "Recipe 3", createTestRecipeData(), null);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getResponseHeaders().get("Retry-After")).isNull();
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body).doesNotContainKey("retryAfterSeconds");
+            }
+        }
+
+        @Test
+        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+            RestClient client = restClient();
+            RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'RECIPE' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            RecipeDetailsDto fetched = getRecipe(client, recipe1.id());
+            assertThat(fetched.id()).isEqualTo(recipe1.id());
+
+            RecipeDetailsDto updated = updateRecipe(client, recipe1.id(), "Recipe 1 Updated", createTestRecipeData(), null);
+            assertThat(updated.name()).isEqualTo("Recipe 1 Updated");
+
+            try {
+                createRecipe(client, "Recipe 3", createTestRecipeData(), null);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+        }
+
+        @Test
+        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+            RestClient client = restClient();
+            RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+
+            deleteRecipe(client, recipe1.id());
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            createRecipe(client, "Recipe 3", createTestRecipeData(), null);
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+        }
+
+        @Test
+        void shouldRollBackReservationWhenCreateFailsAfterReserve() {
+            RestClient client = restClient();
+            UUID nonExistentCollectionId = UUID.randomUUID();
+
+            try {
+                createRecipe(client, "Doomed Recipe", createTestRecipeData(), nonExistentCollectionId);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+            }
+
+            assertThat(usedFor(SUBJECT)).isZero();
+        }
+
+        @Test
+        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+            RestClient client = restClient();
+            RecipeDetailsDto recipe = createRecipe(client, "Shared Recipe", createTestRecipeData(), null);
+            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+
+            shareRecipe(client, recipe.id(), "user2@example.com");
+            assertThat(usedFor("user2@example.com")).isZero();
+
+            unshareRecipe(client, recipe.id(), "user2@example.com");
+            assertThat(usedFor("user2@example.com")).isZero();
+        }
+
+        @Test
+        void shouldRepairDriftToActualOwnedCountViaRecompute() {
+            RestClient client = restClient();
+            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+
+            jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'RECIPE' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+            assertThat(usedFor(SUBJECT)).isEqualTo(99);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+        }
+
+        @Test
+        void shouldClearUsageForSubjectThatOwnsNothing() {
+            String ghost = "ghost@example.com";
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('RECIPE', :subject, 5, now())
+                            """)
+                    .param("subject", ghost)
+                    .update();
+            assertThat(usedFor(ghost)).isEqualTo(5);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(limitsFacade.currentUsage(ghost, RecipeService.RECIPE_RESOURCE)).isEmpty();
+        }
+
+        @Test
+        void shouldSpareFlowConfiguredSubjectFromRecompute() {
+            String flowSubject = "flow-subject@example.com";
+            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                            VALUES (:id, 'RECIPE', :subject, 'FLOW', 5, NULL)
+                            """)
+                    .param("id", UUID.randomUUID())
+                    .param("subject", flowSubject)
+                    .update();
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('RECIPE', :subject, 3, :periodStart)
+                            """)
+                    .param("subject", flowSubject)
+                    .param("periodStart", Timestamp.from(periodStart))
+                    .update();
+
+            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+
+            RecomputeMigration.run(dataSource);
+
+            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+            assertThat(after.used()).isEqualTo(before.used());
+            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+        }
+
+        @Test
+        void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
+            String defaultFlowSubject = "default-flow@example.com";
+            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('RECIPE', :subject, 3, :periodStart)
+                            """)
+                    .param("subject", defaultFlowSubject)
+                    .param("periodStart", Timestamp.from(periodStart))
+                    .update();
+            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'RECIPE' AND subject IS NULL")
+                    .update();
+
+            LimitUsageDetails before = limitsFacade.currentUsage(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+
+            try {
+                RecomputeMigration.run(dataSource);
+            } finally {
+                jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = 'RECIPE' AND subject IS NULL")
+                        .update();
+            }
+
+            LimitUsageDetails after = limitsFacade.currentUsage(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+            assertThat(after.used()).isEqualTo(before.used());
+            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+        }
+
+        @Test
+        void shouldChangeNothingOnSecondRecomputeRun() {
+            RestClient client = restClient();
+            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+
+            RecomputeMigration.run(dataSource);
+            int firstRun = usedFor(SUBJECT);
+
+            RecomputeMigration.run(dataSource);
+            int secondRun = usedFor(SUBJECT);
+
+            assertThat(secondRun).isEqualTo(firstRun);
+            assertThat(secondRun).isEqualTo(1);
+        }
     }
 }

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 import xyz.stasiak.recipai.shoppinglists.exception.ItemNotFoundException;
 import xyz.stasiak.recipai.shoppinglists.exception.ItemVersionConflictException;
@@ -19,9 +20,12 @@ import java.util.UUID;
 @Slf4j
 class ShoppingListService {
 
+    static final String SHOPPING_LIST_RESOURCE = "SHOPPING_LIST";
+
     private final ShoppingListRepository shoppingListRepository;
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final ShoppingListPermissionRepository permissionRepository;
+    private final LimitsFacade limitsFacade;
 
     List<ShoppingListListDto> findAll(String userEmail) {
         log.debug("Fetching all shopping lists for user: {}", userEmail);
@@ -32,6 +36,8 @@ class ShoppingListService {
 
     @Transactional
     ShoppingListListDto create(CreateShoppingListRequest request, String userEmail) {
+        limitsFacade.reserve(userEmail, SHOPPING_LIST_RESOURCE);
+
         log.debug("Creating shopping list with name: {} for user: {}", request.name(), userEmail);
 
         ShoppingList shoppingList = new ShoppingList(request.name());
@@ -157,6 +163,8 @@ class ShoppingListService {
 
         // Delete the shopping list itself
         shoppingListRepository.deleteById(id);
+
+        limitsFacade.release(userEmail, SHOPPING_LIST_RESOURCE);
     }
 
     ShoppingListListDto updateById(UUID id, UpdateShoppingListRequest request, String userEmail) {
