@@ -90,7 +90,7 @@ class MealPlanRepository {
       throw Exception('Invalid plan data');
     } else if (response.statusCode == 401) {
       throw Exception('Unauthorized: Please log in again');
-    } else if (response.statusCode == 409) {
+    } else if (response.statusCode == 429) {
       throw Exception('Plan limit exceeded');
     } else {
       throw Exception('Failed to create meal plan: ${response.statusCode}');
