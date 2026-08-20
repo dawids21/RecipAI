@@ -19,6 +19,13 @@ token string as the caller's email. Based on
   as malformed before it ever reaches the `JwtDecoder`. The token is therefore *not* required to look like
   an email — any RFC-6750-legal string (`agent`, `alice`, `bob`, ...) is accepted as-is and placed directly
   into the `email` claim, unvalidated. No format check was added.
+  **Amended again, 2026-08-20:** taking the token *as* the email left sharing half-testable. Share and
+  unshare bodies are validated with `@Email`, so a bare `alice` is rejected as a share target (400) — and a
+  target that passes validation can never authenticate, since `@` is illegal in a bearer token. The decoder
+  now appends a fixed `@local.test` (RFC 2606 reserved): `Bearer alice` is the caller `alice@local.test`.
+  The header still carries the bare name; request bodies and `shared_users` responses carry the full
+  address. A share round-trip — grant, read as the recipient, edit as EDITOR, revoke — was verified
+  end to end.
 - **`@Profile("dev")` is the only gate.** No `@ConditionalOnProperty`, no `recipai.security.dev-auth`
   flag, so `application-dev.yml` is untouched. Overrides the research's recommendation of a second gate —
   see Risks.
@@ -74,9 +81,10 @@ The bean is a lambda `JwtDecoder`:
 
 - No format check: any token that reaches the decoder (i.e. any RFC-6750-legal bearer token — the `@`
   character never reaches this code, see decision above) is accepted as-is.
-- Build `Jwt.withTokenValue(token)` with `header("alg", "none")`, `subject(token)`,
-  `claim("email", token)`, `claim("email_verified", true)`, the real `issuer-uri`, and
-  `issuedAt`/`expiresAt` one hour apart, taken from the injected `Clock` bean.
+- Build `Jwt.withTokenValue(token)` with `header("alg", "none")`, `subject(email)`,
+  `claim("email", email)` where `email` is the token plus `@local.test` (see the amended decision
+  above), `claim("email_verified", true)`, the real `issuer-uri`, and `issuedAt`/`expiresAt` one hour
+  apart, taken from the injected `Clock` bean.
 - `@PostConstruct` `log.warn` announcing the bypass, mirroring `LimitsFacade.warnWhenDisabled()` —
   e.g. `AUTHENTICATION BYPASS ENABLED (dev profile) - every bearer token is accepted as the caller's
   email`.
@@ -104,7 +112,8 @@ cd backend && ./mvnw spring-boot:run
 - Verify, in order:
   - Startup log contains the bypass `WARN`.
   - `curl -s localhost:8080/actuator/health` → `{"status":"UP"}` (no token needed).
-  - `curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer agent" localhost:8080/recipes` → `200`.
+  - `curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer agent" localhost:8080/recipes` → `200`
+    (the caller is `agent@local.test`).
   - Same call with no header → `401`. (A token containing `@`, e.g. `Bearer agent@local.test`, also
     returns `401`, but from Spring's bearer-token grammar check, not from `DevAuthConfig` — see the
     amended decision above.)
