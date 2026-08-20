@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import 'auth_repository.dart';
+import 'auth_user.dart';
 
 class AuthService {
   final AuthRepository _authRepository;
-  late final StreamSubscription<User?> _authStateSubscription;
+  late final StreamSubscription<AuthUser?> _authStateSubscription;
 
   AuthService({required AuthRepository authRepository})
     : _authRepository = authRepository {
@@ -39,18 +39,18 @@ class AuthService {
   }
 
   /// Update state when auth changes
-  void _updateAuthState(User? user) {
+  void _updateAuthState(AuthUser? user) {
     _isAuthenticated.value = user != null;
     _email.value = user?.email ?? '';
   }
 
-  /// Sign in with Google
+  /// Sign in
   Future<void> signIn() async {
     if (_isSignInRunning) return;
     _isSignInRunning = true;
 
     try {
-      await _authRepository.signInWithGoogle();
+      await _authRepository.signIn();
       // State updates via stream listener
     } catch (e) {
       _isSignInRunning = false;

@@ -4,6 +4,7 @@ import 'package:recipai_mobile/core/get_it.dart';
 import 'package:recipai_mobile/core/theme.dart';
 
 import '../features/auth/auth_service.dart';
+import '../features/auth/dev_auth_service.dart';
 import '../features/auth/login_screen.dart';
 import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
@@ -121,8 +122,12 @@ GoRouter createAppRouter() {
       GoRoute(
         path: AppRoute.login.path,
         name: AppRoute.login.name,
-        builder: (context, state) =>
-            LoginScreen(authService: getIt<AuthService>()),
+        builder: (context, state) => LoginScreen(
+          authService: getIt<AuthService>(),
+          devAuthService: getIt.isRegistered<DevAuthService>()
+              ? getIt<DevAuthService>()
+              : null,
+        ),
       ),
       GoRoute(
         path: AppRoute.main.path,

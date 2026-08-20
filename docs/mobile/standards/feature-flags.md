@@ -32,7 +32,8 @@ if (FeatureFlags.myFeatureEnabled)
 
 ## Guidelines
 
-- Flags control **rendering only** — do not gate repository or service logic behind flags.
+- Flags control **rendering** in UI code, or **implementation selection** in a `*_setup.dart` or `main.dart`
+  composition root — never anything in between. A flag must never be read inside a service or repository body.
 - Remove the flag and its usages once the feature is fully rolled out; do not leave dead flag checks in the codebase.
 - Document every active flag in the table below.
 
@@ -40,4 +41,4 @@ if (FeatureFlags.myFeatureEnabled)
 
 | Flag | Env Variable | Default | Description |
 |---|---|---|---|
-| `loggingEnabled` | `LOGGING_ENABLED` | `false` | Gates the "Send logs" item in the main-screen app-bar overflow menu. Log capture is always on; only the share UI is behind the flag. |
+| `devAuthEnabled` | `DEV_AUTH_ENABLED` | `false` | In `auth_setup.dart`: selects `DevAuthRepository` over `FirebaseAuthRepository` and registers `DevAuthService` alongside it. In `main.dart`: skips `Firebase.initializeApp()` / `GoogleSignIn.initialize()`. The Login Screen renders the dev sign-in controls instead of the Google button whenever `DevAuthService` is registered — it reads no flag itself. Lets the app authenticate against a backend running the `dev` profile without Firebase credentials. |

@@ -53,5 +53,3 @@ Network logging lives in **one place** — the repository — so services never 
   not gated by any feature flag.
 - The outbound "Send logs" share goes through the **existing `recipai/share` platform channel** (Android
   `ACTION_SEND` via `FileProvider`) — **no `share_plus`**, **Android only**.
-- The `LOGGING_ENABLED` feature flag gates only the "Send logs" UI (see [feature-flags.md](./feature-flags.md)),
-  consistent with the feature-flag standard of gating rendering only.

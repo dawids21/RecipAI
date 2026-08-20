@@ -7,10 +7,10 @@
 - Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing recipe,
   planning, and shopping list tabs. Displays RecipeGrid, MealPlanCalendarScreen, or ShoppingListList widgets based on
   selected tab, with corresponding FABs (RecipeListFab, MealPlanCalendarFab, or ShoppingListListFab). Features
-  PopupMenuButton in AppBar with "Recipes collections", "Generate shopping list", and logout options. A "Send logs"
-  item (bug_report icon) is appended to the overflow menu when the `loggingEnabled` feature flag is set; it shares the
-  current log file via the `recipai/share` platform channel. When Planning tab is active and meal planning feature flag
-  is enabled, shows "Manage Plans" IconButton before the overflow menu.
+  PopupMenuButton in AppBar with "Recipes collections", "Generate shopping list", and logout options, followed by a
+  "Send logs" item (bug_report icon) that shares the current log file via the `recipai/share` platform channel. When
+  Planning tab is active and meal planning feature flag is enabled, shows "Manage Plans" IconButton before the
+  overflow menu.
 
 ## Shared Widgets
 
@@ -45,7 +45,8 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 
 #### Authentication Routes
 
-- `/login` - Authentication screen with Google Sign-In (only accessible when unauthenticated)
+- `/login` - Authentication screen with Google Sign-In, replaced by a dev sign-in field when `devAuthEnabled` is set
+  (only accessible when unauthenticated)
 
 #### Main App Routes
 
@@ -89,5 +90,6 @@ All routes except `/login` require user authentication. The app automatically re
 1. **App Launch** → Authentication check:
     - **If unauthenticated** → Login Screen (`/login`)
     - **If authenticated** → Main Screen (`/`) showing Recipes tab
-2. **Login Screen → Google Sign-In Tap** → Authentication process → Main Screen (`/`)
+2. **Login Screen → Sign-In Tap** (Google, or dev sign-in in a `devAuthEnabled` build) → Authentication process →
+   Main Screen (`/`)
 3. **Main Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)

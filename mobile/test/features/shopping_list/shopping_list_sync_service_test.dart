@@ -1,8 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:recipai_mobile/core/scheduler.dart';
 import 'package:recipai_mobile/features/auth/auth_service.dart';
+import 'package:recipai_mobile/features/auth/auth_user.dart';
 import 'package:recipai_mobile/features/shopping_list/local_shopping_list_item.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_item.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_item_dao.dart';
@@ -219,7 +219,7 @@ void main() {
     mockAuthRepository = MockAuthRepository();
     when(
       () => mockAuthRepository.watchAuthState(),
-    ).thenAnswer((_) => const Stream<User?>.empty());
+    ).thenAnswer((_) => const Stream<AuthUser?>.empty());
     when(
       () => mockAuthRepository.getIdToken(),
     ).thenAnswer((_) async => 'test-token');

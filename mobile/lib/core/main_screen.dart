@@ -16,7 +16,6 @@ import '../features/shopping_list/shopping_list_list.dart';
 import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import '../shared/extensions.dart';
-import 'feature_flags.dart';
 import 'get_it.dart';
 import 'logging/share_logs.dart';
 import 'routes.dart';
@@ -160,65 +159,48 @@ class _MainScreenState extends State<MainScreen> {
                 shareLogs();
               }
             },
-            itemBuilder: (context) {
-              final menuItems = <PopupMenuItem<String>>[];
-
-              menuItems.add(
-                const PopupMenuItem<String>(
-                  value: 'recipes_collections',
-                  child: Row(
-                    children: [
-                      Icon(Icons.folder),
-                      SizedBox(width: AppSpacing.small),
-                      Text('Recipes collections'),
-                    ],
-                  ),
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'recipes_collections',
+                child: Row(
+                  children: [
+                    Icon(Icons.folder),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Recipes collections'),
+                  ],
                 ),
-              );
-
-              menuItems.add(
-                const PopupMenuItem<String>(
-                  value: 'generate_shopping_list',
-                  child: Row(
-                    children: [
-                      Icon(Icons.playlist_add),
-                      SizedBox(width: AppSpacing.small),
-                      Text('Generate shopping list'),
-                    ],
-                  ),
+              ),
+              PopupMenuItem<String>(
+                value: 'generate_shopping_list',
+                child: Row(
+                  children: [
+                    Icon(Icons.playlist_add),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Generate shopping list'),
+                  ],
                 ),
-              );
-
-              menuItems.add(
-                const PopupMenuItem<String>(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout),
-                      SizedBox(width: AppSpacing.small),
-                      Text('Logout'),
-                    ],
-                  ),
+              ),
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Logout'),
+                  ],
                 ),
-              );
-
-              if (FeatureFlags.loggingEnabled) {
-                menuItems.add(
-                  const PopupMenuItem<String>(
-                    value: 'send_logs',
-                    child: Row(
-                      children: [
-                        Icon(Icons.bug_report),
-                        SizedBox(width: AppSpacing.small),
-                        Text('Send logs'),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return menuItems;
-            },
+              ),
+              PopupMenuItem<String>(
+                value: 'send_logs',
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report),
+                    SizedBox(width: AppSpacing.small),
+                    Text('Send logs'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

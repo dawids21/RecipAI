@@ -7,6 +7,7 @@ class PreferencesService {
 
   static const String _recipeFilterKey = 'recipe_filter_collection_id';
   static const String _mealPlanVisibilityKey = 'meal_plan_visibility';
+  static const String _devAuthUserNameKey = 'dev_auth_user_name';
 
   PreferencesService(this._prefs);
 
@@ -40,5 +41,17 @@ class PreferencesService {
 
   Future<void> setMealPlanVisibility(Map<String, bool> visibility) async {
     await _prefs.setString(_mealPlanVisibilityKey, jsonEncode(visibility));
+  }
+
+  String? getDevAuthUserName() {
+    return _prefs.getString(_devAuthUserNameKey);
+  }
+
+  Future<void> setDevAuthUserName(String? name) async {
+    if (name == null) {
+      await _prefs.remove(_devAuthUserNameKey);
+    } else {
+      await _prefs.setString(_devAuthUserNameKey, name);
+    }
   }
 }

@@ -40,9 +40,12 @@ class RecipeListService {
 Dependencies connecting to the external world (APIs, Firebase, databases, local storage) are passed as nullable named parameters to setup functions. Production implementations are used by default; test implementations can be injected.
 
 ```dart
-void setupAuth({AuthRepository? authRepository}) {
-  final repository = authRepository ?? FirebaseAuthRepository();
-  getIt.registerSingleton(AuthService(authRepository: repository));
+void setupRecipe({RecipeRepository? recipeRepository}) {
+  final repository = recipeRepository ?? RecipeRepository();
+  getIt.registerSingleton<RecipeRepository>(repository);
+  getIt.registerLazySingleton(
+    () => RecipeListService(recipeRepository: getIt<RecipeRepository>()),
+  );
 }
 ```
 

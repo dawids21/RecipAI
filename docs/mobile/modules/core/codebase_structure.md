@@ -11,7 +11,7 @@ mobile/
 │   │   ├── async_value.dart            # AsyncValue sealed class (Loading/Data/Error)
 │   │   ├── get_it.dart                 # Global GetIt instance
 │   │   ├── feature_flags.dart          # Feature flags configuration using environment variables
-│   │   ├── preferences_service.dart    # SharedPreferences wrapper for local storage (recipe filter, plan visibility)
+│   │   ├── preferences_service.dart    # SharedPreferences wrapper for local storage (recipe filter, plan visibility, dev auth user name)
 │   │   ├── scheduler.dart              # Scheduler/ScheduledTimer abstraction over dart:async Timer, injected into services for testability (ADR-0005)
 │   │   ├── theme.dart                  # App theme and spacing constants
 │   │   ├── logging/                    # Logging infrastructure (capture always on; flag gates share UI only)

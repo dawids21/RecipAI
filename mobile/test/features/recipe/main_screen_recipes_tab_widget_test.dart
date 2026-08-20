@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -8,6 +7,7 @@ import 'package:recipai_mobile/core/main_screen.dart';
 import 'package:recipai_mobile/core/preferences_service.dart';
 import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_setup.dart';
+import 'package:recipai_mobile/features/auth/auth_user.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_calendar_data.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_setup.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_setup.dart';
@@ -65,7 +65,7 @@ void main() {
 
     when(
       () => authRepository.watchAuthState(),
-    ).thenAnswer((_) => const Stream<User?>.empty());
+    ).thenAnswer((_) => const Stream<AuthUser?>.empty());
     when(
       () => authRepository.getIdToken(),
     ).thenAnswer((_) async => 'fake-token');

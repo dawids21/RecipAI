@@ -1,6 +1,6 @@
 class FeatureFlags {
-  static const bool loggingEnabled = bool.fromEnvironment(
-    'LOGGING_ENABLED',
-    defaultValue: true,
+  static const bool devAuthEnabled = bool.fromEnvironment(
+    'DEV_AUTH_ENABLED',
+    defaultValue: false,
   );
 }

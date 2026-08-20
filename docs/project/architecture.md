@@ -26,7 +26,7 @@ Code is organized by feature (not by layer). Each feature package contains its o
 - **`planning`** — manages meal plans with user-based permission control (CRUD with role-based access, sharing, meal plan entries with recipe or placeholder support, configurable owner plan limit, automatic conversion of recipe entries to placeholders on `RecipeDeleted` event, calendar view grouped by date, shopping list generation with serving size scaling and inaccessible recipe warnings)
 - **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, per-item `baseVersion` optimistic locking on item writes — a body field on update, a query param on delete — with update covering edits, reorders, and check-state as one version-gated write)
 - **`provisioning`** — transformation module that converts ingredients (with quantity multipliers) into shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; appends ingredient comments in parentheses to item names (e.g. `"salt (to taste)"`)
-- **`config.security`** — OAuth2 Resource Server — JWT token validation
+- **`config.security`** — OAuth2 Resource Server — JWT token validation; under the `dev` profile a bypass decoder takes the bearer token as the caller instead (see `docs/backend/standards/configuration-profiles.md`)
 - **`config.s3`** — AWS S3 client configuration with presigned URL support
 
 ### Layer Structure (within each feature)
@@ -85,7 +85,7 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
 
 ### Features
 
-- **`auth`** — user authentication using Firebase Authentication with Google Sign-In
+- **`auth`** — user authentication using Firebase Authentication with Google Sign-In, or a dev repository signing in against a `dev`-profile backend when the `devAuthEnabled` flag is set
 - **`recipe`** — recipe list and detail display with 3-column grid, horizontal chip-based collection filtering ("All
   Recipes", "Unassigned", specific collection), client-side fuzzy search, recipe create/edit forms, image carousel,
   sharing (OWNER/EDITOR roles), and "Add to Shopping List" flow; includes the `collection` sub-feature for managing

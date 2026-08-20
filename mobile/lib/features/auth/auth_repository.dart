@@ -1,21 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'auth_user.dart';
+
 /// Abstract interface for authentication repository
 abstract class AuthRepository {
   /// Watch auth state changes (reactive stream)
-  Stream<User?> watchAuthState();
-
-  /// Get current user (immediate access to cached value)
-  Future<User?> getCurrentUser();
+  Stream<AuthUser?> watchAuthState();
 
   /// Get ID token for API authentication
   Future<String?> getIdToken();
 
-  /// Sign in with Google OAuth flow
-  Future<void> signInWithGoogle();
+  /// Sign in
+  Future<void> signIn();
 
-  /// Sign out from both Firebase and Google
+  /// Sign out
   Future<void> signOut();
 }
 
@@ -25,13 +24,10 @@ class FirebaseAuthRepository implements AuthRepository {
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   @override
-  Stream<User?> watchAuthState() {
-    return _firebaseAuth.userChanges();
-  }
-
-  @override
-  Future<User?> getCurrentUser() async {
-    return _firebaseAuth.currentUser;
+  Stream<AuthUser?> watchAuthState() {
+    return _firebaseAuth.userChanges().map(
+      (user) => user == null ? null : AuthUser(email: user.email ?? ''),
+    );
   }
 
   @override
@@ -42,7 +38,7 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithGoogle() async {
+  Future<void> signIn() async {
     // 1. Trigger Google authentication
     final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'core/app_config.dart';
+import 'core/feature_flags.dart';
 import 'core/logging/logging_setup.dart';
 import 'core/preferences_service.dart';
 import 'core/routes.dart';
@@ -28,8 +29,12 @@ final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await GoogleSignIn.instance.initialize();
+  if (!FeatureFlags.devAuthEnabled) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await GoogleSignIn.instance.initialize();
+  }
   await AppConfig.loadConfig();
   await setupLogging();
 
