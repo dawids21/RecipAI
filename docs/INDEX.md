@@ -25,6 +25,11 @@ Lists all languages, frameworks, libraries, build tools, infrastructure, and hos
 ### Architecture (`project/architecture.md`)
 Describes the structural design of both applications: backend module breakdown and layer structure, mobile feature organisation and layer responsibilities, authentication flow, data flow diagram, external integrations, and deployment topology.
 
+### Local Development (`project/local-development.md`)
+How to run the backend locally with `recipai.sh`, the dev-profile authentication bypass and how to
+address callers with it, the environment variables a local run honours, and the curl idioms for
+calling the API.
+
 ---
 
 ## Backend Documentation
