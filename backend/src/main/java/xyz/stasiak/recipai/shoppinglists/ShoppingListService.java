@@ -21,6 +21,7 @@ import java.util.UUID;
 class ShoppingListService {
 
     static final String SHOPPING_LIST_RESOURCE = "SHOPPING_LIST";
+    static final String SHOPPING_LIST_ITEM_RESOURCE = "SHOPPING_LIST_ITEM";
 
     private final ShoppingListRepository shoppingListRepository;
     private final ShoppingListItemRepository shoppingListItemRepository;
@@ -69,6 +70,9 @@ class ShoppingListService {
         log.debug("Creating item in shopping list: {} for user: {}", listId, userEmail);
 
         requireEditorPermission(listId, userEmail);
+
+        String ownerEmail = requireOwnerEmail(listId);
+        limitsFacade.reserve(ownerEmail, listId.toString(), SHOPPING_LIST_ITEM_RESOURCE);
 
         ShoppingListItem item = new ShoppingListItem(listId, request.name(), request.quantity(), request.unit(), request.checked(), request.position());
         ShoppingListItem savedItem = shoppingListItemRepository.save(item);
@@ -126,6 +130,8 @@ class ShoppingListService {
                     .orElseThrow(() -> new ItemNotFoundException(itemId));
             throw new ItemVersionConflictException(toItemDto(winner));
         }
+
+        limitsFacade.release(requireOwnerEmail(listId), listId.toString(), SHOPPING_LIST_ITEM_RESOURCE);
     }
 
     private ShoppingListPermission requireEditorPermission(UUID listId, String userEmail) {
@@ -141,6 +147,11 @@ class ShoppingListService {
         }
 
         return permission;
+    }
+
+    private String requireOwnerEmail(UUID listId) {
+        return permissionRepository.findOwnerEmailByShoppingListId(listId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(listId));
     }
 
     @Transactional
@@ -165,6 +176,7 @@ class ShoppingListService {
         shoppingListRepository.deleteById(id);
 
         limitsFacade.release(userEmail, SHOPPING_LIST_RESOURCE);
+        limitsFacade.clear(id.toString(), SHOPPING_LIST_ITEM_RESOURCE);
     }
 
     ShoppingListListDto updateById(UUID id, UpdateShoppingListRequest request, String userEmail) {

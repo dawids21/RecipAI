@@ -481,6 +481,163 @@ class LimitsIntegrationTest {
         assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(0);
     }
 
+    @Test
+    void shouldResolveConfigurationFromConfigSubjectAndCountAgainstUsageSubject() {
+        String resource = newResource();
+        String configSubject = newSubject();
+        String usageSubject = newSubject();
+        seedConfig(resource, null, "FLOW", 1, null);
+        seedConfig(resource, configSubject, "FLOW", 3, null);
+
+        limitsFacade.reserve(configSubject, usageSubject, resource);
+        limitsFacade.reserve(configSubject, usageSubject, resource);
+        limitsFacade.reserve(configSubject, usageSubject, resource);
+
+        assertThat(limitsFacade.currentUsage(usageSubject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.currentUsage(configSubject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldCountTwoUsageSubjectsIndependentlyUnderOneConfigSubject() {
+        String resource = newResource();
+        String configSubject = newSubject();
+        String usageSubjectA = newSubject();
+        String usageSubjectB = newSubject();
+        seedConfig(resource, configSubject, "FLOW", 1, null);
+
+        limitsFacade.reserve(configSubject, usageSubjectA, resource);
+        limitsFacade.reserve(configSubject, usageSubjectB, resource);
+
+        assertThatThrownBy(() -> limitsFacade.reserve(configSubject, usageSubjectA, resource))
+                .isInstanceOf(LimitExceededException.class);
+        assertThatThrownBy(() -> limitsFacade.reserve(configSubject, usageSubjectB, resource))
+                .isInstanceOf(LimitExceededException.class);
+    }
+
+    @Test
+    void shouldApplyConfigSubjectOverrideToEveryUsageSubjectResolvingThroughIt() {
+        String resource = newResource();
+        String configSubject = newSubject();
+        String usageSubjectA = newSubject();
+        String usageSubjectB = newSubject();
+        seedConfig(resource, configSubject, "FLOW", 1, null);
+
+        limitsFacade.reserve(configSubject, usageSubjectA, resource);
+        limitsFacade.reserve(configSubject, usageSubjectB, resource);
+        assertThatThrownBy(() -> limitsFacade.reserve(configSubject, usageSubjectA, resource))
+                .isInstanceOf(LimitExceededException.class);
+        assertThatThrownBy(() -> limitsFacade.reserve(configSubject, usageSubjectB, resource))
+                .isInstanceOf(LimitExceededException.class);
+
+        updateMaxValue(resource, configSubject, 2);
+
+        limitsFacade.reserve(configSubject, usageSubjectA, resource);
+        limitsFacade.reserve(configSubject, usageSubjectB, resource);
+
+        assertThat(limitsFacade.currentUsage(usageSubjectA, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.currentUsage(usageSubjectB, resource).orElseThrow().used()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldRefuseWithConfigSubjectLimitAndUsageSubjectUsed() {
+        String resource = newResource();
+        String configSubject = newSubject();
+        String usageSubject = newSubject();
+        seedConfig(resource, configSubject, "FLOW", 1, null);
+
+        limitsFacade.reserve(configSubject, usageSubject, resource);
+
+        LimitExceededException ex = catchThrowableOfType(LimitExceededException.class,
+                () -> limitsFacade.reserve(configSubject, usageSubject, resource));
+
+        assertThat(ex.limit()).isEqualTo(1);
+        assertThat(ex.used()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldFollowConfigSubjectKindOnTwoSubjectRelease() {
+        String resource = newResource();
+        String configSubject = newSubject();
+        String usageSubject = newSubject();
+        seedConfig(resource, configSubject, "FLOW", 5, null);
+        seedUsage(resource, usageSubject, 3, Instant.now());
+
+        limitsFacade.release(configSubject, usageSubject, resource);
+        assertThat(limitsFacade.currentUsage(usageSubject, resource).orElseThrow().used()).isEqualTo(3);
+
+        jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = :resource AND subject = :subject")
+                .param("resource", resource)
+                .param("subject", configSubject)
+                .update();
+
+        limitsFacade.release(configSubject, usageSubject, resource);
+        assertThat(limitsFacade.currentUsage(usageSubject, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.currentUsage(configSubject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldBehaveIdenticallyForTwoArgumentAndThreeArgumentFormsWithEqualSubjects() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+
+        limitsFacade.reserve(subject, subject, resource);
+        limitsFacade.reserve(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(2);
+
+        limitsFacade.release(subject, subject, resource);
+        limitsFacade.release(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource).orElseThrow().used()).isEqualTo(0);
+    }
+
+    @Test
+    void shouldDeleteUsageRowOnClear() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+        seedUsage(resource, subject, 3, Instant.now());
+
+        limitsFacade.clear(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldDoNothingWhenClearingAbsentSubject() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "STOCK", 5, null);
+
+        limitsFacade.clear(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldClearFlowConfiguredSubjectToo() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedConfig(resource, null, "FLOW", 5, null);
+        seedUsage(resource, subject, 3, Instant.now());
+
+        limitsFacade.clear(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource)).isEmpty();
+    }
+
+    @Test
+    void shouldClearWithNoConfigurationAtAll() {
+        String resource = newResource();
+        String subject = newSubject();
+        seedUsage(resource, subject, 3, Instant.now());
+
+        limitsFacade.clear(subject, resource);
+
+        assertThat(limitsFacade.currentUsage(subject, resource)).isEmpty();
+    }
+
     private static String newResource() {
         return "TEST_LIMIT_" + UUID.randomUUID();
     }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 interface ShoppingListPermissionRepository extends JpaRepository<ShoppingListPermission, ShoppingListPermissionId> {
@@ -14,4 +15,7 @@ interface ShoppingListPermissionRepository extends JpaRepository<ShoppingListPer
 
     @Query("SELECT slp FROM ShoppingListPermission slp WHERE slp.id.shoppingListId = ?1 ORDER BY slp.role DESC")
     List<ShoppingListPermission> findAllByShoppingListId(UUID shoppingListId);
+
+    @Query("SELECT slp.id.email FROM ShoppingListPermission slp WHERE slp.id.shoppingListId = ?1 AND slp.role = 'OWNER'")
+    Optional<String> findOwnerEmailByShoppingListId(UUID shoppingListId);
 }

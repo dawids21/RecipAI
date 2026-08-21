@@ -1,5 +1,6 @@
--- Rebuilds limit_usage for the owner-scoped resources from their owning module's permission table.
--- Both the rollout seed and the drift repair for a missed release.
+-- Rebuilds limit_usage for the owner-scoped resources from their owning module's permission table,
+-- and for SHOPPING_LIST_ITEM, where one resource is counted per list while its configuration is
+-- resolved from the list's owner. Both the rollout seed and the drift repair for a missed release.
 --
 -- Subjects whose effective configuration is FLOW are excluded from both statements: for them `used`
 -- means "consumed this period" and `period_start` anchors a window, neither of which survives being
@@ -97,4 +98,32 @@ SELECT 'MEAL_PLAN', p.email, COUNT(*), now()
              WHERE c.resource = 'MEAL_PLAN' AND c.subject IS NULL)
        ) IS DISTINCT FROM 'FLOW'
  GROUP BY p.email
+    ON CONFLICT (resource, subject) DO NOTHING;
+
+-- SHOPPING_LIST_ITEM
+DELETE FROM limit_usage u
+ WHERE u.resource = 'SHOPPING_LIST_ITEM'
+   AND COALESCE(
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = u.resource
+               AND c.subject = (SELECT p.email FROM shopping_list_permission p
+                                 WHERE p.shopping_list_id::text = u.subject
+                                   AND p.role = 'OWNER')),
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = u.resource AND c.subject IS NULL)
+       ) IS DISTINCT FROM 'FLOW';
+
+INSERT INTO limit_usage (resource, subject, used, period_start)
+SELECT 'SHOPPING_LIST_ITEM', i.shopping_list_id::text, COUNT(*), now()
+  FROM shopping_list_items i
+  JOIN shopping_list_permission p
+    ON p.shopping_list_id = i.shopping_list_id
+   AND p.role = 'OWNER'
+ WHERE COALESCE(
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = 'SHOPPING_LIST_ITEM' AND c.subject = p.email),
+           (SELECT c.kind FROM limit_config c
+             WHERE c.resource = 'SHOPPING_LIST_ITEM' AND c.subject IS NULL)
+       ) IS DISTINCT FROM 'FLOW'
+ GROUP BY i.shopping_list_id
     ON CONFLICT (resource, subject) DO NOTHING;

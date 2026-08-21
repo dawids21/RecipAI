@@ -1032,7 +1032,8 @@ class ShoppingListIntegrationTest {
 
         @BeforeEach
         void seedOverride() {
-            seedConfigOverride(SUBJECT, 2);
+            seedConfigOverride("SHOPPING_LIST", SUBJECT, 2);
+            seedConfigOverride("SHOPPING_LIST_ITEM", SUBJECT, 3);
         }
 
         @AfterEach
@@ -1061,7 +1062,18 @@ class ShoppingListIntegrationTest {
                     .param("user2", "user2@example.com")
                     .update();
 
+            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'SHOPPING_LIST_ITEM' AND subject IS NOT NULL").update();
+
+            // Count first, sweep second: every list these tests create is deleted through the API
+            // above, which fires clear, so any surviving row is a missed clear. Sweeping before the
+            // assertion would delete exactly that evidence; sweeping after it is read keeps one
+            // test's leftovers from failing every later teardown too.
+            int itemUsageRows = jdbcClient.sql("SELECT COUNT(*) FROM recipai.limit_usage WHERE resource = 'SHOPPING_LIST_ITEM'")
+                    .query(Integer.class).single();
+            jdbcClient.sql("DELETE FROM recipai.limit_usage WHERE resource = 'SHOPPING_LIST_ITEM'").update();
+
             assertThat(usedFor(SUBJECT)).isZero();
+            assertThat(itemUsageRows).isZero();
         }
 
         private int usedFor(String subject) {
@@ -1070,12 +1082,19 @@ class ShoppingListIntegrationTest {
                     .orElse(0);
         }
 
-        private void seedConfigOverride(String subject, int maxValue) {
+        private int usedForItem(UUID listId) {
+            return limitsFacade.currentUsage(listId.toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)
+                    .map(LimitUsageDetails::used)
+                    .orElse(0);
+        }
+
+        private void seedConfigOverride(String resource, String subject, int maxValue) {
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'SHOPPING_LIST', :subject, 'STOCK', :maxValue, NULL)
+                            VALUES (:id, :resource, :subject, 'STOCK', :maxValue, NULL)
                             """)
                     .param("id", UUID.randomUUID())
+                    .param("resource", resource)
                     .param("subject", subject)
                     .param("maxValue", maxValue)
                     .update();
@@ -1291,6 +1310,295 @@ class ShoppingListIntegrationTest {
 
             assertThat(secondRun).isEqualTo(firstRun);
             assertThat(secondRun).isEqualTo(1);
+        }
+
+        @Test
+        void shouldRefuseFourthItemWithLimitDetails() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+
+            try {
+                createItem(client, list.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+                assertThat(ex.getResponseHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+                assertThat(ex.getResponseHeaders().get("Retry-After")).isNull();
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body.get("resource")).isEqualTo("SHOPPING_LIST_ITEM");
+                assertThat(body.get("kind")).isEqualTo("STOCK");
+                assertThat(body.get("limit")).isEqualTo(3);
+                assertThat(body.get("used")).isEqualTo(3);
+                assertThat(body).doesNotContainKey("retryAfterSeconds");
+            }
+        }
+
+        @Test
+        void shouldKeepItemCountsIndependentBetweenTwoListsOwnedByTheSameUser() {
+            RestClient client = restClient();
+            ShoppingListListDto listA = createShoppingList(client, "List A");
+            ShoppingListListDto listB = createShoppingList(client, "List B");
+            createItem(client, listA.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, listA.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            createItem(client, listA.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+
+            try {
+                createItem(client, listA.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+
+            ShoppingListItemDto itemB = createItem(client, listB.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            assertThat(itemB).isNotNull();
+            assertThat(usedForItem(listA.id())).isEqualTo(3);
+            assertThat(usedForItem(listB.id())).isEqualTo(1);
+        }
+
+        @Test
+        void shouldAdmitNextItemAfterDeletingOne() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            ShoppingListItemDto item3 = createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+            assertThat(usedForItem(list.id())).isEqualTo(3);
+
+            deleteItem(client, list.id(), item3.id(), item3.version());
+            assertThat(usedForItem(list.id())).isEqualTo(2);
+
+            ShoppingListItemDto item4 = createItem(client, list.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+            assertThat(item4).isNotNull();
+            assertThat(usedForItem(list.id())).isEqualTo(3);
+        }
+
+        @Test
+        void shouldNotReleaseWhenItemDeleteIsRefused() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            assertThat(usedForItem(list.id())).isEqualTo(1);
+
+            try {
+                deleteItem(client, list.id(), item.id(), item.version() + 99);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(412);
+            }
+            assertThat(usedForItem(list.id())).isEqualTo(1);
+
+            try {
+                deleteItem(client, list.id(), UUID.randomUUID(), 0);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            }
+            assertThat(usedForItem(list.id())).isEqualTo(1);
+        }
+
+        @Test
+        void shouldNotChargeItemBudgetOnUpdate() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            assertThat(usedForItem(list.id())).isEqualTo(1);
+
+            ShoppingListItemDto updated = updateItem(client, list.id(), item.id(),
+                    updateRequest(item.version(), "Oat milk", new BigDecimal("2.0"), "l", true, new BigDecimal("1.5")));
+            assertThat(updated.name()).isEqualTo("Oat milk");
+            assertThat(usedForItem(list.id())).isEqualTo(1);
+        }
+
+        @Test
+        void shouldAllowReadAndEditWhileOverCapButKeepItemCreationRefused() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            ShoppingListItemDto item1 = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            ShoppingListDto fetched = getShoppingList(client, list.id());
+            assertThat(fetched.items()).hasSize(3);
+
+            ShoppingListItemDto edited = updateItem(client, list.id(), item1.id(),
+                    updateRequest(item1.version(), "Oat milk", new BigDecimal("2.0"), "l", true, new BigDecimal("1.5")));
+            assertThat(edited.name()).isEqualTo("Oat milk");
+
+            try {
+                createItem(client, list.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+        }
+
+        @Test
+        void shouldRaiseCapOnEveryListOwnedByTheUserWhenOverrideIsRaised() {
+            RestClient client = restClient();
+            ShoppingListListDto listA = createShoppingList(client, "List A");
+            ShoppingListListDto listB = createShoppingList(client, "List B");
+            for (ShoppingListListDto list : List.of(listA, listB)) {
+                createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+                createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+                createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+            }
+
+            for (ShoppingListListDto list : List.of(listA, listB)) {
+                try {
+                    createItem(client, list.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+                    fail("Should have thrown exception");
+                } catch (RestClientResponseException ex) {
+                    assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+                }
+            }
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 4 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            ShoppingListItemDto itemA = createItem(client, listA.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+            ShoppingListItemDto itemB = createItem(client, listB.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+            assertThat(itemA).isNotNull();
+            assertThat(itemB).isNotNull();
+            assertThat(usedForItem(listA.id())).isEqualTo(4);
+            assertThat(usedForItem(listB.id())).isEqualTo(4);
+        }
+
+        @Test
+        void shouldApplyRaisedOverrideToAListCreatedAfterTheOverrideWasWritten() {
+            RestClient client = restClient();
+            ShoppingListListDto list1 = createShoppingList(client, "List 1");
+            createItem(client, list1.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, list1.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            createItem(client, list1.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 4 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            deleteShoppingList(client, list1.id());
+
+            ShoppingListListDto list2 = createShoppingList(client, "List 2");
+            createItem(client, list2.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, list2.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            createItem(client, list2.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+            ShoppingListItemDto item4 = createItem(client, list2.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+
+            assertThat(item4).isNotNull();
+            assertThat(usedForItem(list2.id())).isEqualTo(4);
+        }
+
+        @Test
+        void shouldChargeTheListAndResolveTheOwnersCapWhenAnEditorAddsAnItem() {
+            RestClient ownerClient = restClient();
+            RestClient editorClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+            seedConfigOverride("SHOPPING_LIST_ITEM", "user2@example.com", 10);
+
+            ShoppingListListDto list = createShoppingList(ownerClient, "Shared List");
+            shareShoppingList(ownerClient, list.id(), "user2@example.com");
+
+            createItem(ownerClient, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(ownerClient, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+
+            ShoppingListItemDto item3 = createItem(editorClient, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+            assertThat(item3).isNotNull();
+            assertThat(usedForItem(list.id())).isEqualTo(3);
+
+            try {
+                createItem(editorClient, list.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+
+            assertThat(limitsFacade.currentUsage("user2@example.com", ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+        }
+
+        @Test
+        void shouldClearItemUsageWhenTheListIsDeleted() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            assertThat(usedForItem(list.id())).isEqualTo(1);
+
+            deleteShoppingList(client, list.id());
+
+            assertThat(limitsFacade.currentUsage(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+        }
+
+        @Test
+        void shouldReproducePerListItemCountsViaRecompute() {
+            RestClient client = restClient();
+            ShoppingListListDto listA = createShoppingList(client, "List A");
+            ShoppingListListDto listB = createShoppingList(client, "List B");
+            createItem(client, listA.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+            createItem(client, listA.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+            createItem(client, listB.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
+            assertThat(usedForItem(listA.id())).isEqualTo(2);
+            assertThat(usedForItem(listB.id())).isEqualTo(1);
+
+            jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
+                    .param("subject", listA.id().toString())
+                    .update();
+            assertThat(usedForItem(listA.id())).isEqualTo(99);
+
+            RecomputeMigration.run(dataSource);
+
+            assertThat(usedForItem(listA.id())).isEqualTo(2);
+            assertThat(usedForItem(listB.id())).isEqualTo(1);
+        }
+
+        @Test
+        void shouldChangeNothingOnSecondItemRecomputeRun() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+
+            RecomputeMigration.run(dataSource);
+            int firstRun = usedForItem(list.id());
+
+            RecomputeMigration.run(dataSource);
+            int secondRun = usedForItem(list.id());
+
+            assertThat(secondRun).isEqualTo(firstRun);
+            assertThat(secondRun).isEqualTo(1);
+        }
+
+        @Test
+        void shouldSpareListWhoseOwnerIsFlowConfiguredFromItemRecompute() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+
+            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
+                    .param("subject", SUBJECT)
+                    .update();
+
+            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+            jdbcClient.sql("""
+                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
+                            VALUES ('SHOPPING_LIST_ITEM', :subject, 3, :periodStart)
+                            """)
+                    .param("subject", list.id().toString())
+                    .param("periodStart", Timestamp.from(periodStart))
+                    .update();
+
+            LimitUsageDetails before = limitsFacade.currentUsage(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
+
+            RecomputeMigration.run(dataSource);
+
+            LimitUsageDetails after = limitsFacade.currentUsage(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
+            assertThat(after.used()).isEqualTo(before.used());
+            assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
     }
 }

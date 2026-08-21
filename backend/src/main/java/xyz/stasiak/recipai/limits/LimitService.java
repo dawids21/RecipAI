@@ -20,8 +20,8 @@ class LimitService {
     private final Clock clock;
 
     @Transactional
-    void reserve(String subject, String resource) {
-        LimitConfig config = limitConfigRepository.resolve(resource, subject)
+    void reserve(String configSubject, String usageSubject, String resource) {
+        LimitConfig config = limitConfigRepository.resolve(resource, configSubject)
                 .orElseThrow(() -> {
                     log.error("No limit configuration found for resource: {}", resource);
                     return new LimitConfigurationMissingException(resource);
@@ -30,13 +30,13 @@ class LimitService {
         Instant now = clock.instant();
         Instant cutoff = config.getPeriod() == null ? Instant.EPOCH : config.getPeriod().cutoffFrom(now);
 
-        int granted = limitUsageRepository.reserve(resource, subject, now, cutoff, config.getMaxValue());
+        int granted = limitUsageRepository.reserve(resource, usageSubject, now, cutoff, config.getMaxValue());
         if (granted == 1) {
             return;
         }
 
         // A maximum of zero refuses before any usage row exists, so the standing is not always stored.
-        Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, subject));
+        Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, usageSubject));
         int used = usage.map(row -> row.getUsed()).orElse(0);
 
         Long retryAfterSeconds = null;
@@ -46,13 +46,13 @@ class LimitService {
         }
 
         log.warn("Limit exceeded for resource: {}, subject: {}, used: {}, limit: {}",
-                resource, subject, used, config.getMaxValue());
+                resource, usageSubject, used, config.getMaxValue());
         throw new LimitExceededException(resource, config.getKind(), config.getMaxValue(), used, retryAfterSeconds);
     }
 
     @Transactional
-    void release(String subject, String resource) {
-        Optional<LimitConfig> config = limitConfigRepository.resolve(resource, subject);
+    void release(String configSubject, String usageSubject, String resource) {
+        Optional<LimitConfig> config = limitConfigRepository.resolve(resource, configSubject);
         if (config.isEmpty()) {
             log.error("No limit configuration found for resource: {}", resource);
             return;
@@ -62,7 +62,13 @@ class LimitService {
             return;
         }
 
-        limitUsageRepository.release(resource, subject);
+        limitUsageRepository.release(resource, usageSubject);
+    }
+
+    @Transactional
+    void clear(String subject, String resource) {
+        int cleared = limitUsageRepository.clear(resource, subject);
+        log.debug("Cleared usage of resource: {} for subject: {} (rows: {})", resource, subject, cleared);
     }
 
     @Transactional(readOnly = true)
