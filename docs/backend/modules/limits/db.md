@@ -17,7 +17,7 @@
 ### limit_usage
 
 - resource: VARCHAR(64) NOT NULL
-- subject: VARCHAR(255) NOT NULL
+- subject: VARCHAR(255) NOT NULL — a user email for the owner-scoped resources, a shopping list's UUID for `SHOPPING_LIST_ITEM`
 - used: INTEGER NOT NULL
 - period_start: TIMESTAMP NOT NULL
 - PRIMARY KEY (resource, subject)
@@ -36,7 +36,8 @@ not references into another module's tables — see `docs/ADRs/0006-shared-limit
 ## Seeded Configuration
 
 `V15__limits_schema.sql` seeds the one default row T1 needs, `V16__owner_scoped_limit_config.sql`
-adds the three owner-scoped defaults, and `V17__meal_plan_limit_config.sql` adds a fourth:
+adds the three owner-scoped defaults, `V17__meal_plan_limit_config.sql` adds a fourth, and
+`V18__shopping_list_item_limit_config.sql` adds the per-list item cap:
 
 | resource             | subject | kind  | max_value | period |
 |----------------------|---------|-------|-----------|--------|
@@ -45,6 +46,7 @@ adds the three owner-scoped defaults, and `V17__meal_plan_limit_config.sql` adds
 | `RECIPES_COLLECTION` | NULL    | STOCK | 2         | NULL   |
 | `SHOPPING_LIST`      | NULL    | STOCK | 2         | NULL   |
 | `MEAL_PLAN`          | NULL    | STOCK | 2         | NULL   |
+| `SHOPPING_LIST_ITEM` | NULL    | STOCK | 50        | NULL   |
 
 A `FLOW` cap with no period is an "N ever" allowance. Operators raise or lower a limit by editing
 `limit_config` directly — the change applies on the next request, with no restart. A subject override
@@ -55,14 +57,17 @@ is inserted separately (e.g. the developer's own account); it is never seeded by
 `R__recompute_limit_usage.sql` is a repeatable migration that rebuilds `limit_usage` for `RECIPE`,
 `RECIPES_COLLECTION`, `SHOPPING_LIST` and `MEAL_PLAN` from their owning module's permission tables
 (`recipe_permission`, `recipes_collection_permission`, `shopping_list_permission`,
-`meal_plan_permissions`), counting rows with `role = 'OWNER'`. It runs once at rollout, seeding usage
-for pre-existing owners, and again whenever a later task extends the file, re-asserting every
-resource's count. It also serves as the drift repair for a missed release: re-running it (by hand,
-or by bumping the file so its checksum changes) makes `limit_usage` match the permission tables
-again. A subject whose effective configuration is `FLOW` is excluded — the recompute would overwrite
-its `used`/`period_start` window with a stock count, so it leaves that subject's row untouched.
-"Effective" resolves the same way a check does, the subject's own override first and the resource
-default second, so flipping a default to `FLOW` spares every subject that has no override.
+`meal_plan_permissions`), counting rows with `role = 'OWNER'`. `SHOPPING_LIST_ITEM` is rebuilt
+instead from `shopping_list_items` grouped by `shopping_list_id`, so its usage subject is a list UUID
+rather than an email; it joins `shopping_list_permission` only to reach the owner whose configuration
+decides the `FLOW` exclusion below. It runs once at rollout, seeding usage for pre-existing owners
+and lists, and again whenever a later task extends the file, re-asserting every resource's count. It
+also serves as the drift repair for a missed release: re-running it (by hand, or by bumping the file
+so its checksum changes) makes `limit_usage` match the source tables again. A subject whose effective
+configuration is `FLOW` is excluded — the recompute would overwrite its `used`/`period_start` window
+with a stock count, so it leaves that subject's row untouched.
+"Effective" resolves the same way a check does, the config subject's own override first and the
+resource default second, so flipping a default to `FLOW` spares every subject that has no override.
 
 ## Indexes
 

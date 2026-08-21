@@ -65,8 +65,8 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
 #### Limits (`backend/modules/limits/`)
-- `codebase_structure.md` — file tree, module boundary, reserve/release/resolution behaviour, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules (no HTTP endpoints)
-- `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables
+- `codebase_structure.md` — file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules (no HTTP endpoints)
+- `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables and, for shopping-list items, from the items themselves
 
 #### Provisioning (`backend/modules/provisioning/`)
 - `codebase_structure.md` — file tree (no HTTP endpoints, no DB tables)

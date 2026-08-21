@@ -119,7 +119,11 @@ accumulated record carries no meaningful interpretation across that switch and i
 ### Shopping-list items
 
 **Key behaviors.**
-- The item cap is keyed by the list, not by the user, so each list is counted independently.
+- Usage is counted against the list, not the user, so each list is counted independently.
+- The cap *value* is configured against the list's owner, so one override covers every list they own —
+  present and future — and no per-list setup is needed. (Corrected after T4's first implementation,
+  which configured the cap per list and left it effectively unconfigurable; see
+  `plans/T4-task-design.md` > *Correction after first implementation*.)
 - Item creation and deletion consume and release against that list's records.
 - Because the mobile client applies item edits locally and syncs them later, a create can be refused
   after the user has already seen it succeed offline; the client has to reconcile that.

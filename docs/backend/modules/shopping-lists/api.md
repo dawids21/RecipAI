@@ -1,15 +1,23 @@
 # Shopping Lists API
 
+Two independent stock caps apply here, and a refusal of either does not resolve itself by waiting.
+
 Creating a shopping list consumes one unit of the owner's `SHOPPING_LIST` budget, reserved *before*
-anything is written and keyed by the `email` claim of the JWT; deleting one returns the unit. It is a
-stock cap: a refusal does not resolve itself by waiting, and only creation is blocked — reading,
-editing, sharing and every item operation keep working while the owner is over the cap. Sharing never
-charges the recipient. Item endpoints consume no budget. See `docs/backend/modules/limits/` for how the
-cap is configured and changed.
+anything is written and keyed by the `email` claim of the JWT; deleting one returns the unit. Only
+creation is blocked — reading, editing and sharing keep working while the owner is over the cap, and
+sharing never charges the recipient.
+
+Creating an **item** consumes one unit of `SHOPPING_LIST_ITEM`, reserved after the permission check and
+before the write; deleting an item returns it. Usage is counted against the **list**, so each list
+fills up independently and an editor's add charges the list rather than their own records — but the
+cap *value* is resolved from the **list's owner**, so raising one user's allowance covers every list
+they own, present and future. Editing an item consumes nothing.
+
+See `docs/backend/modules/limits/` for how either cap is configured and changed.
 
 ## Refusal Response
 
-A create past the cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+A create past either cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
 
 ```json
 {
@@ -24,8 +32,11 @@ A create past the cap returns **429 Too Many Requests** with an RFC 7807 `Proble
 }
 ```
 
+An item create past the cap has the same shape with `"resource": "SHOPPING_LIST_ITEM"` and that cap's
+`limit`/`used`.
+
 Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
-restarts — the owner has to delete a list or have the cap raised.
+restarts — the owner has to delete a list or an item, or have the cap raised.
 
 ### GET /shopping-lists
 - Description: Get all shopping lists ordered by creation date (oldest first)
@@ -98,7 +109,7 @@ restarts — the owner has to delete a list or have the cap raised.
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the shopping list, all items (via database CASCADE), and all permissions, and returns the owner's `SHOPPING_LIST` unit.
+- Note: Deletes the shopping list, all items (via database CASCADE), and all permissions, returns the owner's `SHOPPING_LIST` unit, and clears the list's `SHOPPING_LIST_ITEM` usage outright — the subject it was counted against no longer exists.
 
 ### GET /shopping-lists/{id}/users
 - Description: Get all users that a shopping list is shared with, including their roles
@@ -137,7 +148,7 @@ restarts — the owner has to delete a list or have the cap raised.
 - Request body: `{"name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0}` (`quantity` and `unit` are nullable)
 - Example response: `{"id": "uuid", "name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0, "version": 0}`
 - Success: 201 Created
-- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list does not exist)
+- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list does not exist), 429 Too many requests (this list's item cap reached)
 - Note: `checked` is optional and defaults to `false` when omitted. It exists so a client can re-create an item in its checked state — the mobile undo of "Delete All Checked" restores items straight into the Done section.
 
 ### PUT /shopping-lists/{id}/items/{itemId}
@@ -149,6 +160,7 @@ restarts — the owner has to delete a list or have the cap raised.
 - Success: 200 OK
 - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list or item does not exist, or item belongs to a different list)
 - **412 Precondition Failed**: `baseVersion` no longer matches the stored item's version (someone else changed it first). The response body is the **raw current item** (a `ShoppingListItemDto`, not a `ProblemDetail`) so the client can roll back to it directly.
+- Note: An edit holds no new unit, so this endpoint never charges or returns item budget and never answers 429.
 
 ### DELETE /shopping-lists/{id}/items/{itemId}?baseVersion={n}
 - Description: Hard-delete an item, version-gated the same way as update. If the item was edited after the client's last read, the edit wins and the delete is rejected.
@@ -157,3 +169,4 @@ restarts — the owner has to delete a list or have the cap raised.
 - Success: 204 No Content
 - Errors: 400 Bad Request (missing `baseVersion`), 401 Unauthorized, 403 Forbidden, 404 Not Found (list or item does not exist)
 - **412 Precondition Failed**: `baseVersion` is stale (edit-wins-over-delete). The response body is the raw winning `ShoppingListItemDto`.
+- Note: Returns one `SHOPPING_LIST_ITEM` unit to the list, but only on a successful delete — a 412 leaves the item in place and the unit held.

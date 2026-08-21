@@ -43,3 +43,5 @@
 - Primary key indexes on all tables
 - Composite primary key index on `shopping_list_permission(email, shopping_list_id)`
 - Index on `shopping_lists(created_at)` — for ordering shopping lists by creation date
+- Index on `shopping_list_permission(shopping_list_id)` — for lookups by list alone, which the
+  composite primary key cannot serve (owner resolution on every item create and delete)

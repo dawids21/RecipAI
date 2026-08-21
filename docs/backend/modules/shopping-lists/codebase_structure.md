@@ -10,8 +10,8 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── UserRole.java                                # Enum for OWNER/EDITOR roles
     ├── ShoppingListRepository.java                  # Shopping list data access
     ├── ShoppingListItemRepository.java              # Shopping list item data access
-    ├── ShoppingListPermissionRepository.java        # Permission queries repository
-    ├── ShoppingListService.java                     # Shopping list business logic with items and permissions; owns the SHOPPING_LIST resource key, reserving one unit on create and releasing one on delete
+    ├── ShoppingListPermissionRepository.java        # Permission queries repository; includes the owner-email projection the item cap resolves its configuration through
+    ├── ShoppingListService.java                     # Shopping list business logic with items and permissions; owns the SHOPPING_LIST resource key, reserving one unit on create and releasing one on delete, and the SHOPPING_LIST_ITEM key, reserved and released per item against the list but configured from the list's owner (cleared outright when the list is deleted)
     ├── ShoppingListController.java                  # Shopping list REST endpoints with JWT authentication
     ├── ShoppingListsExceptionHandler.java           # Exception handling with ProblemDetail
     ├── dto/

@@ -207,8 +207,9 @@ other lists remain unaffected.
 
 **Scope**
 
-- Item creation and deletion consuming and releasing against the list's own records, with the list's
-  identity as the subject rather than the user's — `HLD.md` > Feature areas > *Shopping-list items*
+- Item creation and deletion consuming and releasing against the list's own records — counted against
+  the list, but with the cap value configured against the list's **owner**, so raising a user's
+  allowance takes one row rather than one per list — `HLD.md` > Feature areas > *Shopping-list items*
 - Seeding item usage per existing list via the T2 recompute
 - Release on every path that removes an item, including list deletion if it destroys items
 - Deciding how the mobile client reconciles a create that the server refuses after it was already

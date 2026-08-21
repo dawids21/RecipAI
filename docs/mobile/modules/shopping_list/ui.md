@@ -20,7 +20,11 @@
   commits the action. A list-level sync
   indicator next to the title reflects the current sync state (syncing / synced / offline / failure); a background
   poll refreshes the list from the server every 10s while it is open, diffing others' changes into the local store,
-  and a retry banner surfaces on push failure.
+  and a retry banner surfaces on push failure. A queued change the server permanently refuses is dropped and
+  announced in a snackbar naming the item ("changed elsewhere and rolled back", "no longer exists", "could not be
+  synced"); a refusal because the list is full instead raises a single "This list is full - items weren't added"
+  bar, not repeated while one is already on screen, so adding past the cap does not queue up one snackbar per
+  rejected item.
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items. Smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit extraction
   using regex, TextField-based editing with focus management. Optional drag handle for reordering (using
