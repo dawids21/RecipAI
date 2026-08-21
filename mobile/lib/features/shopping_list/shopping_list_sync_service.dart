@@ -18,7 +18,7 @@ import 'shopping_list_item_store_service.dart';
 enum SyncStatus { syncing, notSyncing, failure, offline }
 
 /// Why a queued change was dropped, driving the rejection toast copy.
-enum RejectionOutcome { conflict, gone, rejected }
+enum RejectionOutcome { conflict, gone, rejected, limitReached }
 
 /// Outcome of pushing a single outbox entry, telling [_drainPass] whether to
 /// keep draining ([pushed]), stop because the queue is empty ([empty]), or stop
@@ -289,9 +289,11 @@ class ShoppingListSyncService with WidgetsBindingObserver {
     } on ItemDiscardedException catch (e) {
       final item = await _store.readItem(entry.itemLocalId);
       await _store.discardItem(listId, entry.itemLocalId);
-      final outcome = e.reason == DiscardReason.gone
-          ? RejectionOutcome.gone
-          : RejectionOutcome.rejected;
+      final outcome = switch (e.reason) {
+        DiscardReason.gone => RejectionOutcome.gone,
+        DiscardReason.rejected => RejectionOutcome.rejected,
+        DiscardReason.limitReached => RejectionOutcome.limitReached,
+      };
       _log.severe(
         'Item push discarded: ${e.reason.name} (listId=$listId, itemLocalId=${entry.itemLocalId})',
       );

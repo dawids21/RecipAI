@@ -58,6 +58,7 @@ class FakeShoppingListItemRepository implements ShoppingListItemRepository {
   bool offline = false;
   bool transientFailure = false;
   bool rejectWrites = false;
+  final capacity = <String, int>{};
 
   void _maybeFail() {
     if (offline) throw const ShoppingListNetworkException();
@@ -92,6 +93,10 @@ class FakeShoppingListItemRepository implements ShoppingListItemRepository {
     String? idToken,
   ) async {
     _maybeFail();
+    final cap = capacity[listId];
+    if (cap != null && (_items[listId]?.length ?? 0) >= cap) {
+      throw const ItemDiscardedException(DiscardReason.limitReached);
+    }
     final item = ShoppingListItem(
       id: 'server-${_nextId++}',
       name: snapshot.name,
@@ -507,6 +512,57 @@ void main() {
       expect(row.lastAckedVersion, 0);
       expect(backendItems(listId).single.version, 0);
       expect(await outboxCount(listId), 1);
+    });
+
+    test(
+      '429 on a create discards the item and the drain keeps going',
+      () async {
+        backend.capacity[listId] = 0;
+        await store.openList(listId);
+        await store.applyCreate(listId, name: 'Milk', quantity: 2, unit: 'l');
+
+        expect(await sync.pushNextEntry(listId), PushResult.pushed);
+
+        expect(await dbItems(listId), isEmpty);
+        expect(backendItems(listId), isEmpty);
+        expect(visibleItems(listId), isEmpty);
+        expect(await outboxEmpty(listId), isTrue);
+      },
+    );
+
+    test(
+      'a queued delete behind refused creates still lands and frees a slot',
+      () async {
+        final localId = await seedAcceptedItem(listId, serverItem());
+        backend.capacity[listId] = 1;
+
+        await store.applyDelete(listId, localId);
+        await store.applyCreate(listId, name: 'Bread', quantity: 1, unit: null);
+        await store.applyCreate(listId, name: 'Eggs', quantity: 1, unit: null);
+
+        await sync.requestDrain(listId);
+
+        expect(backendItems(listId), hasLength(1));
+        expect(await outboxEmpty(listId), isTrue);
+        expect(sync.syncStatusFor(listId).value, SyncStatus.notSyncing);
+      },
+    );
+
+    test('a 429-refused create emits a limitReached rejection', () async {
+      backend.capacity[listId] = 0;
+      await store.openList(listId);
+      await store.applyCreate(listId, name: 'Milk', quantity: 2, unit: 'l');
+
+      final events = <RejectionEvent>[];
+      final sub = sync.rejections.listen(events.add);
+
+      expect(await sync.pushNextEntry(listId), PushResult.pushed);
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(events, hasLength(1));
+      expect(events.single.outcome, RejectionOutcome.limitReached);
+      expect(events.single.itemName, 'Milk');
     });
   });
 

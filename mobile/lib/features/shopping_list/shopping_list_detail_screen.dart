@@ -73,6 +73,13 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
   /// leaves the undo snackbar on screen indefinitely.
   Timer? _undoTimer;
 
+  /// Non-null from the moment a limit-refusal toast is enqueued until it closes
+  /// — which may be before it is visible, if another snack bar (e.g. the undo
+  /// bar) is still on screen. A burst of refusals raises one bar rather than a
+  /// queue of them; the controller `showSnackBar` returns *is* the guard, so no
+  /// buffer and no timer.
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _limitBar;
+
   ShoppingListDetailService get service => widget.shoppingListDetailService;
 
   @override
@@ -174,12 +181,28 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
 
   void _showRejectionToast(RejectionEvent event) {
     if (!mounted) return;
-    final message = switch (event.outcome) {
-      RejectionOutcome.conflict =>
-        '"${event.itemName}" was changed elsewhere and rolled back',
-      RejectionOutcome.gone => '"${event.itemName}" no longer exists',
-      RejectionOutcome.rejected => '"${event.itemName}" could not be synced',
-    };
+    switch (event.outcome) {
+      case RejectionOutcome.limitReached:
+        if (_limitBar != null) return;
+        final bar = ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("This list is full - items weren't added"),
+          ),
+        );
+        _limitBar = bar;
+        bar.closed.then((_) {
+          if (identical(_limitBar, bar)) _limitBar = null;
+        });
+      case RejectionOutcome.conflict:
+        _showSnack('"${event.itemName}" was changed elsewhere and rolled back');
+      case RejectionOutcome.gone:
+        _showSnack('"${event.itemName}" no longer exists');
+      case RejectionOutcome.rejected:
+        _showSnack('"${event.itemName}" could not be synced');
+    }
+  }
+
+  void _showSnack(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

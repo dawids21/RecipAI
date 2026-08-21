@@ -102,6 +102,8 @@ class ShoppingListItemRepository {
       case 400:
       case 403:
         throw ItemDiscardedException(DiscardReason.rejected);
+      case 429:
+        throw ItemDiscardedException(DiscardReason.limitReached);
       default:
         throw Exception('Failed to create item: ${response.statusCode}');
     }
@@ -256,6 +258,9 @@ enum DiscardReason {
 
   /// 400/403 — validation error or lost editor access; can never succeed.
   rejected,
+
+  /// 429 on create — the list is at its item cap; waiting cannot resolve a stock cap.
+  limitReached,
 }
 
 /// Thrown for a permanent, non-conflict push failure (§Response
