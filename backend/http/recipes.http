@@ -1,0 +1,151 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Create a collection to hold the recipe
+# @name createCollection
+POST {{baseUrl}}/collections
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Italian Recipes" }
+
+###
+@collectionId = {{createCollection.response.body.$.id}}
+
+### Create a recipe (JSON)
+# @name createRecipe
+POST {{baseUrl}}/recipes
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{
+  "name": "Pizza",
+  "recipesCollectionId": "{{collectionId}}",
+  "data": {
+    "ingredients": [
+      { "name": "flour", "quantity": 300, "unit": "g" },
+      { "name": "tomato sauce", "quantity": 200, "unit": "ml" },
+      { "name": "salt", "comment": "to taste" }
+    ],
+    "instructions": [
+      { "step": "Make dough" },
+      { "step": "Add sauce and toppings" }
+    ],
+    "sourceUrl": "https://example.com/recipe/pizza",
+    "servingSize": 4
+  }
+}
+
+###
+@recipeId = {{createRecipe.response.body.$.id}}
+
+### List all recipes accessible by the user
+GET {{baseUrl}}/recipes
+Authorization: Bearer {{user}}
+
+### List recipes filtered by collection
+GET {{baseUrl}}/recipes?collectionId={{collectionId}}
+Authorization: Bearer {{user}}
+
+### List recipes not assigned to any collection
+GET {{baseUrl}}/recipes?unassigned=true
+Authorization: Bearer {{user}}
+
+### Get the recipe
+GET {{baseUrl}}/recipes/{{recipeId}}
+Authorization: Bearer {{user}}
+
+### Update the recipe (JSON)
+PUT {{baseUrl}}/recipes/{{recipeId}}
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{
+  "name": "Updated Pizza",
+  "recipesCollectionId": "{{collectionId}}",
+  "data": {
+    "ingredients": [
+      { "name": "flour", "quantity": 400, "unit": "g" },
+      { "name": "cheese", "quantity": 200, "unit": "g" }
+    ],
+    "instructions": [
+      { "step": "Make better dough" },
+      { "step": "Add cheese" }
+    ],
+    "sourceUrl": "https://example.com/recipe/updated-pizza",
+    "servingSize": 6
+  }
+}
+
+### List the recipe's shared users — note the underscore, unlike every other module's /users
+GET {{baseUrl}}/recipes/{{recipeId}}/shared_users
+Authorization: Bearer {{user}}
+
+### Share the recipe with bob — returns 200, unlike every other module's share (204)
+POST {{baseUrl}}/recipes/{{recipeId}}/share
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Unshare the recipe from bob — returns 200, unlike every other module's unshare (204)
+POST {{baseUrl}}/recipes/{{recipeId}}/unshare
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Delete the recipe
+DELETE {{baseUrl}}/recipes/{{recipeId}}
+Authorization: Bearer {{user}}
+
+### Delete the collection
+DELETE {{baseUrl}}/collections/{{collectionId}}
+Authorization: Bearer {{user}}
+
+
+### ======================================================================================
+### Multipart create/update — cannot pass locally: no AWS credentials are configured, so
+### S3 image upload and the presigned images[]/thumbnailUrl URLs fail at call time.
+### ======================================================================================
+
+@imageId = e36c65a2-062b-48ac-bdc9-ebffb59ecc07
+
+### Create a recipe with an image (multipart)
+# @name createRecipeMultipart
+POST {{baseUrl}}/recipes
+Authorization: Bearer {{user}}
+Content-Type: multipart/form-data; boundary=RecipAIBoundary
+
+--RecipAIBoundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{ "name": "Pizza with photo", "data": { "ingredients": [{ "name": "flour", "quantity": 300, "unit": "g" }], "instructions": [{ "step": "Make dough" }] }, "images": ["{{imageId}}"] }
+--RecipAIBoundary
+Content-Disposition: form-data; name="images"; filename="{{imageId}}.jpg"
+Content-Type: image/jpeg
+
+< ./fixtures/{{imageId}}.jpg
+--RecipAIBoundary--
+
+###
+@multipartRecipeId = {{createRecipeMultipart.response.body.$.id}}
+
+### Update the recipe with a new image (multipart)
+PUT {{baseUrl}}/recipes/{{multipartRecipeId}}
+Authorization: Bearer {{user}}
+Content-Type: multipart/form-data; boundary=RecipAIBoundary
+
+--RecipAIBoundary
+Content-Disposition: form-data; name="data"
+Content-Type: application/json
+
+{ "name": "Pizza with photo v2", "data": { "ingredients": [{ "name": "flour", "quantity": 300, "unit": "g" }], "instructions": [{ "step": "Make dough" }] }, "images": ["{{imageId}}"] }
+--RecipAIBoundary
+Content-Disposition: form-data; name="images"; filename="{{imageId}}.jpg"
+Content-Type: image/jpeg
+
+< ./fixtures/{{imageId}}.jpg
+--RecipAIBoundary--

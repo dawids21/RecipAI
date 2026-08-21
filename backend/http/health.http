@@ -1,0 +1,9 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Is the backend up? No auth required.
+GET {{baseUrl}}/actuator/health
+
+### Actuator discovery page — also no auth.
+GET {{baseUrl}}/actuator

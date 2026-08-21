@@ -27,8 +27,8 @@ Describes the structural design of both applications: backend module breakdown a
 
 ### Local Development (`project/local-development.md`)
 How to run the backend locally with `recipai.sh`, the dev-profile authentication bypass and how to
-address callers with it, the environment variables a local run honours, and the curl idioms for
-calling the API.
+address callers with it, the environment variables a local run honours, the curl idioms for
+calling the API, and the `backend/http/` `.http` request suite.
 
 ---
 

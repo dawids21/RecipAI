@@ -56,13 +56,16 @@ Two different bearer tokens are two different users with no setup: `Bearer alice
 
 ## Calling the API
 
-Dev-profile error bodies embed a full Java stack trace in `trace` — tens of kilobytes. Always strip
-it, and ask for just the status code when that's all you need:
-
 ```bash
-curl -sS -H "Authorization: Bearer alice" localhost:8080/recipes | jq 'del(.trace)'
+curl -sS -H "Authorization: Bearer alice" localhost:8080/recipes | jq
 curl -sS -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer alice" localhost:8080/recipes
 ```
+
+### `.http` request suite
+
+`backend/http/` has a `.http` file per module (VS Code REST Client extension,
+`humao.rest-client`), chained end-to-end with no copy-paste of generated ids — open one and run
+its requests top to bottom against a local `dev`-profile backend.
 
 Two status codes mislead:
 

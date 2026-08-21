@@ -1,0 +1,73 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Create a shopping list
+# @name createList
+POST {{baseUrl}}/shopping-lists
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Weekly Groceries" }
+
+###
+@listId = {{createList.response.body.$.id}}
+
+### Add an item — position is client-supplied, creates never conflict
+# @name addItem1
+POST {{baseUrl}}/shopping-lists/{{listId}}/items
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Milk", "quantity": 2.0, "unit": "liters", "position": 1.0 }
+
+###
+@item1Id = {{addItem1.response.body.$.id}}
+
+### Add a second item
+# @name addItem2
+POST {{baseUrl}}/shopping-lists/{{listId}}/items
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Bread", "position": 2.0 }
+
+###
+@item2Id = {{addItem2.response.body.$.id}}
+
+### Get the list — shows each item's position and version
+GET {{baseUrl}}/shopping-lists/{{listId}}
+Authorization: Bearer {{user}}
+
+### Update the first item — version-gated: baseVersion must match the stored item
+PUT {{baseUrl}}/shopping-lists/{{listId}}/items/{{item1Id}}
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "baseVersion": 0, "name": "Whole Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0 }
+
+### Delete the second item — baseVersion is a query param here, not a body field
+DELETE {{baseUrl}}/shopping-lists/{{listId}}/items/{{item2Id}}?baseVersion=0
+Authorization: Bearer {{user}}
+
+### List users the shopping list is shared with
+GET {{baseUrl}}/shopping-lists/{{listId}}/users
+Authorization: Bearer {{user}}
+
+### Share it with bob
+POST {{baseUrl}}/shopping-lists/{{listId}}/share
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Unshare it from bob
+POST {{baseUrl}}/shopping-lists/{{listId}}/unshare
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Delete the shopping list
+DELETE {{baseUrl}}/shopping-lists/{{listId}}
+Authorization: Bearer {{user}}

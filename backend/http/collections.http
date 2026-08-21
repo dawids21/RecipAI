@@ -1,0 +1,47 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Create a collection
+# @name createCollection
+POST {{baseUrl}}/collections
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Italian Recipes" }
+
+###
+@collectionId = {{createCollection.response.body.$.id}}
+
+### List collections accessible by the user
+GET {{baseUrl}}/collections
+Authorization: Bearer {{user}}
+
+### Rename the collection
+PUT {{baseUrl}}/collections/{{collectionId}}
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "European Recipes" }
+
+### List users the collection is shared with
+GET {{baseUrl}}/collections/{{collectionId}}/users
+Authorization: Bearer {{user}}
+
+### Share it with bob
+POST {{baseUrl}}/collections/{{collectionId}}/share
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Unshare it from bob
+POST {{baseUrl}}/collections/{{collectionId}}/unshare
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Delete the collection
+DELETE {{baseUrl}}/collections/{{collectionId}}
+Authorization: Bearer {{user}}

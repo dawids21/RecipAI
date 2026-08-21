@@ -1,0 +1,23 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Extract a recipe from text — needs a real SPRING_AI_API_KEY; recipai.sh's fallback
+### dummy-key-for-local boots the server fine but fails this call
+POST {{baseUrl}}/extract/text
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "text": "Pizza: 300g flour, 200ml tomato sauce, salt to taste. Make dough, then add sauce and toppings." }
+
+### Extract a recipe from an image — same SPRING_AI_API_KEY requirement as above
+POST {{baseUrl}}/extract/image
+Authorization: Bearer {{user}}
+Content-Type: multipart/form-data; boundary=RecipAIBoundary
+
+--RecipAIBoundary
+Content-Disposition: form-data; name="file"; filename="recipe.jpg"
+Content-Type: image/jpeg
+
+< ./fixtures/e36c65a2-062b-48ac-bdc9-ebffb59ecc07.jpg
+--RecipAIBoundary--

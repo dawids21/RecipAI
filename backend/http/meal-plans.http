@@ -1,0 +1,116 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Create a recipe to plan against
+# @name createRecipe
+POST {{baseUrl}}/recipes
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{
+  "name": "Pizza",
+  "data": {
+    "ingredients": [
+      { "name": "flour", "quantity": 300, "unit": "g" },
+      { "name": "tomato sauce", "quantity": 200, "unit": "ml" }
+    ],
+    "instructions": [
+      { "step": "Make dough" },
+      { "step": "Add sauce and toppings" }
+    ],
+    "servingSize": 4
+  }
+}
+
+###
+@recipeId = {{createRecipe.response.body.$.id}}
+
+### Create a meal plan
+# @name createPlan
+POST {{baseUrl}}/meal-plans
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Weekly Plan", "color": "#FF5733" }
+
+###
+@planId = {{createPlan.response.body.$.id}}
+
+### Add a recipe-backed entry for today
+# @name createEntryRecipe
+POST {{baseUrl}}/meal-plans/{{planId}}/entries
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "date": "{{$localDatetime "YYYY-MM-DD"}}", "recipeId": "{{recipeId}}", "servingSize": 4 }
+
+###
+@recipeEntryId = {{createEntryRecipe.response.body.$.id}}
+
+### Add a placeholder entry for today
+# @name createEntryPlaceholder
+POST {{baseUrl}}/meal-plans/{{planId}}/entries
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "date": "{{$localDatetime "YYYY-MM-DD"}}", "placeholderText": "Lunch with friends" }
+
+###
+@placeholderEntryId = {{createEntryPlaceholder.response.body.$.id}}
+
+### Update the recipe-backed entry's serving size. `planId` is documented as optional (it moves
+### the entry when provided) but must be sent regardless — omitting it 500s, since the service
+### looks the plan up by `request.planId()` unconditionally.
+PUT {{baseUrl}}/meal-plans/{{planId}}/entries/{{recipeEntryId}}
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "date": "{{$localDatetime "YYYY-MM-DD"}}", "recipeId": "{{recipeId}}", "servingSize": 6, "planId": "{{planId}}" }
+
+### Calendar view for the next 30 days — /calendar and /generate-shopping-list are literal
+### siblings of /meal-plans/{id}, not sub-resources of it
+GET {{baseUrl}}/meal-plans/calendar?startDate={{$localDatetime "YYYY-MM-DD"}}&endDate={{$localDatetime "YYYY-MM-DD" 30 d}}&planIds={{planId}}
+Authorization: Bearer {{user}}
+
+### Generate shopping list items from today's planned meals — selectedDates must reuse the
+### same date expression as the entry's date above, or it returns no items
+POST {{baseUrl}}/meal-plans/generate-shopping-list
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "planIds": ["{{planId}}"], "selectedDates": ["{{$localDatetime "YYYY-MM-DD"}}"] }
+
+### List users the meal plan is shared with
+GET {{baseUrl}}/meal-plans/{{planId}}/users
+Authorization: Bearer {{user}}
+
+### Share it with bob
+POST {{baseUrl}}/meal-plans/{{planId}}/share
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Unshare it from bob
+POST {{baseUrl}}/meal-plans/{{planId}}/unshare
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
+
+### Delete the recipe-backed entry
+DELETE {{baseUrl}}/meal-plans/{{planId}}/entries/{{recipeEntryId}}
+Authorization: Bearer {{user}}
+
+### Delete the placeholder entry
+DELETE {{baseUrl}}/meal-plans/{{planId}}/entries/{{placeholderEntryId}}
+Authorization: Bearer {{user}}
+
+### Delete the meal plan
+DELETE {{baseUrl}}/meal-plans/{{planId}}
+Authorization: Bearer {{user}}
+
+### Delete the recipe
+DELETE {{baseUrl}}/recipes/{{recipeId}}
+Authorization: Bearer {{user}}
