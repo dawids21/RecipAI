@@ -35,4 +35,4 @@ When this happens, briefly suggest the standard to the user. If approved, create
 - Never hallucinate libraries or functions.
 - Stick to planning when asked to plan. Do not start implementation unless the user explicitly asks for it.
 - Always run `git` commands from the project root - never `cd` before git operations.
-- Always use Conventional Commits for commit messages, with a scope. Allowed types: `feat`, `docs`, `chore`, `refactor`, `build`, `test`, `style`. Format: `type(scope): subject` (e.g. `feat(mobile): add share target support`).
+- Always follow the `committing` skill when writing commit messages.
