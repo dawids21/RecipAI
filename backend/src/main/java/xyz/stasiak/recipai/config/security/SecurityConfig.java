@@ -26,7 +26,7 @@ class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
                                 "/recipes/**", "/extract/**", "/users/**",
-                                "/shopping-lists/**", "/collections/**", "/meal-plans/**"
+                                "/shopping-lists/**", "/collections/**", "/meal-plans/**", "/limits/**"
                         ).authenticated()
                         .anyRequest().denyAll()
                 )

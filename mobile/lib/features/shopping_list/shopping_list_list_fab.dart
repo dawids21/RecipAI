@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../limits/limits_service.dart';
+import 'shopping_list_create_dialog.dart';
 import 'shopping_list_list_service.dart';
 
 class ShoppingListListFab extends StatefulWidget {
   final ShoppingListListService shoppingListListService;
+  final LimitsService limitsService;
 
-  const ShoppingListListFab({super.key, required this.shoppingListListService});
+  const ShoppingListListFab({
+    super.key,
+    required this.shoppingListListService,
+    required this.limitsService,
+  });
 
   @override
   State<ShoppingListListFab> createState() => _ShoppingListListFabState();
@@ -13,40 +20,17 @@ class ShoppingListListFab extends StatefulWidget {
 
 class _ShoppingListListFabState extends State<ShoppingListListFab> {
   Future<void> _handleCreateList(BuildContext context) async {
-    final nameController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
+    final name = await showDialog<String>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Create Shopping List'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'List Name',
-              hintText: 'Enter list name',
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Create'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => ShoppingListCreateDialog(
+        shoppingListListService: widget.shoppingListListService,
+        limitsService: widget.limitsService,
+      ),
     );
 
-    if (confirmed == true && nameController.text.isNotEmpty) {
+    if (name != null) {
       try {
-        await widget.shoppingListListService.createShoppingList(
-          nameController.text.trim(),
-        );
+        await widget.shoppingListListService.createShoppingList(name);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Shopping list created')),

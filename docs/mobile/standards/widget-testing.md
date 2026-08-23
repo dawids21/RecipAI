@@ -31,7 +31,7 @@ mobile/
 ```dart
 setUp(() async {
   SharedPreferences.setMockInitialValues({});   // must come first
-  GetIt.I.reset();
+  await GetIt.I.reset();
 
   // instantiate and stub mocks ...
 
@@ -39,6 +39,7 @@ setUp(() async {
   GetIt.I.registerSingleton(PreferencesService(prefs));  // before setup*() calls
 
   setupAuth(authRepository: mockAuth);
+  setupLimits(limitsRepository: mockLimits);
   setupRecipesCollection(recipesCollectionRepository: mockCollections);
   setupRecipe(recipeRepository: mockRecipes);
   setupShoppingList(shoppingListRepository: mockShoppingList);
@@ -53,8 +54,12 @@ tearDown(() => GetIt.I.reset());
 Key rules:
 - `SharedPreferences.setMockInitialValues({})` must run **before** any `setup*()` call — `MealPlanVisibilityService` and `RecipeListService` read preferences synchronously on construction.
 - Register `PreferencesService` manually **before** calling any `setup*()` — it is not registered by any feature setup function; it comes from `main()`.
-- `GetIt.I.reset()` in both `setUp` *and* `tearDown` keeps tests fully isolated.
+- `GetIt.I.reset()` in both `setUp` *and* `tearDown` keeps tests fully isolated. **`await` the one in
+  `setUp`**: the reset is asynchronous, and an un-awaited one can still be running when the `setup*()`
+  calls register, so it disposes the instances the test is about to use — surfacing as a
+  "used after being disposed" failure in `tearDown` rather than where it was caused.
 - Call `setup*()` functions in the same order as `main()` so cross-feature `getIt<>` lookups inside service constructors resolve correctly.
+- Stub `fetchCaps` on the limits repository before `setupLimits()` — `LimitsService` subscribes to the auth state at construction and loads caps on the flip to signed-in, so an unstubbed mock lets a real HTTP call escape the test.
 
 ## Writing mocks with mocktail
 

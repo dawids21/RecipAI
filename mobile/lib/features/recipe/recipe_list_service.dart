@@ -5,6 +5,7 @@ import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 import '../../core/async_value.dart';
 import '../../core/preferences_service.dart';
 import '../auth/auth_service.dart';
+import '../limits/limit_usage.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'recipe_repository.dart';
@@ -36,8 +37,25 @@ class RecipeListService {
 
   ValueListenable<AsyncValue<List<Recipe>>> get recipes => _recipes;
 
+  final ValueNotifier<AsyncValue<LimitUsage>> _recipeUsage = ValueNotifier(
+    const AsyncValue.loading(),
+  );
+
+  ValueListenable<AsyncValue<LimitUsage>> get recipeUsage => _recipeUsage;
+
   bool _isLoadRecipesRunning = false;
   bool _isCreateRecipeRunning = false;
+  bool _isLoadRecipeUsageRunning = false;
+
+  Future<void> loadRecipeUsage() async {
+    if (_isLoadRecipeUsageRunning) return;
+    _isLoadRecipeUsageRunning = true;
+    _recipeUsage.value = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      return _recipeRepository.fetchRecipeUsage(token);
+    });
+    _isLoadRecipeUsageRunning = false;
+  }
 
   void _loadSavedFilter() {
     final savedFilter = _preferencesService.getRecipeFilterCollectionId();
@@ -144,5 +162,6 @@ class RecipeListService {
   void dispose() {
     _recipes.dispose();
     _selectedCollectionId.dispose();
+    _recipeUsage.dispose();
   }
 }

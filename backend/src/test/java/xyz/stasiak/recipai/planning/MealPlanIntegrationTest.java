@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.dto.SharedUserDto;
@@ -1166,8 +1166,8 @@ class MealPlanIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.currentUsage(subject, MealPlanService.MEAL_PLAN_RESOURCE)
-                    .map(LimitUsageDetails::used)
+            return limitsFacade.standing(subject, MealPlanService.MEAL_PLAN_RESOURCE)
+                    .map(LimitStanding::used)
                     .orElse(0);
         }
 
@@ -1305,7 +1305,7 @@ class MealPlanIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.currentUsage(ghost, MealPlanService.MEAL_PLAN_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.standing(ghost, MealPlanService.MEAL_PLAN_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1328,11 +1328,11 @@ class MealPlanIntegrationTest {
                     .param("periodStart", Timestamp.from(periodStart))
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
 
             RecomputeMigration.run(dataSource);
 
-            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -1350,6 +1350,27 @@ class MealPlanIntegrationTest {
 
             assertThat(secondRun).isEqualTo(firstRun);
             assertThat(secondRun).isEqualTo(1);
+        }
+
+        private Map<String, Object> getUsage(RestClient client) {
+            return client.get()
+                    .uri("/meal-plans/usage")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        }
+
+        @Test
+        void shouldTrackUsageAcrossCreateAndDelete() {
+            RestClient client = restClient();
+            assertThat(getUsage(client).get("used")).isEqualTo(0);
+
+            MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
+            createMealPlan(client, "Plan 2", "#33FF57");
+            assertThat(getUsage(client).get("used")).isEqualTo(2);
+
+            deleteMealPlan(client, plan1.id());
+            assertThat(getUsage(client).get("used")).isEqualTo(1);
         }
     }
 }

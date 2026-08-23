@@ -6,16 +6,22 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../limits/limit_cap.dart';
+import '../limits/limit_counter.dart';
+import '../limits/limit_gate.dart';
+import '../limits/limits_service.dart';
 import '../recipe/initial_recipe_form_data.dart';
 import 'extraction_service.dart';
 
 class ImageExtractionScreen extends StatefulWidget {
   final ExtractionService extractionService;
+  final LimitsService limitsService;
   final File? initialImageFile;
 
   const ImageExtractionScreen({
     super.key,
     required this.extractionService,
+    required this.limitsService,
     this.initialImageFile,
   });
 
@@ -31,6 +37,7 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
   @override
   void initState() {
     super.initState();
+    widget.extractionService.loadExtractionUsage();
     if (widget.initialImageFile != null) {
       _selectedImage = XFile(widget.initialImageFile!.path);
     }
@@ -180,24 +187,52 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: AppSpacing.small),
+              LimitGate(
+                usage: widget.extractionService.extractionUsage,
+                cap: widget.limitsService.capFor(LimitResources.extraction),
+                builder: (context, usage, cap) {
+                  if (usage == null || cap == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return LimitCounter(
+                    used: usage.used,
+                    limit: cap.limit,
+                    resetsInSeconds: usage.resetsInSeconds,
+                    noun: 'extractions',
+                  );
+                },
+              ),
               if (_selectedImage != null) ...[
                 const SizedBox(height: AppSpacing.large),
-                ElevatedButton(
-                  onPressed: _isUploading ? null : _extractRecipe,
-                  child: _isUploading
-                      ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            SizedBox(width: AppSpacing.small),
-                            Text('Extracting...'),
-                          ],
-                        )
-                      : const Text('Extract Recipe'),
+                LimitGate(
+                  usage: widget.extractionService.extractionUsage,
+                  cap: widget.limitsService.capFor(LimitResources.extraction),
+                  builder: (context, usage, cap) {
+                    final blocked =
+                        usage != null && cap != null && usage.used >= cap.limit;
+                    return ElevatedButton(
+                      onPressed: (_isUploading || blocked)
+                          ? null
+                          : _extractRecipe,
+                      child: _isUploading
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: AppSpacing.small),
+                                Text('Extracting...'),
+                              ],
+                            )
+                          : const Text('Extract Recipe'),
+                    );
+                  },
                 ),
               ],
             ],

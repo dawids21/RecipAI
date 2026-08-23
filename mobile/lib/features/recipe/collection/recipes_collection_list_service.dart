@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/async_value.dart';
 import '../../../core/widgets/sharing_dialog.dart';
 import '../../auth/auth_service.dart';
+import '../../limits/limit_usage.dart';
 import 'recipes_collection.dart';
 import 'recipes_collection_repository.dart';
 
@@ -27,10 +28,28 @@ class RecipesCollectionListService {
 
   ValueNotifier<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
 
+  final ValueNotifier<AsyncValue<LimitUsage>> _collectionUsage = ValueNotifier(
+    const AsyncValue.loading(),
+  );
+
+  ValueListenable<AsyncValue<LimitUsage>> get collectionUsage =>
+      _collectionUsage;
+
   bool _isLoadRecipesCollectionsRunning = false;
   bool _isLoadSharedUsersRunning = false;
   bool _isShareRunning = false;
   bool _isUnshareRunning = false;
+  bool _isLoadCollectionUsageRunning = false;
+
+  Future<void> loadCollectionUsage() async {
+    if (_isLoadCollectionUsageRunning) return;
+    _isLoadCollectionUsageRunning = true;
+    _collectionUsage.value = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      return _recipesCollectionRepository.fetchCollectionUsage(token);
+    });
+    _isLoadCollectionUsageRunning = false;
+  }
 
   Future<void> loadRecipesCollections() async {
     if (_isLoadRecipesCollectionsRunning) return;
@@ -116,5 +135,11 @@ class RecipesCollectionListService {
     await loadSharedUsers(collectionId);
     await loadRecipesCollections(); // Refresh list in case user unshared themselves
     _isUnshareRunning = false;
+  }
+
+  void dispose() {
+    _recipesCollections.dispose();
+    _sharedUsers.dispose();
+    _collectionUsage.dispose();
   }
 }

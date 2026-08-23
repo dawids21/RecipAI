@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.exception.*;
@@ -38,6 +39,11 @@ class MealPlanService {
     private final RecipeFacade recipeFacade;
     private final ProvisioningFacade provisioningFacade;
     private final LimitsFacade limitsFacade;
+
+    LimitStanding usage(String userEmail) {
+        log.debug("Getting meal plan usage for user: {}", userEmail);
+        return limitsFacade.standing(userEmail, MEAL_PLAN_RESOURCE).orElse(new LimitStanding(0, null, null));
+    }
 
     List<MealPlanDto> findAll(String userEmail) {
         log.debug("Fetching all meal plans for user: {}", userEmail);

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -72,8 +73,40 @@ class LimitService {
     }
 
     @Transactional(readOnly = true)
-    Optional<LimitUsageDetails> currentUsage(String subject, String resource) {
-        return limitUsageRepository.findById(new LimitUsageId(resource, subject))
-                .map(usage -> new LimitUsageDetails(usage.getUsed(), usage.getPeriodStart()));
+    Optional<LimitStanding> standing(String subject, String resource) {
+        Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, subject));
+        if (usage.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Optional<LimitConfig> config = limitConfigRepository.resolve(resource, subject);
+        Instant now = clock.instant();
+
+        boolean lapsed = config.isPresent() && config.get().getPeriod() != null
+                && !usage.get().getPeriodStart().isAfter(config.get().getPeriod().cutoffFrom(now));
+        if (lapsed) {
+            return Optional.of(new LimitStanding(0, null, null));
+        }
+
+        Long resetsInSeconds = null;
+        if (config.isPresent() && config.get().getKind() == LimitKind.FLOW && config.get().getPeriod() != null) {
+            Instant nextStart = config.get().getPeriod().nextStart(usage.get().getPeriodStart());
+            resetsInSeconds = Math.max(1, Duration.between(now, nextStart).getSeconds());
+        }
+
+        return Optional.of(new LimitStanding(usage.get().getUsed(), usage.get().getPeriodStart(), resetsInSeconds));
+    }
+
+    @Transactional(readOnly = true)
+    List<LimitCap> caps(String subject) {
+        return limitConfigRepository.resolveAll(subject).stream()
+                .map(config -> new LimitCap(config.getResource(), config.getKind(), config.getMaxValue()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    Optional<LimitCap> cap(String subject, String resource) {
+        return limitConfigRepository.resolve(resource, subject)
+                .map(config -> new LimitCap(config.getResource(), config.getKind(), config.getMaxValue()));
     }
 }

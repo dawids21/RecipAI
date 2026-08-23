@@ -26,6 +26,20 @@ A create past the cap returns **429 Too Many Requests** with an RFC 7807 `Proble
 Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
 restarts — the owner has to delete something or have the cap raised.
 
+### GET /meal-plans/usage
+- Description: Get how much of the caller's `MEAL_PLAN` budget is already spent, for displaying
+  `used / limit` before a plan is created
+- Authenticated: true
+- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+  ```json
+  {
+    "used": 1,
+    "periodStart": "2026-08-23T10:00:00Z"
+  }
+  ```
+- Success: 200 OK
+- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+
 ### GET /meal-plans
 - Description: Get all meal plans accessible by the authenticated user, ordered by creation date (oldest first)
 - Authenticated: true

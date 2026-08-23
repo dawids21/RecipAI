@@ -2,6 +2,10 @@
 @user = alice
 @otherUser = bob
 
+### How much of the caller's EXTRACTION budget is already spent
+GET {{baseUrl}}/extract/usage
+Authorization: Bearer {{user}}
+
 ### Extract a recipe from text — needs a real SPRING_AI_API_KEY; recipai.sh's fallback
 ### dummy-key-for-local boots the server fine but fails this call
 POST {{baseUrl}}/extract/text

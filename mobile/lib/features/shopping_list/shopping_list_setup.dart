@@ -28,7 +28,9 @@ void setupShoppingList({
 
   getIt.registerSingleton<ShoppingListItemStoreService>(
     store ??
-        ShoppingListItemStoreService(dao: ShoppingListItemDao(getIt<Database>())),
+        ShoppingListItemStoreService(
+          dao: ShoppingListItemDao(getIt<Database>()),
+        ),
     dispose: (s) => s.dispose(),
   );
 
@@ -60,6 +62,7 @@ void setupShoppingList({
       shoppingListRepository: getIt<ShoppingListRepository>(),
       authService: getIt<AuthService>(),
     ),
+    dispose: (service) => service.dispose(),
   );
   getIt.registerLazySingleton(
     () => ShoppingListDetailService(

@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.limits.LimitCap;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 import xyz.stasiak.recipai.shoppinglists.exception.ItemNotFoundException;
@@ -13,6 +15,7 @@ import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedExcep
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,6 +30,18 @@ class ShoppingListService {
     private final ShoppingListItemRepository shoppingListItemRepository;
     private final ShoppingListPermissionRepository permissionRepository;
     private final LimitsFacade limitsFacade;
+
+    LimitStanding usage(String userEmail) {
+        log.debug("Getting shopping list usage for user: {}", userEmail);
+        return limitsFacade.standing(userEmail, SHOPPING_LIST_RESOURCE).orElse(new LimitStanding(0, null, null));
+    }
+
+    @Transactional
+    Optional<LimitCap> itemCap(UUID listId, String userEmail) {
+        log.debug("Getting item cap for shopping list: {} requested by user: {}", listId, userEmail);
+        requireEditorPermission(listId, userEmail);
+        return limitsFacade.cap(requireOwnerEmail(listId), SHOPPING_LIST_ITEM_RESOURCE);
+    }
 
     List<ShoppingListListDto> findAll(String userEmail) {
         log.debug("Fetching all shopping lists for user: {}", userEmail);

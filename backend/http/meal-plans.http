@@ -2,6 +2,10 @@
 @user = alice
 @otherUser = bob
 
+### How much of the caller's MEAL_PLAN budget is already spent
+GET {{baseUrl}}/meal-plans/usage
+Authorization: Bearer {{user}}
+
 ### Create a recipe to plan against
 # @name createRecipe
 POST {{baseUrl}}/recipes

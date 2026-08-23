@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -57,8 +58,26 @@ public class LimitsFacade {
         limitService.clear(subject, resource);
     }
 
-    public Optional<LimitUsageDetails> currentUsage(String subject, String resource) {
-        log.debug("Getting current usage of resource: {} for subject: {}", resource, subject);
-        return limitService.currentUsage(subject, resource);
+    public Optional<LimitStanding> standing(String subject, String resource) {
+        log.debug("Getting standing of resource: {} for subject: {}", resource, subject);
+        return limitService.standing(subject, resource);
+    }
+
+    public List<LimitCap> caps(String subject) {
+        log.debug("Getting caps for subject: {}", subject);
+        if (!limitsProperties.enabled()) {
+            log.debug("Limits disabled, returning no caps for subject: {}", subject);
+            return List.of();
+        }
+        return limitService.caps(subject);
+    }
+
+    public Optional<LimitCap> cap(String subject, String resource) {
+        log.debug("Getting cap of resource: {} for subject: {}", resource, subject);
+        if (!limitsProperties.enabled()) {
+            log.debug("Limits disabled, returning no cap of resource: {} for subject: {}", resource, subject);
+            return Optional.empty();
+        }
+        return limitService.cap(subject, resource);
     }
 }

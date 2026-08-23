@@ -41,13 +41,13 @@ class RecipeIntegrationTest {
 ### Reading Data the Test Has No Access To
 When an assertion needs state the test cannot reach through the module's public surface, add a read method to that module's facade/service — do not reach around it with a hand-written SQL query. Seeding fixtures with `JdbcClient` is fine; *reading back* what the code under test did is not.
 
-`LimitsFacade.currentUsage(subject, resource)` exists for exactly this reason: `ExtractionIntegrationTest` and `LimitsIntegrationTest` assert the recorded standing through it instead of selecting from `limit_usage`.
+`LimitsFacade.standing(subject, resource)` exists for exactly this reason: `ExtractionIntegrationTest` and `LimitsIntegrationTest` assert the recorded standing through it instead of selecting from `limit_usage`.
 
 ```java
 // Correct: read the standing through the facade
 private int usedFor(String subject) {
-    return limitsFacade.currentUsage(subject, ExtractionService.EXTRACTION_RESOURCE)
-            .map(LimitUsageDetails::used)
+    return limitsFacade.standing(subject, ExtractionService.EXTRACTION_RESOURCE)
+            .map(LimitStanding::used)
             .orElse(0);
 }
 

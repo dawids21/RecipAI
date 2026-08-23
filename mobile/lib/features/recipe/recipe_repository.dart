@@ -6,6 +6,7 @@ import 'package:mime/mime.dart';
 import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/app_config.dart';
+import '../limits/limit_usage.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'recipe_permission.dart';
@@ -21,6 +22,20 @@ class RecipeRepository {
       'Content-Type': 'application/json',
       if (idToken != null) 'Authorization': 'Bearer $idToken',
     };
+  }
+
+  Future<LimitUsage> fetchRecipeUsage(String? idToken) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/recipes/usage'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return LimitUsage.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load recipe usage: ${response.statusCode}');
+    }
   }
 
   Future<List<Recipe>> fetchRecipes(String? idToken) async {

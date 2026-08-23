@@ -20,7 +20,7 @@ mobile/lib/features/planning/
 ├── meal_plan_calendar_fab.dart                 # FAB widget for adding meal entries
 ├── meal_plan_drawer.dart                       # Side drawer for plan management with create/edit handlers
 ├── meal_plan_sharing_dialog.dart               # Meal plan sharing dialog wrapper
-├── plan_form_dialog.dart                       # Unified create/edit dialog with PlanFormResult model
+├── plan_form_dialog.dart                       # Unified create/edit dialog with PlanFormResult model; in create mode shows the plan counter and blocks at the cap
 ├── meal_entry_form_dialog.dart                 # Modal dialog for creating/editing meal entries with recipe/placeholder modes
 ├── plan_color_picker.dart                      # Reusable color picker widget with 12 predefined colors
 ├── plan_list_tile.dart                         # Plan list item widget with checkbox and menu

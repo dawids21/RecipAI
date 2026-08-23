@@ -6,17 +6,23 @@ import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../shared/extensions.dart';
 import '../../shared/loading_widget.dart';
+import '../limits/limit_cap.dart';
+import '../limits/limit_counter.dart';
+import '../limits/limit_gate.dart';
+import '../limits/limits_service.dart';
 import '../recipe/initial_recipe_form_data.dart';
 import 'extraction_service.dart';
 import 'web_recipe_extractor.dart';
 
 class UrlExtractionScreen extends StatefulWidget {
   final ExtractionService extractionService;
+  final LimitsService limitsService;
   final String? initialUrl;
 
   const UrlExtractionScreen({
     super.key,
     required this.extractionService,
+    required this.limitsService,
     this.initialUrl,
   });
 
@@ -35,6 +41,7 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
   @override
   void initState() {
     super.initState();
+    widget.extractionService.loadExtractionUsage();
     _initializeWebView();
 
     final initialUrl = widget.initialUrl;
@@ -270,6 +277,26 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
                         ),
                       ),
                     ],
+                    LimitGate(
+                      usage: widget.extractionService.extractionUsage,
+                      cap: widget.limitsService.capFor(
+                        LimitResources.extraction,
+                      ),
+                      builder: (context, usage, cap) {
+                        if (usage == null || cap == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.small),
+                          child: LimitCounter(
+                            used: usage.used,
+                            limit: cap.limit,
+                            resetsInSeconds: usage.resetsInSeconds,
+                            noun: 'extractions',
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -287,16 +314,24 @@ class _UrlExtractionScreenState extends State<UrlExtractionScreen> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _isExtracting ? null : _extractRecipe,
-          icon: _isExtracting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.download),
-          label: Text(_isExtracting ? 'Extracting...' : 'Extract Recipe'),
+        floatingActionButton: LimitGate(
+          usage: widget.extractionService.extractionUsage,
+          cap: widget.limitsService.capFor(LimitResources.extraction),
+          builder: (context, usage, cap) {
+            final blocked =
+                usage != null && cap != null && usage.used >= cap.limit;
+            return FloatingActionButton.extended(
+              onPressed: (_isExtracting || blocked) ? null : _extractRecipe,
+              icon: _isExtracting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download),
+              label: Text(_isExtracting ? 'Extracting...' : 'Extract Recipe'),
+            );
+          },
         ),
       ),
     );

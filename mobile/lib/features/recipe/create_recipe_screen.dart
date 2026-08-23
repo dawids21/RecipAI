@@ -2,6 +2,10 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection.dart';
 
+import '../limits/limit_cap.dart';
+import '../limits/limit_counter.dart';
+import '../limits/limit_gate.dart';
+import '../limits/limits_service.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'initial_recipe_form_data.dart';
 import 'recipe_detail.dart';
@@ -13,12 +17,14 @@ class CreateRecipeScreen extends StatefulWidget {
   final InitialRecipeFormData? initialFormData;
   final RecipeListService recipeListService;
   final RecipesCollectionListService recipesCollectionListService;
+  final LimitsService limitsService;
 
   const CreateRecipeScreen({
     super.key,
     this.initialFormData,
     required this.recipeListService,
     required this.recipesCollectionListService,
+    required this.limitsService,
   });
 
   @override
@@ -26,6 +32,12 @@ class CreateRecipeScreen extends StatefulWidget {
 }
 
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.recipeListService.loadRecipeUsage();
+  }
+
   RecipesCollection? _getSelectedCollection() {
     final selectedCollectionId =
         widget.recipeListService.selectedCollectionId.value;
@@ -62,11 +74,30 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: RecipeFormWidget(
-          initialFormData: widget.initialFormData,
-          initialCollection: selectedCollection,
-          onSave: _createRecipe,
-          recipesCollectionListService: widget.recipesCollectionListService,
+        child: LimitGate(
+          usage: widget.recipeListService.recipeUsage,
+          cap: widget.limitsService.capFor(LimitResources.recipe),
+          builder: (context, usage, cap) {
+            final limitCounter = (usage != null && cap != null)
+                ? LimitCounter(
+                    used: usage.used,
+                    limit: cap.limit,
+                    resetsInSeconds: usage.resetsInSeconds,
+                    noun: 'recipes',
+                  )
+                : null;
+            final saveBlocked =
+                usage != null && cap != null && usage.used >= cap.limit;
+
+            return RecipeFormWidget(
+              initialFormData: widget.initialFormData,
+              initialCollection: selectedCollection,
+              onSave: _createRecipe,
+              recipesCollectionListService: widget.recipesCollectionListService,
+              limitCounter: limitCounter,
+              saveBlocked: saveBlocked,
+            );
+          },
         ),
       ),
     );

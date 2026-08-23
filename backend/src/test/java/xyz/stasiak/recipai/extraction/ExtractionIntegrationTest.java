@@ -24,7 +24,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestAiConfiguration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 
 import java.io.IOException;
@@ -97,9 +97,17 @@ class ExtractionIntegrationTest {
     }
 
     private int usedFor(String subject) {
-        return limitsFacade.currentUsage(subject, ExtractionService.EXTRACTION_RESOURCE)
-                .map(LimitUsageDetails::used)
+        return limitsFacade.standing(subject, ExtractionService.EXTRACTION_RESOURCE)
+                .map(LimitStanding::used)
                 .orElse(0);
+    }
+
+    private Map<String, Object> getUsage(RestClient client) {
+        return client.get()
+                .uri("/extract/usage")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
     }
 
     @Test
@@ -364,6 +372,38 @@ class ExtractionIntegrationTest {
                 .isNotNull()
                 .isPositive()
                 .isLessThanOrEqualTo(100);
+    }
+
+    @Test
+    void shouldReturnZeroUsageBeforeAnyExtractionAndOneAfter() {
+        RestClient client = restClient();
+
+        assertThat(getUsage(client).get("used")).isEqualTo(0);
+
+        extractText(client, "recipe 1");
+
+        assertThat(getUsage(client).get("used")).isEqualTo(1);
+    }
+
+    @Test
+    void shouldReturnNullResetsInSecondsUnderSeededFlowWithNoPeriodDefault() {
+        RestClient client = restClient();
+
+        extractText(client, "recipe 1");
+
+        // Jackson is configured with default-property-inclusion: non_null, so a null field is absent
+        // rather than serialised as null, while periodStart rides along on every live standing.
+        assertThat(getUsage(client)).doesNotContainKey("resetsInSeconds").containsKey("periodStart");
+    }
+
+    @Test
+    void shouldReturnExhaustedStandingAfterBudgetIsSpent() {
+        RestClient client = restClient();
+
+        extractText(client, "recipe 1");
+        extractText(client, "recipe 2");
+
+        assertThat(getUsage(client).get("used")).isEqualTo(2);
     }
 
     private String loadResourceContent(ClassPathResource resource) throws IOException {

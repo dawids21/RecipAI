@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
@@ -1094,8 +1094,8 @@ class RecipeIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.currentUsage(subject, RecipeService.RECIPE_RESOURCE)
-                    .map(LimitUsageDetails::used)
+            return limitsFacade.standing(subject, RecipeService.RECIPE_RESOURCE)
+                    .map(LimitStanding::used)
                     .orElse(0);
         }
 
@@ -1248,7 +1248,7 @@ class RecipeIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.currentUsage(ghost, RecipeService.RECIPE_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.standing(ghost, RecipeService.RECIPE_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1271,11 +1271,11 @@ class RecipeIntegrationTest {
                     .param("periodStart", Timestamp.from(periodStart))
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
 
             RecomputeMigration.run(dataSource);
 
-            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -1295,7 +1295,7 @@ class RecipeIntegrationTest {
             jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'RECIPE' AND subject IS NULL")
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
 
             try {
                 RecomputeMigration.run(dataSource);
@@ -1304,7 +1304,7 @@ class RecipeIntegrationTest {
                         .update();
             }
 
-            LimitUsageDetails after = limitsFacade.currentUsage(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -1322,6 +1322,77 @@ class RecipeIntegrationTest {
 
             assertThat(secondRun).isEqualTo(firstRun);
             assertThat(secondRun).isEqualTo(1);
+        }
+
+        private Map<String, Object> getUsage(RestClient client) {
+            return client.get()
+                    .uri("/recipes/usage")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        }
+
+        @Test
+        void shouldReturnZeroUsageForSubjectThatHasCreatedNothing() {
+            Map<String, Object> usage = getUsage(restClient());
+
+            assertThat(usage.get("used")).isEqualTo(0);
+        }
+
+        @Test
+        void shouldTrackUsageAcrossCreateAndDelete() {
+            RestClient client = restClient();
+            RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+
+            assertThat(getUsage(client).get("used")).isEqualTo(2);
+
+            deleteRecipe(client, recipe1.id());
+
+            assertThat(getUsage(client).get("used")).isEqualTo(1);
+        }
+
+        @Test
+        void shouldMatchUsedCarriedOn429BodyWhenCapIsHit() {
+            RestClient client = restClient();
+            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+            createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+
+            try {
+                createRecipe(client, "Recipe 3", createTestRecipeData(), null);
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(getUsage(client).get("used")).isEqualTo(body.get("used"));
+            }
+        }
+
+        @Test
+        void shouldResolveUsageRouteRatherThanRecipeById() {
+            RestClient client = restClient();
+            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+
+            Map<String, Object> usage = getUsage(client);
+
+            // A standing, not a recipe: had GET /recipes/{id} won the route, "usage" would have been
+            // read as an id and the call would have failed rather than returned this body.
+            assertThat(usage).containsEntry("used", 1).doesNotContainKeys("id", "name", "data");
+        }
+
+        @Test
+        void shouldReturn401WithoutTokenOnUsage() {
+            RestClient client = RestClient.builder()
+                    .baseUrl("http://localhost:" + port)
+                    .build();
+
+            try {
+                client.get().uri("/recipes/usage").retrieve().body(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(401);
+            }
         }
     }
 }

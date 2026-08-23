@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import xyz.stasiak.recipai.limits.LimitStanding;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,13 @@ import java.util.UUID;
 class RecipeController {
 
     private final RecipeService recipeService;
+
+    @GetMapping("/usage")
+    public LimitStanding getUsage(@AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting recipe usage for user: {}", userEmail);
+        return recipeService.usage(userEmail);
+    }
 
     @GetMapping
     public List<RecipeListDto> getAllRecipes(

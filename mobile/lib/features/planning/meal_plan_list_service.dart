@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
+import '../limits/limit_usage.dart';
 import 'meal_plan.dart';
 import 'meal_plan_repository.dart';
 import 'meal_plan_visibility_service.dart';
@@ -25,7 +26,24 @@ class MealPlanListService {
 
   ValueListenable<AsyncValue<List<MealPlan>>> get mealPlans => _mealPlans;
 
+  final ValueNotifier<AsyncValue<LimitUsage>> _planUsage = ValueNotifier(
+    const AsyncValue.loading(),
+  );
+
+  ValueListenable<AsyncValue<LimitUsage>> get planUsage => _planUsage;
+
   bool _isLoadMealPlansRunning = false;
+  bool _isLoadPlanUsageRunning = false;
+
+  Future<void> loadPlanUsage() async {
+    if (_isLoadPlanUsageRunning) return;
+    _isLoadPlanUsageRunning = true;
+    _planUsage.value = await AsyncValue.guardAsync(() async {
+      final token = await _authService.idToken;
+      return _repository.fetchPlanUsage(idToken: token);
+    });
+    _isLoadPlanUsageRunning = false;
+  }
 
   Future<void> loadMealPlans() async {
     if (_isLoadMealPlansRunning) return;
@@ -89,5 +107,6 @@ class MealPlanListService {
 
   void dispose() {
     _mealPlans.dispose();
+    _planUsage.dispose();
   }
 }

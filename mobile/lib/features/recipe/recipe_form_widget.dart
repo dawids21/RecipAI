@@ -24,6 +24,8 @@ class RecipeFormWidget extends StatefulWidget {
   )
   onSave;
   final RecipesCollectionListService recipesCollectionListService;
+  final Widget? limitCounter;
+  final bool saveBlocked;
 
   const RecipeFormWidget({
     super.key,
@@ -31,6 +33,8 @@ class RecipeFormWidget extends StatefulWidget {
     this.initialCollection,
     required this.onSave,
     required this.recipesCollectionListService,
+    this.limitCounter,
+    this.saveBlocked = false,
   });
 
   @override
@@ -288,6 +292,11 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
             if (_errorMessage != null)
               ErrorMessageWidget(message: _errorMessage!),
 
+            if (widget.limitCounter != null) ...[
+              widget.limitCounter!,
+              const SizedBox(height: AppSpacing.small),
+            ],
+
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -502,7 +511,9 @@ class _RecipeFormWidgetState extends State<RecipeFormWidget> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveRecipe,
+                onPressed: (_isLoading || widget.saveBlocked)
+                    ? null
+                    : _saveRecipe,
                 child: Padding(
                   padding: AppSpacing.mediumVertical,
                   child: Text(

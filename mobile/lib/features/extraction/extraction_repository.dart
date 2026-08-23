@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 
 import '../../core/app_config.dart';
+import '../limits/limit_usage.dart';
 import 'extracted_recipe.dart';
 
 class ExtractionRepository {
@@ -19,6 +20,22 @@ class ExtractionRepository {
       'Content-Type': 'application/json',
       if (idToken != null) 'Authorization': 'Bearer $idToken',
     };
+  }
+
+  Future<LimitUsage> fetchExtractionUsage(String? idToken) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/extract/usage'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return LimitUsage.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception(
+        'Failed to load extraction usage: ${response.statusCode}',
+      );
+    }
   }
 
   Future<ExtractedRecipe> extractRecipeFromText(

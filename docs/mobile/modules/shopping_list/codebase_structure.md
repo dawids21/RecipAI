@@ -21,11 +21,12 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_list_fab.dart         # Reusable shopping list FAB widget
 ├── shopping_list_item_widget.dart      # Reusable inline-editable item widget using ItemDisplayData; supports strikethrough, subtitle, optional delete button
 ├── shopping_list_item_parser.dart      # Regex-based parser for "quantity unit name" text format
-├── shopping_list_item_add_widget.dart  # Dedicated widget for adding new items
+├── shopping_list_item_add_widget.dart  # Dedicated widget for adding new items; its field is disabled when the list is at its item cap
 ├── shopping_list_review_item.dart      # Mutable generated item model (name/quantity/unit mutable, source immutable)
 ├── shopping_list_review_widget.dart    # Review widget with ReorderableListView, inline editing, and checkbox selection
 ├── shopping_list_detail_screen.dart    # Shopping list detail screen; raises the rejection toasts, suppressing repeats of the list-is-full one
 ├── shopping_list_permission.dart       # Shopping list permission model
+├── shopping_list_create_dialog.dart    # Dialog widget for creating shopping lists; loads the count on open and blocks at the cap
 ├── shopping_list_rename_dialog.dart    # Dialog widget for renaming shopping lists
 └── shopping_list_sharing_dialog.dart   # Dialog widget for sharing shopping lists
 ```

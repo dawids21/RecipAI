@@ -11,5 +11,6 @@ void setupExtraction({ExtractionRepository? extractionRepository}) {
       extractionRepository: getIt<ExtractionRepository>(),
       authService: getIt<AuthService>(),
     ),
+    dispose: (service) => service.dispose(),
   );
 }

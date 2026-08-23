@@ -13,7 +13,9 @@
   button with integrated form dialog, pull-to-refresh functionality, and comprehensive error handling with user-friendly
   messages including special handling for plan limit exceeded (429).
 - Plan Form Dialog (`plan_form_dialog.dart`) - Unified modal dialog for creating and editing meal plans with name input
-  field (autofocus, validation) and color picker.
+  field (autofocus, validation) and color picker. In create mode it loads the plan count on open, shows the
+  `used / limit` counter and disables Create at the cap (see `docs/mobile/modules/limits/ui.md`); edit mode shows
+  neither, since editing spends nothing.
 - Plan Color Picker (`plan_color_picker.dart`) - Reusable grid-based color picker widget with 12 predefined Material
   Design 3 colors. Selected color displays checkmark icon and thicker border.
 - Plan List Tile (`plan_list_tile.dart`) - Card widget for individual plans with color indicator (CircleAvatar), plan

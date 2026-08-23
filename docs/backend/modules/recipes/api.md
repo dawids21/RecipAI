@@ -30,6 +30,20 @@ restarts — the owner has to delete something or have the cap raised.
 
 ## Recipes
 
+### GET /recipes/usage
+- Description: Get how much of the caller's `RECIPE` budget is already spent, for displaying
+  `used / limit` before a recipe is created
+- Authenticated: true
+- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+  ```json
+  {
+    "used": 3,
+    "periodStart": "2026-08-23T10:00:00Z"
+  }
+  ```
+- Success: 200 OK
+- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+
 ### GET /recipes
 - Description: Get recipes as list with basic info, with optional filtering by collection or unassigned status. Results are ordered by creation date (oldest first).
 - Authenticated: true
@@ -273,6 +287,20 @@ restarts — the owner has to delete something or have the cap raised.
 ---
 
 ## Recipe Collections
+
+### GET /collections/usage
+- Description: Get how much of the caller's `RECIPES_COLLECTION` budget is already spent, for
+  displaying `used / limit` before a collection is created
+- Authenticated: true
+- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+  ```json
+  {
+    "used": 1,
+    "periodStart": "2026-08-23T10:00:00Z"
+  }
+  ```
+- Success: 200 OK
+- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
 
 ### GET /collections
 - Description: Get all recipes collections accessible by the authenticated user, ordered by creation date (oldest first)

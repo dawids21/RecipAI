@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:recipai_mobile/shared/extensions.dart';
 
 import '../../core/app_config.dart';
+import '../limits/limit_usage.dart';
 import 'meal_plan.dart';
 import 'meal_plan_calendar_data.dart';
 import 'meal_plan_permission.dart';
@@ -52,6 +53,20 @@ class MealPlanRepository {
       throw Exception('Unauthorized: Please log in again');
     } else {
       throw Exception('Failed to load calendar: ${response.statusCode}');
+    }
+  }
+
+  Future<LimitUsage> fetchPlanUsage({required String? idToken}) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/meal-plans/usage'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return LimitUsage.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load meal plan usage: ${response.statusCode}');
     }
   }
 

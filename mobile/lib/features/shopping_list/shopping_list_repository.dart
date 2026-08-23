@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/app_config.dart';
+import '../limits/limit_cap.dart';
+import '../limits/limit_usage.dart';
 import 'shopping_list.dart';
 import 'shopping_list_permission.dart';
 
@@ -17,6 +19,42 @@ class ShoppingListRepository {
       'Content-Type': 'application/json',
       if (idToken != null) 'Authorization': 'Bearer $idToken',
     };
+  }
+
+  Future<LimitUsage> fetchListUsage(String? idToken) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/shopping-lists/usage'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return LimitUsage.fromJson(json.decode(response.body));
+    } else {
+      throw Exception(
+        'Failed to load shopping list usage: ${response.statusCode}',
+      );
+    }
+  }
+
+  Future<LimitCap?> fetchItemCap(String listId, String? idToken) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/shopping-lists/$listId/limits'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return LimitCap.fromJson(json.decode(response.body));
+    } else if (response.statusCode == 204) {
+      return null;
+    } else if (response.statusCode == 403) {
+      throw Exception('You do not have permission to view this list');
+    } else if (response.statusCode == 404) {
+      throw Exception('Shopping list not found');
+    } else {
+      throw Exception('Failed to load item cap: ${response.statusCode}');
+    }
   }
 
   Future<List<ShoppingList>> fetchShoppingLists(String? idToken) async {

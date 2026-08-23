@@ -31,7 +31,9 @@
   package. Displays domain name extracted from URL.
 - Create Recipe Screen (`create_recipe_screen.dart`) - Form-based screen for manually creating recipes using
   RecipeFormWidget. Accepts InitialRecipeFormData parameter for prefilling form data (recipe details, source URL,
-  images). Automatically prefills collection dropdown when user has an active collection filter.
+  images). Automatically prefills collection dropdown when user has an active collection filter. Loads the recipe
+  count on open and passes the resulting counter and blocked flag down to the form (see
+  `docs/mobile/modules/limits/ui.md`).
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget.
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
   and instruction inputs, serving size input (using ServingSizeInput widget), validation, collection dropdown menu for
@@ -39,7 +41,9 @@
   InitialRecipeFormData parameter containing recipeDetail, sourceUrl, and pendingImages for prefilling form. Also
   accepts optional initialCollection parameter to prefill collection dropdown. Dropdown shows loading/error states and
   all available collections with "None" option to create recipes without collection. Prefill priority:
-  initialFormData's recipeDetail collection > initialCollection > null.
+  initialFormData's recipeDetail collection > initialCollection > null. Optional `limitCounter` and `saveBlocked`
+  parameters render a `used / limit` line above the form and disable the save button; the edit screen passes
+  neither, which is what keeps the display create-only in a widget both screens share.
 - Ingredient Input Widget (`ingredient_input_widget.dart`) - Reusable widget for entering ingredient name, quantity,
   and optional comment. Uses `IngredientInput` data class (name, quantityText, comment?) for input/output instead of
   `Ingredient`. Renders a name+quantity row followed by a comment field ("Comment (optional)", hint: "e.g., to taste,
@@ -59,8 +63,12 @@
   component with search and filter capabilities. Uses Scaffold with AppBar and standard navigation (Navigator.push/pop).
   Returns selected Recipe via Navigator.pop when user taps an item. Route: /recipes/picker.
 - Recipes Collection List Screen (`collection/recipes_collection_list_screen.dart`) - Screen for managing recipe
-  collections with pull-to-refresh, FAB for creating new collections, inline rename/delete operations via
+  collections with pull-to-refresh, FAB opening the create dialog, inline rename/delete operations via
   PopupMenuButton on each list item, and error handling with retry functionality.
+- Recipes Collection Create Dialog (`collection/recipes_collection_create_dialog.dart`) - Stateful dialog widget for
+  creating recipe collections with TextField input and proper TextEditingController lifecycle management. Loads the
+  collection count on open, shows the `used / limit` counter under the field, and disables Create at the cap. Returns
+  the trimmed name to the list screen, which performs the create.
 - Recipes Collection List Item (`collection/recipes_collection_list_item.dart`) - Reusable Card widget for displaying
   individual recipe collections in a list with title, tap handling, and PopupMenuButton for rename/share/delete actions.
 - Recipes Collection Rename Dialog (`collection/recipes_collection_rename_dialog.dart`) - Stateful dialog widget for

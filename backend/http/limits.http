@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:8080
+@user = alice
+@otherUser = bob
+
+### Every cap configured for the caller, resolved override-then-default. Empty on the dev profile
+### unless RECIPAI_LIMITS_ENABLED=true — the caps read honours the kill-switch, the /usage reads do not.
+GET {{baseUrl}}/limits
+Authorization: Bearer {{user}}
+
+### The same caps for a second user — differs only once an operator seeds an override for one of them:
+### INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+###   VALUES (gen_random_uuid(), 'RECIPE', 'bob@local.test', 'STOCK', 50, NULL);
+GET {{baseUrl}}/limits
+Authorization: Bearer {{otherUser}}

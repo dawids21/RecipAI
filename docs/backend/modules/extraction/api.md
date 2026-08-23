@@ -25,6 +25,20 @@ A call past the budget returns **429 Too Many Requests** with an RFC 7807 `Probl
 `retryAfterSeconds` and the `Retry-After` header are present only when the cap restarts on a period.
 The seeded `EXTRACTION` cap is an "N ever" allowance, so it carries neither.
 
+### GET /extract/usage
+- Description: Get how much of the caller's `EXTRACTION` budget is already spent, for displaying
+  `used / limit` before an extraction is started
+- Authenticated: true
+- Example response — the seeded `EXTRACTION` cap is a periodless `FLOW`, so no `resetsInSeconds`:
+  ```json
+  {
+    "used": 1,
+    "periodStart": "2026-08-23T10:00:00Z"
+  }
+  ```
+- Success: 200 OK
+- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+
 ### POST /extract/text
 - Description: Extract recipe information from text
 - Authenticated: true

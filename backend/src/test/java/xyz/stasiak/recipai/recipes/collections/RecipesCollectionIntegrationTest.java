@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 
@@ -379,8 +379,8 @@ class RecipesCollectionIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.currentUsage(subject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)
-                    .map(LimitUsageDetails::used)
+            return limitsFacade.standing(subject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)
+                    .map(LimitStanding::used)
                     .orElse(0);
         }
 
@@ -518,7 +518,7 @@ class RecipesCollectionIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.currentUsage(ghost, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.standing(ghost, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -541,11 +541,11 @@ class RecipesCollectionIntegrationTest {
                     .param("periodStart", Timestamp.from(periodStart))
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(flowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
 
             RecomputeMigration.run(dataSource);
 
-            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(flowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -565,7 +565,7 @@ class RecipesCollectionIntegrationTest {
             jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'RECIPES_COLLECTION' AND subject IS NULL")
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
 
             try {
                 RecomputeMigration.run(dataSource);
@@ -574,7 +574,7 @@ class RecipesCollectionIntegrationTest {
                         .update();
             }
 
-            LimitUsageDetails after = limitsFacade.currentUsage(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -592,6 +592,27 @@ class RecipesCollectionIntegrationTest {
 
             assertThat(secondRun).isEqualTo(firstRun);
             assertThat(secondRun).isEqualTo(1);
+        }
+
+        private Map<String, Object> getUsage(RestClient client) {
+            return client.get()
+                    .uri("/collections/usage")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        }
+
+        @Test
+        void shouldTrackUsageAcrossCreateAndDelete() {
+            RestClient client = restClient();
+            assertThat(getUsage(client).get("used")).isEqualTo(0);
+
+            RecipesCollectionListDto collection1 = createRecipesCollection(client, "Collection 1");
+            createRecipesCollection(client, "Collection 2");
+            assertThat(getUsage(client).get("used")).isEqualTo(2);
+
+            deleteRecipesCollection(client, collection1.id());
+            assertThat(getUsage(client).get("used")).isEqualTo(1);
         }
     }
 }

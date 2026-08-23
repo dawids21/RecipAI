@@ -6,8 +6,13 @@ import 'shopping_list_item_widget.dart';
 
 class ShoppingListItemAddWidget extends StatefulWidget {
   final ValueChanged<ItemChanged> onAdd;
+  final bool enabled;
 
-  const ShoppingListItemAddWidget({super.key, required this.onAdd});
+  const ShoppingListItemAddWidget({
+    super.key,
+    required this.onAdd,
+    this.enabled = true,
+  });
 
   @override
   State<ShoppingListItemAddWidget> createState() =>
@@ -73,6 +78,7 @@ class _ShoppingListItemAddWidgetState extends State<ShoppingListItemAddWidget> {
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
+                enabled: widget.enabled,
                 style: theme.textTheme.bodyLarge,
                 maxLines: null,
                 keyboardType: TextInputType.text,

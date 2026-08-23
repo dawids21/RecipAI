@@ -4,16 +4,20 @@ import 'package:go_router/go_router.dart';
 import '../../../core/widgets/sharing_dialog.dart';
 import '../../../shared/api_error_widget.dart';
 import '../../../shared/loading_widget.dart';
+import '../../limits/limits_service.dart';
 import 'recipes_collection.dart';
+import 'recipes_collection_create_dialog.dart';
 import 'recipes_collection_list_item.dart';
 import 'recipes_collection_list_service.dart';
 
 class RecipesCollectionListScreen extends StatefulWidget {
   final RecipesCollectionListService recipesCollectionListService;
+  final LimitsService limitsService;
 
   const RecipesCollectionListScreen({
     super.key,
     required this.recipesCollectionListService,
+    required this.limitsService,
   });
 
   @override
@@ -28,37 +32,17 @@ class _RecipesCollectionListScreenState
   }
 
   Future<void> _handleCreate() async {
-    final nameController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
+    final name = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create recipes collection'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Recipes collection name',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Create'),
-          ),
-        ],
+      builder: (context) => RecipesCollectionCreateDialog(
+        recipesCollectionListService: widget.recipesCollectionListService,
+        limitsService: widget.limitsService,
       ),
     );
 
-    if (confirmed == true && nameController.text.isNotEmpty) {
+    if (name != null) {
       try {
-        await widget.recipesCollectionListService.createRecipesCollection(
-          nameController.text.trim(),
-        );
+        await widget.recipesCollectionListService.createRecipesCollection(name);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Recipes collection created')),

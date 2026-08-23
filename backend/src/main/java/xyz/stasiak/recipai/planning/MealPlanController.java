@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.planning.dto.*;
 
 import java.time.LocalDate;
@@ -25,6 +26,13 @@ class MealPlanController {
 
     private final MealPlanService mealPlanService;
     private final MealPlanCalendarService calendarService;
+
+    @GetMapping("/usage")
+    LimitStanding getUsage(@AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting meal plan usage for user: {}", userEmail);
+        return mealPlanService.usage(userEmail);
+    }
 
     @GetMapping
     List<MealPlanDto> getAllMealPlans(@AuthenticationPrincipal Jwt jwt) {

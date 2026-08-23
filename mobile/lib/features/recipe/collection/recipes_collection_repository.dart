@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/app_config.dart';
+import '../../limits/limit_usage.dart';
 import 'recipes_collection.dart';
 import 'recipes_collection_permission.dart';
 
@@ -17,6 +18,22 @@ class RecipesCollectionRepository {
       'Content-Type': 'application/json',
       if (idToken != null) 'Authorization': 'Bearer $idToken',
     };
+  }
+
+  Future<LimitUsage> fetchCollectionUsage(String? idToken) async {
+    final headers = _getAuthHeaders(idToken);
+    final response = await _client.get(
+      Uri.parse('$_baseUrl/collections/usage'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return LimitUsage.fromJson(json.decode(response.body));
+    } else {
+      throw Exception(
+        'Failed to load recipes collection usage: ${response.statusCode}',
+      );
+    }
   }
 
   Future<List<RecipesCollection>> fetchRecipesCollections(

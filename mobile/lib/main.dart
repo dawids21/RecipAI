@@ -19,6 +19,8 @@ import 'features/auth/auth_setup.dart';
 import 'features/extraction/extraction_setup.dart';
 import 'features/extraction/share_intent_service.dart';
 import 'features/extraction/share_intent_setup.dart';
+import 'features/limits/limits_service.dart';
+import 'features/limits/limits_setup.dart';
 import 'features/planning/meal_plan_setup.dart';
 import 'features/recipe/collection/recipes_collection_setup.dart';
 import 'features/recipe/recipe_setup.dart';
@@ -47,6 +49,7 @@ void main() async {
 
   // DI
   setupAuth();
+  setupLimits();
   setupRecipe();
   setupRecipesCollection();
   setupMealPlan();
@@ -84,6 +87,7 @@ class _RecipAIAppState extends State<RecipAIApp> {
   @override
   void dispose() {
     getIt<ShareIntentService>().dispose();
+    getIt<LimitsService>().dispose();
     getIt<AuthService>().dispose();
     super.dispose();
   }

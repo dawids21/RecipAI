@@ -8,7 +8,7 @@
 - **T2:** Owner-scoped caps for recipes, collections and shopping lists
 - **T3:** Meal plan cap migrated onto the shared mechanism
 - **T4:** Per-list shopping-list item cap
-- **T5:** Mobile — refusal messaging and recipe standing
+- **T5:** Mobile — per-resource limit display and pre-emptive blocking
 
 ## Cross-task notes
 
@@ -20,14 +20,15 @@
   is explicitly marked as blocking. Whatever is chosen becomes the subject key baked into the usage
   and configuration records, and changing it later means a data migration across every resource.
 - **429 is a breaking change for the mobile client.** T3 flips `planning`'s 409 to 429, so the
-  targeted client-side mapping fix ships inside T3 — it cannot wait for T5. Between T1 and T5 the app
-  shows a generic error for every other refusal; that is accepted and closed out by T5.
+  targeted client-side mapping fix ships inside T3 — it cannot wait for T5. The generic error the app
+  shows for every other refusal stays: T5 makes refusals rare by disabling the action at the cap
+  rather than by explaining them after the fact (see T5 > *Out of scope*).
 - **Release paths must be audited, not assumed.** `HLD.md` > Open questions > *Release on cascades*
   is unresolved. T2 owns the audit for owner-scoped resources and T4 for items; a missed release path
   is the failure mode ADR-0006 names as the principal cost of the design.
 - **Parallelism.** T3 and T4 are independent of each other and can run concurrently once T2 has
   merged (both need the release and recompute mechanism T2 introduces). T5 needs T2 for the recipe
-  standing; the rest of its refusal messaging benefits from T3 and T4 but does not depend on them.
+  standing; the rest of its per-resource display benefits from T3 and T4 but does not depend on them.
 
 ---
 
@@ -58,7 +59,7 @@ database sees the change take effect on the very next request with no restart.
 - Release of a held unit and the recompute/seed — no stock resource exists yet; introduced in T2
 - Any owner-scoped resource — covered in T2 and T3
 - The per-list item cap — covered in T4
-- The standing read path and all client-side messaging — covered in T5
+- The standing read path and every client-side display — covered in T5
 - `planning`'s existing 409 and its `maxOwnedPlans` property — covered in T3, untouched here
 
 **Depends on:** none
@@ -117,7 +118,7 @@ deleting one.
 - Shopping-list *items* — covered in T4; this task caps only the number of lists
 - Whether the recompute is reachable at runtime or only as a repeatable migration —
   `HLD.md` > Open questions > *Recompute trigger*, a task-design decision here
-- Any client-side display or messaging — covered in T5
+- Any client-side display — covered in T5
 - The 5 MB image cap and the per-recipe image count, which stay as they are per the anti-requirements
 
 **Depends on:** T1
@@ -170,8 +171,8 @@ database instead of redeploying with a new `maxOwnedPlans` value.
 
 **Out of scope**
 
-- Generic 429 handling shared across all mobile features, and the standing display — covered in T5;
-  this task changes only the planning repository's status-code mapping
+- The per-resource standing display and the pre-emptive block — covered in T5; this task changes only
+  the planning repository's status-code mapping
 - Any other owner-scoped resource — covered in T2
 
 **Depends on:** T2
@@ -219,8 +220,8 @@ other lists remain unaffected.
 
 - The cap on the number of lists a user owns — covered in T2
 - Cross-list item totals; the requirement is explicitly per list
-- General 429 messaging in the app — covered in T5, beyond the offline reconciliation behavior this
-  task must define
+- The item counter and the disabled add surface in the app — covered in T5, beyond the offline
+  reconciliation behavior this task must define
 
 **Depends on:** T2
 
@@ -246,37 +247,42 @@ resolves the refusal without silently losing or duplicating items.
 
 ---
 
-## T5: Mobile — refusal messaging and recipe standing
+## T5: Mobile — per-resource limit display and pre-emptive blocking
 
 **User-visible outcome**
 
-A user sees their recipe standing in the recipe area, and any blocked action — creating a recipe,
-collection, list or plan, or running an extraction — explains which resource was refused and what
-their current standing is, rather than failing with a generic error.
+At every point where a user can spend a capped resource — creating a recipe, collection, list, plan or
+shopping-list item, or running an extraction — they see `used / limit` for that resource, and the
+action is greyed out once they are at the cap. They learn the limit before they run into it instead of
+from a refusal.
 
 **Scope**
 
 - The standing read path: the limits module reporting a subject's current standing for a resource,
   applying the same elapsed-period rule a check applies, plus whatever endpoint exposes it —
   `HLD.md` > Feature areas > *Limits module (new)*
-- Shared client-side handling of the 429 contract, with the server's reported values displayed rather
-  than anything computed on the device — `HLD.md` > Feature areas > *Mobile*
-- Recipe standing surfaced in `features/recipe`, satisfying the requirement that a limit be visible
-  somewhere
-- Refusal explanations at the point of blockage in `features/extraction`, `features/collection`,
-  `features/shopping_list` and `features/planning`
-- Settling `HLD.md` > Open questions > *Shape of the standing read path* — one call for all standings
-  versus per resource, and whether the app fetches ahead to pre-emptively disable actions or only
-  reacts to refusals
+- An endpoint exposing the caps configured for the caller, and a per-module usage read on each capped
+  module, so a client can pair the two numbers without the limits module learning any resource
+  vocabulary
+- The item cap for a shopping list resolved from that list's **owner**, because on a shared list the
+  override that applies is not the caller's
+- The counter and the disabled control at each capped surface in `features/recipe`,
+  `features/extraction`, `features/shopping_list` and `features/planning`, satisfying the requirement
+  that a limit be visible somewhere
+- Settling `HLD.md` > Open questions > *Shape of the standing read path* — resolved as one caps call
+  per session plus a usage read per surface, with the app fetching ahead to disable pre-emptively
 
 **Out of scope**
 
 - Any change to how limits are enforced or counted — the backend rules are complete after T4
-- Pre-emptive disabling of actions, unless the standing-read-path decision above chooses it
+- Parsing the 429 body to explain a refusal after the fact. The counter and the greyed control replace
+  that: they refuse exactly what the server would refuse, because the number displayed is the same
+  recorded usage a reserve compares against. The pre-existing generic error stays as the fallback for
+  a refusal that still gets through — a stale count, a second device, or limits changed mid-session.
 - An admin or self-serve surface for raising limits, excluded by the anti-requirements
 
-**Depends on:** T2 (recipe standing and its refusals); T3 and T4 for complete coverage of plan and
-item refusals
+**Depends on:** T2 (the recipe, collection and list standings); T3 and T4 for the plan and item
+surfaces
 
 **HLD references**
 
@@ -287,8 +293,9 @@ item refusals
 
 **How to verify**
 
-In the app with a recipe limit of 3 and two recipes owned, the recipe area shows the standing.
-Creating a third updates it; attempting a fourth shows a message naming recipes and the standing.
-With the extraction budget exhausted, running a URL extraction shows an explanation of the block
-rather than a generic failure. Raising the limit in the database and reopening the screen shows the
-new standing without reinstalling or restarting the app.
+In the app with a recipe limit of 3 and two recipes owned, the create-recipe screen reads `2 / 3
+recipes`. Creating a third and reopening the screen reads `3 / 3 recipes` with Save greyed out. With
+the extraction budget exhausted, both extraction screens show the exhausted counter and refuse to
+start. Raise the recipe limit in the database: reopening the screen still reads the old cap, because
+caps are loaded once per session — restart the app and the new cap shows without reinstalling. With
+`RECIPAI_LIMITS_ENABLED=false`, every counter is absent and every action is enabled.

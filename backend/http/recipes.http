@@ -2,6 +2,11 @@
 @user = alice
 @otherUser = bob
 
+### How much of the caller's RECIPE budget is already spent — /usage wins the route over
+### GET /recipes/{id}, so it never reaches the by-id handler
+GET {{baseUrl}}/recipes/usage
+Authorization: Bearer {{user}}
+
 ### Create a collection to hold the recipe
 # @name createCollection
 POST {{baseUrl}}/collections

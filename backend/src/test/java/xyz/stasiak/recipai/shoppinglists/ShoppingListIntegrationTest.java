@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
@@ -18,7 +19,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitUsageDetails;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 
@@ -1015,6 +1016,19 @@ class ShoppingListIntegrationTest {
         }
     }
 
+    @Test
+    void shouldReturn204ForItemLimitsWhenLimitsAreDisabled() {
+        RestClient client = restClient();
+        ShoppingListListDto list = createShoppingList(client, "List 1");
+
+        ResponseEntity<Void> response = client.get()
+                .uri("/shopping-lists/" + list.id() + "/limits")
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(response.getStatusCode().value()).isEqualTo(204);
+    }
+
     @Nested
     @TestPropertySource(properties = "recipai.limits.enabled=true")
     class LimitsEnforced {
@@ -1077,14 +1091,14 @@ class ShoppingListIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.currentUsage(subject, ShoppingListService.SHOPPING_LIST_RESOURCE)
-                    .map(LimitUsageDetails::used)
+            return limitsFacade.standing(subject, ShoppingListService.SHOPPING_LIST_RESOURCE)
+                    .map(LimitStanding::used)
                     .orElse(0);
         }
 
         private int usedForItem(UUID listId) {
-            return limitsFacade.currentUsage(listId.toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)
-                    .map(LimitUsageDetails::used)
+            return limitsFacade.standing(listId.toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)
+                    .map(LimitStanding::used)
                     .orElse(0);
         }
 
@@ -1236,7 +1250,7 @@ class ShoppingListIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.currentUsage(ghost, ShoppingListService.SHOPPING_LIST_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.standing(ghost, ShoppingListService.SHOPPING_LIST_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1259,11 +1273,11 @@ class ShoppingListIntegrationTest {
                     .param("periodStart", Timestamp.from(periodStart))
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
 
             RecomputeMigration.run(dataSource);
 
-            LimitUsageDetails after = limitsFacade.currentUsage(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -1283,7 +1297,7 @@ class ShoppingListIntegrationTest {
             jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'SHOPPING_LIST' AND subject IS NULL")
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
 
             try {
                 RecomputeMigration.run(dataSource);
@@ -1292,7 +1306,7 @@ class ShoppingListIntegrationTest {
                         .update();
             }
 
-            LimitUsageDetails after = limitsFacade.currentUsage(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
         }
@@ -1521,7 +1535,7 @@ class ShoppingListIntegrationTest {
                 assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
             }
 
-            assertThat(limitsFacade.currentUsage("user2@example.com", ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.standing("user2@example.com", ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1533,7 +1547,7 @@ class ShoppingListIntegrationTest {
 
             deleteShoppingList(client, list.id());
 
-            assertThat(limitsFacade.currentUsage(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.standing(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1592,13 +1606,91 @@ class ShoppingListIntegrationTest {
                     .param("periodStart", Timestamp.from(periodStart))
                     .update();
 
-            LimitUsageDetails before = limitsFacade.currentUsage(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
+            LimitStanding before = limitsFacade.standing(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
 
             RecomputeMigration.run(dataSource);
 
-            LimitUsageDetails after = limitsFacade.currentUsage(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
+            LimitStanding after = limitsFacade.standing(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
             assertThat(after.used()).isEqualTo(before.used());
             assertThat(after.periodStart()).isEqualTo(before.periodStart());
+        }
+
+        private Map<String, Object> getListUsage(RestClient client) {
+            return client.get()
+                    .uri("/shopping-lists/usage")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        }
+
+        private Map<String, Object> getItemCap(RestClient client, UUID listId) {
+            return client.get()
+                    .uri("/shopping-lists/" + listId + "/limits")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        }
+
+        @Test
+        void shouldTrackListUsageAcrossCreateAndDelete() {
+            RestClient client = restClient();
+            assertThat(getListUsage(client).get("used")).isEqualTo(0);
+
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+            assertThat(getListUsage(client).get("used")).isEqualTo(1);
+
+            deleteShoppingList(client, list.id());
+            assertThat(getListUsage(client).get("used")).isEqualTo(0);
+        }
+
+        @Test
+        void shouldReturnItemCapConfiguredAgainstOwnerWhenReadByOwner() {
+            RestClient client = restClient();
+            ShoppingListListDto list = createShoppingList(client, "List 1");
+
+            Map<String, Object> cap = getItemCap(client, list.id());
+
+            assertThat(cap.get("resource")).isEqualTo("SHOPPING_LIST_ITEM");
+            assertThat(cap.get("limit")).isEqualTo(3);
+        }
+
+        @Test
+        void shouldReturnOwnerConfiguredCapWhenReadBySharedEditorNotEditorsOwnOverride() {
+            RestClient owner = restClient();
+            RestClient editor = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            ShoppingListListDto list = createShoppingList(owner, "List 1");
+            shareShoppingList(owner, list.id(), "user1@example.com");
+            seedConfigOverride("SHOPPING_LIST_ITEM", "user1@example.com", 99);
+
+            Map<String, Object> cap = getItemCap(editor, list.id());
+
+            assertThat(cap.get("limit")).isEqualTo(3);
+        }
+
+        @Test
+        void shouldReturn403ForUserWithNoPermissionOnList() {
+            RestClient owner = restClient();
+            RestClient stranger = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+            ShoppingListListDto list = createShoppingList(owner, "List 1");
+
+            try {
+                getItemCap(stranger, list.id());
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(403);
+            }
+        }
+
+        @Test
+        void shouldReturn404ForUnknownListId() {
+            RestClient client = restClient();
+
+            try {
+                getItemCap(client, UUID.randomUUID());
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(404);
+            }
         }
     }
 }

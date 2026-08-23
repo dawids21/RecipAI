@@ -38,6 +38,38 @@ An item create past the cap has the same shape with `"resource": "SHOPPING_LIST_
 Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
 restarts — the owner has to delete a list or an item, or have the cap raised.
 
+### GET /shopping-lists/usage
+- Description: Get how much of the caller's `SHOPPING_LIST` budget is already spent, for displaying
+  `used / limit` before a list is created
+- Authenticated: true
+- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+  ```json
+  {
+    "used": 2,
+    "periodStart": "2026-08-23T10:00:00Z"
+  }
+  ```
+- Success: 200 OK
+- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+
+### GET /shopping-lists/{id}/limits
+- Description: Get the `SHOPPING_LIST_ITEM` cap that applies to this list, for displaying
+  `used / limit` beside the add-item row. The cap value is resolved from the **list's owner**, which is
+  why it cannot be read from `GET /limits` — on a shared list the override that matters belongs to
+  someone else. The caller never learns who the owner is.
+- Authenticated: true, requires OWNER or EDITOR
+- Behavior: the item count is not returned — the client counts the items it already holds
+- Example response:
+  ```json
+  {
+    "resource": "SHOPPING_LIST_ITEM",
+    "kind": "STOCK",
+    "limit": 50
+  }
+  ```
+- Success: 200 OK, or 204 No Content when limits are disabled or no cap resolves for the owner
+- Errors: 403 Forbidden (not an editor of the list), 404 Not found
+
 ### GET /shopping-lists
 - Description: Get all shopping lists ordered by creation date (oldest first)
 - Authenticated: true

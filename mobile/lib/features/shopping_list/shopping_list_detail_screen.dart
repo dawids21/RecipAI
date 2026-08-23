@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import '../limits/limit_counter.dart';
 import 'local_shopping_list_item.dart';
 import 'shopping_list_detail_service.dart';
 import 'shopping_list_item_add_widget.dart';
@@ -367,7 +368,14 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
     );
   }
 
+  bool _atItemCap() {
+    final cap = service.itemCap.value.valueOrNull;
+    final count = service.items.value.valueOrNull?.length;
+    return cap != null && count != null && count >= cap.limit;
+  }
+
   void _createEphemeralItemAfter(int index) {
+    if (_atItemCap()) return;
     setState(() {
       _ephemeralAfterIndex = index;
     });
@@ -687,9 +695,37 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                                       : const SizedBox.shrink(),
                                 ),
 
-                                ShoppingListItemAddWidget(
-                                  key: const ValueKey('add-item'),
-                                  onAdd: (result) => service.addItem(result),
+                                ValueListenableBuilder(
+                                  valueListenable: service.itemCap,
+                                  builder: (context, capAsync, _) {
+                                    final cap = capAsync.valueOrNull;
+                                    final atCap =
+                                        cap != null &&
+                                        flatItems.length >= cap.limit;
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (cap != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: AppSpacing.extraSmall,
+                                            ),
+                                            child: LimitCounter(
+                                              used: flatItems.length,
+                                              limit: cap.limit,
+                                              noun: 'items',
+                                            ),
+                                          ),
+                                        ShoppingListItemAddWidget(
+                                          key: const ValueKey('add-item'),
+                                          onAdd: (result) =>
+                                              service.addItem(result),
+                                          enabled: !atCap,
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
 
                                 AnimatedCrossFade(

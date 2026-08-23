@@ -8,6 +8,8 @@ import 'package:recipai_mobile/core/preferences_service.dart';
 import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_setup.dart';
 import 'package:recipai_mobile/features/auth/auth_user.dart';
+import 'package:recipai_mobile/features/limits/limits_service.dart';
+import 'package:recipai_mobile/features/limits/limits_setup.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_calendar_data.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_setup.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_setup.dart';
@@ -44,6 +46,7 @@ void main() {
   late MockShoppingListItemRepository shoppingListItemRepository;
   late MockShoppingListItemDao shoppingListItemDao;
   late MockMealPlanRepository mealPlanRepository;
+  late MockLimitsRepository limitsRepository;
   late _NavPushSpy navSpy;
   late Widget app;
 
@@ -53,7 +56,7 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    GetIt.I.reset();
+    await GetIt.I.reset();
 
     authRepository = MockAuthRepository();
     recipeRepository = MockRecipeRepository();
@@ -62,7 +65,9 @@ void main() {
     shoppingListItemRepository = MockShoppingListItemRepository();
     shoppingListItemDao = MockShoppingListItemDao();
     mealPlanRepository = MockMealPlanRepository();
+    limitsRepository = MockLimitsRepository();
 
+    when(() => limitsRepository.fetchCaps(any())).thenAnswer((_) async => {});
     when(
       () => authRepository.watchAuthState(),
     ).thenAnswer((_) => const Stream<AuthUser?>.empty());
@@ -77,6 +82,7 @@ void main() {
     GetIt.I.registerSingleton(PreferencesService(prefs));
 
     setupAuth(authRepository: authRepository);
+    setupLimits(limitsRepository: limitsRepository);
     setupRecipesCollection(
       recipesCollectionRepository: recipesCollectionRepository,
     );
@@ -103,6 +109,7 @@ void main() {
             mealPlanCalendarService: GetIt.I<MealPlanCalendarService>(),
             mealPlanListService: GetIt.I<MealPlanListService>(),
             mealPlanVisibilityService: GetIt.I<MealPlanVisibilityService>(),
+            limitsService: GetIt.I<LimitsService>(),
           ),
         ),
         GoRoute(

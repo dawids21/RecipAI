@@ -3,14 +3,16 @@
 ```
 backend/src/main/java/xyz/stasiak/recipai/
 └── limits/
-    ├── LimitsFacade.java                        # Public facade — reserve a unit, release one, clear a vanished subject's row, read a subject's standing
-    ├── LimitService.java                        # Resolves the config subject's configuration, derives the period cutoff, turns a refused reserve into an exception, decides whether a release refunds
+    ├── LimitsFacade.java                        # Public facade — reserve a unit, release one, clear a vanished subject's row, read a subject's standing, resolve a subject's caps
+    ├── LimitsController.java                    # Package-private @RestController — GET /limits returns the caller's resolved caps
+    ├── LimitService.java                        # Resolves the config subject's configuration, derives the period cutoff, turns a refused reserve into an exception, decides whether a release refunds, applies the elapsed-period rule virtually on a standing read
     ├── LimitConfig.java                         # Entity over limit_config — default row (subject IS NULL) or one subject's override
-    ├── LimitConfigRepository.java               # Override-then-default resolution query
+    ├── LimitConfigRepository.java               # Override-then-default resolution query, for one resource or (resolveAll) every configured one
     ├── LimitUsage.java                          # Entity over limit_usage — read only to report a standing
     ├── LimitUsageId.java                        # Composite key (resource, subject)
     ├── LimitUsageRepository.java                # Native conditional upsert that *is* the indivisible reserve, the floored decrement behind release, and the row delete behind clear
-    ├── LimitUsageDetails.java                   # Public standing DTO (used, periodStart)
+    ├── LimitStanding.java                       # Public standing DTO (used, periodStart, resetsInSeconds)
+    ├── LimitCap.java                            # Public resolved-cap DTO (resource, kind, limit) — carries no period; the client does no period arithmetic
     ├── LimitKind.java                           # Public enum STOCK / FLOW — rides on the refusal
     ├── LimitPeriod.java                         # Enum DAY / WEEK / MONTH — the only place period arithmetic lives
     ├── LimitExceededException.java              # Public refusal carrying resource, kind, limit, used, optional retryAfterSeconds
@@ -28,7 +30,8 @@ The `Clock` the module reads time from is supplied by `config.time.TimeConfig`.
 list's UUID today) and an opaque `resource` key that the *calling* module owns.
 `LimitsModuleArchitectureTest` enforces this with ArchUnit — no class in `..limits..` may depend on
 any other `xyz.stasiak.recipai` package, and only `LimitsFacade`, `LimitExceededException`,
-`LimitConfigurationMissingException`, `LimitKind` and `LimitUsageDetails` may be public. See `docs/ADRs/0006-shared-limits-module.md`.
+`LimitConfigurationMissingException`, `LimitKind`, `LimitStanding` and `LimitCap` may be public — the
+controller stays package-private. See `docs/ADRs/0006-shared-limits-module.md`.
 
 ## Behaviour
 
@@ -55,6 +58,14 @@ any other `xyz.stasiak.recipai` package, and only `LimitsFacade`, `LimitExceeded
 - **Clear** — deletes a subject's usage row outright, for when the subject itself has ceased to exist
   (a deleted shopping list has no records left to refund one at a time). It resolves no configuration,
   so it takes a single subject, has no `FLOW` branch, and never throws.
+- **Standing read** — `standing` reports what the *next* reserve would compare against, and writes
+  nothing: a window whose `period_start` is already past the cutoff reports zero used and the row is
+  left alone, so a read never re-anchors a subject's reset time. It carries `resetsInSeconds` only for
+  a live `FLOW` window with a period, computed from the same `LimitPeriod` arithmetic the refusal's
+  `retryAfterSeconds` uses. An absent usage row is `Optional.empty()` — no row, not "no configuration".
+- **Cap read** — `caps` resolves every configured resource for a subject in one query and `cap`
+  resolves one, both by the same override-then-default rule as a check. Neither touches usage, so a
+  cap can be read for a subject that has never used anything.
 - **Recompute** — `R__recompute_limit_usage.sql`, a repeatable migration, rebuilds `limit_usage` for
   the owner-scoped resources from their owning module's permission tables, and `SHOPPING_LIST_ITEM`
   from `shopping_list_items` grouped by list. It is both the rollout seed and the drift repair for a
@@ -70,7 +81,9 @@ neither, because there is no time at which the refusal resolves itself.
 ## Configuration
 
 `recipai.limits.enabled` (default `true`) is a kill-switch: when `false`, `LimitsFacade.reserve`,
-`release` and `clear` are all no-ops, nothing is recorded and nothing is refused. It is set to `false`
+`release` and `clear` are all no-ops, nothing is recorded and nothing is refused, and `caps`/`cap`
+resolve nothing — so a client that displays caps shows none. `standing` ignores the flag and keeps
+reporting whatever usage is recorded. It is set to `false`
 in `application-dev.yml`, so **limits do not apply in local development** — tests that need them enable
 the flag explicitly, either for a whole class or for a `@Nested` class inside a suite that runs with
 limits off; see `docs/backend/standards/integration-tests.md`.

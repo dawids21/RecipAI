@@ -52,7 +52,7 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 
 #### Extraction (`backend/modules/extraction/`)
 - `codebase_structure.md` — file tree
-- `api.md` — `/extract/text` and `/extract/image` endpoints
+- `api.md` — `/extract/text`, `/extract/image` and `/extract/usage` endpoints
 
 #### Shopping Lists (`backend/modules/shopping-lists/`)
 - `codebase_structure.md` — file tree
@@ -65,7 +65,8 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
 #### Limits (`backend/modules/limits/`)
-- `codebase_structure.md` — file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules (no HTTP endpoints)
+- `codebase_structure.md` — file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the standing and cap reads, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules
+- `api.md` — `GET /limits`, and the contract shared by the per-module `/usage` reads
 - `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables and, for shopping-list items, from the items themselves
 
 #### Provisioning (`backend/modules/provisioning/`)
@@ -130,6 +131,10 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `codebase_structure.md` — file tree for `features/planning/`
 - `ui.md` — calendar and planning screens, shopping list generation wizard, and all planning flows
 
+#### Limits (`mobile/modules/limits/`)
+- `codebase_structure.md` — file tree for `features/limits/`, and where each capped resource's count lives instead
+- `ui.md` — the `used / limit` counter widget, how caps and counts are loaded, the fail-open rule, and the surfaces that block at the cap
+
 ---
 
 ## Mobile Standards
@@ -137,7 +142,7 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 Located in `docs/mobile/standards/`
 
 ### Architecture (`mobile/standards/architecture.md`)
-Standards for the three-layer Repository-Service-View architecture: responsibilities of each layer, rules about cross-layer access, feature-based directory layout, and file naming conventions.
+Standards for the three-layer Repository-Service-View architecture: responsibilities of each layer, rules about cross-layer access, how narrow a widget's constructor inputs should be, feature-based directory layout, and file naming conventions.
 
 ### State Management (`mobile/standards/state-management.md`)
 Standards for managing async state: `ValueNotifier<AsyncValue<T>>` as the default (not required) shape, how to expose state read-only to views, guarding against concurrent calls (boolean flags, per-key locks, single-flight drains), error handling via `AsyncValue.guardAsync()`, and the `dispose()` requirement on service classes.

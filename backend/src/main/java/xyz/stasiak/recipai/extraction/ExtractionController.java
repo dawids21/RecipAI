@@ -12,6 +12,7 @@ import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import xyz.stasiak.recipai.limits.LimitStanding;
 
 @RestController
 @RequestMapping("/extract")
@@ -21,15 +22,22 @@ class ExtractionController {
 
     private final ExtractionService extractionService;
 
+    @GetMapping("/usage")
+    LimitStanding getUsage(@AuthenticationPrincipal Jwt jwt) {
+        String userEmail = jwt.getClaimAsString("email");
+        log.debug("Getting extraction usage for user: {}", userEmail);
+        return extractionService.usage(userEmail);
+    }
+
     @PostMapping("/text")
-    public ExtractedRecipe extractFromText(@Valid @RequestBody ExtractTextRequest request, @AuthenticationPrincipal Jwt jwt) {
+    ExtractedRecipe extractFromText(@Valid @RequestBody ExtractTextRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Extracting recipe from text for user: {}", userEmail);
         return extractionService.extractFromText(request.text(), userEmail);
     }
 
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ExtractedRecipe extractFromImage(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal Jwt jwt) {
+    ExtractedRecipe extractFromImage(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Extracting recipe from uploaded image: {} for user: {}", file.getOriginalFilename(), userEmail);
 

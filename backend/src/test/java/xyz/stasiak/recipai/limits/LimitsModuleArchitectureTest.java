@@ -30,7 +30,8 @@ class LimitsModuleArchitectureTest {
                     .or(simpleName("LimitExceededException"))
                     .or(simpleName("LimitConfigurationMissingException"))
                     .or(simpleName("LimitKind"))
-                    .or(simpleName("LimitUsageDetails"));
+                    .or(simpleName("LimitCap"))
+                    .or(simpleName("LimitStanding"));
 
     @ArchTest
     static final ArchRule onlyTheFacadeAndSharedTypesArePublic = classes()

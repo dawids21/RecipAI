@@ -14,5 +14,6 @@ void setupRecipesCollection({
       recipesCollectionRepository: getIt<RecipesCollectionRepository>(),
       authService: getIt<AuthService>(),
     ),
+    dispose: (service) => service.dispose(),
   );
 }

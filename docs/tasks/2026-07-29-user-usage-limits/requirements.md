@@ -49,7 +49,7 @@ None of these vary per user, and the extraction path has no limit at all.
 - When a user attempts an action that would exceed a limit, the action is rejected and the user is
   told why. Existing content remains fully readable and editable.
 - Changing a limit takes effect immediately for subsequent requests — no application restart or
-  redeploy.
+  redeploy. The mobile client is the one caveat, spelled out in the acceptance criteria below.
 - Users can see their recipe limit somewhere in the app. For AI extractions, users at minimum see a
   clear explanation at the moment the action is blocked.
 
@@ -86,10 +86,11 @@ None of these vary per user, and the extraction path has no limit at all.
 - [ ] A new user signs up and receives the default limits without any manual setup.
 - [ ] The user creates recipes until the recipe limit is reached; further creation attempts are
       rejected with an explanation.
-- [ ] The recipe limit for that user is raised by editing the database; the user can immediately
-      create more recipes with no restart or redeploy.
+- [ ] The recipe limit for that user is raised by editing the database; the backend accepts the very
+      next creation request with no restart or redeploy. The mobile client greys Save out against
+      caps it loaded once this session, so it enables again at the next app start.
 - [ ] The same cycle works for AI extractions: the user is blocked at the limit, the limit is raised
-      in the database, and extractions succeed again immediately.
+      in the database, and the next request is accepted — with the same client-side caveat.
 - [ ] A user who is over a limit (because it was lowered) can still view, open, and edit all of their
       existing content.
 - [ ] A failed extraction consumes a unit of the user's extraction budget.

@@ -8,6 +8,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.content.Media;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.limits.LimitStanding;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 
 import java.util.Map;
@@ -21,6 +22,11 @@ class ExtractionService {
 
     private final ChatClient chatClient;
     private final LimitsFacade limitsFacade;
+
+    LimitStanding usage(String userEmail) {
+        log.debug("Getting extraction usage for user: {}", userEmail);
+        return limitsFacade.standing(userEmail, EXTRACTION_RESOURCE).orElse(new LimitStanding(0, null, null));
+    }
 
     public ExtractedRecipe extractFromText(String text, String userEmail) {
         limitsFacade.reserve(userEmail, EXTRACTION_RESOURCE);

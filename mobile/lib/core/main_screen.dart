@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_service.dart';
+import '../features/limits/limits_service.dart';
 import '../features/planning/meal_plan_calendar_fab.dart';
 import '../features/planning/meal_plan_calendar_screen.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
@@ -29,6 +30,7 @@ class MainScreen extends StatefulWidget {
   final MealPlanCalendarService mealPlanCalendarService;
   final MealPlanListService mealPlanListService;
   final MealPlanVisibilityService mealPlanVisibilityService;
+  final LimitsService limitsService;
 
   const MainScreen({
     super.key,
@@ -39,6 +41,7 @@ class MainScreen extends StatefulWidget {
     required this.mealPlanCalendarService,
     required this.mealPlanListService,
     required this.mealPlanVisibilityService,
+    required this.limitsService,
   });
 
   @override
@@ -208,6 +211,7 @@ class _MainScreenState extends State<MainScreen> {
           ? MealPlanDrawer(
               mealPlanListService: widget.mealPlanListService,
               visibilityService: widget.mealPlanVisibilityService,
+              limitsService: widget.limitsService,
             )
           : null,
       body: IndexedStack(
@@ -244,6 +248,7 @@ class _MainScreenState extends State<MainScreen> {
           : _selectedIndex == 2
           ? ShoppingListListFab(
               shoppingListListService: widget.shoppingListListService,
+              limitsService: widget.limitsService,
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(

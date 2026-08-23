@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../auth/auth_service.dart';
+import '../limits/limits_service.dart';
 import 'meal_plan.dart';
 import 'meal_plan_list_service.dart';
 import 'meal_plan_repository.dart';
@@ -18,11 +19,13 @@ import 'plan_list_tile.dart';
 class MealPlanDrawer extends StatelessWidget {
   final MealPlanListService mealPlanListService;
   final MealPlanVisibilityService visibilityService;
+  final LimitsService limitsService;
 
   const MealPlanDrawer({
     super.key,
     required this.mealPlanListService,
     required this.visibilityService,
+    required this.limitsService,
   });
 
   @override
@@ -114,7 +117,10 @@ class MealPlanDrawer extends StatelessWidget {
   Future<void> _handleCreatePlan(BuildContext context) async {
     final result = await showDialog<PlanFormResult>(
       context: context,
-      builder: (context) => const PlanFormDialog(),
+      builder: (context) => PlanFormDialog(
+        mealPlanListService: mealPlanListService,
+        limitsService: limitsService,
+      ),
     );
 
     if (result == null || !context.mounted) return;

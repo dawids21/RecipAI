@@ -10,6 +10,7 @@ import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
 import '../features/extraction/share_route_extras.dart';
 import '../features/extraction/url_extraction_screen.dart';
+import '../features/limits/limits_service.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/planning/meal_plan_list_service.dart';
 import '../features/planning/meal_plan_visibility_service.dart';
@@ -140,6 +141,7 @@ GoRouter createAppRouter() {
           mealPlanCalendarService: getIt<MealPlanCalendarService>(),
           mealPlanListService: getIt<MealPlanListService>(),
           mealPlanVisibilityService: getIt<MealPlanVisibilityService>(),
+          limitsService: getIt<LimitsService>(),
         ),
         routes: [
           GoRoute(
@@ -149,6 +151,7 @@ GoRouter createAppRouter() {
               final prefill = state.extra as UrlPrefill?;
               return UrlExtractionScreen(
                 extractionService: getIt<ExtractionService>(),
+                limitsService: getIt<LimitsService>(),
                 initialUrl: prefill?.url,
               );
             },
@@ -160,6 +163,7 @@ GoRouter createAppRouter() {
               final prefill = state.extra as ImagePrefill?;
               return ImageExtractionScreen(
                 extractionService: getIt<ExtractionService>(),
+                limitsService: getIt<LimitsService>(),
                 initialImageFile: prefill?.file,
               );
             },
@@ -174,6 +178,7 @@ GoRouter createAppRouter() {
                 recipeListService: getIt<RecipeListService>(),
                 recipesCollectionListService:
                     getIt<RecipesCollectionListService>(),
+                limitsService: getIt<LimitsService>(),
               );
             },
           ),
@@ -236,6 +241,7 @@ GoRouter createAppRouter() {
               return RecipesCollectionListScreen(
                 recipesCollectionListService:
                     getIt<RecipesCollectionListService>(),
+                limitsService: getIt<LimitsService>(),
               );
             },
           ),

@@ -2,6 +2,10 @@
 @user = alice
 @otherUser = bob
 
+### How much of the caller's SHOPPING_LIST budget is already spent
+GET {{baseUrl}}/shopping-lists/usage
+Authorization: Bearer {{user}}
+
 ### Create a shopping list
 # @name createList
 POST {{baseUrl}}/shopping-lists
@@ -48,6 +52,11 @@ Content-Type: application/json
 
 ### Delete the second item — baseVersion is a query param here, not a body field
 DELETE {{baseUrl}}/shopping-lists/{{listId}}/items/{{item2Id}}?baseVersion=0
+Authorization: Bearer {{user}}
+
+### The SHOPPING_LIST_ITEM cap that applies to this list — resolved from the list's OWNER, so a
+### shared editor reads the owner's number rather than their own. 204 when limits are disabled.
+GET {{baseUrl}}/shopping-lists/{{listId}}/limits
 Authorization: Bearer {{user}}
 
 ### List users the shopping list is shared with

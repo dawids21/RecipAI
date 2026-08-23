@@ -4,8 +4,11 @@
 
 - Shopping List List Widget (`shopping_list_list.dart`) - Reusable body widget displaying all shopping lists with
   pull-to-refresh and navigation to detail screen on tap.
-- Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget for creating new shopping lists
-  with dialog.
+- Shopping List List FAB (`shopping_list_list_fab.dart`) - FloatingActionButton widget opening the create dialog and
+  performing the create with the name it returns.
+- Shopping List Create Dialog (`shopping_list_create_dialog.dart`) - Stateful dialog widget for creating shopping lists
+  with TextField input and proper TextEditingController lifecycle management. Loads the list count on open, shows the
+  `used / limit` counter under the field, and disables Create at the cap (see `docs/mobile/modules/limits/ui.md`).
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline
   item widgets. Add, edit, check/uncheck, delete, and drag-and-drop reorder all apply to the local item store and
   render instantly while offline, surviving an app restart. Items are organized into two sections: active items
@@ -24,7 +27,13 @@
   announced in a snackbar naming the item ("changed elsewhere and rolled back", "no longer exists", "could not be
   synced"); a refusal because the list is full instead raises a single "This list is full - items weren't added"
   bar, not repeated while one is already on screen, so adding past the cap does not queue up one snackbar per
-  rejected item.
+  rejected item. An item counter sits above the add row, pairing the list's flat item count — checked items
+  included — with the cap fetched for this list when it was opened. The detail service is a lazy singleton reused
+  across visits, so opening a list clears the cap before fetching the new one and drops a response that lands after
+  the user has moved on: the counter is either this list's cap or nothing, never the previous list's. At the cap
+  both add surfaces close: the add widget's field is disabled and Enter-to-insert declines to open a new row, so
+  the chain stops rather than producing a refusal per item. A row already open when an incoming poll reaches the
+  cap is left where it is; its commit is refused and discarded by the existing path.
 - Shopping List Item Widget (`shopping_list_item_widget.dart`) - Reusable inline-editable widget for shopping list
   items. Smart text parsing (supports "2 kg apples", "500g flour", "bread" formats), automatic quantity/unit extraction
   using regex, TextField-based editing with focus management. Optional drag handle for reordering (using
@@ -33,7 +42,8 @@
   is focused, the field is silently overwritten with the server value (no toast).
 - Shopping List Item Add Widget (`shopping_list_item_add_widget.dart`) - Dedicated widget for adding new shopping list
   items with plus icon, "Add item..." hint text, smart text parsing (same as ShoppingListItemWidget), and automatic
-  field clearing with focus retention after submission for quick consecutive entry.
+  field clearing with focus retention after submission for quick consecutive entry. An `enabled` flag disables the
+  field, which the detail screen uses to close the surface at the item cap.
 - Shopping List Rename Dialog (`shopping_list_rename_dialog.dart`) - Stateful dialog widget for renaming shopping lists
   with TextField input, proper TextEditingController lifecycle management, and validation to prevent empty names.
 - Shopping List Review Widget (`shopping_list_review_widget.dart`) - Review widget with ReorderableListView, inline
