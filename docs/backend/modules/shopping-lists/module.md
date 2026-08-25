@@ -1,4 +1,10 @@
-# Shopping Lists Module — Codebase Structure
+# Shopping Lists Module
+
+Manages shopping lists with user-based permission control (CRUD with role-based access) and per-item
+`baseVersion` optimistic locking on item writes — a body field on update, a query param on delete —
+with update covering edits, reorders, and check-state as one version-gated write.
+
+## Codebase Structure
 
 ```
 backend/src/main/java/xyz/stasiak/recipai/
@@ -31,3 +37,22 @@ backend/src/main/java/xyz/stasiak/recipai/
         ├── ItemNotFoundException.java               # Item absent from its list -> 404
         └── ItemVersionConflictException.java        # Stale baseVersion -> 412 with the winning item
 ```
+
+## Limits
+
+Two independent stock quotas apply here, and a refusal of either does not resolve itself by waiting.
+
+Creating a shopping list consumes one unit of the owner's `SHOPPING_LIST` budget, reserved before
+anything is written and keyed by the `email` claim of the JWT; deleting one returns the unit. Only
+creation is blocked — reading, editing and sharing keep working while the owner is over the quota,
+and sharing never charges the recipient.
+
+Creating an item consumes one unit of `SHOPPING_LIST_ITEM`, reserved after the permission check and
+before the write; deleting an item returns it. Usage is counted against the list, so each list fills
+up independently and an editor's add charges the list rather than their own records — but the quota
+*value* is resolved from the list's owner, so raising one user's allowance covers every list they own,
+present and future. Editing an item consumes nothing. This is also why the per-list quota can't be
+read from `GET /limits`: on a shared list the override that matters belongs to someone else, and the
+caller reading `GET /shopping-lists/{id}/limits` never learns who the owner is.
+
+See `docs/backend/modules/limits/` for how either quota is configured and changed.

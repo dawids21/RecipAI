@@ -1,4 +1,11 @@
-# Planning Module — Codebase Structure
+# Planning Module
+
+Manages meal plans with user-based permission control (CRUD with role-based access, sharing), meal
+plan entries with recipe or placeholder support, automatic conversion of recipe entries to
+placeholders on `RecipeDeleted` event, calendar view grouped by date, and shopping list generation
+with serving size scaling and inaccessible recipe warnings.
+
+## Codebase Structure
 
 ```
 backend/src/main/java/xyz/stasiak/recipai/
@@ -22,3 +29,11 @@ backend/src/main/java/xyz/stasiak/recipai/
     │   └── GeneratedShoppingListResponse.java      # Response DTO with items list and warnings list
     └── exception/                                  # Meal planning custom exceptions
 ```
+
+## Limits
+
+Creating a meal plan consumes one unit of the owner's `MEAL_PLAN` budget, reserved before anything is
+written and keyed by the `email` claim of the JWT. Deleting one returns the unit. It is a stock quota:
+a refusal does not resolve itself by waiting, and only creation is blocked — reading, editing and
+sharing keep working while the owner is over the quota. Sharing never charges the recipient. See
+`docs/backend/modules/limits/` for how the quota is configured and changed.

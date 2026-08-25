@@ -1,4 +1,12 @@
-# Recipes Module — Codebase Structure
+# Recipes Module
+
+Manages user-scoped recipe CRUD with role-based sharing (OWNER/EDITOR), optional collection
+assignment, collection-based access control, filtering by collection or unassigned status, and image
+management (upload, reorder, delete). Also manages recipe collections: CRUD with role-based access,
+sharing, and automatic removal of user-owned recipes from a collection when unshared. Publishes a
+`RecipeDeleted` event when a recipe is deleted.
+
+## Codebase Structure
 
 ```
 backend/src/main/java/xyz/stasiak/recipai/
@@ -66,3 +74,13 @@ backend/src/main/java/xyz/stasiak/recipai/
             ├── RecipesCollectionNotFoundException.java
             └── RecipesCollectionAccessDeniedException.java
 ```
+
+## Limits
+
+Creating a recipe or a collection consumes one unit of the owner's `RECIPE` or `RECIPES_COLLECTION`
+budget, reserved before anything is written and keyed by the `email` claim of the JWT. Deleting one
+returns the unit. Both are stock quotas: a refusal does not resolve itself by waiting, and only
+creation is blocked — reading, editing and sharing keep working while the owner is over the quota.
+Sharing never charges the recipient, and editing a shared record spends nothing; a recipe an EDITOR
+creates in someone else's collection is charged to the EDITOR, who owns it. See
+`docs/backend/modules/limits/` for how the quotas are configured and changed.

@@ -1,40 +1,12 @@
 # Recipes & Collections API
 
-Creating a recipe or a collection consumes one unit of the owner's `RECIPE` or `RECIPES_COLLECTION`
-budget, reserved *before* anything is written and keyed by the `email` claim of the JWT. Deleting one
-returns the unit. Both are stock quotas: a refusal does not resolve itself by waiting, and only creation
-is blocked — reading, editing and sharing keep working while the owner is over the quota. Sharing never
-charges the recipient, and editing a shared record spends nothing; a recipe an EDITOR creates in someone
-else's collection is charged to the EDITOR, who owns it. See `docs/backend/modules/limits/` for how the
-quotas are configured and changed.
-
-## Refusal Response
-
-A create past the quota returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
-
-```json
-{
-  "type": "about:blank",
-  "title": "Limit Exceeded",
-  "status": 429,
-  "detail": "Limit for RECIPE reached (5 of 5 used)",
-  "resource": "RECIPE",
-  "kind": "STOCK",
-  "limit": 5,
-  "used": 5
-}
-```
-
-Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock quota never
-restarts — the owner has to delete something or have the quota raised.
-
 ## Recipes
 
 ### GET /recipes/balance
 - Description: Get how much of the caller's `RECIPE` budget is already spent, for displaying
   `used / limit` before a recipe is created
 - Authenticated: true
-- Example response — a stock quota never restarts, so no `resetsInSeconds`:
+- Example response (stock quota, no `resetsInSeconds`):
   ```json
   {
     "used": 3,
@@ -158,7 +130,7 @@ restarts — the owner has to delete something or have the quota raised.
   ```
 - Example response: Same structure as GET /recipes/{uuid}
 - Success: 201 Created
-- Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection doesn't exist), 429 Too many requests (recipe quota reached)
+- Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection doesn't exist), 429 Too many requests (recipe quota reached — shape in `docs/backend/modules/limits/api.md`)
 - Note: `recipesCollectionId`, `sourceUrl`, and `images` are optional. The `images` field is an array of UUIDs (max 2) for image metadata tracking when creating recipes via JSON. When `recipesCollectionId` is provided, user must have EDITOR or OWNER access to the collection.
 
 ### POST /recipes (Multipart)
@@ -183,7 +155,7 @@ restarts — the owner has to delete something or have the quota raised.
     - 400 Bad request (invalid data, unsupported image format, image size exceeds 5MB, more than 2 images, or mismatch between image UUIDs and files)
     - 403 Forbidden (if user lacks access to specified collection)
     - 404 Not Found (if collection doesn't exist)
-    - 429 Too many requests (recipe quota reached — nothing is written and no image is uploaded)
+    - 429 Too many requests (recipe quota reached — nothing is written and no image is uploaded; shape in `docs/backend/modules/limits/api.md`)
 - Note: Images are stored in S3 and automatically resized to create thumbnails. Only JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The extension in the filename is normalized (jpeg → jpg).
 
 ### PUT /recipes/{uuid} (JSON)
@@ -252,7 +224,7 @@ restarts — the owner has to delete something or have the quota raised.
 - Authenticated: true
 - Success: 204 No Content
 - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-- Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes. When a recipe is deleted, a `RecipeDeleted` event is published and the owner's `RECIPE` unit is returned.
+- Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes. Publishes a `RecipeDeleted` event and returns the owner's `RECIPE` unit.
 
 ### GET /recipes/{uuid}/shared_users
 - Description: Get all users that a recipe is shared with, including their roles
@@ -292,7 +264,7 @@ restarts — the owner has to delete something or have the quota raised.
 - Description: Get how much of the caller's `RECIPES_COLLECTION` budget is already spent, for
   displaying `used / limit` before a collection is created
 - Authenticated: true
-- Example response — a stock quota never restarts, so no `resetsInSeconds`:
+- Example response (stock quota, no `resetsInSeconds`):
   ```json
   {
     "used": 1,
@@ -321,7 +293,7 @@ restarts — the owner has to delete something or have the quota raised.
 - Request body: `{"name": "My Collection"}`
 - Example response: `{"id": "uuid", "name": "My Collection"}`
 - Success: 201 Created
-- Errors: 400 Bad Request (blank name), 401 Unauthorized, 429 Too many requests (collection quota reached)
+- Errors: 400 Bad Request (blank name), 401 Unauthorized, 429 Too many requests (collection quota reached — shape in `docs/backend/modules/limits/api.md`)
 
 ### PUT /collections/{id}
 - Description: Update the name of an existing recipes collection
@@ -338,7 +310,7 @@ restarts — the owner has to delete something or have the quota raised.
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the collection and all permissions, and returns the owner's `RECIPES_COLLECTION` unit. Recipes in the collection have their `recipes_collection_id` set to null (ON DELETE SET NULL) — they are not deleted, so no recipe unit is returned.
+- Note: Deletes the collection and its permissions; returns the owner's `RECIPES_COLLECTION` unit. Recipes in it are unassigned (`recipes_collection_id` set to null via ON DELETE SET NULL), not deleted, so no `RECIPE` unit is returned.
 
 ### GET /collections/{id}/users
 - Description: Get all users that a recipes collection is shared with, including their roles

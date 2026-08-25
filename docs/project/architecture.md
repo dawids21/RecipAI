@@ -19,17 +19,20 @@ Code is organized by feature (not by layer). Each feature package contains its o
 
 ### Feature Modules
 
-- **`recipes`** — manages user-scoped recipe CRUD with role-based sharing (OWNER/EDITOR), optional collection assignment, collection-based access control, filtering by collection or unassigned status, image management (upload, reorder, delete), source URLs, an owner-scoped quota on how many recipes a user may keep; publishes a `RecipeDeleted` event when a recipe is deleted
-- **`recipes.images`** — manages recipe image storage and retrieval with S3 integration, automatic thumbnail generation, and presigned URL generation (maximum 2 images per recipe)
-- **`recipes.collections`** — manages recipes collections with user-based permission control (CRUD with role-based access, sharing with OWNER/EDITOR roles, automatic removal of user-owned recipes from a collection when unshared, an owner-scoped quota on how many collections a user may keep)
-- **`extraction`** — extracts recipes from text/images using AI (Spring AI Gemini integration); identifies the caller from the JWT and reserves one unit of that user's `EXTRACTION` budget before calling the provider, so a failed extraction still consumes its unit
-- **`limits`** — owns per-subject usage quotas for every limited resource: configuration and recorded usage in the database, override-then-default resolution read on every check (so a limit raised by SQL applies on the next request, with no restart), check-and-reserve as one indivisible conditional upsert, stock versus flow quotas with lazy period restart, and the shared HTTP 429 refusal. Also serves the caller's resolved quotas over `GET /limits` for a client to display, while each limited module answers for its own recorded balance on its own `/balance` route — so `limits` keeps no resource vocabulary at the HTTP edge. Holds no domain knowledge — callers pass an opaque subject and resource key (see ADR-0006). Consumed by `extraction`, `recipes`, `recipes.collections`, `shoppinglists` and `planning`; a repeatable migration rebuilds recorded usage from the owning modules' permission tables (and, for shopping-list items, from the items themselves), serving as both the rollout seed and the repair for a missed release
-- **`planning`** — manages meal plans with user-based permission control (CRUD with role-based access, sharing, meal plan entries with recipe or placeholder support, an owner-scoped quota on how many plans a user may keep, automatic conversion of recipe entries to placeholders on `RecipeDeleted` event, calendar view grouped by date, shopping list generation with serving size scaling and inaccessible recipe warnings)
-- **`shoppinglists`** — manages shopping lists with user-based permission control (CRUD with role-based access, per-item `baseVersion` optimistic locking on item writes — a body field on update, a query param on delete — with update covering edits, reorders, and check-state as one version-gated write; an owner-scoped quota on how many lists a user may keep, and a per-list quota on how many items a list may hold whose value is configured on the list's owner)
-- **`provisioning`** — transformation module that converts ingredients (with quantity multipliers) into shopping list items; exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules; appends ingredient comments in parentheses to item names (e.g. `"salt (to taste)"`)
-- **`config.security`** — OAuth2 Resource Server — JWT token validation; under the `dev` profile a bypass decoder takes the bearer token as the caller instead (see `docs/backend/standards/configuration-profiles.md`)
-- **`config.s3`** — AWS S3 client configuration with presigned URL support
-- **`config.time`** — supplies the `Clock` bean that time-dependent services read instead of the system clock
+Module descriptions are in each module's `module.md` (see `docs/backend/modules/<module>/module.md`,
+indexed in `docs/INDEX.md`); the role of each in the system:
+
+- **`recipes`** — recipe CRUD, sharing, and collections, the primary content of the app
+- **`recipes.images`** — recipe image storage and retrieval, backing `recipes`
+- **`recipes.collections`** — grouping of recipes, part of the `recipes` module
+- **`extraction`** — turns text/images into recipe data via AI, feeding `recipes` creation
+- **`limits`** — the shared quota-enforcement module every other feature module consumes
+- **`planning`** — meal plans that reference `recipes` and generate shopping lists
+- **`shoppinglists`** — shopping lists, populated manually or generated from `planning`
+- **`provisioning`** — ingredient-to-shopping-list-item transformation used by `planning`
+- **`config.security`** — OAuth2 Resource Server / JWT validation for every request
+- **`config.s3`** — AWS S3 client configuration backing `recipes.images`
+- **`config.time`** — the `Clock` bean time-dependent services read instead of the system clock
 
 ### Layer Structure (within each feature)
 

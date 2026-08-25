@@ -39,41 +39,42 @@ Located in `docs/backend/`
 ### Module Documentation
 
 Per-module documentation is in `docs/backend/modules/<module>/`. Each module directory contains up to three files:
-- `codebase_structure.md` — file tree for that module
+- `module.md` — what the module does, its file tree, and (for limited modules) a `## Limits` section
 - `api.md` — REST API endpoints for that module
 - `db.md` — database tables, relationships, and indexes for that module
 
-Module descriptions (what each module does) are in `docs/project/architecture.md`.
+Module descriptions (what each module does) are in each module's `module.md`; each module's one-line
+role in the system is in `docs/project/architecture.md`.
 
 #### Recipes & Collections (`backend/modules/recipes/`)
-- `codebase_structure.md` — file tree for `recipes`, `recipes.collections`, `recipes.images`
+- `module.md` — description, file tree for `recipes`, `recipes.collections`, `recipes.images`, and the `RECIPE`/`RECIPES_COLLECTION` quota behaviour
 - `api.md` — all `/recipes` and `/collections` endpoints including sharing and image upload
 - `db.md` — `recipes`, `recipe_images`, `recipe_permission`, `recipes_collections`, `recipes_collection_permission` tables
 
 #### Extraction (`backend/modules/extraction/`)
-- `codebase_structure.md` — file tree
+- `module.md` — description, file tree, and the `EXTRACTION` budget behaviour
 - `api.md` — `/extract/text`, `/extract/image` and `/extract/balance` endpoints
 
 #### Shopping Lists (`backend/modules/shopping-lists/`)
-- `codebase_structure.md` — file tree
+- `module.md` — description, file tree, and the `SHOPPING_LIST`/`SHOPPING_LIST_ITEM` quota behaviour
 - `api.md` — all `/shopping-lists` endpoints including item operations
 - `db.md` — `shopping_lists`, `shopping_list_permission`, `shopping_list_items` tables
 
 #### Planning (`backend/modules/planning/`)
-- `codebase_structure.md` — file tree
+- `module.md` — description, file tree, and the `MEAL_PLAN` quota behaviour
 - `api.md` — all `/meal-plans` endpoints including calendar view and shopping list generation
 - `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
 #### Limits (`backend/modules/limits/`)
-- `codebase_structure.md` — file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the balance and quota reads, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules
-- `api.md` — `GET /limits`, and the contract shared by the per-module `/balance` reads
+- `module.md` — description, file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the usage reads, the `recipai.limits.enabled` kill-switch, and the consuming modules
+- `api.md` — `GET /limits` and the shared 429 refusal contract
 - `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables and, for shopping-list items, from the items themselves
 
 #### Provisioning (`backend/modules/provisioning/`)
-- `codebase_structure.md` — file tree (no HTTP endpoints, no DB tables)
+- `module.md` — description and file tree (no HTTP endpoints, no DB tables)
 
 #### Config (`backend/modules/config/`)
-- `codebase_structure.md` — file tree for `config.s3`, `config.security`, `config.time`
+- `module.md` — description and file tree for `config.s3`, `config.security`, `config.time`
 
 ---
 

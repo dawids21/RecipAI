@@ -1,4 +1,10 @@
-# Config Module — Codebase Structure
+# Config Module
+
+Cross-cutting infrastructure configuration: OAuth2 Resource Server / JWT validation
+(`config.security`), AWS S3 client configuration (`config.s3`), and the `Clock` bean time-dependent
+services read instead of the system clock (`config.time`).
+
+## Codebase Structure
 
 ```
 backend/src/main/java/xyz/stasiak/recipai/

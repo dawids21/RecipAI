@@ -1,4 +1,10 @@
-# Provisioning Module — Codebase Structure
+# Provisioning Module
+
+Transformation module that converts ingredients (with quantity multipliers) into shopping list items;
+exposes a `ProvisioningFacade` (no HTTP controller) for use by other modules. Appends ingredient
+comments in parentheses to item names (e.g. `"salt (to taste)"`).
+
+## Codebase Structure
 
 ```
 backend/src/main/java/xyz/stasiak/recipai/

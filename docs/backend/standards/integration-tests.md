@@ -61,17 +61,10 @@ Adding a read method widens a module's public API for a test's benefit, so **alw
 when you do it** — it is their call whether the method belongs there. `LimitsFacade.getBalance` exists
 for exactly this reason.
 
-Reach for `JdbcClient` only when **no business path can produce the state**, and leave a one-line
-comment saying why. Two cases in this codebase qualify:
-
-- **`limit_config` has no write API.** Operators edit it with SQL, so a test that needs a quota writes
-  one the same way. Every limits suite has a private `setLimitQuota(...)` helper for this — an
-  **upsert** (`ON CONFLICT (resource, subject) DO UPDATE`, valid against
-  `UNIQUE NULLS NOT DISTINCT (resource, subject)`) so a test can set a quota whether or not a row is
-  already there, and so raising or lowering one mid-test is the same call as seeding it.
-- **Drift-repair tests must fabricate impossible state.** A recompute is only worth testing against a
-  `used` no business path could have written (`SET used = 99`), or a usage row for a subject with no
-  API presence at all. Teardown of rows no API deletes belongs in the same category.
+Reach for `JdbcClient` only when **no business path can produce the state** — fabricating impossible
+state for a drift-repair test (a `used` no business path could have written, or a usage row for a
+subject with no API presence at all), or cleaning up rows no API deletes — and leave a one-line
+comment saying why.
 
 Everything else — creating the resource whose count is being asserted, deleting it again, raising a
 quota — goes through the API or the facade.
@@ -90,10 +83,9 @@ does not stop usage from being recorded, only from being refused. Instead:
   `@TestPropertySource(properties = "recipai.limits.enabled=true")`. The nested class gets its own
   context and container, and the enclosing instance's injected fields are wired from the *nested*
   context, so the outer suite's `restClient()` and creation helpers work unchanged inside it.
-- **Set the nested class's own `limit_config` override** for its subject through `setLimitQuota`
-  rather than relying on the shipped default, so the test does not break when an operator changes a
-  production number. Delete the override in `@AfterEach`, and restore any resource *default* the test
-  changed before it leaves.
+- **Set the nested class's own `limit_config` override** for its subject rather than relying on the
+  shipped default, so the test does not break when an operator changes a production number. Delete the
+  override in `@AfterEach`, and restore any resource *default* the test changed before it leaves.
 
 ```java
 @Nested

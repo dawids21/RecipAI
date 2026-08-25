@@ -1,4 +1,11 @@
-# Limits Module — Codebase Structure
+# Limits Module
+
+Owns per-subject usage quotas for every limited resource: configuration and recorded usage in the
+database, override-then-default resolution read on every check, check-and-reserve as one indivisible
+conditional upsert, stock versus flow quotas with lazy period restart, and the shared HTTP 429
+refusal. Holds no domain knowledge — callers pass an opaque subject and resource key (see ADR-0006).
+
+## Codebase Structure
 
 ```
 backend/src/main/java/xyz/stasiak/recipai/
@@ -72,12 +79,24 @@ controller stays package-private. See `docs/ADRs/0006-shared-limits-module.md`.
   from `shopping_list_items` grouped by list. It is both the rollout seed and the drift repair for a
   missed release; see `db.md`.
 
-## Refusal Contract
+`limit_config` has no write API — operators edit it with SQL. Limits' own integration test suites seed
+quotas the same way, via a private `setLimitQuota` upsert helper (`ON CONFLICT (resource, subject) DO
+UPDATE`) so a test can set a quota whether or not a row already exists.
 
-`LimitExceededException` is mapped to **429 Too Many Requests** with an RFC 7807 `ProblemDetail`
-carrying `resource`, `kind`, `limit` and `used`. A `FLOW` quota with a period additionally carries
-`retryAfterSeconds` and a `Retry-After` header; `STOCK` quotas and period-less `FLOW` quotas carry
-neither, because there is no time at which the refusal resolves itself.
+## Usage Reads
+
+`GET /recipes/balance`, `GET /collections/balance`, `GET /shopping-lists/balance`,
+`GET /meal-plans/balance` and `GET /extract/balance` are documented in their own modules' `api.md`.
+All five share one contract:
+
+- The body is the subject's **recorded** balance, asked of `LimitsFacade.getBalance`, never a count of
+  owned rows. It is the same number a reserve compares against, so a client that greys out an action
+  at `used >= limit` refuses exactly what the server would have refused.
+- A subject with no usage row reports `used: 0` rather than 404 — never having created anything is a
+  balance of zero, not a missing resource. Such a body carries no `periodStart`, and neither does one
+  whose periodic window has passed: the read reports the virtual restart as zero without writing it.
+- Unlike the quotas read, these ignore `recipai.limits.enabled` and keep reporting recorded usage —
+  which the kill-switch keeps recording, so the number stays true while nothing is refused.
 
 ## Configuration
 

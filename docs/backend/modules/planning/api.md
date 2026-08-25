@@ -1,36 +1,10 @@
 # Planning API
 
-Creating a meal plan consumes one unit of the owner's `MEAL_PLAN` budget, reserved *before* anything
-is written and keyed by the `email` claim of the JWT. Deleting one returns the unit. It is a stock quota:
-a refusal does not resolve itself by waiting, and only creation is blocked — reading, editing and
-sharing keep working while the owner is over the quota. Sharing never charges the recipient. See
-`docs/backend/modules/limits/` for how the quota is configured and changed.
-
-## Refusal Response
-
-A create past the quota returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
-
-```json
-{
-  "type": "about:blank",
-  "title": "Limit Exceeded",
-  "status": 429,
-  "detail": "Limit for MEAL_PLAN reached (2 of 2 used)",
-  "resource": "MEAL_PLAN",
-  "kind": "STOCK",
-  "limit": 2,
-  "used": 2
-}
-```
-
-Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock quota never
-restarts — the owner has to delete something or have the quota raised.
-
 ### GET /meal-plans/balance
 - Description: Get how much of the caller's `MEAL_PLAN` budget is already spent, for displaying
   `used / limit` before a plan is created
 - Authenticated: true
-- Example response — a stock quota never restarts, so no `resetsInSeconds`:
+- Example response (stock quota, no `resetsInSeconds`):
   ```json
   {
     "used": 1,
@@ -80,7 +54,7 @@ restarts — the owner has to delete something or have the quota raised.
   }
   ```
 - Success: 201 Created
-- Errors: 400 Bad Request (blank name, invalid color format), 401 Unauthorized, 429 Too many requests (plan quota reached)
+- Errors: 400 Bad Request (blank name, invalid color format), 401 Unauthorized, 429 Too many requests (plan quota reached — shape in `docs/backend/modules/limits/api.md`)
 - Note: Color must be a valid hex color in format `#RRGGBB` (e.g., `#FF5733`).
 
 ### PUT /meal-plans/{id}
@@ -98,7 +72,7 @@ restarts — the owner has to delete something or have the quota raised.
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the meal plan, all entries (via database CASCADE), and all permissions, and releases one unit of the owner's `MEAL_PLAN` budget.
+- Note: Deletes the plan, its entries (CASCADE) and permissions; releases the owner's `MEAL_PLAN` unit.
 
 ### POST /meal-plans/{planId}/entries
 - Description: Create a new entry in a meal plan

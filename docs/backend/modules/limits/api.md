@@ -11,7 +11,6 @@ in the authenticated matchers of `config.security.SecurityConfig`.
 
 ### GET /limits
 - Description: Get every quota configured for the authenticated caller, resolved override-then-default.
-  The subject is the `email` claim of the JWT.
 - Authenticated: true
 - Example response:
   ```json
@@ -34,30 +33,24 @@ in the authenticated matchers of `config.security.SecurityConfig`.
       reads as "no quotas known" and leaves every action enabled
 - Success: 200 OK
 
-## Balance Reads Live With Their Module
+## Refusal Response
 
-`GET /recipes/balance`, `GET /collections/balance`, `GET /shopping-lists/balance`,
-`GET /meal-plans/balance` and `GET /extract/balance` are documented in their own modules' `api.md`.
-All five share one contract:
+A call past a quota returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail` carrying
+`resource`, `kind`, `limit` and `used`:
 
-- The body is the subject's **recorded** balance, asked of `LimitsFacade.getBalance`, never a count of
-  owned rows. It is the same number a reserve compares against, so a client that greys out an action
-  at `used >= limit` refuses exactly what the server would have refused.
-- Three fields, of which only `used` is always present:
-  ```json
-  {"used": 3, "periodStart": "2026-08-23T10:00:00Z", "resetsInSeconds": 82799}
-  ```
-    - `used` — the recorded count
-    - `periodStart` — when the window the count belongs to opened
-    - `resetsInSeconds` — how long until it restarts, populated only when that subject's quota resolves
-      to a `FLOW` **with a period**, which under the seeded defaults is nowhere
-- **A null field is omitted, not sent as null.** `spring.jackson.default-property-inclusion` is
-  `non_null`, so the seeded defaults emit `{"used": 3, "periodStart": "2026-08-23T10:00:00Z"}` and a
-  balance of zero emits `{"used": 0}` — a client must treat an absent key as null rather than expect
-  it.
-- The subject is the `email` claim of the JWT; no endpoint takes a subject parameter.
-- A subject with no usage row reports `used: 0` rather than 404 — never having created anything is a
-  balance of zero, not a missing resource. Such a body carries no `periodStart`, and neither does one
-  whose periodic window has passed: the read reports the virtual restart as zero without writing it.
-- Unlike the quotas read, these ignore `recipai.limits.enabled` and keep reporting recorded usage —
-  which the kill-switch keeps recording, so the number stays true while nothing is refused.
+```json
+{
+  "type": "about:blank",
+  "title": "Limit Exceeded",
+  "status": 429,
+  "detail": "Limit for RECIPE reached (5 of 5 used)",
+  "resource": "RECIPE",
+  "kind": "STOCK",
+  "limit": 5,
+  "used": 5
+}
+```
+
+A `FLOW` quota with a period additionally carries `retryAfterSeconds` and a `Retry-After` header;
+`STOCK` quotas and period-less `FLOW` quotas carry neither, because there is no time at which the
+refusal resolves itself.
