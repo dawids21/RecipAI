@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 
 import java.util.List;
@@ -22,11 +22,11 @@ class RecipesCollectionController {
 
     private final RecipesCollectionService recipesCollectionService;
 
-    @GetMapping("/usage")
-    LimitStanding getUsage(@AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/balance")
+    LimitBalance getBalance(@AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting recipes collection usage for user: {}", userEmail);
-        return recipesCollectionService.usage(userEmail);
+        log.debug("Getting recipes collection balance for user: {}", userEmail);
+        return recipesCollectionService.balance(userEmail);
     }
 
     @GetMapping

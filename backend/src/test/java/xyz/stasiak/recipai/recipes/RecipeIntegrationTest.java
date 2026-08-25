@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
@@ -27,10 +27,6 @@ import xyz.stasiak.recipai.recipes.collections.dto.UnshareRecipesCollectionReque
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -1060,8 +1056,8 @@ class RecipeIntegrationTest {
         private DataSource dataSource;
 
         @BeforeEach
-        void seedOverride() {
-            seedConfigOverride(SUBJECT, 2);
+        void setUpQuota() {
+            setLimitQuota("RECIPE", SUBJECT, 2);
         }
 
         @AfterEach
@@ -1080,6 +1076,8 @@ class RecipeIntegrationTest {
                 }
             }
 
+            // Teardown of rows no API deletes: the config override, and usage fabricated for subjects
+            // with no API presence.
             jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'RECIPE' AND subject IS NOT NULL").update();
             jdbcClient.sql("""
                             DELETE FROM recipai.limit_usage
@@ -1094,18 +1092,30 @@ class RecipeIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.standing(subject, RecipeService.RECIPE_RESOURCE)
-                    .map(LimitStanding::used)
+            return limitsFacade.getBalance(subject, RecipeService.RECIPE_RESOURCE)
+                    .map(LimitBalance::used)
                     .orElse(0);
         }
 
-        private void seedConfigOverride(String subject, int maxValue) {
+        private void setLimitQuota(String resource, String subject, int maxValue) {
+            setLimitQuota(resource, subject, "STOCK", maxValue);
+        }
+
+        /**
+         * Upserts the quota: {@code limit_config} has no write API, so there is no business path to it.
+         */
+        private void setLimitQuota(String resource, String subject, String kind, int maxValue) {
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'RECIPE', :subject, 'STOCK', :maxValue, NULL)
+                            VALUES (:id, :resource, :subject, :kind, :maxValue, NULL)
+                            ON CONFLICT (resource, subject) DO UPDATE SET
+                                kind      = EXCLUDED.kind,
+                                max_value = EXCLUDED.max_value
                             """)
                     .param("id", UUID.randomUUID())
+                    .param("resource", resource)
                     .param("subject", subject)
+                    .param("kind", kind)
                     .param("maxValue", maxValue)
                     .update();
         }
@@ -1153,14 +1163,12 @@ class RecipeIntegrationTest {
         }
 
         @Test
-        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+        void shouldAllowReadAndUpdateWhileOverQuotaButKeepCreationRefused() {
             RestClient client = restClient();
             RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'RECIPE' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("RECIPE", SUBJECT, 1);
 
             RecipeDetailsDto fetched = getRecipe(client, recipe1.id());
             assertThat(fetched.id()).isEqualTo(recipe1.id());
@@ -1177,7 +1185,7 @@ class RecipeIntegrationTest {
         }
 
         @Test
-        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+        void shouldAdmitNextCreateAndDropBalanceAfterDelete() {
             RestClient client = restClient();
             RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
@@ -1206,7 +1214,7 @@ class RecipeIntegrationTest {
         }
 
         @Test
-        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+        void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
             RecipeDetailsDto recipe = createRecipe(client, "Shared Recipe", createTestRecipeData(), null);
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
@@ -1225,6 +1233,7 @@ class RecipeIntegrationTest {
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
             assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
+            // Deliberate drift: no business path can move used away from the owned count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'RECIPE' AND subject = :subject")
                     .param("subject", SUBJECT)
                     .update();
@@ -1238,6 +1247,7 @@ class RecipeIntegrationTest {
         @Test
         void shouldClearUsageForSubjectThatOwnsNothing() {
             String ghost = "ghost@example.com";
+            // A usage row for a subject that owns nothing: no business path leaves one behind.
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
                             VALUES ('RECIPE', :subject, 5, now())
@@ -1248,65 +1258,48 @@ class RecipeIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.standing(ghost, RecipeService.RECIPE_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance(ghost, RecipeService.RECIPE_RESOURCE)).isEmpty();
         }
 
         @Test
         void shouldSpareFlowConfiguredSubjectFromRecompute() {
-            String flowSubject = "flow-subject@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+            RestClient client = restClient();
+            setLimitQuota("RECIPE", SUBJECT, "FLOW", 5);
+            try {
+                RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+                createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+                // A flow release refunds nothing, so the balance stays at 2 while one recipe is owned.
+                deleteRecipe(client, recipe1.id());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'RECIPE', :subject, 'FLOW', 5, NULL)
-                            """)
-                    .param("id", UUID.randomUUID())
-                    .param("subject", flowSubject)
-                    .update();
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('RECIPE', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", flowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
+                RecomputeMigration.run(dataSource);
 
-            LimitStanding before = limitsFacade.standing(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
-
-            RecomputeMigration.run(dataSource);
-
-            LimitStanding after = limitsFacade.standing(flowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            } finally {
+                setLimitQuota("RECIPE", SUBJECT, 2);
+                limitsFacade.clear(SUBJECT, RecipeService.RECIPE_RESOURCE);
+            }
         }
 
         @Test
         void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
-            String defaultFlowSubject = "default-flow@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
-
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('RECIPE', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", defaultFlowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
-            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'RECIPE' AND subject IS NULL")
-                    .update();
-
-            LimitStanding before = limitsFacade.standing(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
-
+            String defaultFlowSubject = "user1@example.com";
+            RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            setLimitQuota("RECIPE", null, "FLOW", 5);
             try {
-                RecomputeMigration.run(dataSource);
-            } finally {
-                jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = 'RECIPE' AND subject IS NULL")
-                        .update();
-            }
+                RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
+                createRecipe(client, "Recipe 2", createTestRecipeData(), null);
+                // A flow release refunds nothing, so the balance stays at 2 while one recipe is owned.
+                deleteRecipe(client, recipe1.id());
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
 
-            LimitStanding after = limitsFacade.standing(defaultFlowSubject, RecipeService.RECIPE_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                RecomputeMigration.run(dataSource);
+
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
+            } finally {
+                setLimitQuota("RECIPE", null, "STOCK", 5);
+                limitsFacade.clear(defaultFlowSubject, RecipeService.RECIPE_RESOURCE);
+            }
         }
 
         @Test
@@ -1324,9 +1317,9 @@ class RecipeIntegrationTest {
             assertThat(secondRun).isEqualTo(1);
         }
 
-        private Map<String, Object> getUsage(RestClient client) {
+        private Map<String, Object> getBalance(RestClient client) {
             return client.get()
-                    .uri("/recipes/usage")
+                    .uri("/recipes/balance")
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {
                     });
@@ -1334,7 +1327,7 @@ class RecipeIntegrationTest {
 
         @Test
         void shouldReturnZeroUsageForSubjectThatHasCreatedNothing() {
-            Map<String, Object> usage = getUsage(restClient());
+            Map<String, Object> usage = getBalance(restClient());
 
             assertThat(usage.get("used")).isEqualTo(0);
         }
@@ -1345,15 +1338,15 @@ class RecipeIntegrationTest {
             RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
 
-            assertThat(getUsage(client).get("used")).isEqualTo(2);
+            assertThat(getBalance(client).get("used")).isEqualTo(2);
 
             deleteRecipe(client, recipe1.id());
 
-            assertThat(getUsage(client).get("used")).isEqualTo(1);
+            assertThat(getBalance(client).get("used")).isEqualTo(1);
         }
 
         @Test
-        void shouldMatchUsedCarriedOn429BodyWhenCapIsHit() {
+        void shouldMatchUsedCarriedOn429BodyWhenQuotaIsHit() {
             RestClient client = restClient();
             createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
@@ -1364,35 +1357,10 @@ class RecipeIntegrationTest {
             } catch (RestClientResponseException ex) {
                 Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
                 });
-                assertThat(getUsage(client).get("used")).isEqualTo(body.get("used"));
+                assertThat(getBalance(client).get("used")).isEqualTo(body.get("used"));
             }
         }
 
-        @Test
-        void shouldResolveUsageRouteRatherThanRecipeById() {
-            RestClient client = restClient();
-            createRecipe(client, "Recipe 1", createTestRecipeData(), null);
 
-            Map<String, Object> usage = getUsage(client);
-
-            // A standing, not a recipe: had GET /recipes/{id} won the route, "usage" would have been
-            // read as an id and the call would have failed rather than returned this body.
-            assertThat(usage).containsEntry("used", 1).doesNotContainKeys("id", "name", "data");
-        }
-
-        @Test
-        void shouldReturn401WithoutTokenOnUsage() {
-            RestClient client = RestClient.builder()
-                    .baseUrl("http://localhost:" + port)
-                    .build();
-
-            try {
-                client.get().uri("/recipes/usage").retrieve().body(new ParameterizedTypeReference<Map<String, Object>>() {
-                });
-                fail("Should have thrown exception");
-            } catch (RestClientResponseException ex) {
-                assertThat(ex.getStatusCode().value()).isEqualTo(401);
-            }
-        }
     }
 }

@@ -16,6 +16,10 @@ enum LimitPeriod {
         };
     }
 
+    long secondsUntilNextStart(Instant periodStart, Instant now) {
+        return Math.max(1, Duration.between(now, nextStart(periodStart)).getSeconds());
+    }
+
     Instant nextStart(Instant periodStart) {
         return switch (this) {
             case DAY -> periodStart.plus(Duration.ofDays(1));

@@ -3,7 +3,7 @@
 @otherUser = bob
 
 ### How much of the caller's EXTRACTION budget is already spent
-GET {{baseUrl}}/extract/usage
+GET {{baseUrl}}/extract/balance
 Authorization: Bearer {{user}}
 
 ### Extract a recipe from text — needs a real SPRING_AI_API_KEY; recipai.sh's fallback

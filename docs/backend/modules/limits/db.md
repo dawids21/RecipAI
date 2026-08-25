@@ -12,7 +12,7 @@
 - period: VARCHAR(16) NULL CHECK (period IN ('DAY', 'WEEK', 'MONTH'))
 - created_at: TIMESTAMP NOT NULL DEFAULT now()
 - UNIQUE NULLS NOT DISTINCT (resource, subject) — at most one default row and one override row per subject
-- CHECK (kind <> 'STOCK' OR period IS NULL) — a stock cap never restarts, so it may not carry a period
+- CHECK (kind <> 'STOCK' OR period IS NULL) — a stock quota never restarts, so it may not carry a period
 
 ### limit_usage
 
@@ -30,14 +30,14 @@ not references into another module's tables — see `docs/ADRs/0006-shared-limit
 - **limit_usage** ↔ **limit_config**: matched by `resource` at read time, not by constraint
     - A usage row exists only once a subject has successfully reserved at least once, or once the
       recompute below has seeded it
-    - A subject with no usage row has a standing of zero; a `max_value` of 0 refuses without ever
+    - A subject with no usage row has a balance of zero; a `max_value` of 0 refuses without ever
       creating one
 
 ## Seeded Configuration
 
 `V15__limits_schema.sql` seeds the one default row T1 needs, `V16__owner_scoped_limit_config.sql`
 adds the three owner-scoped defaults, `V17__meal_plan_limit_config.sql` adds a fourth, and
-`V18__shopping_list_item_limit_config.sql` adds the per-list item cap:
+`V18__shopping_list_item_limit_config.sql` adds the per-list item quota:
 
 | resource             | subject | kind  | max_value | period |
 |----------------------|---------|-------|-----------|--------|
@@ -48,7 +48,7 @@ adds the three owner-scoped defaults, `V17__meal_plan_limit_config.sql` adds a f
 | `MEAL_PLAN`          | NULL    | STOCK | 2         | NULL   |
 | `SHOPPING_LIST_ITEM` | NULL    | STOCK | 50        | NULL   |
 
-A `FLOW` cap with no period is an "N ever" allowance. Operators raise or lower a limit by editing
+A `FLOW` quota with no period is an "N ever" allowance. Operators raise or lower a limit by editing
 `limit_config` directly — the change applies on the next request, with no restart. A subject override
 is inserted separately (e.g. the developer's own account); it is never seeded by a migration.
 

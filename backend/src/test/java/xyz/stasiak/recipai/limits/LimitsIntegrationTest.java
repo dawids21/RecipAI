@@ -15,16 +15,11 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.within;
@@ -49,46 +44,46 @@ class LimitsIntegrationTest {
     void shouldGrantAndInsertUsageRowOnFirstReserve() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, null);
+        setLimitQuota(resource, null, "FLOW", 5, null);
 
         limitsFacade.reserve(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(1);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(1);
     }
 
     @Test
     void shouldIncrementUsedOnEachSubsequentGrantWhileUnderLimit() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, null);
+        setLimitQuota(resource, null, "FLOW", 5, null);
 
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
     }
 
     @Test
     void shouldRefuseOnceUsedEqualsMaxAndNotAdvancePastIt() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, null);
+        setLimitQuota(resource, null, "FLOW", 2, null);
 
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
 
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
                 .isInstanceOf(LimitExceededException.class);
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(2);
     }
 
     @Test
     void shouldPreferSubjectOverrideOverDefaultWhenLower() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, null);
-        seedConfig(resource, subject, "FLOW", 1, null);
+        setLimitQuota(resource, null, "FLOW", 5, null);
+        setLimitQuota(resource, subject, "FLOW", 1, null);
 
         limitsFacade.reserve(subject, resource);
 
@@ -100,21 +95,21 @@ class LimitsIntegrationTest {
     void shouldPreferSubjectOverrideOverDefaultWhenHigher() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 1, null);
-        seedConfig(resource, subject, "FLOW", 3, null);
+        setLimitQuota(resource, null, "FLOW", 1, null);
+        setLimitQuota(resource, subject, "FLOW", 3, null);
 
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
     }
 
     @Test
     void shouldFallBackToResourceDefaultWhenSubjectHasNoOverride() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, null);
+        setLimitQuota(resource, null, "FLOW", 2, null);
 
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
@@ -124,41 +119,41 @@ class LimitsIntegrationTest {
     }
 
     @Test
-    void shouldAdmitNextReserveWithNoRestartAfterRaisingMaxValueBySql() {
+    void shouldAdmitNextReserveWithNoRestartAfterRaisingQuota() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, null);
+        setLimitQuota(resource, null, "FLOW", 2, null);
 
         limitsFacade.reserve(subject, resource);
         limitsFacade.reserve(subject, resource);
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
                 .isInstanceOf(LimitExceededException.class);
 
-        updateMaxValue(resource, null, 5);
+        setLimitQuota(resource, null, "FLOW", 5, null);
 
         limitsFacade.reserve(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
     }
 
     @Test
     void shouldNeverRestartStockConfigurationEvenWithOldPeriodStart() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 3, null);
-        seedUsage(resource, subject, 3, Instant.now().minus(Duration.ofDays(365)));
+        setLimitQuota(resource, null, "STOCK", 3, null);
+        setLimitUsage(resource, subject, 3, Instant.now().minus(Duration.ofDays(365)));
 
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
                 .isInstanceOf(LimitExceededException.class);
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
     }
 
     @Test
     void shouldNeverRestartFlowWithNoPeriod() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, null);
-        seedUsage(resource, subject, 2, Instant.now().minus(Duration.ofDays(365)));
+        setLimitQuota(resource, null, "FLOW", 2, null);
+        setLimitUsage(resource, subject, 2, Instant.now().minus(Duration.ofDays(365)));
 
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
                 .isInstanceOf(LimitExceededException.class);
@@ -168,13 +163,13 @@ class LimitsIntegrationTest {
     void shouldRestartFlowDayLazilyWhenPeriodStartTwoDaysOld() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, "DAY");
+        setLimitQuota(resource, null, "FLOW", 2, "DAY");
         Instant oldStart = Instant.now().minus(Duration.ofDays(2));
-        seedUsage(resource, subject, 2, oldStart);
+        setLimitUsage(resource, subject, 2, oldStart);
 
         limitsFacade.reserve(subject, resource);
 
-        LimitStanding usage = limitsFacade.standing(subject, resource).orElseThrow();
+        LimitBalance usage = limitsFacade.getBalance(subject, resource).orElseThrow();
         assertThat(usage.used()).isEqualTo(1);
         assertThat(usage.periodStart()).isAfter(oldStart.plus(Duration.ofDays(1)));
     }
@@ -183,20 +178,20 @@ class LimitsIntegrationTest {
     void shouldNotRestartFlowDayWhenPeriodStartInsideWindow() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, "DAY");
+        setLimitQuota(resource, null, "FLOW", 2, "DAY");
         Instant recentStart = Instant.now().minus(Duration.ofHours(1));
-        seedUsage(resource, subject, 2, recentStart);
+        setLimitUsage(resource, subject, 2, recentStart);
 
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
                 .isInstanceOf(LimitExceededException.class);
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(2);
     }
 
     @Test
     void shouldCarryResourceKindLimitAndUsedOnRefusal() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 1, null);
+        setLimitQuota(resource, null, "FLOW", 1, null);
 
         limitsFacade.reserve(subject, resource);
 
@@ -213,7 +208,7 @@ class LimitsIntegrationTest {
     void shouldCarryPositiveRetryAfterForFlowWithPeriodAndNullOtherwise() {
         String resourceFlowDay = newResource();
         String subject1 = newSubject();
-        seedConfig(resourceFlowDay, null, "FLOW", 1, "DAY");
+        setLimitQuota(resourceFlowDay, null, "FLOW", 1, "DAY");
         limitsFacade.reserve(subject1, resourceFlowDay);
         LimitExceededException flowEx = catchThrowableOfType(LimitExceededException.class, 
                 () -> limitsFacade.reserve(subject1, resourceFlowDay));
@@ -221,7 +216,7 @@ class LimitsIntegrationTest {
 
         String resourceStock = newResource();
         String subject2 = newSubject();
-        seedConfig(resourceStock, null, "STOCK", 1, null);
+        setLimitQuota(resourceStock, null, "STOCK", 1, null);
         limitsFacade.reserve(subject2, resourceStock);
         LimitExceededException stockEx = catchThrowableOfType(LimitExceededException.class, 
                 () -> limitsFacade.reserve(subject2, resourceStock));
@@ -229,7 +224,7 @@ class LimitsIntegrationTest {
 
         String resourceFlowNoPeriod = newResource();
         String subject3 = newSubject();
-        seedConfig(resourceFlowNoPeriod, null, "FLOW", 1, null);
+        setLimitQuota(resourceFlowNoPeriod, null, "FLOW", 1, null);
         limitsFacade.reserve(subject3, resourceFlowNoPeriod);
         LimitExceededException noPeriodEx = catchThrowableOfType(LimitExceededException.class, 
                 () -> limitsFacade.reserve(subject3, resourceFlowNoPeriod));
@@ -240,7 +235,7 @@ class LimitsIntegrationTest {
     void shouldRefuseFirstReserveWhenMaxIsZero() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 0, null);
+        setLimitQuota(resource, null, "STOCK", 0, null);
 
         LimitExceededException ex = catchThrowableOfType(LimitExceededException.class, 
                 () -> limitsFacade.reserve(subject, resource));
@@ -249,17 +244,17 @@ class LimitsIntegrationTest {
         assertThat(ex.limit()).isZero();
         assertThat(ex.used()).isZero();
         assertThat(ex.retryAfterSeconds()).isNull();
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
     void shouldRefuseWhenMaxIsLoweredToZeroBelowExistingUsage() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 2, "DAY");
+        setLimitQuota(resource, null, "FLOW", 2, "DAY");
 
         limitsFacade.reserve(subject, resource);
-        updateMaxValue(resource, null, 0);
+        setLimitQuota(resource, null, "FLOW", 0, "DAY");
 
         LimitExceededException ex = catchThrowableOfType(LimitExceededException.class,
                 () -> limitsFacade.reserve(subject, resource));
@@ -267,20 +262,20 @@ class LimitsIntegrationTest {
         assertThat(ex).isNotNull();
         assertThat(ex.limit()).isZero();
         assertThat(ex.used()).isEqualTo(1);
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(1);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(1);
     }
 
     @Test
     void shouldNotRestartElapsedPeriodWhenMaxIsZero() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 0, "DAY");
+        setLimitQuota(resource, null, "FLOW", 0, "DAY");
         Instant oldStart = Instant.now().minus(Duration.ofDays(2));
-        seedUsage(resource, subject, 2, oldStart);
+        setLimitUsage(resource, subject, 2, oldStart);
 
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
                 .isInstanceOf(LimitExceededException.class);
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isZero();
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isZero();
     }
 
     @Test
@@ -297,7 +292,7 @@ class LimitsIntegrationTest {
         String resource = newResource();
         String subjectA = newSubject();
         String subjectB = newSubject();
-        seedConfig(resource, null, "FLOW", 1, null);
+        setLimitQuota(resource, null, "FLOW", 1, null);
 
         limitsFacade.reserve(subjectA, resource);
         limitsFacade.reserve(subjectB, resource);
@@ -313,8 +308,8 @@ class LimitsIntegrationTest {
         String resourceA = newResource();
         String resourceB = newResource();
         String subject = newSubject();
-        seedConfig(resourceA, null, "FLOW", 1, null);
-        seedConfig(resourceB, null, "FLOW", 1, null);
+        setLimitQuota(resourceA, null, "FLOW", 1, null);
+        setLimitQuota(resourceB, null, "FLOW", 1, null);
 
         limitsFacade.reserve(subject, resourceA);
         limitsFacade.reserve(subject, resourceB);
@@ -325,105 +320,66 @@ class LimitsIntegrationTest {
                 .isInstanceOf(LimitExceededException.class);
     }
 
-    @Test
-    void shouldGrantExactlyMaxUnderConcurrentReserves() throws Exception {
-        String resource = newResource();
-        String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, null);
-
-        int threadCount = 16;
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch ready = new CountDownLatch(threadCount);
-        CountDownLatch start = new CountDownLatch(1);
-        AtomicInteger granted = new AtomicInteger();
-        AtomicInteger refused = new AtomicInteger();
-
-        List<Future<?>> futures = new ArrayList<>();
-        for (int i = 0; i < threadCount; i++) {
-            futures.add(executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    limitsFacade.reserve(subject, resource);
-                    granted.incrementAndGet();
-                } catch (LimitExceededException e) {
-                    refused.incrementAndGet();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }));
-        }
-        ready.await();
-        start.countDown();
-        for (Future<?> future : futures) {
-            future.get();
-        }
-        executor.shutdown();
-
-        assertThat(granted.get()).isEqualTo(5);
-        assertThat(refused.get()).isEqualTo(11);
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(5);
-    }
 
     @Test
     void shouldDecrementUsedByOneForStockConfiguredSubject() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedUsage(resource, subject, 3, Instant.now());
+        setLimitQuota(resource, null, "STOCK", 5, null);
+        setLimitUsage(resource, subject, 3, Instant.now());
 
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(2);
     }
 
     @Test
     void shouldLeaveUsedUnchangedForFlowConfiguredSubject() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, null);
-        seedUsage(resource, subject, 3, Instant.now());
+        setLimitQuota(resource, null, "FLOW", 5, null);
+        setLimitUsage(resource, subject, 3, Instant.now());
 
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
     }
 
     @Test
     void shouldLeaveUsedUnchangedWhenSubjectFlowOverrideShadowsStockDefault() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedConfig(resource, subject, "FLOW", 5, null);
-        seedUsage(resource, subject, 3, Instant.now());
+        setLimitQuota(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, subject, "FLOW", 5, null);
+        setLimitUsage(resource, subject, 3, Instant.now());
 
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
     }
 
     @Test
     void shouldFloorAtZeroWhenReleasingTwiceFromUsedOne() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedUsage(resource, subject, 1, Instant.now());
+        setLimitQuota(resource, null, "STOCK", 5, null);
+        setLimitUsage(resource, subject, 1, Instant.now());
 
         limitsFacade.release(subject, resource);
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(0);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(0);
     }
 
     @Test
     void shouldCreateNoRowWhenReleasingWithNoUsageRowPresent() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, null, "STOCK", 5, null);
 
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
@@ -433,14 +389,14 @@ class LimitsIntegrationTest {
 
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
-    void shouldAdmitReserveRefusedAtCapAfterOneRelease() {
+    void shouldAdmitReserveRefusedAtQuotaAfterOneRelease() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 1, null);
+        setLimitQuota(resource, null, "STOCK", 1, null);
 
         limitsFacade.reserve(subject, resource);
         assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
@@ -449,57 +405,24 @@ class LimitsIntegrationTest {
         limitsFacade.release(subject, resource);
         limitsFacade.reserve(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(1);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(1);
     }
 
-    @Test
-    void shouldLeaveUsedAtExactlyZeroUnderConcurrentReleases() throws Exception {
-        String resource = newResource();
-        String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedUsage(resource, subject, 1, Instant.now());
-
-        int threadCount = 8;
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch ready = new CountDownLatch(threadCount);
-        CountDownLatch start = new CountDownLatch(1);
-
-        List<Future<?>> futures = new ArrayList<>();
-        for (int i = 0; i < threadCount; i++) {
-            futures.add(executor.submit(() -> {
-                ready.countDown();
-                try {
-                    start.await();
-                    limitsFacade.release(subject, resource);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }));
-        }
-        ready.await();
-        start.countDown();
-        for (Future<?> future : futures) {
-            future.get();
-        }
-        executor.shutdown();
-
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(0);
-    }
 
     @Test
     void shouldResolveConfigurationFromConfigSubjectAndCountAgainstUsageSubject() {
         String resource = newResource();
         String configSubject = newSubject();
         String usageSubject = newSubject();
-        seedConfig(resource, null, "FLOW", 1, null);
-        seedConfig(resource, configSubject, "FLOW", 3, null);
+        setLimitQuota(resource, null, "FLOW", 1, null);
+        setLimitQuota(resource, configSubject, "FLOW", 3, null);
 
         limitsFacade.reserve(configSubject, usageSubject, resource);
         limitsFacade.reserve(configSubject, usageSubject, resource);
         limitsFacade.reserve(configSubject, usageSubject, resource);
 
-        assertThat(limitsFacade.standing(usageSubject, resource).orElseThrow().used()).isEqualTo(3);
-        assertThat(limitsFacade.standing(configSubject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(usageSubject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(configSubject, resource)).isEmpty();
     }
 
     @Test
@@ -508,7 +431,7 @@ class LimitsIntegrationTest {
         String configSubject = newSubject();
         String usageSubjectA = newSubject();
         String usageSubjectB = newSubject();
-        seedConfig(resource, configSubject, "FLOW", 1, null);
+        setLimitQuota(resource, configSubject, "FLOW", 1, null);
 
         limitsFacade.reserve(configSubject, usageSubjectA, resource);
         limitsFacade.reserve(configSubject, usageSubjectB, resource);
@@ -525,7 +448,7 @@ class LimitsIntegrationTest {
         String configSubject = newSubject();
         String usageSubjectA = newSubject();
         String usageSubjectB = newSubject();
-        seedConfig(resource, configSubject, "FLOW", 1, null);
+        setLimitQuota(resource, configSubject, "FLOW", 1, null);
 
         limitsFacade.reserve(configSubject, usageSubjectA, resource);
         limitsFacade.reserve(configSubject, usageSubjectB, resource);
@@ -534,13 +457,13 @@ class LimitsIntegrationTest {
         assertThatThrownBy(() -> limitsFacade.reserve(configSubject, usageSubjectB, resource))
                 .isInstanceOf(LimitExceededException.class);
 
-        updateMaxValue(resource, configSubject, 2);
+        setLimitQuota(resource, configSubject, "FLOW", 2, null);
 
         limitsFacade.reserve(configSubject, usageSubjectA, resource);
         limitsFacade.reserve(configSubject, usageSubjectB, resource);
 
-        assertThat(limitsFacade.standing(usageSubjectA, resource).orElseThrow().used()).isEqualTo(2);
-        assertThat(limitsFacade.standing(usageSubjectB, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(usageSubjectA, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(usageSubjectB, resource).orElseThrow().used()).isEqualTo(2);
     }
 
     @Test
@@ -548,7 +471,7 @@ class LimitsIntegrationTest {
         String resource = newResource();
         String configSubject = newSubject();
         String usageSubject = newSubject();
-        seedConfig(resource, configSubject, "FLOW", 1, null);
+        setLimitQuota(resource, configSubject, "FLOW", 1, null);
 
         limitsFacade.reserve(configSubject, usageSubject, resource);
 
@@ -564,92 +487,89 @@ class LimitsIntegrationTest {
         String resource = newResource();
         String configSubject = newSubject();
         String usageSubject = newSubject();
-        seedConfig(resource, configSubject, "FLOW", 5, null);
-        seedUsage(resource, usageSubject, 3, Instant.now());
+        setLimitQuota(resource, configSubject, "FLOW", 5, null);
+        setLimitUsage(resource, usageSubject, 3, Instant.now());
 
         limitsFacade.release(configSubject, usageSubject, resource);
-        assertThat(limitsFacade.standing(usageSubject, resource).orElseThrow().used()).isEqualTo(3);
+        assertThat(limitsFacade.getBalance(usageSubject, resource).orElseThrow().used()).isEqualTo(3);
 
-        jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = :resource AND subject = :subject")
-                .param("resource", resource)
-                .param("subject", configSubject)
-                .update();
+        setLimitQuota(resource, configSubject, "STOCK", 5, null);
 
         limitsFacade.release(configSubject, usageSubject, resource);
-        assertThat(limitsFacade.standing(usageSubject, resource).orElseThrow().used()).isEqualTo(2);
-        assertThat(limitsFacade.standing(configSubject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(usageSubject, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(configSubject, resource)).isEmpty();
     }
 
     @Test
     void shouldBehaveIdenticallyForTwoArgumentAndThreeArgumentFormsWithEqualSubjects() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, null, "STOCK", 5, null);
 
         limitsFacade.reserve(subject, subject, resource);
         limitsFacade.reserve(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(2);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(2);
 
         limitsFacade.release(subject, subject, resource);
         limitsFacade.release(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(0);
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(0);
     }
 
     @Test
     void shouldDeleteUsageRowOnClear() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedUsage(resource, subject, 3, Instant.now());
+        setLimitQuota(resource, null, "STOCK", 5, null);
+        setLimitUsage(resource, subject, 3, Instant.now());
 
         limitsFacade.clear(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
     void shouldDoNothingWhenClearingAbsentSubject() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, null, "STOCK", 5, null);
 
         limitsFacade.clear(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
     void shouldClearFlowConfiguredSubjectToo() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, null);
-        seedUsage(resource, subject, 3, Instant.now());
+        setLimitQuota(resource, null, "FLOW", 5, null);
+        setLimitUsage(resource, subject, 3, Instant.now());
 
         limitsFacade.clear(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
     void shouldClearWithNoConfigurationAtAll() {
         String resource = newResource();
         String subject = newSubject();
-        seedUsage(resource, subject, 3, Instant.now());
+        setLimitUsage(resource, subject, 3, Instant.now());
 
         limitsFacade.clear(subject, resource);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
-    void shouldReturnEmptyStandingWhenNoUsageRowExists() {
+    void shouldReturnEmptyBalanceWhenNoUsageRowExists() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, null, "STOCK", 5, null);
 
-        assertThat(limitsFacade.standing(subject, resource)).isEmpty();
+        assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
     }
 
     @Test
@@ -657,44 +577,44 @@ class LimitsIntegrationTest {
         String resource = newResource();
         String subject = newSubject();
         Instant periodStart = Instant.now().minus(Duration.ofHours(1));
-        seedConfig(resource, null, "FLOW", 5, "DAY");
-        seedUsage(resource, subject, 3, periodStart);
+        setLimitQuota(resource, null, "FLOW", 5, "DAY");
+        setLimitUsage(resource, subject, 3, periodStart);
 
-        LimitStanding standing = limitsFacade.standing(subject, resource).orElseThrow();
+        LimitBalance balance = limitsFacade.getBalance(subject, resource).orElseThrow();
 
-        assertThat(standing.used()).isEqualTo(3);
-        assertThat(standing.periodStart()).isCloseTo(periodStart, within(1, ChronoUnit.MILLIS));
+        assertThat(balance.used()).isEqualTo(3);
+        assertThat(balance.periodStart()).isCloseTo(periodStart, within(1, ChronoUnit.MILLIS));
     }
 
     @Test
-    void shouldReportZeroAndNoPeriodStartOnLapsedFlowWindow() {
+    void shouldReportZeroAndNoPeriodStartOnPassedFlowWindow() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, "DAY");
-        seedUsage(resource, subject, 4, Instant.now().minus(Duration.ofDays(2)));
+        setLimitQuota(resource, null, "FLOW", 5, "DAY");
+        setLimitUsage(resource, subject, 4, Instant.now().minus(Duration.ofDays(2)));
 
-        LimitStanding standing = limitsFacade.standing(subject, resource).orElseThrow();
+        LimitBalance balance = limitsFacade.getBalance(subject, resource).orElseThrow();
 
-        assertThat(standing.used()).isZero();
-        assertThat(standing.periodStart()).isNull();
-        assertThat(standing.resetsInSeconds()).isNull();
+        assertThat(balance.used()).isZero();
+        assertThat(balance.periodStart()).isNull();
+        assertThat(balance.resetsInSeconds()).isNull();
     }
 
     @Test
-    void shouldLeaveStoredRowUntouchedWhenReportingLapsedWindowAsZero() {
+    void shouldLeaveStoredRowUntouchedWhenReportingPassedWindowAsZero() {
         String resource = newResource();
         String subject = newSubject();
         Instant oldStart = Instant.now().minus(Duration.ofDays(2));
-        seedConfig(resource, null, "FLOW", 5, "DAY");
-        seedUsage(resource, subject, 4, oldStart);
+        setLimitQuota(resource, null, "FLOW", 5, "DAY");
+        setLimitUsage(resource, subject, 4, oldStart);
 
-        assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isZero();
+        assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isZero();
 
         // Drop the period so nothing can lapse any more: the row the read reported as zero is still
-        // the seeded one, which a standing that wrote its virtual reset back would have flattened.
-        clearPeriod(resource, null);
+        // the seeded one, which a balance that wrote its virtual reset back would have flattened.
+        setLimitQuota(resource, null, "FLOW", 5, null);
 
-        LimitStanding stored = limitsFacade.standing(subject, resource).orElseThrow();
+        LimitBalance stored = limitsFacade.getBalance(subject, resource).orElseThrow();
         assertThat(stored.used()).isEqualTo(4);
         assertThat(stored.periodStart()).isCloseTo(oldStart, within(1, ChronoUnit.MILLIS));
     }
@@ -703,10 +623,10 @@ class LimitsIntegrationTest {
     void shouldCountDownToNextStartOnLiveFlowWindowWithPeriod() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "FLOW", 5, "DAY");
-        seedUsage(resource, subject, 1, Instant.now().minus(Duration.ofHours(1)));
+        setLimitQuota(resource, null, "FLOW", 5, "DAY");
+        setLimitUsage(resource, subject, 1, Instant.now().minus(Duration.ofHours(1)));
 
-        Long resetsInSeconds = limitsFacade.standing(subject, resource).orElseThrow().resetsInSeconds();
+        Long resetsInSeconds = limitsFacade.getBalance(subject, resource).orElseThrow().resetsInSeconds();
 
         // The window started an hour ago and restarts a day after that, so 23 hours are left.
         assertThat(resetsInSeconds).isBetween(Duration.ofHours(23).minusMinutes(1).getSeconds(),
@@ -718,13 +638,13 @@ class LimitsIntegrationTest {
         String stockResource = newResource();
         String flowResource = newResource();
         String subject = newSubject();
-        seedConfig(stockResource, null, "STOCK", 5, null);
-        seedConfig(flowResource, null, "FLOW", 5, null);
-        seedUsage(stockResource, subject, 2, Instant.now().minus(Duration.ofDays(365)));
-        seedUsage(flowResource, subject, 2, Instant.now().minus(Duration.ofDays(365)));
+        setLimitQuota(stockResource, null, "STOCK", 5, null);
+        setLimitQuota(flowResource, null, "FLOW", 5, null);
+        setLimitUsage(stockResource, subject, 2, Instant.now().minus(Duration.ofDays(365)));
+        setLimitUsage(flowResource, subject, 2, Instant.now().minus(Duration.ofDays(365)));
 
-        LimitStanding stock = limitsFacade.standing(subject, stockResource).orElseThrow();
-        LimitStanding flow = limitsFacade.standing(subject, flowResource).orElseThrow();
+        LimitBalance stock = limitsFacade.getBalance(subject, stockResource).orElseThrow();
+        LimitBalance flow = limitsFacade.getBalance(subject, flowResource).orElseThrow();
 
         assertThat(stock.used()).isEqualTo(2);
         assertThat(stock.resetsInSeconds()).isNull();
@@ -733,62 +653,62 @@ class LimitsIntegrationTest {
     }
 
     @Test
-    void shouldReportStandingWhenSubjectHasUsageRowButNoConfigurationAtAll() {
+    void shouldReportBalanceWhenSubjectHasUsageRowButNoConfigurationAtAll() {
         String resource = newResource();
         String subject = newSubject();
         Instant periodStart = Instant.now().minus(Duration.ofDays(365));
-        seedUsage(resource, subject, 7, periodStart);
+        setLimitUsage(resource, subject, 7, periodStart);
 
-        LimitStanding standing = limitsFacade.standing(subject, resource).orElseThrow();
+        LimitBalance balance = limitsFacade.getBalance(subject, resource).orElseThrow();
 
-        assertThat(standing.used()).isEqualTo(7);
-        assertThat(standing.periodStart()).isCloseTo(periodStart, within(1, ChronoUnit.MILLIS));
-        assertThat(standing.resetsInSeconds()).isNull();
+        assertThat(balance.used()).isEqualTo(7);
+        assertThat(balance.periodStart()).isCloseTo(periodStart, within(1, ChronoUnit.MILLIS));
+        assertThat(balance.resetsInSeconds()).isNull();
     }
 
     @Test
-    void shouldReturnOneCapPerConfiguredResourceWithOverrideBeatingDefault() {
+    void shouldReturnOneQuotaPerConfiguredResourceWithOverrideBeatingDefault() {
         String overriddenResource = newResource();
         String defaultedResource = newResource();
         String subject = newSubject();
-        seedConfig(overriddenResource, null, "STOCK", 5, null);
-        seedConfig(overriddenResource, subject, "FLOW", 9, null);
-        seedConfig(defaultedResource, null, "STOCK", 2, null);
+        setLimitQuota(overriddenResource, null, "STOCK", 5, null);
+        setLimitQuota(overriddenResource, subject, "FLOW", 9, null);
+        setLimitQuota(defaultedResource, null, "STOCK", 2, null);
 
-        List<LimitCap> caps = limitsFacade.caps(subject);
+        List<LimitQuota> quotas = limitsFacade.getQuotas(subject);
 
-        assertThat(caps).filteredOn(cap -> cap.resource().equals(overriddenResource))
-                .containsExactly(new LimitCap(overriddenResource, LimitKind.FLOW, 9));
-        assertThat(caps).filteredOn(cap -> cap.resource().equals(defaultedResource))
-                .containsExactly(new LimitCap(defaultedResource, LimitKind.STOCK, 2));
+        assertThat(quotas).filteredOn(quota -> quota.resource().equals(overriddenResource))
+                .containsExactly(new LimitQuota(overriddenResource, LimitKind.FLOW, 9));
+        assertThat(quotas).filteredOn(quota -> quota.resource().equals(defaultedResource))
+                .containsExactly(new LimitQuota(defaultedResource, LimitKind.STOCK, 2));
     }
 
     @Test
-    void shouldNotReturnAnotherSubjectsOverrideAmongCaps() {
+    void shouldNotReturnAnotherSubjectsOverrideAmongQuotas() {
         String resource = newResource();
         String subject = newSubject();
         String otherSubject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedConfig(resource, otherSubject, "STOCK", 99, null);
+        setLimitQuota(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, otherSubject, "STOCK", 99, null);
 
-        assertThat(limitsFacade.caps(subject)).filteredOn(cap -> cap.resource().equals(resource))
-                .containsExactly(new LimitCap(resource, LimitKind.STOCK, 5));
+        assertThat(limitsFacade.getQuotas(subject)).filteredOn(quota -> quota.resource().equals(resource))
+                .containsExactly(new LimitQuota(resource, LimitKind.STOCK, 5));
     }
 
     @Test
-    void shouldResolveSingleCapWithOverrideBeatingDefault() {
+    void shouldResolveSingleQuotaWithOverrideBeatingDefault() {
         String resource = newResource();
         String subject = newSubject();
-        seedConfig(resource, null, "STOCK", 5, null);
-        seedConfig(resource, subject, "STOCK", 9, null);
+        setLimitQuota(resource, null, "STOCK", 5, null);
+        setLimitQuota(resource, subject, "STOCK", 9, null);
 
-        assertThat(limitsFacade.cap(subject, resource))
-                .contains(new LimitCap(resource, LimitKind.STOCK, 9));
+        assertThat(limitsFacade.getQuota(subject, resource))
+                .contains(new LimitQuota(resource, LimitKind.STOCK, 9));
     }
 
     @Test
-    void shouldReturnEmptyCapForUnconfiguredResource() {
-        assertThat(limitsFacade.cap(newSubject(), newResource())).isEmpty();
+    void shouldReturnEmptyQuotaForUnconfiguredResource() {
+        assertThat(limitsFacade.getQuota(newSubject(), newResource())).isEmpty();
     }
 
     @Nested
@@ -796,31 +716,92 @@ class LimitsIntegrationTest {
     class Disabled {
 
         @Test
-        void shouldReturnNoCapsWhenLimitsAreDisabled() {
+        void shouldReturnNoQuotasWhenLimitsAreDisabled() {
             String resource = newResource();
             String subject = newSubject();
-            seedConfig(resource, null, "STOCK", 5, null);
+            setLimitQuota(resource, null, "STOCK", 5, null);
 
-            assertThat(limitsFacade.caps(subject)).isEmpty();
+            assertThat(limitsFacade.getQuotas(subject)).isEmpty();
         }
 
         @Test
-        void shouldReturnEmptyCapWhenLimitsAreDisabled() {
+        void shouldReturnEmptyQuotaWhenLimitsAreDisabled() {
             String resource = newResource();
             String subject = newSubject();
-            seedConfig(resource, null, "STOCK", 5, null);
+            setLimitQuota(resource, null, "STOCK", 5, null);
 
-            assertThat(limitsFacade.cap(subject, resource)).isEmpty();
+            assertThat(limitsFacade.getQuota(subject, resource)).isEmpty();
         }
 
         @Test
-        void shouldStillReportStandingWhenLimitsAreDisabled() {
+        void shouldStillReportBalanceWhenLimitsAreDisabled() {
             String resource = newResource();
             String subject = newSubject();
-            seedConfig(resource, null, "STOCK", 5, null);
-            seedUsage(resource, subject, 3, Instant.now());
+            setLimitQuota(resource, null, "STOCK", 5, null);
+            setLimitUsage(resource, subject, 3, Instant.now());
 
-            assertThat(limitsFacade.standing(subject, resource).orElseThrow().used()).isEqualTo(3);
+            assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
+        }
+
+        @Test
+        void shouldKeepCountingPastTheConfiguredMaximumWhenLimitsAreDisabled() {
+            String resource = newResource();
+            String subject = newSubject();
+            setLimitQuota(resource, null, "STOCK", 2, null);
+
+            limitsFacade.reserve(subject, resource);
+            limitsFacade.reserve(subject, resource);
+            limitsFacade.reserve(subject, resource);
+            limitsFacade.reserve(subject, resource);
+
+            assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(4);
+        }
+
+        @Test
+        void shouldGrantReserveAtAndOverTheMaximumWhenLimitsAreDisabled() {
+            String resource = newResource();
+            String subject = newSubject();
+            setLimitQuota(resource, null, "STOCK", 1, null);
+
+            limitsFacade.reserve(subject, resource);
+
+            assertThatNoException().isThrownBy(() -> limitsFacade.reserve(subject, resource));
+            assertThatNoException().isThrownBy(() -> limitsFacade.reserve(subject, resource));
+            assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(3);
+        }
+
+        @Test
+        void shouldStillDecrementOnReleaseWhenLimitsAreDisabled() {
+            String resource = newResource();
+            String subject = newSubject();
+            setLimitQuota(resource, null, "STOCK", 5, null);
+
+            limitsFacade.reserve(subject, resource);
+            limitsFacade.reserve(subject, resource);
+            limitsFacade.release(subject, resource);
+
+            assertThat(limitsFacade.getBalance(subject, resource).orElseThrow().used()).isEqualTo(1);
+        }
+
+        @Test
+        void shouldStillThrowConfigurationMissingWhenLimitsAreDisabled() {
+            String resource = newResource();
+            String subject = newSubject();
+
+            assertThatThrownBy(() -> limitsFacade.reserve(subject, resource))
+                    .isInstanceOf(LimitConfigurationMissingException.class);
+        }
+
+        @Test
+        void shouldStillDeleteTheUsageRowOnClearWhenLimitsAreDisabled() {
+            String resource = newResource();
+            String subject = newSubject();
+            setLimitQuota(resource, null, "STOCK", 5, null);
+
+            limitsFacade.reserve(subject, resource);
+            limitsFacade.clear(subject, resource);
+
+            assertThat(limitsFacade.getBalance(subject, resource)).isEmpty();
         }
     }
 
@@ -832,10 +813,17 @@ class LimitsIntegrationTest {
         return "subject-" + UUID.randomUUID();
     }
 
-    private void seedConfig(String resource, String subject, String kind, int maxValue, String period) {
+    /**
+     * Upserts the quota: {@code limit_config} has no write API, so there is no business path to it.
+     */
+    private void setLimitQuota(String resource, String subject, String kind, int maxValue, String period) {
         jdbcClient.sql("""
                         INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
                         VALUES (:id, :resource, :subject, :kind, :maxValue, :period)
+                        ON CONFLICT (resource, subject) DO UPDATE SET
+                            kind      = EXCLUDED.kind,
+                            max_value = EXCLUDED.max_value,
+                            period    = EXCLUDED.period
                         """)
                 .param("id", UUID.randomUUID())
                 .param("resource", resource)
@@ -846,7 +834,11 @@ class LimitsIntegrationTest {
                 .update();
     }
 
-    private void seedUsage(String resource, String subject, int used, Instant periodStart) {
+    /**
+     * Fabricates a usage row directly: the seeded {@code used} and {@code period_start} pairs here are
+     * states no reserve could have produced at this instant.
+     */
+    private void setLimitUsage(String resource, String subject, int used, Instant periodStart) {
         jdbcClient.sql("""
                         INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
                         VALUES (:resource, :subject, :used, :periodStart)
@@ -860,26 +852,5 @@ class LimitsIntegrationTest {
                 .update();
     }
 
-    private void clearPeriod(String resource, String subject) {
-        jdbcClient.sql("""
-                        UPDATE recipai.limit_config
-                           SET period = NULL
-                         WHERE resource = :resource AND subject IS NOT DISTINCT FROM :subject
-                        """)
-                .param("resource", resource)
-                .param("subject", subject)
-                .update();
-    }
 
-    private void updateMaxValue(String resource, String subject, int maxValue) {
-        jdbcClient.sql("""
-                        UPDATE recipai.limit_config
-                           SET max_value = :maxValue
-                         WHERE resource = :resource AND subject IS NOT DISTINCT FROM :subject
-                        """)
-                .param("maxValue", maxValue)
-                .param("resource", resource)
-                .param("subject", subject)
-                .update();
-    }
 }

@@ -1,23 +1,23 @@
 # Shopping Lists API
 
-Two independent stock caps apply here, and a refusal of either does not resolve itself by waiting.
+Two independent stock quotas apply here, and a refusal of either does not resolve itself by waiting.
 
 Creating a shopping list consumes one unit of the owner's `SHOPPING_LIST` budget, reserved *before*
 anything is written and keyed by the `email` claim of the JWT; deleting one returns the unit. Only
-creation is blocked — reading, editing and sharing keep working while the owner is over the cap, and
+creation is blocked — reading, editing and sharing keep working while the owner is over the quota, and
 sharing never charges the recipient.
 
 Creating an **item** consumes one unit of `SHOPPING_LIST_ITEM`, reserved after the permission check and
 before the write; deleting an item returns it. Usage is counted against the **list**, so each list
 fills up independently and an editor's add charges the list rather than their own records — but the
-cap *value* is resolved from the **list's owner**, so raising one user's allowance covers every list
+quota *value* is resolved from the **list's owner**, so raising one user's allowance covers every list
 they own, present and future. Editing an item consumes nothing.
 
-See `docs/backend/modules/limits/` for how either cap is configured and changed.
+See `docs/backend/modules/limits/` for how either quota is configured and changed.
 
 ## Refusal Response
 
-A create past either cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+A create past either quota returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
 
 ```json
 {
@@ -32,17 +32,17 @@ A create past either cap returns **429 Too Many Requests** with an RFC 7807 `Pro
 }
 ```
 
-An item create past the cap has the same shape with `"resource": "SHOPPING_LIST_ITEM"` and that cap's
+An item create past the quota has the same shape with `"resource": "SHOPPING_LIST_ITEM"` and that quota's
 `limit`/`used`.
 
-Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
-restarts — the owner has to delete a list or an item, or have the cap raised.
+Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock quota never
+restarts — the owner has to delete a list or an item, or have the quota raised.
 
-### GET /shopping-lists/usage
+### GET /shopping-lists/balance
 - Description: Get how much of the caller's `SHOPPING_LIST` budget is already spent, for displaying
   `used / limit` before a list is created
 - Authenticated: true
-- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+- Example response — a stock quota never restarts, so no `resetsInSeconds`:
   ```json
   {
     "used": 2,
@@ -50,11 +50,11 @@ restarts — the owner has to delete a list or an item, or have the cap raised.
   }
   ```
 - Success: 200 OK
-- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+- See `docs/backend/modules/limits/api.md` for the contract these balance reads share.
 
 ### GET /shopping-lists/{id}/limits
-- Description: Get the `SHOPPING_LIST_ITEM` cap that applies to this list, for displaying
-  `used / limit` beside the add-item row. The cap value is resolved from the **list's owner**, which is
+- Description: Get the `SHOPPING_LIST_ITEM` quota that applies to this list, for displaying
+  `used / limit` beside the add-item row. The quota value is resolved from the **list's owner**, which is
   why it cannot be read from `GET /limits` — on a shared list the override that matters belongs to
   someone else. The caller never learns who the owner is.
 - Authenticated: true, requires OWNER or EDITOR
@@ -67,7 +67,7 @@ restarts — the owner has to delete a list or an item, or have the cap raised.
     "limit": 50
   }
   ```
-- Success: 200 OK, or 204 No Content when limits are disabled or no cap resolves for the owner
+- Success: 200 OK, or 204 No Content when limits are disabled or no quota resolves for the owner
 - Errors: 403 Forbidden (not an editor of the list), 404 Not found
 
 ### GET /shopping-lists
@@ -124,7 +124,7 @@ restarts — the owner has to delete a list or an item, or have the cap raised.
 - Request body: `{"name": "My Shopping List"}`
 - Example response: `{"id": "uuid", "name": "My Shopping List"}`
 - Success: 201 Created
-- Errors: 400 Bad Request (validation error), 401 Unauthorized, 429 Too many requests (shopping list cap reached)
+- Errors: 400 Bad Request (validation error), 401 Unauthorized, 429 Too many requests (shopping list quota reached)
 
 ### PUT /shopping-lists/{id}
 - Description: Update the name of an existing shopping list
@@ -180,7 +180,7 @@ restarts — the owner has to delete a list or an item, or have the cap raised.
 - Request body: `{"name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0}` (`quantity` and `unit` are nullable)
 - Example response: `{"id": "uuid", "name": "Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0, "version": 0}`
 - Success: 201 Created
-- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list does not exist), 429 Too many requests (this list's item cap reached)
+- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found (list does not exist), 429 Too many requests (this list's item quota reached)
 - Note: `checked` is optional and defaults to `false` when omitted. It exists so a client can re-create an item in its checked state — the mobile undo of "Delete All Checked" restores items straight into the Done section.
 
 ### PUT /shopping-lists/{id}/items/{itemId}

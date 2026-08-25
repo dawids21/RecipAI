@@ -19,16 +19,12 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -1016,15 +1012,19 @@ class ShoppingListIntegrationTest {
         }
     }
 
+    private ResponseEntity<Void> getItemLimits(RestClient client, UUID listId) {
+        return client.get()
+                .uri("/shopping-lists/" + listId + "/limits")
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     @Test
     void shouldReturn204ForItemLimitsWhenLimitsAreDisabled() {
         RestClient client = restClient();
         ShoppingListListDto list = createShoppingList(client, "List 1");
 
-        ResponseEntity<Void> response = client.get()
-                .uri("/shopping-lists/" + list.id() + "/limits")
-                .retrieve()
-                .toBodilessEntity();
+        ResponseEntity<Void> response = getItemLimits(client, list.id());
 
         assertThat(response.getStatusCode().value()).isEqualTo(204);
     }
@@ -1046,8 +1046,8 @@ class ShoppingListIntegrationTest {
 
         @BeforeEach
         void seedOverride() {
-            seedConfigOverride("SHOPPING_LIST", SUBJECT, 2);
-            seedConfigOverride("SHOPPING_LIST_ITEM", SUBJECT, 3);
+            setLimitQuota("SHOPPING_LIST", SUBJECT, 2);
+            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 3);
         }
 
         @AfterEach
@@ -1066,6 +1066,8 @@ class ShoppingListIntegrationTest {
                 }
             }
 
+            // Teardown of rows no API deletes: the config overrides, and usage fabricated for subjects
+            // with no API presence.
             jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'SHOPPING_LIST' AND subject IS NOT NULL").update();
             jdbcClient.sql("""
                             DELETE FROM recipai.limit_usage
@@ -1091,25 +1093,36 @@ class ShoppingListIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.standing(subject, ShoppingListService.SHOPPING_LIST_RESOURCE)
-                    .map(LimitStanding::used)
+            return limitsFacade.getBalance(subject, ShoppingListService.SHOPPING_LIST_RESOURCE)
+                    .map(LimitBalance::used)
                     .orElse(0);
         }
 
         private int usedForItem(UUID listId) {
-            return limitsFacade.standing(listId.toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)
-                    .map(LimitStanding::used)
+            return limitsFacade.getBalance(listId.toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)
+                    .map(LimitBalance::used)
                     .orElse(0);
         }
 
-        private void seedConfigOverride(String resource, String subject, int maxValue) {
+        private void setLimitQuota(String resource, String subject, int maxValue) {
+            setLimitQuota(resource, subject, "STOCK", maxValue);
+        }
+
+        /**
+         * Upserts the quota: {@code limit_config} has no write API, so there is no business path to it.
+         */
+        private void setLimitQuota(String resource, String subject, String kind, int maxValue) {
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, :resource, :subject, 'STOCK', :maxValue, NULL)
+                            VALUES (:id, :resource, :subject, :kind, :maxValue, NULL)
+                            ON CONFLICT (resource, subject) DO UPDATE SET
+                                kind      = EXCLUDED.kind,
+                                max_value = EXCLUDED.max_value
                             """)
                     .param("id", UUID.randomUUID())
                     .param("resource", resource)
                     .param("subject", subject)
+                    .param("kind", kind)
                     .param("maxValue", maxValue)
                     .update();
         }
@@ -1157,14 +1170,12 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+        void shouldAllowReadAndUpdateWhileOverQuotaButKeepCreationRefused() {
             RestClient client = restClient();
             ShoppingListListDto list1 = createShoppingList(client, "List 1");
             createShoppingList(client, "List 2");
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'SHOPPING_LIST' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("SHOPPING_LIST", SUBJECT, 1);
 
             ShoppingListDto fetched = getShoppingList(client, list1.id());
             assertThat(fetched.id()).isEqualTo(list1.id());
@@ -1181,7 +1192,7 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+        void shouldAdmitNextCreateAndDropBalanceAfterDelete() {
             RestClient client = restClient();
             ShoppingListListDto list1 = createShoppingList(client, "List 1");
             createShoppingList(client, "List 2");
@@ -1195,7 +1206,7 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+        void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
             ShoppingListListDto list = createShoppingList(client, "Shared List");
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
@@ -1208,7 +1219,7 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldNotMoveListStandingWhenAddingAndDeletingItems() {
+        void shouldNotMoveListBalanceWhenAddingAndDeletingItems() {
             RestClient client = restClient();
             ShoppingListListDto list = createShoppingList(client, "List With Items");
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
@@ -1227,6 +1238,7 @@ class ShoppingListIntegrationTest {
             createShoppingList(client, "List 2");
             assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
+            // Deliberate drift: no business path can move used away from the owned count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'SHOPPING_LIST' AND subject = :subject")
                     .param("subject", SUBJECT)
                     .update();
@@ -1240,6 +1252,7 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldClearUsageForSubjectThatOwnsNothing() {
             String ghost = "ghost@example.com";
+            // A usage row for a subject that owns nothing: no business path leaves one behind.
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
                             VALUES ('SHOPPING_LIST', :subject, 5, now())
@@ -1250,65 +1263,48 @@ class ShoppingListIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.standing(ghost, ShoppingListService.SHOPPING_LIST_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance(ghost, ShoppingListService.SHOPPING_LIST_RESOURCE)).isEmpty();
         }
 
         @Test
         void shouldSpareFlowConfiguredSubjectFromRecompute() {
-            String flowSubject = "flow-subject@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+            RestClient client = restClient();
+            setLimitQuota("SHOPPING_LIST", SUBJECT, "FLOW", 5);
+            try {
+                ShoppingListListDto first = createShoppingList(client, "Flow 1");
+                createShoppingList(client, "Flow 2");
+                // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
+                deleteShoppingList(client, first.id());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'SHOPPING_LIST', :subject, 'FLOW', 5, NULL)
-                            """)
-                    .param("id", UUID.randomUUID())
-                    .param("subject", flowSubject)
-                    .update();
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('SHOPPING_LIST', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", flowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
+                RecomputeMigration.run(dataSource);
 
-            LimitStanding before = limitsFacade.standing(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
-
-            RecomputeMigration.run(dataSource);
-
-            LimitStanding after = limitsFacade.standing(flowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            } finally {
+                setLimitQuota("SHOPPING_LIST", SUBJECT, 2);
+                limitsFacade.clear(SUBJECT, ShoppingListService.SHOPPING_LIST_RESOURCE);
+            }
         }
 
         @Test
         void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
-            String defaultFlowSubject = "default-flow@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
-
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('SHOPPING_LIST', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", defaultFlowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
-            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'SHOPPING_LIST' AND subject IS NULL")
-                    .update();
-
-            LimitStanding before = limitsFacade.standing(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
-
+            String defaultFlowSubject = "user1@example.com";
+            RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            setLimitQuota("SHOPPING_LIST", null, "FLOW", 5);
             try {
-                RecomputeMigration.run(dataSource);
-            } finally {
-                jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = 'SHOPPING_LIST' AND subject IS NULL")
-                        .update();
-            }
+                ShoppingListListDto first = createShoppingList(client, "Default flow 1");
+                createShoppingList(client, "Default flow 2");
+                // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
+                deleteShoppingList(client, first.id());
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
 
-            LimitStanding after = limitsFacade.standing(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                RecomputeMigration.run(dataSource);
+
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
+            } finally {
+                setLimitQuota("SHOPPING_LIST", null, "STOCK", 2);
+                limitsFacade.clear(defaultFlowSubject, ShoppingListService.SHOPPING_LIST_RESOURCE);
+            }
         }
 
         @Test
@@ -1430,16 +1426,14 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldAllowReadAndEditWhileOverCapButKeepItemCreationRefused() {
+        void shouldAllowReadAndEditWhileOverQuotaButKeepItemCreationRefused() {
             RestClient client = restClient();
             ShoppingListListDto list = createShoppingList(client, "List 1");
             ShoppingListItemDto item1 = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
             createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
             createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 1);
 
             ShoppingListDto fetched = getShoppingList(client, list.id());
             assertThat(fetched.items()).hasSize(3);
@@ -1457,7 +1451,7 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldRaiseCapOnEveryListOwnedByTheUserWhenOverrideIsRaised() {
+        void shouldRaiseQuotaOnEveryListOwnedByTheUserWhenOverrideIsRaised() {
             RestClient client = restClient();
             ShoppingListListDto listA = createShoppingList(client, "List A");
             ShoppingListListDto listB = createShoppingList(client, "List B");
@@ -1476,9 +1470,7 @@ class ShoppingListIntegrationTest {
                 }
             }
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 4 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 4);
 
             ShoppingListItemDto itemA = createItem(client, listA.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
             ShoppingListItemDto itemB = createItem(client, listB.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
@@ -1496,9 +1488,7 @@ class ShoppingListIntegrationTest {
             createItem(client, list1.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
             createItem(client, list1.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 4 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 4);
 
             deleteShoppingList(client, list1.id());
 
@@ -1513,10 +1503,10 @@ class ShoppingListIntegrationTest {
         }
 
         @Test
-        void shouldChargeTheListAndResolveTheOwnersCapWhenAnEditorAddsAnItem() {
+        void shouldChargeTheListAndResolveTheOwnersQuotaWhenAnEditorAddsAnItem() {
             RestClient ownerClient = restClient();
             RestClient editorClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
-            seedConfigOverride("SHOPPING_LIST_ITEM", "user2@example.com", 10);
+            setLimitQuota("SHOPPING_LIST_ITEM", "user2@example.com", 10);
 
             ShoppingListListDto list = createShoppingList(ownerClient, "Shared List");
             shareShoppingList(ownerClient, list.id(), "user2@example.com");
@@ -1535,7 +1525,7 @@ class ShoppingListIntegrationTest {
                 assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
             }
 
-            assertThat(limitsFacade.standing("user2@example.com", ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance("user2@example.com", ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1547,7 +1537,7 @@ class ShoppingListIntegrationTest {
 
             deleteShoppingList(client, list.id());
 
-            assertThat(limitsFacade.standing(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1561,6 +1551,7 @@ class ShoppingListIntegrationTest {
             assertThat(usedForItem(listA.id())).isEqualTo(2);
             assertThat(usedForItem(listB.id())).isEqualTo(1);
 
+            // Deliberate drift: no business path can move used away from the list's item count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
                     .param("subject", listA.id().toString())
                     .update();
@@ -1591,39 +1582,32 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldSpareListWhoseOwnerIsFlowConfiguredFromItemRecompute() {
             RestClient client = restClient();
-            ShoppingListListDto list = createShoppingList(client, "List 1");
+            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, "FLOW", 5);
+            try {
+                ShoppingListListDto list = createShoppingList(client, "List 1");
+                createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
+                ShoppingListItemDto second = createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
+                // A flow release refunds nothing, so the balance stays at 2 while the list holds one.
+                deleteItem(client, list.id(), second.id(), second.version());
+                assertThat(usedForItem(list.id())).isEqualTo(2);
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'SHOPPING_LIST_ITEM' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+                RecomputeMigration.run(dataSource);
 
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('SHOPPING_LIST_ITEM', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", list.id().toString())
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
-
-            LimitStanding before = limitsFacade.standing(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
-
-            RecomputeMigration.run(dataSource);
-
-            LimitStanding after = limitsFacade.standing(list.id().toString(), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                assertThat(usedForItem(list.id())).isEqualTo(2);
+            } finally {
+                setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 3);
+            }
         }
 
-        private Map<String, Object> getListUsage(RestClient client) {
+        private Map<String, Object> getListBalance(RestClient client) {
             return client.get()
-                    .uri("/shopping-lists/usage")
+                    .uri("/shopping-lists/balance")
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {
                     });
         }
 
-        private Map<String, Object> getItemCap(RestClient client, UUID listId) {
+        private Map<String, Object> getItemQuota(RestClient client, UUID listId) {
             return client.get()
                     .uri("/shopping-lists/" + listId + "/limits")
                     .retrieve()
@@ -1634,37 +1618,37 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldTrackListUsageAcrossCreateAndDelete() {
             RestClient client = restClient();
-            assertThat(getListUsage(client).get("used")).isEqualTo(0);
+            assertThat(getListBalance(client).get("used")).isEqualTo(0);
 
             ShoppingListListDto list = createShoppingList(client, "List 1");
-            assertThat(getListUsage(client).get("used")).isEqualTo(1);
+            assertThat(getListBalance(client).get("used")).isEqualTo(1);
 
             deleteShoppingList(client, list.id());
-            assertThat(getListUsage(client).get("used")).isEqualTo(0);
+            assertThat(getListBalance(client).get("used")).isEqualTo(0);
         }
 
         @Test
-        void shouldReturnItemCapConfiguredAgainstOwnerWhenReadByOwner() {
+        void shouldReturnItemQuotaConfiguredAgainstOwnerWhenReadByOwner() {
             RestClient client = restClient();
             ShoppingListListDto list = createShoppingList(client, "List 1");
 
-            Map<String, Object> cap = getItemCap(client, list.id());
+            Map<String, Object> quota = getItemQuota(client, list.id());
 
-            assertThat(cap.get("resource")).isEqualTo("SHOPPING_LIST_ITEM");
-            assertThat(cap.get("limit")).isEqualTo(3);
+            assertThat(quota.get("resource")).isEqualTo("SHOPPING_LIST_ITEM");
+            assertThat(quota.get("limit")).isEqualTo(3);
         }
 
         @Test
-        void shouldReturnOwnerConfiguredCapWhenReadBySharedEditorNotEditorsOwnOverride() {
+        void shouldReturnOwnerConfiguredQuotaWhenReadBySharedEditorNotEditorsOwnOverride() {
             RestClient owner = restClient();
             RestClient editor = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
             ShoppingListListDto list = createShoppingList(owner, "List 1");
             shareShoppingList(owner, list.id(), "user1@example.com");
-            seedConfigOverride("SHOPPING_LIST_ITEM", "user1@example.com", 99);
+            setLimitQuota("SHOPPING_LIST_ITEM", "user1@example.com", 99);
 
-            Map<String, Object> cap = getItemCap(editor, list.id());
+            Map<String, Object> quota = getItemQuota(editor, list.id());
 
-            assertThat(cap.get("limit")).isEqualTo(3);
+            assertThat(quota.get("limit")).isEqualTo(3);
         }
 
         @Test
@@ -1674,7 +1658,7 @@ class ShoppingListIntegrationTest {
             ShoppingListListDto list = createShoppingList(owner, "List 1");
 
             try {
-                getItemCap(stranger, list.id());
+                getItemQuota(stranger, list.id());
                 fail("Should have thrown exception");
             } catch (RestClientResponseException ex) {
                 assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -1686,7 +1670,7 @@ class ShoppingListIntegrationTest {
             RestClient client = restClient();
 
             try {
-                getItemCap(client, UUID.randomUUID());
+                getItemQuota(client, UUID.randomUUID());
                 fail("Should have thrown exception");
             } catch (RestClientResponseException ex) {
                 assertThat(ex.getStatusCode().value()).isEqualTo(404);

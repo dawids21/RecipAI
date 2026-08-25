@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.multipart.MultipartFile;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.RecipesCollectionService;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
@@ -38,9 +38,9 @@ class RecipeService {
     private final ApplicationEventPublisher eventPublisher;
     private final LimitsFacade limitsFacade;
 
-    public LimitStanding usage(String userEmail) {
-        log.debug("Getting recipe usage for user {}", userEmail);
-        return limitsFacade.standing(userEmail, RECIPE_RESOURCE).orElse(new LimitStanding(0, null, null));
+    public LimitBalance balance(String userEmail) {
+        log.debug("Getting recipe balance for user {}", userEmail);
+        return limitsFacade.getBalance(userEmail, RECIPE_RESOURCE).orElse(LimitBalance.zero());
     }
 
     public List<RecipeListDto> findAll(String userEmail) {

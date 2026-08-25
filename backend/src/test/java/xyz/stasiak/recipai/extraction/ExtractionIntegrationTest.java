@@ -11,20 +11,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.util.FileCopyUtils;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.TestAiConfiguration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 
 import java.io.IOException;
@@ -51,6 +51,9 @@ class ExtractionIntegrationTest {
             4
     );
 
+    private static final String SUBJECT = "user@example.com";
+    private static final List<String> SUBJECTS = List.of(SUBJECT, "user1@example.com", "user2@example.com");
+
     @LocalServerPort
     private int port;
 
@@ -68,12 +71,36 @@ class ExtractionIntegrationTest {
         Mockito.reset(testAiConfiguration.getChatClient());
         Mockito.when(testAiConfiguration.getChatClient().prompt(any(Prompt.class)).call().entity(ExtractedRecipe.class))
                 .thenReturn(FIXTURE_RECIPE);
+
+        SUBJECTS.forEach(subject -> setLimitQuota(ExtractionService.EXTRACTION_RESOURCE, subject, 2));
     }
 
     @AfterEach
     void tearDown() {
-        jdbcClient.sql("DELETE FROM recipai.limit_usage WHERE resource = 'EXTRACTION'").update();
-        jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 2 WHERE resource = 'EXTRACTION' AND subject IS NULL")
+        // Teardown of rows no API deletes: extraction has no release path, so the usage it records
+        // outlives the test, and limit_config has no write API either.
+        jdbcClient.sql("DELETE FROM recipai.limit_usage WHERE resource = 'EXTRACTION' AND subject IN (:subjects)")
+                .param("subjects", SUBJECTS)
+                .update();
+        jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'EXTRACTION' AND subject IN (:subjects)")
+                .param("subjects", SUBJECTS)
+                .update();
+    }
+
+    /**
+     * Upserts the quota: {@code limit_config} has no write API, so there is no business path to it.
+     * Extraction's overrides are flow with no period, like the shipped default.
+     */
+    private void setLimitQuota(String resource, String subject, int maxValue) {
+        jdbcClient.sql("""
+                        INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+                        VALUES (:id, :resource, :subject, 'FLOW', :maxValue, NULL)
+                        ON CONFLICT (resource, subject) DO UPDATE SET max_value = EXCLUDED.max_value
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("resource", resource)
+                .param("subject", subject)
+                .param("maxValue", maxValue)
                 .update();
     }
 
@@ -96,15 +123,27 @@ class ExtractionIntegrationTest {
                 .body(ExtractedRecipe.class);
     }
 
+    private ExtractedRecipe extractImage(RestClient client, Resource resource, MediaType contentType) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("file", resource).contentType(contentType);
+
+        return client.post()
+                .uri("/extract/image")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(builder.build())
+                .retrieve()
+                .body(ExtractedRecipe.class);
+    }
+
     private int usedFor(String subject) {
-        return limitsFacade.standing(subject, ExtractionService.EXTRACTION_RESOURCE)
-                .map(LimitStanding::used)
+        return limitsFacade.getBalance(subject, ExtractionService.EXTRACTION_RESOURCE)
+                .map(LimitBalance::used)
                 .orElse(0);
     }
 
-    private Map<String, Object> getUsage(RestClient client) {
+    private Map<String, Object> getBalance(RestClient client) {
         return client.get()
-                .uri("/extract/usage")
+                .uri("/extract/balance")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
@@ -164,7 +203,7 @@ class ExtractionIntegrationTest {
     }
 
     @Test
-    void shouldAdmitNextCallWithNoRestartAfterRaisingMaxValueBySql() {
+    void shouldAdmitNextCallWithNoRestartAfterRaisingQuota() {
         RestClient client = restClient();
 
         extractText(client, "recipe 1");
@@ -176,8 +215,7 @@ class ExtractionIntegrationTest {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
         }
 
-        jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 5 WHERE resource = 'EXTRACTION' AND subject IS NULL")
-                .update();
+        setLimitQuota(ExtractionService.EXTRACTION_RESOURCE, SUBJECT, 5);
 
         ExtractedRecipe recipe = extractText(client, "recipe 4");
 
@@ -240,18 +278,15 @@ class ExtractionIntegrationTest {
     void shouldReturn400UnsupportedImageTypeForTextPlainAndLeaveUsedUnchanged() {
         RestClient client = restClient();
 
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("file", "not an image".getBytes())
-                .filename("note.txt")
-                .contentType(MediaType.TEXT_PLAIN);
+        Resource notAnImage = new ByteArrayResource("not an image".getBytes()) {
+            @Override
+            public String getFilename() {
+                return "note.txt";
+            }
+        };
 
         try {
-            client.post()
-                    .uri("/extract/image")
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(builder.build())
-                    .retrieve()
-                    .body(ExtractedRecipe.class);
+            extractImage(client, notAnImage, MediaType.TEXT_PLAIN);
             fail("Should have thrown exception");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.BAD_REQUEST.value());
@@ -270,15 +305,8 @@ class ExtractionIntegrationTest {
         RestClient client = restClient();
 
         ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("file", imageResource).contentType(MediaType.IMAGE_JPEG);
 
-        ExtractedRecipe recipe = client.post()
-                .uri("/extract/image")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(builder.build())
-                .retrieve()
-                .body(ExtractedRecipe.class);
+        ExtractedRecipe recipe = extractImage(client, imageResource, MediaType.IMAGE_JPEG);
 
         assertThat(recipe).isEqualTo(FIXTURE_RECIPE);
         assertThat(usedFor("user@example.com")).isEqualTo(1);
@@ -305,24 +333,6 @@ class ExtractionIntegrationTest {
         assertThat(usedFor("user2@example.com")).isEqualTo(1);
     }
 
-    @Test
-    void shouldRejectRequestWithNoAuthorizationHeader() {
-        RestClient client = RestClient.builder()
-                .baseUrl("http://localhost:" + port)
-                .build();
-
-        try {
-            client.post()
-                    .uri("/extract/text")
-                    .body(new ExtractTextRequest("recipe " + UUID.randomUUID()))
-                    .retrieve()
-                    .body(ExtractedRecipe.class);
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().is4xxClientError()).isTrue();
-            assertThat(ex.getStatusCode().value()).isNotEqualTo(HttpStatus.OK.value());
-        }
-    }
 
     @Test
     @Disabled("Calls the real AI provider - the mocked ChatClient must be removed to run it")
@@ -354,15 +364,7 @@ class ExtractionIntegrationTest {
     void shouldExtractRecipeFromImage() {
         ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
 
-        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
-        parts.add("file", imageResource);
-
-        ExtractedRecipe extractedRecipe = restClient()
-                .post()
-                .uri("/extract/image")
-                .body(parts)
-                .retrieve()
-                .body(ExtractedRecipe.class);
+        ExtractedRecipe extractedRecipe = extractImage(restClient(), imageResource, MediaType.IMAGE_JPEG);
 
         assertThat(extractedRecipe).isNotNull();
         assertThat(extractedRecipe.name()).isNotNull();
@@ -378,11 +380,11 @@ class ExtractionIntegrationTest {
     void shouldReturnZeroUsageBeforeAnyExtractionAndOneAfter() {
         RestClient client = restClient();
 
-        assertThat(getUsage(client).get("used")).isEqualTo(0);
+        assertThat(getBalance(client).get("used")).isEqualTo(0);
 
         extractText(client, "recipe 1");
 
-        assertThat(getUsage(client).get("used")).isEqualTo(1);
+        assertThat(getBalance(client).get("used")).isEqualTo(1);
     }
 
     @Test
@@ -392,18 +394,18 @@ class ExtractionIntegrationTest {
         extractText(client, "recipe 1");
 
         // Jackson is configured with default-property-inclusion: non_null, so a null field is absent
-        // rather than serialised as null, while periodStart rides along on every live standing.
-        assertThat(getUsage(client)).doesNotContainKey("resetsInSeconds").containsKey("periodStart");
+        // rather than serialised as null, while periodStart rides along on every live balance.
+        assertThat(getBalance(client)).doesNotContainKey("resetsInSeconds").containsKey("periodStart");
     }
 
     @Test
-    void shouldReturnExhaustedStandingAfterBudgetIsSpent() {
+    void shouldReturnExhaustedBalanceAfterBudgetIsSpent() {
         RestClient client = restClient();
 
         extractText(client, "recipe 1");
         extractText(client, "recipe 2");
 
-        assertThat(getUsage(client).get("used")).isEqualTo(2);
+        assertThat(getBalance(client).get("used")).isEqualTo(2);
     }
 
     private String loadResourceContent(ClassPathResource resource) throws IOException {

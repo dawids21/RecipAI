@@ -29,6 +29,10 @@ class LimitUsage {
     @Column(name = "period_start", nullable = false)
     private Instant periodStart;
 
+    LimitBalance toBalance(Long resetsInSeconds) {
+        return new LimitBalance(used, periodStart, resetsInSeconds);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

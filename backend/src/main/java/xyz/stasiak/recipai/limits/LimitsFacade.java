@@ -19,7 +19,7 @@ public class LimitsFacade {
     @PostConstruct
     void warnWhenDisabled() {
         if (!limitsProperties.enabled()) {
-            log.warn("Usage limits are DISABLED (recipai.limits.enabled=false) - no reservations will be recorded");
+            log.warn("Usage limits are DISABLED (recipai.limits.enabled=false) - usage is still recorded, but nothing is refused");
         }
     }
 
@@ -28,10 +28,6 @@ public class LimitsFacade {
     }
 
     public void reserve(String configSubject, String usageSubject, String resource) {
-        if (!limitsProperties.enabled()) {
-            log.debug("Limits disabled, skipping reservation of resource: {} for subject: {}", resource, usageSubject);
-            return;
-        }
         log.debug("Reserving resource: {} for subject: {} (configured by: {})", resource, usageSubject, configSubject);
         limitService.reserve(configSubject, usageSubject, resource);
     }
@@ -41,43 +37,27 @@ public class LimitsFacade {
     }
 
     public void release(String configSubject, String usageSubject, String resource) {
-        if (!limitsProperties.enabled()) {
-            log.debug("Limits disabled, skipping release of resource: {} for subject: {}", resource, usageSubject);
-            return;
-        }
         log.debug("Releasing resource: {} for subject: {} (configured by: {})", resource, usageSubject, configSubject);
         limitService.release(configSubject, usageSubject, resource);
     }
 
     public void clear(String subject, String resource) {
-        if (!limitsProperties.enabled()) {
-            log.debug("Limits disabled, skipping clear of resource: {} for subject: {}", resource, subject);
-            return;
-        }
         log.debug("Clearing resource: {} for subject: {}", resource, subject);
         limitService.clear(subject, resource);
     }
 
-    public Optional<LimitStanding> standing(String subject, String resource) {
-        log.debug("Getting standing of resource: {} for subject: {}", resource, subject);
-        return limitService.standing(subject, resource);
+    public Optional<LimitBalance> getBalance(String subject, String resource) {
+        log.debug("Getting balance of resource: {} for subject: {}", resource, subject);
+        return limitService.getBalance(subject, resource);
     }
 
-    public List<LimitCap> caps(String subject) {
-        log.debug("Getting caps for subject: {}", subject);
-        if (!limitsProperties.enabled()) {
-            log.debug("Limits disabled, returning no caps for subject: {}", subject);
-            return List.of();
-        }
-        return limitService.caps(subject);
+    public List<LimitQuota> getQuotas(String subject) {
+        log.debug("Getting quotas for subject: {}", subject);
+        return limitService.getQuotas(subject);
     }
 
-    public Optional<LimitCap> cap(String subject, String resource) {
-        log.debug("Getting cap of resource: {} for subject: {}", resource, subject);
-        if (!limitsProperties.enabled()) {
-            log.debug("Limits disabled, returning no cap of resource: {} for subject: {}", resource, subject);
-            return Optional.empty();
-        }
-        return limitService.cap(subject, resource);
+    public Optional<LimitQuota> getQuota(String subject, String resource) {
+        log.debug("Getting quota of resource: {} for subject: {}", resource, subject);
+        return limitService.getQuota(subject, resource);
     }
 }

@@ -38,16 +38,18 @@ class RecipeIntegrationTest {
 }
 ```
 
-### Reading Data the Test Has No Access To
-When an assertion needs state the test cannot reach through the module's public surface, add a read method to that module's facade/service — do not reach around it with a hand-written SQL query. Seeding fixtures with `JdbcClient` is fine; *reading back* what the code under test did is not.
+### Seed and Read Through the Module's Own Methods
 
-`LimitsFacade.standing(subject, resource)` exists for exactly this reason: `ExtractionIntegrationTest` and `LimitsIntegrationTest` assert the recorded standing through it instead of selecting from `limit_usage`.
+Prefer the module's own business surface — an HTTP call, a facade method — for **seeding** a fixture as
+well as for **reading back** what the code under test did. A test that creates its state the way the
+application does exercises the real path, and one that reads through the facade cannot drift from what
+the module actually stores.
 
 ```java
-// Correct: read the standing through the facade
+// Correct: read the balance through the facade
 private int usedFor(String subject) {
-    return limitsFacade.standing(subject, ExtractionService.EXTRACTION_RESOURCE)
-            .map(LimitStanding::used)
+    return limitsFacade.getBalance(subject, ExtractionService.EXTRACTION_RESOURCE)
+            .map(LimitBalance::used)
             .orElse(0);
 }
 
@@ -55,13 +57,31 @@ private int usedFor(String subject) {
 jdbcClient.sql("SELECT used FROM recipai.limit_usage WHERE ...").query(Integer.class).single();
 ```
 
-Adding such a method widens a module's public API for a test's benefit, so **always tell the developer when you do it** — it is their call whether the method belongs there.
+Adding a read method widens a module's public API for a test's benefit, so **always tell the developer
+when you do it** — it is their call whether the method belongs there. `LimitsFacade.getBalance` exists
+for exactly this reason.
 
-### Testing a Suite Whose Module Is Capped by `limits`
+Reach for `JdbcClient` only when **no business path can produce the state**, and leave a one-line
+comment saying why. Two cases in this codebase qualify:
 
-`recipai.limits.enabled` is `true` by default in tests, so a suite that creates several of a capped
-resource would start failing the moment a cap is seeded for it. Do not work around that by keeping
-every test under the cap — the cap is an operational number that changes. Instead:
+- **`limit_config` has no write API.** Operators edit it with SQL, so a test that needs a quota writes
+  one the same way. Every limits suite has a private `setLimitQuota(...)` helper for this — an
+  **upsert** (`ON CONFLICT (resource, subject) DO UPDATE`, valid against
+  `UNIQUE NULLS NOT DISTINCT (resource, subject)`) so a test can set a quota whether or not a row is
+  already there, and so raising or lowering one mid-test is the same call as seeding it.
+- **Drift-repair tests must fabricate impossible state.** A recompute is only worth testing against a
+  `used` no business path could have written (`SET used = 99`), or a usage row for a subject with no
+  API presence at all. Teardown of rows no API deletes belongs in the same category.
+
+Everything else — creating the resource whose count is being asserted, deleting it again, raising a
+quota — goes through the API or the facade.
+
+### Testing a Suite Whose Module Is Limited by `limits`
+
+`recipai.limits.enabled` is `true` by default in tests, so a suite that creates several of a limited
+resource would start failing the moment a quota is seeded for it. Do not work around that by keeping
+every test under the quota — the quota is an operational number that changes. Turning the flag off
+does not stop usage from being recorded, only from being refused. Instead:
 
 - Turn limits **off for the suite** at class level:
   `@SpringBootTest(..., properties = "recipai.limits.enabled=false")`. Existing tests then stay about
@@ -70,10 +90,10 @@ every test under the cap — the cap is an operational number that changes. Inst
   `@TestPropertySource(properties = "recipai.limits.enabled=true")`. The nested class gets its own
   context and container, and the enclosing instance's injected fields are wired from the *nested*
   context, so the outer suite's `restClient()` and creation helpers work unchanged inside it.
-- **Seed the nested class's own `limit_config` override** for its subject with `JdbcClient` rather than
-  relying on the shipped default, so the test does not break when an operator changes a production
-  number. Clean the override up in `@AfterEach` — it collides with
-  `UNIQUE NULLS NOT DISTINCT (resource, subject)` on the next test.
+- **Set the nested class's own `limit_config` override** for its subject through `setLimitQuota`
+  rather than relying on the shipped default, so the test does not break when an operator changes a
+  production number. Delete the override in `@AfterEach`, and restore any resource *default* the test
+  changed before it leaves.
 
 ```java
 @Nested

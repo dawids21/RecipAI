@@ -19,9 +19,9 @@ class LimitsController {
     private final LimitsFacade limitsFacade;
 
     @GetMapping
-    List<LimitCap> getLimits(@AuthenticationPrincipal Jwt jwt) {
+    List<LimitQuota> getLimits(@AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Getting limits for user: {}", userEmail);
-        return limitsFacade.caps(userEmail);
+        return limitsFacade.getQuotas(userEmail);
     }
 }

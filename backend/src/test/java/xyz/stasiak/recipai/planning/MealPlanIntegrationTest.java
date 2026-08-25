@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.dto.SharedUserDto;
@@ -26,11 +26,7 @@ import xyz.stasiak.recipai.recipes.*;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -1132,8 +1128,8 @@ class MealPlanIntegrationTest {
         private DataSource dataSource;
 
         @BeforeEach
-        void seedOverride() {
-            seedConfigOverride(SUBJECT, 2);
+        void setUpQuota() {
+            setLimitQuota("MEAL_PLAN", SUBJECT, 2);
         }
 
         @AfterEach
@@ -1152,6 +1148,8 @@ class MealPlanIntegrationTest {
                 }
             }
 
+            // Teardown of rows no API deletes: the config override, and usage fabricated for subjects
+            // with no API presence.
             jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'MEAL_PLAN' AND subject IS NOT NULL").update();
             jdbcClient.sql("""
                             DELETE FROM recipai.limit_usage
@@ -1166,18 +1164,30 @@ class MealPlanIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.standing(subject, MealPlanService.MEAL_PLAN_RESOURCE)
-                    .map(LimitStanding::used)
+            return limitsFacade.getBalance(subject, MealPlanService.MEAL_PLAN_RESOURCE)
+                    .map(LimitBalance::used)
                     .orElse(0);
         }
 
-        private void seedConfigOverride(String subject, int maxValue) {
+        private void setLimitQuota(String resource, String subject, int maxValue) {
+            setLimitQuota(resource, subject, "STOCK", maxValue);
+        }
+
+        /**
+         * Upserts the quota: {@code limit_config} has no write API, so there is no business path to it.
+         */
+        private void setLimitQuota(String resource, String subject, String kind, int maxValue) {
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'MEAL_PLAN', :subject, 'STOCK', :maxValue, NULL)
+                            VALUES (:id, :resource, :subject, :kind, :maxValue, NULL)
+                            ON CONFLICT (resource, subject) DO UPDATE SET
+                                kind      = EXCLUDED.kind,
+                                max_value = EXCLUDED.max_value
                             """)
                     .param("id", UUID.randomUUID())
+                    .param("resource", resource)
                     .param("subject", subject)
+                    .param("kind", kind)
                     .param("maxValue", maxValue)
                     .update();
         }
@@ -1225,14 +1235,12 @@ class MealPlanIntegrationTest {
         }
 
         @Test
-        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+        void shouldAllowReadAndUpdateWhileOverQuotaButKeepCreationRefused() {
             RestClient client = restClient();
             MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
             createMealPlan(client, "Plan 2", "#FF5733");
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'MEAL_PLAN' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("MEAL_PLAN", SUBJECT, 1);
 
             List<MealPlanDto> plans = getAllMealPlans(client);
             assertThat(plans).extracting(MealPlanDto::id).contains(plan1.id());
@@ -1249,7 +1257,7 @@ class MealPlanIntegrationTest {
         }
 
         @Test
-        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+        void shouldAdmitNextCreateAndDropBalanceAfterDelete() {
             RestClient client = restClient();
             MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
             createMealPlan(client, "Plan 2", "#FF5733");
@@ -1263,7 +1271,7 @@ class MealPlanIntegrationTest {
         }
 
         @Test
-        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+        void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
             MealPlanDto plan = createMealPlan(client, "Shared Plan", "#FF5733");
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
@@ -1282,6 +1290,7 @@ class MealPlanIntegrationTest {
             createMealPlan(client, "Plan 2", "#FF5733");
             assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
+            // Deliberate drift: no business path can move used away from the owned count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'MEAL_PLAN' AND subject = :subject")
                     .param("subject", SUBJECT)
                     .update();
@@ -1295,6 +1304,7 @@ class MealPlanIntegrationTest {
         @Test
         void shouldClearUsageForSubjectThatOwnsNothing() {
             String ghost = "ghost@example.com";
+            // A usage row for a subject that owns nothing: no business path leaves one behind.
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
                             VALUES ('MEAL_PLAN', :subject, 5, now())
@@ -1305,36 +1315,27 @@ class MealPlanIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.standing(ghost, MealPlanService.MEAL_PLAN_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance(ghost, MealPlanService.MEAL_PLAN_RESOURCE)).isEmpty();
         }
 
         @Test
         void shouldSpareFlowConfiguredSubjectFromRecompute() {
-            String flowSubject = "flow-subject@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+            RestClient client = restClient();
+            setLimitQuota("MEAL_PLAN", SUBJECT, "FLOW", 5);
+            try {
+                MealPlanDto first = createMealPlan(client, "Flow 1", "#FF5733");
+                createMealPlan(client, "Flow 2", "#FF5733");
+                // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
+                deleteMealPlan(client, first.id());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'MEAL_PLAN', :subject, 'FLOW', 5, NULL)
-                            """)
-                    .param("id", UUID.randomUUID())
-                    .param("subject", flowSubject)
-                    .update();
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('MEAL_PLAN', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", flowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
+                RecomputeMigration.run(dataSource);
 
-            LimitStanding before = limitsFacade.standing(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
-
-            RecomputeMigration.run(dataSource);
-
-            LimitStanding after = limitsFacade.standing(flowSubject, MealPlanService.MEAL_PLAN_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            } finally {
+                setLimitQuota("MEAL_PLAN", SUBJECT, 2);
+                limitsFacade.clear(SUBJECT, MealPlanService.MEAL_PLAN_RESOURCE);
+            }
         }
 
         @Test
@@ -1352,9 +1353,9 @@ class MealPlanIntegrationTest {
             assertThat(secondRun).isEqualTo(1);
         }
 
-        private Map<String, Object> getUsage(RestClient client) {
+        private Map<String, Object> getBalance(RestClient client) {
             return client.get()
-                    .uri("/meal-plans/usage")
+                    .uri("/meal-plans/balance")
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {
                     });
@@ -1363,14 +1364,14 @@ class MealPlanIntegrationTest {
         @Test
         void shouldTrackUsageAcrossCreateAndDelete() {
             RestClient client = restClient();
-            assertThat(getUsage(client).get("used")).isEqualTo(0);
+            assertThat(getBalance(client).get("used")).isEqualTo(0);
 
             MealPlanDto plan1 = createMealPlan(client, "Plan 1", "#FF5733");
             createMealPlan(client, "Plan 2", "#33FF57");
-            assertThat(getUsage(client).get("used")).isEqualTo(2);
+            assertThat(getBalance(client).get("used")).isEqualTo(2);
 
             deleteMealPlan(client, plan1.id());
-            assertThat(getUsage(client).get("used")).isEqualTo(1);
+            assertThat(getBalance(client).get("used")).isEqualTo(1);
         }
     }
 }

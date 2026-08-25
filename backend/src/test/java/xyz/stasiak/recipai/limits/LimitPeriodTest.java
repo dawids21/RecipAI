@@ -83,6 +83,23 @@ class LimitPeriodTest {
     }
 
     @Test
+    void shouldCountDownTheExactSecondsLeftInsideALiveWindow() {
+        Instant periodStart = ZonedDateTime.of(2026, 3, 15, 12, 0, 0, 0, ZoneOffset.UTC).toInstant();
+        Instant now = periodStart.plusSeconds(3600);
+
+        assertThat(LimitPeriod.DAY.secondsUntilNextStart(periodStart, now)).isEqualTo(23 * 3600);
+        assertThat(LimitPeriod.WEEK.secondsUntilNextStart(periodStart, now)).isEqualTo(7 * 24 * 3600 - 3600);
+    }
+
+    @Test
+    void shouldFloorAtOneSecondWhenTheNextStartIsAlreadyPast() {
+        Instant periodStart = ZonedDateTime.of(2026, 3, 15, 12, 0, 0, 0, ZoneOffset.UTC).toInstant();
+        Instant now = periodStart.plusSeconds(5 * 24 * 3600);
+
+        assertThat(LimitPeriod.DAY.secondsUntilNextStart(periodStart, now)).isEqualTo(1);
+    }
+
+    @Test
     void cutoffFromIsAlwaysStrictlyBeforeNowAndNextStartIsAlwaysStrictlyAfter() {
         Instant now = ZonedDateTime.of(2026, 5, 1, 0, 0, 0, 0, ZoneOffset.UTC).toInstant();
 

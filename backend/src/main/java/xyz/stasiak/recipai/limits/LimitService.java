@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -16,12 +15,21 @@ import java.util.Optional;
 @Slf4j
 class LimitService {
 
+    /**
+     * The maximum reserved against while limits are disabled: usage is still recorded, but the
+     * statement can never refuse.
+     */
+    private static final int UNLIMITED = Integer.MAX_VALUE;
+
     private final LimitConfigRepository limitConfigRepository;
     private final LimitUsageRepository limitUsageRepository;
+    private final LimitsProperties limitsProperties;
     private final Clock clock;
 
     @Transactional
     void reserve(String configSubject, String usageSubject, String resource) {
+        // The kill-switch suppresses refusals, not misconfiguration: an unconfigured resource is a bug
+        // in either mode, and one the dev profile would otherwise never surface.
         LimitConfig config = limitConfigRepository.resolve(resource, configSubject)
                 .orElseThrow(() -> {
                     log.error("No limit configuration found for resource: {}", resource);
@@ -29,22 +37,17 @@ class LimitService {
                 });
 
         Instant now = clock.instant();
-        Instant cutoff = config.getPeriod() == null ? Instant.EPOCH : config.getPeriod().cutoffFrom(now);
+        int max = limitsProperties.enabled() ? config.getMaxValue() : UNLIMITED;
 
-        int granted = limitUsageRepository.reserve(resource, usageSubject, now, cutoff, config.getMaxValue());
+        int granted = limitUsageRepository.reserve(resource, usageSubject, now, config.cutoffFrom(now), max);
         if (granted == 1) {
             return;
         }
 
-        // A maximum of zero refuses before any usage row exists, so the standing is not always stored.
+        // A maximum of zero refuses before any usage row exists, so the balance is not always stored.
         Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, usageSubject));
-        int used = usage.map(row -> row.getUsed()).orElse(0);
-
-        Long retryAfterSeconds = null;
-        if (config.getKind() == LimitKind.FLOW && config.getPeriod() != null && usage.isPresent()) {
-            Instant nextStart = config.getPeriod().nextStart(usage.get().getPeriodStart());
-            retryAfterSeconds = Math.max(1, Duration.between(now, nextStart).getSeconds());
-        }
+        int used = usage.map(LimitUsage::getUsed).orElse(0);
+        Long retryAfterSeconds = usage.map(row -> config.resetsInSeconds(row.getPeriodStart(), now)).orElse(null);
 
         log.warn("Limit exceeded for resource: {}, subject: {}, used: {}, limit: {}",
                 resource, usageSubject, used, config.getMaxValue());
@@ -59,7 +62,7 @@ class LimitService {
             return;
         }
 
-        if (config.get().getKind() == LimitKind.FLOW) {
+        if (!config.get().refundsOnRelease()) {
             return;
         }
 
@@ -73,7 +76,7 @@ class LimitService {
     }
 
     @Transactional(readOnly = true)
-    Optional<LimitStanding> standing(String subject, String resource) {
+    Optional<LimitBalance> getBalance(String subject, String resource) {
         Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, subject));
         if (usage.isEmpty()) {
             return Optional.empty();
@@ -81,32 +84,34 @@ class LimitService {
 
         Optional<LimitConfig> config = limitConfigRepository.resolve(resource, subject);
         Instant now = clock.instant();
+        Instant periodStart = usage.get().getPeriodStart();
 
-        boolean lapsed = config.isPresent() && config.get().getPeriod() != null
-                && !usage.get().getPeriodStart().isAfter(config.get().getPeriod().cutoffFrom(now));
-        if (lapsed) {
-            return Optional.of(new LimitStanding(0, null, null));
+        if (config.filter(c -> c.hasPassed(periodStart, now)).isPresent()) {
+            return Optional.of(LimitBalance.zero());
         }
 
-        Long resetsInSeconds = null;
-        if (config.isPresent() && config.get().getKind() == LimitKind.FLOW && config.get().getPeriod() != null) {
-            Instant nextStart = config.get().getPeriod().nextStart(usage.get().getPeriodStart());
-            resetsInSeconds = Math.max(1, Duration.between(now, nextStart).getSeconds());
-        }
-
-        return Optional.of(new LimitStanding(usage.get().getUsed(), usage.get().getPeriodStart(), resetsInSeconds));
+        return Optional.of(usage.get().toBalance(
+                config.map(c -> c.resetsInSeconds(periodStart, now)).orElse(null)));
     }
 
     @Transactional(readOnly = true)
-    List<LimitCap> caps(String subject) {
+    List<LimitQuota> getQuotas(String subject) {
+        if (!limitsProperties.enabled()) {
+            log.debug("Limits disabled, returning no quotas for subject: {}", subject);
+            return List.of();
+        }
         return limitConfigRepository.resolveAll(subject).stream()
-                .map(config -> new LimitCap(config.getResource(), config.getKind(), config.getMaxValue()))
+                .map(LimitConfig::toQuota)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    Optional<LimitCap> cap(String subject, String resource) {
+    Optional<LimitQuota> getQuota(String subject, String resource) {
+        if (!limitsProperties.enabled()) {
+            log.debug("Limits disabled, returning no quota of resource: {} for subject: {}", resource, subject);
+            return Optional.empty();
+        }
         return limitConfigRepository.resolve(resource, subject)
-                .map(config -> new LimitCap(config.getResource(), config.getKind(), config.getMaxValue()));
+                .map(LimitConfig::toQuota);
     }
 }

@@ -51,7 +51,7 @@ Two different bearer tokens are two different users with no setup: `Bearer alice
 | `SPRING_PROFILES_ACTIVE` | Forced to `dev` by `recipai.sh`; never set it yourself. |
 | `SPRING_AI_API_KEY` | Required for context creation — no default in `application.yml`. `recipai.sh` falls back to `dummy-key-for-local`, which boots fine but makes `/extract/**` fail at call time. Export a real key before starting if you need extraction. It is already set in `.claude/settings.local.json`, so agent sessions inherit a real key. |
 | `SERVER_PORT` | Default `8080`; honoured by all three backend commands. |
-| `RECIPAI_LIMITS_ENABLED` | Usage limits are off on the dev profile (`recipai.limits.enabled: false`), so 429 paths never fire. Set to `true` before starting to exercise them. |
+| `RECIPAI_LIMITS_ENABLED` | Refusals are off on the dev profile (`recipai.limits.enabled: false`), so 429 paths never fire — usage is still recorded in `limit_usage`, and `GET /limits` returns `[]`. Set to `true` before starting to exercise refusals. |
 | AWS credentials | Absent locally, so image upload and the presigned URLs in `images[]` fail. Recipes without images are unaffected. |
 
 ## Calling the API

@@ -8,8 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import xyz.stasiak.recipai.limits.LimitCap;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitQuota;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 
 import java.util.List;
@@ -30,18 +30,18 @@ class ShoppingListController {
         return shoppingListService.findAll(userEmail);
     }
 
-    @GetMapping("/usage")
-    LimitStanding getUsage(@AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/balance")
+    LimitBalance getBalance(@AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting shopping list usage for user: {}", userEmail);
-        return shoppingListService.usage(userEmail);
+        log.debug("Getting shopping list balance for user: {}", userEmail);
+        return shoppingListService.balance(userEmail);
     }
 
     @GetMapping("/{id}/limits")
-    ResponseEntity<LimitCap> getItemCap(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<LimitQuota> getItemQuota(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting item cap for shopping list: {} requested by user: {}", id, userEmail);
-        return shoppingListService.itemCap(id, userEmail)
+        log.debug("Getting item quota for shopping list: {} requested by user: {}", id, userEmail);
+        return shoppingListService.itemQuota(id, userEmail)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }

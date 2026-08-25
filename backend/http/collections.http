@@ -3,7 +3,7 @@
 @otherUser = bob
 
 ### How much of the caller's RECIPES_COLLECTION budget is already spent
-GET {{baseUrl}}/collections/usage
+GET {{baseUrl}}/collections/balance
 Authorization: Bearer {{user}}
 
 ### Create a collection

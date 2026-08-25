@@ -3,7 +3,7 @@
 @otherUser = bob
 
 ### How much of the caller's MEAL_PLAN budget is already spent
-GET {{baseUrl}}/meal-plans/usage
+GET {{baseUrl}}/meal-plans/balance
 Authorization: Bearer {{user}}
 
 ### Create a recipe to plan against

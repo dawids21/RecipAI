@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
@@ -26,9 +26,9 @@ public class RecipesCollectionService {
     private final ApplicationEventPublisher eventPublisher;
     private final LimitsFacade limitsFacade;
 
-    LimitStanding usage(String userEmail) {
-        log.debug("Getting recipes collection usage for user: {}", userEmail);
-        return limitsFacade.standing(userEmail, RECIPES_COLLECTION_RESOURCE).orElse(new LimitStanding(0, null, null));
+    LimitBalance balance(String userEmail) {
+        log.debug("Getting recipes collection balance for user: {}", userEmail);
+        return limitsFacade.getBalance(userEmail, RECIPES_COLLECTION_RESOURCE).orElse(LimitBalance.zero());
     }
 
     List<RecipesCollectionListDto> findAll(String userEmail) {

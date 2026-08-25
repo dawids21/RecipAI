@@ -47,6 +47,37 @@ class LimitConfig {
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    boolean isFlow() {
+        return kind == LimitKind.FLOW;
+    }
+
+    /**
+     * A flow limit with a period restarts on its own; one without a period never does.
+     */
+    boolean restarts() {
+        return isFlow() && period != null;
+    }
+
+    boolean refundsOnRelease() {
+        return !isFlow();
+    }
+
+    Instant cutoffFrom(Instant now) {
+        return period == null ? Instant.EPOCH : period.cutoffFrom(now);
+    }
+
+    boolean hasPassed(Instant periodStart, Instant now) {
+        return period != null && !periodStart.isAfter(period.cutoffFrom(now));
+    }
+
+    Long resetsInSeconds(Instant periodStart, Instant now) {
+        return restarts() ? period.secondsUntilNextStart(periodStart, now) : null;
+    }
+
+    LimitQuota toQuota() {
+        return new LimitQuota(resource, kind, maxValue);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

@@ -52,7 +52,7 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 
 #### Extraction (`backend/modules/extraction/`)
 - `codebase_structure.md` — file tree
-- `api.md` — `/extract/text`, `/extract/image` and `/extract/usage` endpoints
+- `api.md` — `/extract/text`, `/extract/image` and `/extract/balance` endpoints
 
 #### Shopping Lists (`backend/modules/shopping-lists/`)
 - `codebase_structure.md` — file tree
@@ -65,8 +65,8 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
 
 #### Limits (`backend/modules/limits/`)
-- `codebase_structure.md` — file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the standing and cap reads, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules
-- `api.md` — `GET /limits`, and the contract shared by the per-module `/usage` reads
+- `codebase_structure.md` — file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the balance and quota reads, the 429 refusal contract, the `recipai.limits.enabled` kill-switch, and the consuming modules
+- `api.md` — `GET /limits`, and the contract shared by the per-module `/balance` reads
 - `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables and, for shopping-list items, from the items themselves
 
 #### Provisioning (`backend/modules/provisioning/`)
@@ -91,7 +91,7 @@ Standards for feature module organisation: how to expose cross-module access via
 Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.
 
 ### Integration Tests (`backend/standards/integration-tests.md`)
-Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, reading otherwise-inaccessible state through a facade method rather than hand-written SQL, and how to test a suite whose module is capped by `limits`.
+Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, seeding and reading through the module's own business methods rather than hand-written SQL, and how to test a suite whose module is limited by `limits`.
 
 ---
 

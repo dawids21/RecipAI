@@ -2,15 +2,15 @@
 
 Creating a recipe or a collection consumes one unit of the owner's `RECIPE` or `RECIPES_COLLECTION`
 budget, reserved *before* anything is written and keyed by the `email` claim of the JWT. Deleting one
-returns the unit. Both are stock caps: a refusal does not resolve itself by waiting, and only creation
-is blocked — reading, editing and sharing keep working while the owner is over the cap. Sharing never
+returns the unit. Both are stock quotas: a refusal does not resolve itself by waiting, and only creation
+is blocked — reading, editing and sharing keep working while the owner is over the quota. Sharing never
 charges the recipient, and editing a shared record spends nothing; a recipe an EDITOR creates in someone
 else's collection is charged to the EDITOR, who owns it. See `docs/backend/modules/limits/` for how the
-caps are configured and changed.
+quotas are configured and changed.
 
 ## Refusal Response
 
-A create past the cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+A create past the quota returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
 
 ```json
 {
@@ -25,16 +25,16 @@ A create past the cap returns **429 Too Many Requests** with an RFC 7807 `Proble
 }
 ```
 
-Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
-restarts — the owner has to delete something or have the cap raised.
+Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock quota never
+restarts — the owner has to delete something or have the quota raised.
 
 ## Recipes
 
-### GET /recipes/usage
+### GET /recipes/balance
 - Description: Get how much of the caller's `RECIPE` budget is already spent, for displaying
   `used / limit` before a recipe is created
 - Authenticated: true
-- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+- Example response — a stock quota never restarts, so no `resetsInSeconds`:
   ```json
   {
     "used": 3,
@@ -42,7 +42,7 @@ restarts — the owner has to delete something or have the cap raised.
   }
   ```
 - Success: 200 OK
-- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+- See `docs/backend/modules/limits/api.md` for the contract these balance reads share.
 
 ### GET /recipes
 - Description: Get recipes as list with basic info, with optional filtering by collection or unassigned status. Results are ordered by creation date (oldest first).
@@ -158,7 +158,7 @@ restarts — the owner has to delete something or have the cap raised.
   ```
 - Example response: Same structure as GET /recipes/{uuid}
 - Success: 201 Created
-- Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection doesn't exist), 429 Too many requests (recipe cap reached)
+- Errors: 400 Bad request, 403 Forbidden (if user lacks access to specified collection), 404 Not Found (if collection doesn't exist), 429 Too many requests (recipe quota reached)
 - Note: `recipesCollectionId`, `sourceUrl`, and `images` are optional. The `images` field is an array of UUIDs (max 2) for image metadata tracking when creating recipes via JSON. When `recipesCollectionId` is provided, user must have EDITOR or OWNER access to the collection.
 
 ### POST /recipes (Multipart)
@@ -183,7 +183,7 @@ restarts — the owner has to delete something or have the cap raised.
     - 400 Bad request (invalid data, unsupported image format, image size exceeds 5MB, more than 2 images, or mismatch between image UUIDs and files)
     - 403 Forbidden (if user lacks access to specified collection)
     - 404 Not Found (if collection doesn't exist)
-    - 429 Too many requests (recipe cap reached — nothing is written and no image is uploaded)
+    - 429 Too many requests (recipe quota reached — nothing is written and no image is uploaded)
 - Note: Images are stored in S3 and automatically resized to create thumbnails. Only JPEG and PNG formats are supported. Image files must be named with their UUID and appropriate extension. The extension in the filename is normalized (jpeg → jpg).
 
 ### PUT /recipes/{uuid} (JSON)
@@ -288,11 +288,11 @@ restarts — the owner has to delete something or have the cap raised.
 
 ## Recipe Collections
 
-### GET /collections/usage
+### GET /collections/balance
 - Description: Get how much of the caller's `RECIPES_COLLECTION` budget is already spent, for
   displaying `used / limit` before a collection is created
 - Authenticated: true
-- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+- Example response — a stock quota never restarts, so no `resetsInSeconds`:
   ```json
   {
     "used": 1,
@@ -300,7 +300,7 @@ restarts — the owner has to delete something or have the cap raised.
   }
   ```
 - Success: 200 OK
-- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+- See `docs/backend/modules/limits/api.md` for the contract these balance reads share.
 
 ### GET /collections
 - Description: Get all recipes collections accessible by the authenticated user, ordered by creation date (oldest first)
@@ -321,7 +321,7 @@ restarts — the owner has to delete something or have the cap raised.
 - Request body: `{"name": "My Collection"}`
 - Example response: `{"id": "uuid", "name": "My Collection"}`
 - Success: 201 Created
-- Errors: 400 Bad Request (blank name), 401 Unauthorized, 429 Too many requests (collection cap reached)
+- Errors: 400 Bad Request (blank name), 401 Unauthorized, 429 Too many requests (collection quota reached)
 
 ### PUT /collections/{id}
 - Description: Update the name of an existing recipes collection

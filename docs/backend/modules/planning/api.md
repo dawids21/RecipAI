@@ -1,14 +1,14 @@
 # Planning API
 
 Creating a meal plan consumes one unit of the owner's `MEAL_PLAN` budget, reserved *before* anything
-is written and keyed by the `email` claim of the JWT. Deleting one returns the unit. It is a stock cap:
+is written and keyed by the `email` claim of the JWT. Deleting one returns the unit. It is a stock quota:
 a refusal does not resolve itself by waiting, and only creation is blocked — reading, editing and
-sharing keep working while the owner is over the cap. Sharing never charges the recipient. See
-`docs/backend/modules/limits/` for how the cap is configured and changed.
+sharing keep working while the owner is over the quota. Sharing never charges the recipient. See
+`docs/backend/modules/limits/` for how the quota is configured and changed.
 
 ## Refusal Response
 
-A create past the cap returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
+A create past the quota returns **429 Too Many Requests** with an RFC 7807 `ProblemDetail`:
 
 ```json
 {
@@ -23,14 +23,14 @@ A create past the cap returns **429 Too Many Requests** with an RFC 7807 `Proble
 }
 ```
 
-Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock cap never
-restarts — the owner has to delete something or have the cap raised.
+Neither `retryAfterSeconds` nor the `Retry-After` header is present, because a stock quota never
+restarts — the owner has to delete something or have the quota raised.
 
-### GET /meal-plans/usage
+### GET /meal-plans/balance
 - Description: Get how much of the caller's `MEAL_PLAN` budget is already spent, for displaying
   `used / limit` before a plan is created
 - Authenticated: true
-- Example response — a stock cap never restarts, so no `resetsInSeconds`:
+- Example response — a stock quota never restarts, so no `resetsInSeconds`:
   ```json
   {
     "used": 1,
@@ -38,7 +38,7 @@ restarts — the owner has to delete something or have the cap raised.
   }
   ```
 - Success: 200 OK
-- See `docs/backend/modules/limits/api.md` for the contract these usage reads share.
+- See `docs/backend/modules/limits/api.md` for the contract these balance reads share.
 
 ### GET /meal-plans
 - Description: Get all meal plans accessible by the authenticated user, ordered by creation date (oldest first)
@@ -80,7 +80,7 @@ restarts — the owner has to delete something or have the cap raised.
   }
   ```
 - Success: 201 Created
-- Errors: 400 Bad Request (blank name, invalid color format), 401 Unauthorized, 429 Too many requests (plan cap reached)
+- Errors: 400 Bad Request (blank name, invalid color format), 401 Unauthorized, 429 Too many requests (plan quota reached)
 - Note: Color must be a valid hex color in format `#RRGGBB` (e.g., `#FF5733`).
 
 ### PUT /meal-plans/{id}

@@ -12,7 +12,7 @@ import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 
 @RestController
 @RequestMapping("/extract")
@@ -22,11 +22,11 @@ class ExtractionController {
 
     private final ExtractionService extractionService;
 
-    @GetMapping("/usage")
-    LimitStanding getUsage(@AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/balance")
+    LimitBalance getBalance(@AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting extraction usage for user: {}", userEmail);
-        return extractionService.usage(userEmail);
+        log.debug("Getting extraction balance for user: {}", userEmail);
+        return extractionService.balance(userEmail);
     }
 
     @PostMapping("/text")

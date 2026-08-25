@@ -18,15 +18,11 @@ import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.RecomputeMigration;
 import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
-import xyz.stasiak.recipai.limits.LimitStanding;
+import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 
 import javax.sql.DataSource;
-import java.sql.Timestamp;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -345,8 +341,8 @@ class RecipesCollectionIntegrationTest {
         private DataSource dataSource;
 
         @BeforeEach
-        void seedOverride() {
-            seedConfigOverride(SUBJECT, 2);
+        void setUpQuota() {
+            setLimitQuota("RECIPES_COLLECTION", SUBJECT, 2);
         }
 
         @AfterEach
@@ -365,6 +361,8 @@ class RecipesCollectionIntegrationTest {
                 }
             }
 
+            // Teardown of rows no API deletes: the config override, and usage fabricated for subjects
+            // with no API presence.
             jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'RECIPES_COLLECTION' AND subject IS NOT NULL").update();
             jdbcClient.sql("""
                             DELETE FROM recipai.limit_usage
@@ -379,18 +377,30 @@ class RecipesCollectionIntegrationTest {
         }
 
         private int usedFor(String subject) {
-            return limitsFacade.standing(subject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)
-                    .map(LimitStanding::used)
+            return limitsFacade.getBalance(subject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)
+                    .map(LimitBalance::used)
                     .orElse(0);
         }
 
-        private void seedConfigOverride(String subject, int maxValue) {
+        private void setLimitQuota(String resource, String subject, int maxValue) {
+            setLimitQuota(resource, subject, "STOCK", maxValue);
+        }
+
+        /**
+         * Upserts the quota: {@code limit_config} has no write API, so there is no business path to it.
+         */
+        private void setLimitQuota(String resource, String subject, String kind, int maxValue) {
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'RECIPES_COLLECTION', :subject, 'STOCK', :maxValue, NULL)
+                            VALUES (:id, :resource, :subject, :kind, :maxValue, NULL)
+                            ON CONFLICT (resource, subject) DO UPDATE SET
+                                kind      = EXCLUDED.kind,
+                                max_value = EXCLUDED.max_value
                             """)
                     .param("id", UUID.randomUUID())
+                    .param("resource", resource)
                     .param("subject", subject)
+                    .param("kind", kind)
                     .param("maxValue", maxValue)
                     .update();
         }
@@ -438,14 +448,12 @@ class RecipesCollectionIntegrationTest {
         }
 
         @Test
-        void shouldAllowReadAndUpdateWhileOverCapButKeepCreationRefused() {
+        void shouldAllowReadAndUpdateWhileOverQuotaButKeepCreationRefused() {
             RestClient client = restClient();
             RecipesCollectionListDto collection1 = createRecipesCollection(client, "Collection 1");
             createRecipesCollection(client, "Collection 2");
 
-            jdbcClient.sql("UPDATE recipai.limit_config SET max_value = 1 WHERE resource = 'RECIPES_COLLECTION' AND subject = :subject")
-                    .param("subject", SUBJECT)
-                    .update();
+            setLimitQuota("RECIPES_COLLECTION", SUBJECT, 1);
 
             List<RecipesCollectionListDto> collections = getAllRecipesCollections(client);
             assertThat(collections).extracting(RecipesCollectionListDto::id).contains(collection1.id());
@@ -462,7 +470,7 @@ class RecipesCollectionIntegrationTest {
         }
 
         @Test
-        void shouldAdmitNextCreateAndDropStandingAfterDelete() {
+        void shouldAdmitNextCreateAndDropBalanceAfterDelete() {
             RestClient client = restClient();
             RecipesCollectionListDto collection1 = createRecipesCollection(client, "Collection 1");
             createRecipesCollection(client, "Collection 2");
@@ -476,7 +484,7 @@ class RecipesCollectionIntegrationTest {
         }
 
         @Test
-        void shouldLeaveRecipientStandingUntouchedOnShareAndUnshare() {
+        void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
             RecipesCollectionListDto collection = createRecipesCollection(client, "Shared Collection");
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
@@ -495,6 +503,7 @@ class RecipesCollectionIntegrationTest {
             createRecipesCollection(client, "Collection 2");
             assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
+            // Deliberate drift: no business path can move used away from the owned count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'RECIPES_COLLECTION' AND subject = :subject")
                     .param("subject", SUBJECT)
                     .update();
@@ -508,6 +517,7 @@ class RecipesCollectionIntegrationTest {
         @Test
         void shouldClearUsageForSubjectThatOwnsNothing() {
             String ghost = "ghost@example.com";
+            // A usage row for a subject that owns nothing: no business path leaves one behind.
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
                             VALUES ('RECIPES_COLLECTION', :subject, 5, now())
@@ -518,65 +528,48 @@ class RecipesCollectionIntegrationTest {
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(limitsFacade.standing(ghost, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance(ghost, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE)).isEmpty();
         }
 
         @Test
         void shouldSpareFlowConfiguredSubjectFromRecompute() {
-            String flowSubject = "flow-subject@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+            RestClient client = restClient();
+            setLimitQuota("RECIPES_COLLECTION", SUBJECT, "FLOW", 5);
+            try {
+                RecipesCollectionListDto first = createRecipesCollection(client, "Flow 1");
+                createRecipesCollection(client, "Flow 2");
+                // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
+                deleteRecipesCollection(client, first.id());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
 
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-                            VALUES (:id, 'RECIPES_COLLECTION', :subject, 'FLOW', 5, NULL)
-                            """)
-                    .param("id", UUID.randomUUID())
-                    .param("subject", flowSubject)
-                    .update();
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('RECIPES_COLLECTION', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", flowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
+                RecomputeMigration.run(dataSource);
 
-            LimitStanding before = limitsFacade.standing(flowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
-
-            RecomputeMigration.run(dataSource);
-
-            LimitStanding after = limitsFacade.standing(flowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            } finally {
+                setLimitQuota("RECIPES_COLLECTION", SUBJECT, 2);
+                limitsFacade.clear(SUBJECT, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE);
+            }
         }
 
         @Test
         void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
-            String defaultFlowSubject = "default-flow@example.com";
-            Instant periodStart = Instant.now().minus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
-
-            jdbcClient.sql("""
-                            INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
-                            VALUES ('RECIPES_COLLECTION', :subject, 3, :periodStart)
-                            """)
-                    .param("subject", defaultFlowSubject)
-                    .param("periodStart", Timestamp.from(periodStart))
-                    .update();
-            jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'FLOW' WHERE resource = 'RECIPES_COLLECTION' AND subject IS NULL")
-                    .update();
-
-            LimitStanding before = limitsFacade.standing(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
-
+            String defaultFlowSubject = "user1@example.com";
+            RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            setLimitQuota("RECIPES_COLLECTION", null, "FLOW", 5);
             try {
-                RecomputeMigration.run(dataSource);
-            } finally {
-                jdbcClient.sql("UPDATE recipai.limit_config SET kind = 'STOCK' WHERE resource = 'RECIPES_COLLECTION' AND subject IS NULL")
-                        .update();
-            }
+                RecipesCollectionListDto first = createRecipesCollection(client, "Flow 1");
+                createRecipesCollection(client, "Flow 2");
+                // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
+                deleteRecipesCollection(client, first.id());
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
 
-            LimitStanding after = limitsFacade.standing(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE).orElseThrow();
-            assertThat(after.used()).isEqualTo(before.used());
-            assertThat(after.periodStart()).isEqualTo(before.periodStart());
+                RecomputeMigration.run(dataSource);
+
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
+            } finally {
+                setLimitQuota("RECIPES_COLLECTION", null, "STOCK", 2);
+                limitsFacade.clear(defaultFlowSubject, RecipesCollectionService.RECIPES_COLLECTION_RESOURCE);
+            }
         }
 
         @Test
@@ -594,9 +587,9 @@ class RecipesCollectionIntegrationTest {
             assertThat(secondRun).isEqualTo(1);
         }
 
-        private Map<String, Object> getUsage(RestClient client) {
+        private Map<String, Object> getBalance(RestClient client) {
             return client.get()
-                    .uri("/collections/usage")
+                    .uri("/collections/balance")
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {
                     });
@@ -605,14 +598,14 @@ class RecipesCollectionIntegrationTest {
         @Test
         void shouldTrackUsageAcrossCreateAndDelete() {
             RestClient client = restClient();
-            assertThat(getUsage(client).get("used")).isEqualTo(0);
+            assertThat(getBalance(client).get("used")).isEqualTo(0);
 
             RecipesCollectionListDto collection1 = createRecipesCollection(client, "Collection 1");
             createRecipesCollection(client, "Collection 2");
-            assertThat(getUsage(client).get("used")).isEqualTo(2);
+            assertThat(getBalance(client).get("used")).isEqualTo(2);
 
             deleteRecipesCollection(client, collection1.id());
-            assertThat(getUsage(client).get("used")).isEqualTo(1);
+            assertThat(getBalance(client).get("used")).isEqualTo(1);
         }
     }
 }
