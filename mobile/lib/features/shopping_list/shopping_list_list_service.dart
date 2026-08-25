@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
-import '../limits/limit_usage.dart';
+import '../limits/limit_balance.dart';
 import 'shopping_list.dart';
 import 'shopping_list_repository.dart';
 
@@ -22,24 +22,24 @@ class ShoppingListListService {
   ValueListenable<AsyncValue<List<ShoppingList>>> get shoppingLists =>
       _shoppingLists;
 
-  final ValueNotifier<AsyncValue<LimitUsage>> _listUsage = ValueNotifier(
+  final ValueNotifier<AsyncValue<LimitBalance>> _listBalance = ValueNotifier(
     const AsyncValue.loading(),
   );
 
-  ValueListenable<AsyncValue<LimitUsage>> get listUsage => _listUsage;
+  ValueListenable<AsyncValue<LimitBalance>> get listBalance => _listBalance;
 
   bool _isLoadShoppingListsRunning = false;
   bool _isCreateShoppingListRunning = false;
-  bool _isLoadListUsageRunning = false;
+  bool _isLoadListBalanceRunning = false;
 
-  Future<void> loadListUsage() async {
-    if (_isLoadListUsageRunning) return;
-    _isLoadListUsageRunning = true;
-    _listUsage.value = await AsyncValue.guardAsync(() async {
+  Future<void> loadListBalance() async {
+    if (_isLoadListBalanceRunning) return;
+    _isLoadListBalanceRunning = true;
+    _listBalance.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      return _shoppingListRepository.fetchListUsage(token);
+      return _shoppingListRepository.fetchListBalance(token);
     });
-    _isLoadListUsageRunning = false;
+    _isLoadListBalanceRunning = false;
   }
 
   Future<void> loadShoppingLists() async {
@@ -75,6 +75,6 @@ class ShoppingListListService {
 
   void dispose() {
     _shoppingLists.dispose();
-    _listUsage.dispose();
+    _listBalance.dispose();
   }
 }

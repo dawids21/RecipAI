@@ -132,8 +132,8 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `ui.md` — calendar and planning screens, shopping list generation wizard, and all planning flows
 
 #### Limits (`mobile/modules/limits/`)
-- `codebase_structure.md` — file tree for `features/limits/`, and where each capped resource's count lives instead
-- `ui.md` — the `used / limit` counter widget, how caps and counts are loaded, the fail-open rule, and the surfaces that block at the cap
+- `codebase_structure.md` — file tree for `features/limits/`, and where each limited resource's count lives instead
+- `ui.md` — the `used / limit` counter widget, how quotas and counts are loaded, the fail-open rule, and the surfaces that block at the quota
 
 ---
 

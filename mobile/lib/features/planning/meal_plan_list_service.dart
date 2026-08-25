@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
-import '../limits/limit_usage.dart';
+import '../limits/limit_balance.dart';
 import 'meal_plan.dart';
 import 'meal_plan_repository.dart';
 import 'meal_plan_visibility_service.dart';
@@ -26,23 +26,23 @@ class MealPlanListService {
 
   ValueListenable<AsyncValue<List<MealPlan>>> get mealPlans => _mealPlans;
 
-  final ValueNotifier<AsyncValue<LimitUsage>> _planUsage = ValueNotifier(
+  final ValueNotifier<AsyncValue<LimitBalance>> _planBalance = ValueNotifier(
     const AsyncValue.loading(),
   );
 
-  ValueListenable<AsyncValue<LimitUsage>> get planUsage => _planUsage;
+  ValueListenable<AsyncValue<LimitBalance>> get planBalance => _planBalance;
 
   bool _isLoadMealPlansRunning = false;
-  bool _isLoadPlanUsageRunning = false;
+  bool _isLoadPlanBalanceRunning = false;
 
-  Future<void> loadPlanUsage() async {
-    if (_isLoadPlanUsageRunning) return;
-    _isLoadPlanUsageRunning = true;
-    _planUsage.value = await AsyncValue.guardAsync(() async {
+  Future<void> loadPlanBalance() async {
+    if (_isLoadPlanBalanceRunning) return;
+    _isLoadPlanBalanceRunning = true;
+    _planBalance.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      return _repository.fetchPlanUsage(idToken: token);
+      return _repository.fetchPlanBalance(idToken: token);
     });
-    _isLoadPlanUsageRunning = false;
+    _isLoadPlanBalanceRunning = false;
   }
 
   Future<void> loadMealPlans() async {
@@ -107,6 +107,6 @@ class MealPlanListService {
 
   void dispose() {
     _mealPlans.dispose();
-    _planUsage.dispose();
+    _planBalance.dispose();
   }
 }

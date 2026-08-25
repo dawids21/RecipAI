@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme.dart';
-import '../../limits/limit_cap.dart';
 import '../../limits/limit_counter.dart';
 import '../../limits/limit_gate.dart';
+import '../../limits/limit_quota.dart';
 import '../../limits/limits_service.dart';
 import 'recipes_collection_list_service.dart';
 
@@ -31,7 +31,7 @@ class _RecipesCollectionCreateDialogState
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    widget.recipesCollectionListService.loadCollectionUsage();
+    widget.recipesCollectionListService.loadCollectionBalance();
   }
 
   @override
@@ -63,16 +63,20 @@ class _RecipesCollectionCreateDialogState
             autofocus: true,
           ),
           LimitGate(
-            usage: widget.recipesCollectionListService.collectionUsage,
-            cap: widget.limitsService.capFor(LimitResources.recipesCollection),
-            builder: (context, usage, cap) {
-              if (usage == null || cap == null) return const SizedBox.shrink();
+            balance: widget.recipesCollectionListService.collectionBalance,
+            quota: widget.limitsService.quotaFor(
+              LimitResources.recipesCollection,
+            ),
+            builder: (context, balance, quota) {
+              if (balance == null || quota == null) {
+                return const SizedBox.shrink();
+              }
               return Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.small),
                 child: LimitCounter(
-                  used: usage.used,
-                  limit: cap.limit,
-                  resetsInSeconds: usage.resetsInSeconds,
+                  used: balance.used,
+                  limit: quota.limit,
+                  resetsInSeconds: balance.resetsInSeconds,
                   noun: 'collections',
                 ),
               );
@@ -86,11 +90,13 @@ class _RecipesCollectionCreateDialogState
           onPressed: () => context.pop(null),
         ),
         LimitGate(
-          usage: widget.recipesCollectionListService.collectionUsage,
-          cap: widget.limitsService.capFor(LimitResources.recipesCollection),
-          builder: (context, usage, cap) {
+          balance: widget.recipesCollectionListService.collectionBalance,
+          quota: widget.limitsService.quotaFor(
+            LimitResources.recipesCollection,
+          ),
+          builder: (context, balance, quota) {
             final blocked =
-                usage != null && cap != null && usage.used >= cap.limit;
+                balance != null && quota != null && balance.used >= quota.limit;
             return TextButton(
               onPressed: blocked ? null : _handleCreate,
               child: const Text('Create'),

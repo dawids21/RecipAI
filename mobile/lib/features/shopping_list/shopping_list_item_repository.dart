@@ -259,7 +259,7 @@ enum DiscardReason {
   /// 400/403 — validation error or lost editor access; can never succeed.
   rejected,
 
-  /// 429 on create — the list is at its item cap; waiting cannot resolve a stock cap.
+  /// 429 on create — the list is at its item quota; waiting cannot resolve a stock quota.
   limitReached,
 }
 

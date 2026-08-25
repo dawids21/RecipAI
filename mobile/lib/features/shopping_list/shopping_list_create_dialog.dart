@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
-import '../limits/limit_cap.dart';
 import '../limits/limit_counter.dart';
 import '../limits/limit_gate.dart';
+import '../limits/limit_quota.dart';
 import '../limits/limits_service.dart';
 import 'shopping_list_list_service.dart';
 
@@ -30,7 +30,7 @@ class _ShoppingListCreateDialogState extends State<ShoppingListCreateDialog> {
   void initState() {
     super.initState();
     _controller = TextEditingController();
-    widget.shoppingListListService.loadListUsage();
+    widget.shoppingListListService.loadListBalance();
   }
 
   @override
@@ -63,16 +63,18 @@ class _ShoppingListCreateDialogState extends State<ShoppingListCreateDialog> {
             autofocus: true,
           ),
           LimitGate(
-            usage: widget.shoppingListListService.listUsage,
-            cap: widget.limitsService.capFor(LimitResources.shoppingList),
-            builder: (context, usage, cap) {
-              if (usage == null || cap == null) return const SizedBox.shrink();
+            balance: widget.shoppingListListService.listBalance,
+            quota: widget.limitsService.quotaFor(LimitResources.shoppingList),
+            builder: (context, balance, quota) {
+              if (balance == null || quota == null) {
+                return const SizedBox.shrink();
+              }
               return Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.small),
                 child: LimitCounter(
-                  used: usage.used,
-                  limit: cap.limit,
-                  resetsInSeconds: usage.resetsInSeconds,
+                  used: balance.used,
+                  limit: quota.limit,
+                  resetsInSeconds: balance.resetsInSeconds,
                   noun: 'lists',
                 ),
               );
@@ -86,11 +88,11 @@ class _ShoppingListCreateDialogState extends State<ShoppingListCreateDialog> {
           child: const Text('Cancel'),
         ),
         LimitGate(
-          usage: widget.shoppingListListService.listUsage,
-          cap: widget.limitsService.capFor(LimitResources.shoppingList),
-          builder: (context, usage, cap) {
+          balance: widget.shoppingListListService.listBalance,
+          quota: widget.limitsService.quotaFor(LimitResources.shoppingList),
+          builder: (context, balance, quota) {
             final blocked =
-                usage != null && cap != null && usage.used >= cap.limit;
+                balance != null && quota != null && balance.used >= quota.limit;
             return TextButton(
               onPressed: blocked ? null : _handleCreate,
               child: const Text('Create'),

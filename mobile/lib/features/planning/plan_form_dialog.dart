@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:recipai_mobile/features/planning/plan_color_picker.dart';
 
 import '../../core/theme.dart';
-import '../limits/limit_cap.dart';
 import '../limits/limit_counter.dart';
 import '../limits/limit_gate.dart';
+import '../limits/limit_quota.dart';
 import '../limits/limits_service.dart';
 import 'meal_plan.dart';
 import 'meal_plan_list_service.dart';
@@ -44,7 +44,7 @@ class _PlanFormDialogState extends State<PlanFormDialog> {
     _nameController = TextEditingController(text: widget.existingPlan?.name);
     _selectedColor = widget.existingPlan?.color;
     if (widget.existingPlan == null) {
-      widget.mealPlanListService?.loadPlanUsage();
+      widget.mealPlanListService?.loadPlanBalance();
     }
   }
 
@@ -122,16 +122,18 @@ class _PlanFormDialogState extends State<PlanFormDialog> {
               if (!_isEditMode && widget.mealPlanListService != null) ...[
                 const SizedBox(height: AppSpacing.small),
                 LimitGate(
-                  usage: widget.mealPlanListService!.planUsage,
-                  cap: widget.limitsService?.capFor(LimitResources.mealPlan),
-                  builder: (context, usage, cap) {
-                    if (usage == null || cap == null) {
+                  balance: widget.mealPlanListService!.planBalance,
+                  quota: widget.limitsService?.quotaFor(
+                    LimitResources.mealPlan,
+                  ),
+                  builder: (context, balance, quota) {
+                    if (balance == null || quota == null) {
                       return const SizedBox.shrink();
                     }
                     return LimitCounter(
-                      used: usage.used,
-                      limit: cap.limit,
-                      resetsInSeconds: usage.resetsInSeconds,
+                      used: balance.used,
+                      limit: quota.limit,
+                      resetsInSeconds: balance.resetsInSeconds,
                       noun: 'plans',
                     );
                   },
@@ -148,11 +150,13 @@ class _PlanFormDialogState extends State<PlanFormDialog> {
         ),
         if (!_isEditMode && widget.mealPlanListService != null)
           LimitGate(
-            usage: widget.mealPlanListService!.planUsage,
-            cap: widget.limitsService?.capFor(LimitResources.mealPlan),
-            builder: (context, usage, cap) {
+            balance: widget.mealPlanListService!.planBalance,
+            quota: widget.limitsService?.quotaFor(LimitResources.mealPlan),
+            builder: (context, balance, quota) {
               final blocked =
-                  usage != null && cap != null && usage.used >= cap.limit;
+                  balance != null &&
+                  quota != null &&
+                  balance.used >= quota.limit;
               return FilledButton(
                 onPressed: blocked ? null : _handleSave,
                 child: const Text('Create'),

@@ -26,7 +26,7 @@ mobile/lib/features/shopping_list/
 ├── shopping_list_review_widget.dart    # Review widget with ReorderableListView, inline editing, and checkbox selection
 ├── shopping_list_detail_screen.dart    # Shopping list detail screen; raises the rejection toasts, suppressing repeats of the list-is-full one
 ├── shopping_list_permission.dart       # Shopping list permission model
-├── shopping_list_create_dialog.dart    # Dialog widget for creating shopping lists; loads the count on open and blocks at the cap
+├── shopping_list_create_dialog.dart    # Dialog widget for creating shopping lists; loads the count on open and blocks at the quota
 ├── shopping_list_rename_dialog.dart    # Dialog widget for renaming shopping lists
 └── shopping_list_sharing_dialog.dart   # Dialog widget for sharing shopping lists
 ```

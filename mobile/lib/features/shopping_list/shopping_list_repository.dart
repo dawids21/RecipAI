@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/app_config.dart';
-import '../limits/limit_cap.dart';
-import '../limits/limit_usage.dart';
+import '../limits/limit_balance.dart';
+import '../limits/limit_quota.dart';
 import 'shopping_list.dart';
 import 'shopping_list_permission.dart';
 
@@ -21,23 +21,23 @@ class ShoppingListRepository {
     };
   }
 
-  Future<LimitUsage> fetchListUsage(String? idToken) async {
+  Future<LimitBalance> fetchListBalance(String? idToken) async {
     final headers = _getAuthHeaders(idToken);
     final response = await _client.get(
-      Uri.parse('$_baseUrl/shopping-lists/usage'),
+      Uri.parse('$_baseUrl/shopping-lists/balance'),
       headers: headers,
     );
 
     if (response.statusCode == 200) {
-      return LimitUsage.fromJson(json.decode(response.body));
+      return LimitBalance.fromJson(json.decode(response.body));
     } else {
       throw Exception(
-        'Failed to load shopping list usage: ${response.statusCode}',
+        'Failed to load shopping list balance: ${response.statusCode}',
       );
     }
   }
 
-  Future<LimitCap?> fetchItemCap(String listId, String? idToken) async {
+  Future<LimitQuota?> fetchItemQuota(String listId, String? idToken) async {
     final headers = _getAuthHeaders(idToken);
     final response = await _client.get(
       Uri.parse('$_baseUrl/shopping-lists/$listId/limits'),
@@ -45,7 +45,7 @@ class ShoppingListRepository {
     );
 
     if (response.statusCode == 200) {
-      return LimitCap.fromJson(json.decode(response.body));
+      return LimitQuota.fromJson(json.decode(response.body));
     } else if (response.statusCode == 204) {
       return null;
     } else if (response.statusCode == 403) {
@@ -53,7 +53,7 @@ class ShoppingListRepository {
     } else if (response.statusCode == 404) {
       throw Exception('Shopping list not found');
     } else {
-      throw Exception('Failed to load item cap: ${response.statusCode}');
+      throw Exception('Failed to load item quota: ${response.statusCode}');
     }
   }
 

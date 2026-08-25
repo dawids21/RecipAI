@@ -8,7 +8,7 @@
   performing the create with the name it returns.
 - Shopping List Create Dialog (`shopping_list_create_dialog.dart`) - Stateful dialog widget for creating shopping lists
   with TextField input and proper TextEditingController lifecycle management. Loads the list count on open, shows the
-  `used / limit` counter under the field, and disables Create at the cap (see `docs/mobile/modules/limits/ui.md`).
+  `used / limit` counter under the field, and disables Create at the quota (see `docs/mobile/modules/limits/ui.md`).
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline
   item widgets. Add, edit, check/uncheck, delete, and drag-and-drop reorder all apply to the local item store and
   render instantly while offline, surviving an app restart. Items are organized into two sections: active items

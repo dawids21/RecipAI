@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 
 import '../../core/app_config.dart';
-import '../limits/limit_usage.dart';
+import '../limits/limit_balance.dart';
 import 'extracted_recipe.dart';
 
 class ExtractionRepository {
@@ -22,18 +22,18 @@ class ExtractionRepository {
     };
   }
 
-  Future<LimitUsage> fetchExtractionUsage(String? idToken) async {
+  Future<LimitBalance> fetchExtractionBalance(String? idToken) async {
     final headers = _getAuthHeaders(idToken);
     final response = await _client.get(
-      Uri.parse('$_baseUrl/extract/usage'),
+      Uri.parse('$_baseUrl/extract/balance'),
       headers: headers,
     );
 
     if (response.statusCode == 200) {
-      return LimitUsage.fromJson(jsonDecode(response.body));
+      return LimitBalance.fromJson(jsonDecode(response.body));
     } else {
       throw Exception(
-        'Failed to load extraction usage: ${response.statusCode}',
+        'Failed to load extraction balance: ${response.statusCode}',
       );
     }
   }

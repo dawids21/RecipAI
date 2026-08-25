@@ -6,9 +6,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/routes.dart';
 import '../../core/theme.dart';
-import '../limits/limit_cap.dart';
 import '../limits/limit_counter.dart';
 import '../limits/limit_gate.dart';
+import '../limits/limit_quota.dart';
 import '../limits/limits_service.dart';
 import '../recipe/initial_recipe_form_data.dart';
 import 'extraction_service.dart';
@@ -37,7 +37,7 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
   @override
   void initState() {
     super.initState();
-    widget.extractionService.loadExtractionUsage();
+    widget.extractionService.loadExtractionBalance();
     if (widget.initialImageFile != null) {
       _selectedImage = XFile(widget.initialImageFile!.path);
     }
@@ -189,16 +189,16 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
               ),
               const SizedBox(height: AppSpacing.small),
               LimitGate(
-                usage: widget.extractionService.extractionUsage,
-                cap: widget.limitsService.capFor(LimitResources.extraction),
-                builder: (context, usage, cap) {
-                  if (usage == null || cap == null) {
+                balance: widget.extractionService.extractionBalance,
+                quota: widget.limitsService.quotaFor(LimitResources.extraction),
+                builder: (context, balance, quota) {
+                  if (balance == null || quota == null) {
                     return const SizedBox.shrink();
                   }
                   return LimitCounter(
-                    used: usage.used,
-                    limit: cap.limit,
-                    resetsInSeconds: usage.resetsInSeconds,
+                    used: balance.used,
+                    limit: quota.limit,
+                    resetsInSeconds: balance.resetsInSeconds,
                     noun: 'extractions',
                   );
                 },
@@ -206,11 +206,15 @@ class _ImageExtractionScreenState extends State<ImageExtractionScreen> {
               if (_selectedImage != null) ...[
                 const SizedBox(height: AppSpacing.large),
                 LimitGate(
-                  usage: widget.extractionService.extractionUsage,
-                  cap: widget.limitsService.capFor(LimitResources.extraction),
-                  builder: (context, usage, cap) {
+                  balance: widget.extractionService.extractionBalance,
+                  quota: widget.limitsService.quotaFor(
+                    LimitResources.extraction,
+                  ),
+                  builder: (context, balance, quota) {
                     final blocked =
-                        usage != null && cap != null && usage.used >= cap.limit;
+                        balance != null &&
+                        quota != null &&
+                        balance.used >= quota.limit;
                     return ElevatedButton(
                       onPressed: (_isUploading || blocked)
                           ? null

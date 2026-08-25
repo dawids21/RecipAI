@@ -59,7 +59,7 @@ Key rules:
   calls register, so it disposes the instances the test is about to use — surfacing as a
   "used after being disposed" failure in `tearDown` rather than where it was caused.
 - Call `setup*()` functions in the same order as `main()` so cross-feature `getIt<>` lookups inside service constructors resolve correctly.
-- Stub `fetchCaps` on the limits repository before `setupLimits()` — `LimitsService` subscribes to the auth state at construction and loads caps on the flip to signed-in, so an unstubbed mock lets a real HTTP call escape the test.
+- Stub `fetchQuotas` on the limits repository before `setupLimits()` — `LimitsService` subscribes to the auth state at construction and loads quotas on the flip to signed-in, so an unstubbed mock lets a real HTTP call escape the test.
 
 ## Writing mocks with mocktail
 

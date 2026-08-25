@@ -38,15 +38,15 @@ A widget's constructor should ask for what the widget actually uses, not for the
   value came from.
 
 ```dart
-// Correct — LimitGate depends on one cap, so it says so
+// Correct — LimitGate depends on one quota, so it says so
 class LimitGate extends StatelessWidget {
-  final ValueListenable<AsyncValue<LimitUsage>> usage;
-  final ValueListenable<LimitCap?>? cap;
+  final ValueListenable<AsyncValue<LimitBalance>> balance;
+  final ValueListenable<LimitQuota?>? quota;
   ...
 }
 LimitGate(
-  usage: widget.recipeListService.recipeUsage,
-  cap: widget.limitsService.capFor(LimitResources.recipe),
+  balance: widget.recipeListService.recipeBalance,
+  quota: widget.limitsService.quotaFor(LimitResources.recipe),
   builder: ...,
 );
 
@@ -60,11 +60,11 @@ class LimitGate extends StatelessWidget {
 
 Why: a widget holding a service can reach anything on it, so its real dependencies are invisible both at the call
 site and in tests, and the caller has to have the service even when one number would do. A widget taking
-`ValueListenable<LimitCap?>` states its dependency in its signature and can be driven from a bare `ValueNotifier`.
+`ValueListenable<LimitQuota?>` states its dependency in its signature and can be driven from a bare `ValueNotifier`.
 
 When a display-only widget would need several members of one service, that is the signal to either keep the
 composition in the parent that already owns the service, or have the service expose a narrower view — as
-`LimitsService.capFor(resource)` hands out one resource's cap instead of the whole caps map.
+`LimitsService.quotaFor(resource)` hands out one resource's quota instead of the whole quotas map.
 
 ### Feature-Based Directory Structure
 

@@ -67,7 +67,7 @@
   PopupMenuButton on each list item, and error handling with retry functionality.
 - Recipes Collection Create Dialog (`collection/recipes_collection_create_dialog.dart`) - Stateful dialog widget for
   creating recipe collections with TextField input and proper TextEditingController lifecycle management. Loads the
-  collection count on open, shows the `used / limit` counter under the field, and disables Create at the cap. Returns
+  collection count on open, shows the `used / limit` counter under the field, and disables Create at the quota. Returns
   the trimmed name to the list screen, which performs the create.
 - Recipes Collection List Item (`collection/recipes_collection_list_item.dart`) - Reusable Card widget for displaying
   individual recipe collections in a list with title, tap handling, and PopupMenuButton for rename/share/delete actions.

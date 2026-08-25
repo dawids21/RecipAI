@@ -3,7 +3,7 @@
 ## Screens
 
 Both extraction screens load the caller's extraction usage on open, render the `used / limit` counter (with
-"resets in ..." when the standing carries a countdown) and disable the extract action at the cap — see
+"resets in ..." when the balance carries a countdown) and disable the extract action at the quota — see
 `docs/mobile/modules/limits/ui.md`.
 
 - URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with

@@ -2,9 +2,9 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection.dart';
 
-import '../limits/limit_cap.dart';
 import '../limits/limit_counter.dart';
 import '../limits/limit_gate.dart';
+import '../limits/limit_quota.dart';
 import '../limits/limits_service.dart';
 import 'collection/recipes_collection_list_service.dart';
 import 'initial_recipe_form_data.dart';
@@ -35,7 +35,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   @override
   void initState() {
     super.initState();
-    widget.recipeListService.loadRecipeUsage();
+    widget.recipeListService.loadRecipeBalance();
   }
 
   RecipesCollection? _getSelectedCollection() {
@@ -75,19 +75,19 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       body: SafeArea(
         top: false,
         child: LimitGate(
-          usage: widget.recipeListService.recipeUsage,
-          cap: widget.limitsService.capFor(LimitResources.recipe),
-          builder: (context, usage, cap) {
-            final limitCounter = (usage != null && cap != null)
+          balance: widget.recipeListService.recipeBalance,
+          quota: widget.limitsService.quotaFor(LimitResources.recipe),
+          builder: (context, balance, quota) {
+            final limitCounter = (balance != null && quota != null)
                 ? LimitCounter(
-                    used: usage.used,
-                    limit: cap.limit,
-                    resetsInSeconds: usage.resetsInSeconds,
+                    used: balance.used,
+                    limit: quota.limit,
+                    resetsInSeconds: balance.resetsInSeconds,
                     noun: 'recipes',
                   )
                 : null;
             final saveBlocked =
-                usage != null && cap != null && usage.used >= cap.limit;
+                balance != null && quota != null && balance.used >= quota.limit;
 
             return RecipeFormWidget(
               initialFormData: widget.initialFormData,

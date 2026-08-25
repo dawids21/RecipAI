@@ -67,7 +67,7 @@ void main() {
     mealPlanRepository = MockMealPlanRepository();
     limitsRepository = MockLimitsRepository();
 
-    when(() => limitsRepository.fetchCaps(any())).thenAnswer((_) async => {});
+    when(() => limitsRepository.fetchQuotas(any())).thenAnswer((_) async => {});
     when(
       () => authRepository.watchAuthState(),
     ).thenAnswer((_) => const Stream<AuthUser?>.empty());

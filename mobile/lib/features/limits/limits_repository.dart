@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/app_config.dart';
-import 'limit_cap.dart';
+import 'limit_quota.dart';
 
 class LimitsRepository {
   final http.Client _client = http.Client();
@@ -18,7 +18,7 @@ class LimitsRepository {
     };
   }
 
-  Future<Map<String, LimitCap>> fetchCaps(String? idToken) async {
+  Future<Map<String, LimitQuota>> fetchQuotas(String? idToken) async {
     final headers = _getAuthHeaders(idToken);
     final response = await _client.get(
       Uri.parse('$_baseUrl/limits'),
@@ -27,10 +27,10 @@ class LimitsRepository {
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = json.decode(response.body);
-      final caps = jsonList
-          .map((json) => LimitCap.fromJson(json as Map<String, dynamic>))
+      final quotas = jsonList
+          .map((json) => LimitQuota.fromJson(json as Map<String, dynamic>))
           .toList();
-      return {for (final cap in caps) cap.resource: cap};
+      return {for (final quota in quotas) quota.resource: quota};
     } else {
       throw Exception('Failed to load limits: ${response.statusCode}');
     }

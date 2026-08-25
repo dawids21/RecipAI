@@ -107,9 +107,9 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
   an append-only outbox; edits render instantly and persist across restarts while offline. Item state syncs to the
   server by pushing the outbox (FIFO drain with version-gated conflict resolution) and pulling via a background
   full-list poll that diffs others' changes into the local store
-- **`limits`** — holds the session's caps (one `GET /limits` on sign-in, cleared on sign-out) and the
-  `used / limit` counter widget every capped surface renders. The count beside it comes from the
-  feature that owns the resource, so each surface can disable its action at the cap; a missing cap or a
+- **`limits`** — holds the session's quotas (one `GET /limits` on sign-in, cleared on sign-out) and the
+  `used / limit` counter widget every limited surface renders. The count beside it comes from the
+  feature that owns the resource, so each surface can disable its action at the quota; a missing quota or a
   failed count leaves the action enabled and the server the only thing that refuses
 
 ### Routing

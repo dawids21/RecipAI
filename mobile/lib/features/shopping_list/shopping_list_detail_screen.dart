@@ -368,14 +368,14 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
     );
   }
 
-  bool _atItemCap() {
-    final cap = service.itemCap.value.valueOrNull;
+  bool _atItemQuota() {
+    final quota = service.itemQuota.value;
     final count = service.items.value.valueOrNull?.length;
-    return cap != null && count != null && count >= cap.limit;
+    return quota != null && count != null && count >= quota.limit;
   }
 
   void _createEphemeralItemAfter(int index) {
-    if (_atItemCap()) return;
+    if (_atItemQuota()) return;
     setState(() {
       _ephemeralAfterIndex = index;
     });
@@ -696,24 +696,23 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                                 ),
 
                                 ValueListenableBuilder(
-                                  valueListenable: service.itemCap,
-                                  builder: (context, capAsync, _) {
-                                    final cap = capAsync.valueOrNull;
-                                    final atCap =
-                                        cap != null &&
-                                        flatItems.length >= cap.limit;
+                                  valueListenable: service.itemQuota,
+                                  builder: (context, quota, _) {
+                                    final atQuota =
+                                        quota != null &&
+                                        flatItems.length >= quota.limit;
                                     return Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        if (cap != null)
+                                        if (quota != null)
                                           Padding(
                                             padding: const EdgeInsets.only(
                                               bottom: AppSpacing.extraSmall,
                                             ),
                                             child: LimitCounter(
                                               used: flatItems.length,
-                                              limit: cap.limit,
+                                              limit: quota.limit,
                                               noun: 'items',
                                             ),
                                           ),
@@ -721,7 +720,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
                                           key: const ValueKey('add-item'),
                                           onAdd: (result) =>
                                               service.addItem(result),
-                                          enabled: !atCap,
+                                          enabled: !atQuota,
                                         ),
                                       ],
                                     );

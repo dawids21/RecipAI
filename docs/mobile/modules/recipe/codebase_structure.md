@@ -27,7 +27,7 @@ mobile/lib/features/recipe/
 │   ├── recipes_collection_setup.dart   # Dependency injection setup for collections
 │   ├── recipes_collection_list_screen.dart # Collections list screen with CRUD operations
 │   ├── recipes_collection_list_item.dart # Reusable collection list item widget
-│   ├── recipes_collection_create_dialog.dart # Dialog for creating collections; loads the count on open and blocks at the cap
+│   ├── recipes_collection_create_dialog.dart # Dialog for creating collections; loads the count on open and blocks at the quota
 │   └── recipes_collection_rename_dialog.dart # Dialog for renaming collections
 └── ...                                 # Other screens, models, and widgets
 ```

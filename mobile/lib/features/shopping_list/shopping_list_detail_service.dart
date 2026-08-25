@@ -7,7 +7,7 @@ import '../../core/async_value.dart';
 import '../../core/widgets/sharing_dialog.dart';
 import '../../shared/user_role.dart';
 import '../auth/auth_service.dart';
-import '../limits/limit_cap.dart';
+import '../limits/limit_quota.dart';
 import 'local_shopping_list_item.dart';
 import 'shopping_list_item_store_service.dart';
 import 'shopping_list_item_widget.dart';
@@ -57,11 +57,9 @@ class ShoppingListDetailService {
 
   ValueListenable<AsyncValue<List<LocalShoppingListItem>>> get items => _items;
 
-  final ValueNotifier<AsyncValue<LimitCap?>> _itemCap = ValueNotifier(
-    const AsyncValue.loading(),
-  );
+  final ValueNotifier<LimitQuota?> _itemQuota = ValueNotifier(null);
 
-  ValueListenable<AsyncValue<LimitCap?>> get itemCap => _itemCap;
+  ValueListenable<LimitQuota?> get itemQuota => _itemQuota;
 
   String? _openListId;
   ValueListenable<List<LocalShoppingListItem>>? _watchedListenable;
@@ -80,9 +78,9 @@ class ShoppingListDetailService {
   Future<void> openShoppingList(String listId) async {
     _openListId = listId;
     // The service is a lazy singleton reused across every detail-screen visit, so the previous
-    // list's cap has to go before the new one's is known — comparing this list's item count
-    // against another list's cap is the one direction the fail-open rule must exclude.
-    _itemCap.value = const AsyncValue.loading();
+    // list's quota has to go before the new one's is known — comparing this list's item count
+    // against another list's quota is the one direction the fail-open rule must exclude.
+    _itemQuota.value = null;
     await _store.openList(listId);
     final listenable = _store.watch(listId);
     _watchedListenable = listenable;
@@ -92,13 +90,20 @@ class ShoppingListDetailService {
     _syncService.startPolling(listId);
     unawaited(_syncService.requestDrain(listId));
 
-    final cap = await AsyncValue.guardAsync(() async {
+    LimitQuota? quota;
+    try {
       final token = await _authService.idToken;
-      return _shoppingListRepository.fetchItemCap(listId, token);
-    });
-    // A cap that arrives after the user has moved on belongs to a list nobody is looking at.
+      quota = await _shoppingListRepository.fetchItemQuota(listId, token);
+    } catch (error, stackTrace) {
+      _log.warning(
+        'Failed to load item quota (listId=$listId)',
+        error,
+        stackTrace,
+      );
+    }
+    // A quota that arrives after the user has moved on belongs to a list nobody is looking at.
     if (_openListId == listId) {
-      _itemCap.value = cap;
+      _itemQuota.value = quota;
     }
   }
 
@@ -374,6 +379,6 @@ class ShoppingListDetailService {
     _currentUserRole.dispose();
     _sharedUsers.dispose();
     _items.dispose();
-    _itemCap.dispose();
+    _itemQuota.dispose();
   }
 }
