@@ -7,12 +7,14 @@ disable-model-invocation: true
 # Implementing
 
 Execute a completed implementation plan: read it end-to-end, then write the real
-code, step by step. This is the final build step in the
-requirements → designing → task-planning → task-designing →
-implementation-planning → **implementing** workflow. Every decision has already
-been made upstream — your job is to carry out the plan faithfully, not to
-re-plan or re-design it on the fly. The plan is a contract: follow it, and when
-reality contradicts it, stop and say so rather than quietly improvising.
+code, step by step. This is where both tracks of the workflow converge: the full
+track arrives via `/designing` and `/task-planning`, the mid-size track goes
+straight from `/requirements-gathering` to `/task-designing`, and either way the
+last thing upstream is an `implementation-plan.md` for you to execute. Every
+decision has already been made there — your job is to carry out the plan
+faithfully, not to re-plan or re-design it on the fly. The plan is a contract:
+follow it, and when reality contradicts it, stop and say so rather than quietly
+improvising.
 
 ## Inputs
 

@@ -8,11 +8,13 @@ disable-model-invocation: true
 
 Produce a detailed, PR-ready implementation plan that an engineer (or another
 agent) can execute top-to-bottom without further interpretation. This is the
-terminal planning step in a requirements → designing (HLD) → task-planning →
-task-designing → implementation-planning workflow. The upstream planning is
-already done; this skill translates `task-design.md` (and, in multi-task mode,
-the matching entry from `tasks.md`) into a concrete, file-level plan grounded
-in the real codebase.
+terminal planning step on both tracks of the workflow — the full track reaches it
+through `/designing` and `/task-planning`, the mid-size track through
+`/task-designing` alone — and it is the last gate before code exists, where a
+wrong assumption is still only a paragraph. The upstream thinking is already
+done; this skill translates `task-design.md` (and, in multi-task mode, the
+matching entry from `tasks.md`) into a concrete, file-level plan grounded in the
+real codebase.
 
 ## Scope: code, not docs
 

@@ -7,13 +7,12 @@ disable-model-invocation: true
 # Docs Updating
 
 Bring the project's documentation back in line with reality after a feature
-lands. This is the final step in the
-requirements → designing → task-planning → task-designing →
-implementation-planning → implementing → **docs-updating** workflow. The code
-just changed; the docs that describe it may now be wrong, incomplete, or
-misleading. Your job is to find that drift and fix it — and *only* the
-documentation the project actually recognizes as documentation, not every prose
-file you can find.
+lands. On either track of the workflow this runs once `/implementing` is done and
+before `/reviewing` gates the commit — how much planning happened upstream
+doesn't change the job here. The code just changed; the docs that describe it
+may now be wrong, incomplete, or misleading. Your job is to find that drift and
+fix it — and *only* the documentation the project actually recognizes as
+documentation, not every prose file you can find.
 
 ## Inputs
 

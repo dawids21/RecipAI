@@ -10,7 +10,7 @@ Translates a completed `HLD.md` (high-level design) into a `tasks.md` — an ord
 
 ## Pipeline position
 
-This skill is the optional task-splitting step that follows high-level design:
+This skill belongs to the **full track** only — it is the optional task-splitting step between high-level design and per-task design:
 
 1. Requirements gathering → `requirements.md`
 2. High-level design (`/designing`) → `HLD.md`
@@ -19,7 +19,7 @@ This skill is the optional task-splitting step that follows high-level design:
 5. Implementation planning → per-task implementation plan
 6. Implementation → code
 
-This step is optional: run it when the HLD covers more than one cohesive unit of work. When the HLD is a single slice, skip straight to task-designing.
+The mid-size track has no `HLD.md` and never reaches this step; it goes from `requirements.md` straight to `/task-designing`. Even on the full track this step is optional: run it when the HLD covers more than one cohesive unit of work. When the HLD describes a single slice, skip straight to task-designing.
 
 ## Inputs
 

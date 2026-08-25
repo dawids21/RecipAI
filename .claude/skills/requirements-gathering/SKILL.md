@@ -24,7 +24,11 @@ Every requirements conversation should cover these areas. Not every area needs e
 
 ## Conversation flow
 
-The conversation has three phases: **foundation**, **deep dive**, **recap**. Do not skip phases.
+The conversation has three phases: **foundation**, **deep dive**, **recap**.
+Foundation and recap always run — the first is how you learn anything, the last
+is how the user corrects you. The deep dive in between is sized to what the
+foundation answers actually left open, which is sometimes several rounds and
+sometimes none.
 
 ### Phase 1: Foundation (one turn)
 
@@ -37,9 +41,16 @@ Format the batch as a numbered list so the user can answer question-by-question.
 
 **Skip obvious questions.** If the user's initial description already answers something, don't ask it again — acknowledge it briefly and move on.
 
-### Phase 2: Deep dive (multiple turns)
+### Phase 2: Deep dive (zero or more turns)
 
-Based on the user's answers, ask **one or two follow-up questions at a time**. Be Socratic — your job is to surface what the user hasn't articulated yet, not to walk a checklist.
+**Skip this phase entirely when the foundation answers already cover all seven
+dimensions** well enough to fill the template sections without hand-waving. A
+well-scoped task described by a user who has already thought about it can clear
+that bar in one round, and asking another round anyway is ritual, not scoping —
+it spends the user's patience on questions you already know the answers to. Go
+straight to the recap, where they still get to correct you.
+
+Otherwise, based on the user's answers, ask **one or two follow-up questions at a time**. Be Socratic — your job is to surface what the user hasn't articulated yet, not to walk a checklist.
 
 Good deep-dive questions:
 - Probe vague answers ("You said 'reasonable performance' — what's the actual threshold?")
@@ -67,9 +78,9 @@ Only after the user confirms do you write the file.
 
 ## When to stop asking questions
 
-End the deep dive and move to the recap when **any** of these is true:
+End the deep dive — possibly before it starts — and move to the recap when **any** of these is true:
 
-- **Coverage**: all seven dimensions have enough material to fill the corresponding template sections without leaving them blank or hand-wavy.
+- **Coverage**: all seven dimensions have enough material to fill the corresponding template sections without leaving them blank or hand-wavy. Test this against the foundation answers *before* asking any follow-ups — coverage reached there means a zero-round deep dive, not one round for form's sake.
 - **User signals done**: the user says "that's enough", "let's wrap up", "write the doc", "I don't know, let's figure it out later", or similar.
 - **Diminishing returns**: the user's last two or three answers have been short, uncertain, or variations of "I don't know yet". Further questions are unlikely to yield new scoping information and belong in the **Open questions** section of the doc.
 - **Drifting to implementation**: your next question would be about *how to build it* rather than *what we're building and why*. That's outside this skill's scope — stop and recap.
@@ -112,4 +123,4 @@ Tell the user where the file was written.
 > 6. **Edge cases**: what about recipes with images that failed to upload, or recipes mid-edit?
 > 7. **Integration points**: does this live as a new endpoint on the existing recipe controller, or a separate sharing service?
 
-After the user answers, move into deep-dive mode — one or two sharper follow-ups at a time.
+After the user answers, check coverage. If gaps remain, move into deep-dive mode — one or two sharper follow-ups at a time. If the answers already covered the seven dimensions, go straight to the recap.

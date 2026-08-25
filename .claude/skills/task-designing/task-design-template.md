@@ -75,7 +75,7 @@ probably belongs in an ADR from the HLD step, not here.>
 ## Assumptions to verify
 
 <Anything inferred rather than confirmed — about the codebase, the data, or the
-requirements. Each becomes a risk for the implementation planner if it doesn't
+requirements. Each becomes a risk for whoever implements this if it doesn't
 hold. Be honest; this is the section that prevents nasty surprises.
 
 - **Assumption:** <what you're assuming>
@@ -83,10 +83,11 @@ hold. Be honest; this is the section that prevents nasty surprises.
 
 If none: "_No outstanding assumptions._">
 
-## Required reading for implementation planning
+## Required reading
 
-<The specific files, docs, and ADRs the implementation-planning step should read
-first — the subset that matters for *this* task, each with a one-line reason.
+<The specific files, docs, and ADRs whoever picks this up next should read first
+— the implementation planner on the full track, the implementer on the mid-size
+track. The subset that matters for *this* task, each with a one-line reason.
 
 - `path/to/SiblingComponent` — pattern to mirror for <X>
 - `docs/ADRs/NNNN-<slug>.md` — the decision governing <Y>

@@ -1,16 +1,20 @@
 ---
 name: designing
-description: Establish the high-level design (HLD) for a planning task — explore distinct approaches, converge on one, and break the feature into areas with key behaviors. Use this skill whenever the user wants to design or architect a feature at a high level, weigh approaches, decide "how should we build this", or points at a `docs/tasks/YYYY-MM-DD-<task>/` folder with a `requirements.md` and asks for a design or HLD. Use it even when the user already has an approach in mind — the job is to make sure alternatives got a fair hearing first. Do NOT use this skill for technical/component-level design with method signatures or pseudo-code (that's task-designing), for scoping what the user wants (that's requirements-gathering), or for breaking work into PR-sized units (that's task-planning).
+description: Establish the high-level design (HLD) for a planning task — explore distinct approaches, converge on one, and break the feature into areas with key behaviors. Use this skill whenever the user wants to design or architect a feature at a high level, weigh approaches, decide "how should we build this", or points at a `docs/tasks/YYYY-MM-DD-<task>/` folder and asks for a design or HLD — working from `requirements.md` when it exists, otherwise from the prompt. Use it even when the user already has an approach in mind — the job is to make sure alternatives got a fair hearing first. Do NOT use this skill for technical/component-level design with method signatures or pseudo-code (that's task-designing), for scoping what the user wants (that's requirements-gathering), or for breaking work into PR-sized units (that's task-planning).
 disable-model-invocation: true
 ---
 
 # High-level design (HLD)
 
-Take confirmed requirements and produce an `HLD.md`: the second stage in the pipeline (requirements → **design** → task-planning → task-design → implementation). This step explores alternative approaches, commits to one, and breaks the feature into areas — all at the level of *approach and behavior*, never technical detail.
+Take the agreed problem — `requirements.md`, or a problem statement confirmed with the user — and produce an `HLD.md`: the architecture phase the full track runs (requirements → **design** → task-planning → task-design → implementation). This step explores alternative approaches, commits to one, and breaks the feature into areas — all at the level of *approach and behavior*, never technical detail.
 
 ## Inputs and outputs
 
-- **Input:** a task folder under `docs/tasks/YYYY-MM-DD-<task-name>/` containing `requirements.md` (authoritative — don't re-derive it) and optionally `research/*.md`. If `requirements.md` is missing, say so and suggest requirements-gathering rather than inventing scope.
+- **Input:** a task folder under `docs/tasks/YYYY-MM-DD-<task-name>/`, plus optionally `research/*.md`. Work from the highest rung of this ladder that exists — **a missing artifact is a legitimate track choice, not an error**, so walk up the chain instead of refusing to run:
+  1. `requirements.md` — authoritative scope; don't re-derive it.
+  2. **The user's prompt** — nothing written down. Capture a one-paragraph problem statement inline and get a yes on it *before* diverging, since approaches are only as good as the problem they answer.
+
+  Stop only at the bottom: if nothing describes the intent — no artifact, no prompt — say so and ask. Working from the prompt also means reading more of the codebase up front (it is your only grounding) and recording the skipped rung under **Assumptions** in the HLD, so downstream steps can see that scope was inferred rather than agreed.
 - **Output:** `docs/tasks/YYYY-MM-DD-<task-name>/HLD.md`, plus zero or more ADRs in `docs/ADRs/` (with an updated `docs/ADRs/INDEX.md`).
 
 If `HLD.md` already exists, you're iterating — read it first and treat it as the working state.
@@ -23,7 +27,7 @@ The reason: committing to technical detail now, before the approach is even sett
 
 ## Workflow
 
-Four phases: **diverge → probe → converge → structure**. Read `requirements.md` and any `research/*.md` first so your approaches are grounded in this system, not generic. Skim the relevant existing code and `docs/ADRs/INDEX.md` — prior decisions constrain the option space.
+Four phases: **diverge → probe → converge → structure**. Read `requirements.md` (or your confirmed problem statement) and any `research/*.md` first so your approaches are grounded in this system, not generic. Skim the relevant existing code and `docs/ADRs/INDEX.md` — prior decisions constrain the option space.
 
 ### 1. Diverge (one turn)
 
@@ -41,9 +45,9 @@ Restate the approaches, state the recommended choice (or the deferred decision) 
 
 ### 4. Structure & write
 
-Once confirmed, break the chosen approach into **feature areas** (each affected area with its **key behaviors**), state what's **out of scope**, and list **open questions** for the downstream steps. Identify any **high-level architectural decisions** worth a persistent record and write them as ADRs (heuristic: *if you'd want to revisit why this was decided in 6 months, it's an ADR*).
+Once confirmed, break the chosen approach into **feature areas** (each affected area with its **key behaviors**), state what's **out of scope**, record any **assumptions** you had to make about scope, and list **open questions** for the downstream steps. Identify any **high-level architectural decisions** worth a persistent record and write them as ADRs (heuristic: *if you'd want to revisit why this was decided in 6 months, it's an ADR*).
 
-Then write `HLD.md` using [hld-template.md](hld-template.md). For ADRs use [adr-template.md](adr-template.md), number sequentially from `docs/ADRs/INDEX.md`, write them `Status: proposed`, and update the INDEX. ADR Context sections must be self-contained — describe the problem directly, never link to the ephemeral HLD or requirements. Tell the user where files landed and suggest task-planning (or task-designing) as the next step.
+Then write `HLD.md` using [hld-template.md](hld-template.md). For ADRs use [adr-template.md](adr-template.md), number sequentially from `docs/ADRs/INDEX.md`, write them `Status: proposed`, and update the INDEX. ADR Context sections must be self-contained — describe the problem directly, never link to the ephemeral HLD or requirements. Tell the user where files landed, then point at the right next step: if the HLD describes a **single cohesive unit of work**, there is nothing for `/task-planning` to split — de-escalate and go straight to `/task-designing`. Suggest `/task-planning` only when the areas are genuinely separable into PR-sized slices with their own user-visible outcomes.
 
 ## Style
 

@@ -6,10 +6,10 @@ disable-model-invocation: true
 
 # Reviewing
 
-Gate the uncommitted changes before they enter history. This is the last step in
-the requirements → designing → task-planning → task-designing →
-implementation-planning → implementing → docs-updating → **reviewing** workflow.
-Everything upstream said what *should* happen; this step checks what *did*.
+Gate the uncommitted changes before they enter history. This is the last step on
+both tracks of the workflow — whether the work came through the full chain or the
+mid-size track's shorter one, it ends here. Everything upstream said what
+*should* happen; this step checks what *did*.
 
 You review from three angles, because each catches a different class of problem:
 the code can be well-written and still build the wrong thing, and it can be both

@@ -51,6 +51,15 @@ method signatures, no data model specifics.>
 extension of the requirements' anti-requirements, not a duplication of them.
 If none, delete this section.>
 
+## Assumptions
+
+<Anything inferred rather than agreed — most often scope, when there was no
+`requirements.md` to work from. Name the skipped input as such so downstream
+steps know what was never confirmed. If none, delete this section.
+
+- **Assumption:** <what you're assuming> — **why it matters:** <what breaks if
+  it's wrong>>
+
 ## Open questions
 
 <Questions the downstream steps (task-planning, task-design) need to resolve.
