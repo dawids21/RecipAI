@@ -27,3 +27,11 @@ consequences. Read an ADR before changing code in the area it covers.
   A shared `limits` module owns configuration, recorded usage and verification for
   every capped resource; callers ask and release against an opaque subject (user
   or list) and hold no limit knowledge, accepting drift risk for one uniform ask.
+- [ADR-0007: Sharing is owned end-to-end by a shared permissions module, with role composition left to the composing module](0007-shared-permissions-module.md) —
+  Replaces four duplicated per-module permission tables and access checks with one
+  system of record that also owns pending invites and the role predicates; resource
+  types stay opaque, so recipes composes its collection-derived access itself.
+- [ADR-0008: A pending invite carries a display label snapshotted at invite time](0008-invite-label-snapshot.md) —
+  The inviting module supplies the invite's human-readable title, stored opaquely and
+  never refreshed, so the invitee's cross-resource list needs neither domain knowledge
+  in the `permissions` module nor a read hole in the unreadable-while-pending rule.
