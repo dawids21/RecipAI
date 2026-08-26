@@ -92,10 +92,10 @@ role in the system is in `docs/project/architecture.md`.
 Located in `docs/backend/standards/`
 
 ### Java Patterns (`backend/standards/java-patterns.md`)
-Standards for how to write Java code in this project: DTO structure using records, JPA entity conventions, and class visibility rules.
+Standards for how to write Java code in this project: DTO structure using records, JPA entity conventions, derived repository query methods and when `@Query` is warranted, and class visibility rules.
 
 ### Module Structure (`backend/standards/module-structure.md`)
-Standards for feature module organisation: how to expose cross-module access via facades, how to structure exception handlers, RESTful endpoint naming conventions, SLF4J logging patterns, and application services for coordinating multiple services in one transaction.
+Standards for feature module organisation: the `dto`/`exception` package layout inside a module, how to expose cross-module access via facades, how to structure exception handlers, which repositories a service may own, RESTful endpoint naming conventions, SLF4J logging patterns, and application services for coordinating multiple services in one transaction.
 
 ### Configuration Profiles (`backend/standards/configuration-profiles.md`)
 Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.

@@ -40,6 +40,20 @@ class Recipe {
 }
 ```
 
+### Derived Query Methods in Repositories
+Repository methods are derived from their names. Reach for `@Query` only when the query cannot be
+derived: a join across aggregates, a projection, native SQL, or a bulk `@Modifying` statement.
+
+```java
+// Derived from the method name — no annotation
+Optional<ResourcePermission> findByIdResourceTypeAndIdResourceIdAndRole(String resourceType, UUID resourceId, ResourceRole role);
+void deleteByResourceTypeAndResourceId(String resourceType, UUID resourceId);
+
+// @Query — joins two aggregates, cannot be derived
+@Query("SELECT mp FROM MealPlan mp INNER JOIN MealPlanPermission mpp ON mpp.id.planId = mp.id WHERE mpp.id.email = :email ORDER BY mp.createdAt")
+List<MealPlan> findAllByUserEmail(String email);
+```
+
 ### Package-Private Class Visibility
 Controllers, services, entities, and repositories are package-private (no `public` modifier) unless accessed from outside their package. DTOs crossing package boundaries and custom exceptions are `public`.
 
