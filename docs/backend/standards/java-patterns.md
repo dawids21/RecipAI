@@ -12,7 +12,7 @@ public record CreateRecipeRequest(
 ) {}
 
 // Response DTO
-record ShoppingListDto(UUID id, String name, List<ShoppingListItemDto> items, UserRole role) {}
+record ShoppingListDto(UUID id, String name, List<ShoppingListItemDto> items, ResourceRole role) {}
 ```
 
 ### JPA Entity Conventions

@@ -101,6 +101,11 @@ permanently and making the invite flow exist once instead of four times.
 - Each module's delete path reports the deletion so permissions and pending invites are cleaned up.
 - All four ship in one release; the migration is sequenced internally — establish the module and move
   shopping lists first as the simple case, then recipes as the hard one, then collections and meal plans.
+- **The data copy step is verified manually, not by an automated test.** Each task's one-off migration
+  copies its table's rows into the new store; the cheapest correctness signal is `limit_usage` staying
+  byte-identical before and after, and that is checked by hand against real data (see each task's `How
+  to verify` in `tasks.md`), not asserted by a test that seeds the old table pre-migration. This is a
+  deliberate choice, not an oversight, and applies uniformly to T1, T2 and T3's copies.
 
 ### Quota accounting
 

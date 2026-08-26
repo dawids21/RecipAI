@@ -27,6 +27,7 @@ indexed in `docs/INDEX.md`); the role of each in the system:
 - **`recipes.collections`** — grouping of recipes, part of the `recipes` module
 - **`extraction`** — turns text/images into recipe data via AI, feeding `recipes` creation
 - **`limits`** — the shared quota-enforcement module every other feature module consumes
+- **`permissions`** — the shared access-control module owning granted permissions and pending invites for every shareable resource
 - **`planning`** — meal plans that reference `recipes` and generate shopping lists
 - **`shoppinglists`** — shopping lists, populated manually or generated from `planning`
 - **`provisioning`** — ingredient-to-shopping-list-item transformation used by `planning`
@@ -51,9 +52,9 @@ Controller → Service → Repository → Entity
 ### Key Patterns
 
 - **Package-private visibility** — internal classes not accessible outside feature package
-- **Facade pattern** — `RecipeFacade`, `ProvisioningFacade`, `LimitsFacade` for cross-module access
+- **Facade pattern** — `RecipeFacade`, `ProvisioningFacade`, `LimitsFacade`, `PermissionsFacade` for cross-module access
 - **Event-driven cascade** — `RecipeDeleted` event triggers cascading cleanup in meal plans
-- **Role-based access** — OWNER/EDITOR roles for recipe sharing
+- **Role-based access** — OWNER/EDITOR roles on every shareable resource, answered by the `permissions` module; sharing is a two-step handshake that grants nothing until the invitee accepts the pending invite (see `docs/backend/modules/permissions/module.md`)
 - **Optimistic locking** — per-item `baseVersion` on shopping list item writes
 - **Usage limits** — database-backed per-subject quotas resolved per request and enforced by a single conditional upsert; refusals surface as HTTP 429 with the subject's balance. Owner-scoped quotas reserve on create and release on delete; the shopping-list item quota counts against the list while resolving its value from the owner. The mobile app pairs the quotas read with each module's balance read to show `used / limit` at the point of action and disable it at the limit — a display and a pre-emptive block, never a second enforcement path
 

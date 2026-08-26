@@ -8,13 +8,6 @@
 - name: VARCHAR(255) NOT NULL
 - created_at: TIMESTAMP NOT NULL
 
-### shopping_list_permission
-
-- email: VARCHAR(255) NOT NULL
-- shopping_list_id: UUID NOT NULL (FK -> shopping_lists.id)
-- role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
-- PRIMARY KEY (email, shopping_list_id)
-
 ### shopping_list_items
 
 - id: UUID PRIMARY KEY
@@ -28,20 +21,20 @@
 
 ## Relationships
 
-- **shopping_list_permission** ↔ **shopping_lists**: Many-to-Many through `shopping_list_permission` join table with role-based access
-    - One user (identified by email) can have many shopping lists with different roles
-    - One shopping list can belong to multiple users with different access levels
-- **shopping_list_permission.shopping_list_id** → **shopping_lists.id**: Foreign key relationship
 - **shopping_list_items** → **shopping_lists**: One-to-Many relationship
     - One shopping list can have many items
     - Items are ordered by `position` ascending, ties broken by `id` ascending
     - When a shopping list is deleted, all its items are deleted (CASCADE)
 - **shopping_list_items.shopping_list_id** → **shopping_lists.id**: Foreign key with ON DELETE CASCADE
 
+Who may access a list, and any pending invite to one, live in `resource_permission` and
+`resource_invite` — see `docs/backend/modules/permissions/db.md`
+(`resource_type = 'SHOPPING_LIST'`, `resource_id = shopping_lists.id`). The `shopping_list_permission`
+table is present in the database, copied into `resource_permission` by `permissions`' `V20__`
+migration, but is unread and unwritten; it is dropped once collections and meal plans finish migrating
+(`docs/tasks/2026-08-26-share-invites/tasks.md`).
+
 ## Indexes
 
-- Primary key indexes on all tables
-- Composite primary key index on `shopping_list_permission(email, shopping_list_id)`
+- Primary key indexes on both tables
 - Index on `shopping_lists(created_at)` — for ordering shopping lists by creation date
-- Index on `shopping_list_permission(shopping_list_id)` — for lookups by list alone, which the
-  composite primary key cannot serve (owner resolution on every item create and delete)

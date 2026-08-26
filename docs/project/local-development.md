@@ -39,10 +39,11 @@ The token names the caller, and the two places that reference an identity want d
   itself. Using the full address here produces a 401 that reads like an auth failure but is really
   a grammar rejection.
 - **In a request body or an assertion** — the full email. Share targets are `@Email`-validated, so
-  a share goes to `bob@local.test`, and `shared_users` responses come back in that form too.
+  a share goes to `bob@local.test`, and permission listings come back in that form too.
 
 Two different bearer tokens are two different users with no setup: `Bearer alice` cannot see what
-`Bearer bob` created until it is shared.
+`Bearer bob` created until it is shared and — for shopping lists — the invite is accepted with
+`POST /invites/{id}/accept`.
 
 ## Environment variables
 

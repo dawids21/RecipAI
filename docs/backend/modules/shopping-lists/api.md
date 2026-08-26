@@ -76,7 +76,7 @@
   ```
 - Success: 200 OK
 - Errors: 401 Unauthorized, 403 Forbidden (user lacks permission), 404 Not Found
-- Note: Items are ordered by `position` ascending, ties broken by `id` ascending (`position` is not unique). Quantity and unit can be null.
+- Note: Items are ordered by `position` ascending, ties broken by `id` ascending (`position` is not unique). Quantity and unit can be null. A list is absent and unreadable to an invited-but-not-yet-accepted user — see the invite handshake below.
 
 ### POST /shopping-lists
 - Description: Create a new shopping list and grant OWNER permission to the authenticated user
@@ -101,37 +101,46 @@
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the list, its items (CASCADE) and permissions; returns the owner's `SHOPPING_LIST` unit and clears the list's `SHOPPING_LIST_ITEM` usage outright.
+- Note: Deletes the list and its items (CASCADE), and every permission and pending invite for it (so
+  it disappears from an invitee's `/invites` too); returns the owner's `SHOPPING_LIST` unit and clears
+  the list's `SHOPPING_LIST_ITEM` usage outright.
 
-### GET /shopping-lists/{id}/users
-- Description: Get all users that a shopping list is shared with, including their roles
+### GET /shopping-lists/{id}/permissions
+- Description: Get everyone who holds access or a pending invite to the list, including their roles
 - Authenticated: true
 - Example response:
   ```json
   [
-    {"email": "owner@example.com", "role": "OWNER"},
-    {"email": "editor@example.com", "role": "EDITOR"}
+    {"email": "owner@example.com", "role": "OWNER", "pending": false},
+    {"email": "editor@example.com", "role": "EDITOR", "pending": false},
+    {"email": "invitee@example.com", "role": "EDITOR", "pending": true}
   ]
   ```
 - Success: 200 OK
 - Errors: 403 Forbidden (if user lacks access), 404 Not Found
-- Note: OWNER appears first in the returned list.
+- Note: OWNER appears first, then granted EDITORs, then pending invites by age. See
+  `docs/backend/modules/permissions/api.md` for the shared `PermissionDto`.
 
 ### POST /shopping-lists/{id}/share
-- Description: Share shopping list with another user (grants EDITOR access)
+- Description: Invite another user to the list with a role. Grants nothing by itself — the invite is
+  pending until the invitee accepts it over `POST /invites/{id}/accept`
+  (`docs/backend/modules/permissions/api.md`)
 - Authenticated: true
-- Request body: `{"email": "user@example.com"}`
+- Request body: `{"email": "user@example.com", "role": "EDITOR"}`
 - Success: 204 No Content
-- Errors: 400 Bad Request, 403 Forbidden, 404 Not Found
-- Note: Shared user receives EDITOR access. Duplicate shares are silently ignored.
+- Errors: 400 Bad Request, 403 Forbidden, 404 Not Found, 409 Conflict (the target already holds
+  access, including the list's own owner, or already has a pending invite for this list — shape in
+  `docs/backend/modules/permissions/api.md`)
+- Note: The invite's label is the list's name, snapshotted at invite time.
 
 ### POST /shopping-lists/{id}/unshare
-- Description: Remove shared access from a user
+- Description: Remove a granted permission, or cancel a pending invite, for a user — whichever exists
 - Authenticated: true
 - Request body: `{"email": "user@example.com"}`
 - Success: 204 No Content
-- Errors: 400 Bad Request, 403 Forbidden (if user has no access, or trying to unshare OWNER), 404 Not Found
-- Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
+- Errors: 400 Bad Request, 403 Forbidden (target is OWNER, or the caller is unsharing themselves), 404 Not Found
+- Note: No caller — OWNER or EDITOR — may unshare themselves. Unsharing someone with neither a granted
+  permission nor a pending invite is a no-op.
 
 ### POST /shopping-lists/{id}/items
 - Description: Create a new item on a shopping list. The client supplies `position`; creates never conflict (no `baseVersion`).

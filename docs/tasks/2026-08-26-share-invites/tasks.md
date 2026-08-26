@@ -16,10 +16,11 @@ mobile and deliver the feature to the end user.
 ## Cross-task notes
 
 - **One release.** The whole set ships together. From T1 onward the mobile app is degraded against
-  the backend: sharing a shopping list stops adding anyone to the "Shared with" list, because the
-  invite is pending and pending is not a permission. That gap closes in T5. Nothing between T1 and
-  T5 is shippable to production, and the HLD's "all four ship in one release" applies to the whole
-  sequence, not just the four modules.
+  the backend: sharing a shopping list does not work at all — the client omits the now-required
+  `role` field and gets a 400 — and even once that's sent, the invite is pending rather than an
+  immediate permission, so nothing is added to the "Shared with" list until T5's mobile catch-up
+  lands. Nothing between T1 and T5 is shippable to production, and the HLD's "all four ship in one
+  release" applies to the whole sequence, not just the four modules.
 - **The migration mechanism is decided once, in T1** (HLD open question: data migration vs.
   repeatable recompute). T2 and T3 follow whatever T1 establishes — this is the main reason to keep
   them sequential rather than parallel.
@@ -27,6 +28,14 @@ mobile and deliver the feature to the end user.
   ownership count at the new store, so the recompute reads from a mix of old and new tables until
   T3 finishes it. Every one of those intermediate states must leave `limit_usage` unchanged for
   existing data — that is the cheapest signal that a migration step was faithful.
+- **Known gap, accepted: deleting a resource with legacy permission rows fails until the old table is
+  dropped.** T1's `V20__` copies `shopping_list_permission` into `resource_permission` but leaves the
+  old table in place with its `ON DELETE`-less foreign key to `shopping_lists`; the migrated delete
+  path no longer clears it, so `DELETE /shopping-lists/{id}` 500s for any list that carries a legacy
+  row — i.e. every list that existed before T1 ships. The same trap applies to T2's `recipe_permission`
+  / `recipes_collection_permission` and T3's `meal_plan_permissions` once each is copied. This is a
+  known, deliberate non-fix for the whole T1–T3 window: it becomes a non-issue the moment T3 drops the
+  four old tables, and no test is added for it in the meantime. See `T1-review.md` finding B1.
 - **Two HLD open questions are settled in T1 because they set a precedent T2/T3 copy blindly:** the
   four duplicated `UserRole` / `SharedUserDto` / `Share*Request` types collapse into the module's
   public types, and the `/shared_users` vs `/users` path inconsistency is unified on
@@ -295,6 +304,11 @@ the shared-users list, visibly distinct from people who already have access, and
   `GET /<resource>/{id}/users` — and recipes' `GET /recipes/{uuid}/shared_users` — became
   `GET /<resource>/{id}/permissions`. Every one of the four is a 404 against the migrated backend
   until this lands, so it is not optional polish.
+- **The share call in all four mobile repositories must now send a required `role` field.** T1 made
+  `ShareRequest.role` `@NotNull`; every existing share body (`{"email": …}`) fails validation with a
+  400 against the migrated backend, so sharing does not work at all until this lands — not just the
+  "Shared with" list failing to update as `tasks.md`'s original wording implied. Send `"EDITOR"`, per
+  the anti-requirement that the mobile app never offers a role picker. See `T1-review.md` finding S3.
 - Any further repository path or response-shape catch-up from decisions T1 made, for the endpoints
   this task touches.
 

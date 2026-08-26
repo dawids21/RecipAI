@@ -34,7 +34,7 @@ The `Clock` the module reads time from is supplied by `config.time.TimeConfig`.
 ## Module Boundary
 
 `limits` holds no domain knowledge: callers pass an opaque `subject` (a user email or a shopping
-list's UUID today) and an opaque `resource` key that the *calling* module owns.
+list's UUID) and an opaque `resource` key that the *calling* module owns.
 `LimitsModuleArchitectureTest` enforces this with ArchUnit — no class in `..limits..` may depend on
 any other `xyz.stasiak.recipai` package, and only `LimitsFacade`, `LimitExceededException`,
 `LimitConfigurationMissingException`, `LimitKind`, `LimitBalance` and `LimitQuota` may be public — the
@@ -75,9 +75,11 @@ controller stays package-private. See `docs/ADRs/0006-shared-limits-module.md`.
   `getQuota` resolves one, both by the same override-then-default rule as a check. Neither touches
   usage, so a quota can be read for a subject that has never used anything.
 - **Recompute** — `R__recompute_limit_usage.sql`, a repeatable migration, rebuilds `limit_usage` for
-  the owner-scoped resources from their owning module's permission tables, and `SHOPPING_LIST_ITEM`
-  from `shopping_list_items` grouped by list. It is both the rollout seed and the drift repair for a
-  missed release; see `db.md`.
+  the owner-scoped resources from their owning module's system of record (`SHOPPING_LIST` from
+  `permissions`' `resource_permission`; `RECIPE`, `RECIPES_COLLECTION` and `MEAL_PLAN` from their own
+  per-module permission tables), and `SHOPPING_LIST_ITEM` from
+  `shopping_list_items` grouped by list. It is both the rollout seed and the drift repair for a missed
+  release; see `db.md`.
 
 `limit_config` has no write API — operators edit it with SQL. Limits' own integration test suites seed
 quotas the same way, via a private `setLimitQuota` upsert helper (`ON CONFLICT (resource, subject) DO

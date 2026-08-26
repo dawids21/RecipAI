@@ -8,13 +8,17 @@ import org.springframework.stereotype.Service;
 import xyz.stasiak.recipai.limits.LimitQuota;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.PermissionsFacade;
+import xyz.stasiak.recipai.permissions.dto.ResourceRole;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 import xyz.stasiak.recipai.shoppinglists.exception.ItemNotFoundException;
 import xyz.stasiak.recipai.shoppinglists.exception.ItemVersionConflictException;
-import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListAccessDeniedException;
 import xyz.stasiak.recipai.shoppinglists.exception.ShoppingListNotFoundException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,7 +32,7 @@ class ShoppingListService {
 
     private final ShoppingListRepository shoppingListRepository;
     private final ShoppingListItemRepository shoppingListItemRepository;
-    private final ShoppingListPermissionRepository permissionRepository;
+    private final PermissionsFacade permissionsFacade;
     private final LimitsFacade limitsFacade;
 
     LimitBalance balance(String userEmail) {
@@ -45,7 +49,11 @@ class ShoppingListService {
 
     List<ShoppingListListDto> findAll(String userEmail) {
         log.debug("Fetching all shopping lists for user: {}", userEmail);
-        return shoppingListRepository.findAllByUserEmail(userEmail).stream()
+        Map<UUID, ResourceRole> access = permissionsFacade.accessibleResources(SHOPPING_LIST_RESOURCE, userEmail);
+        if (access.isEmpty()) {
+            return List.of();
+        }
+        return shoppingListRepository.findByIdInOrderByCreatedAtAsc(access.keySet()).stream()
                 .map(this::toListDto)
                 .toList();
     }
@@ -59,9 +67,7 @@ class ShoppingListService {
         ShoppingList shoppingList = new ShoppingList(request.name());
         ShoppingList savedList = shoppingListRepository.save(shoppingList);
 
-        ShoppingListPermissionId permissionId = new ShoppingListPermissionId(userEmail, savedList.getId());
-        ShoppingListPermission permission = new ShoppingListPermission(permissionId, UserRole.OWNER);
-        permissionRepository.save(permission);
+        permissionsFacade.grantOwner(SHOPPING_LIST_RESOURCE, savedList.getId(), userEmail);
 
         log.debug("Shopping list created with id: {} for user: {}", savedList.getId(), userEmail);
         return toListDto(savedList);
@@ -73,11 +79,11 @@ class ShoppingListService {
         ShoppingList shoppingList = shoppingListRepository.findById(id)
                 .orElseThrow(() -> new ShoppingListNotFoundException(id));
 
-        ShoppingListPermission permission = requireEditorPermission(id, userEmail);
+        ResourceRole role = requireEditorPermission(id, userEmail);
 
         List<ShoppingListItem> items = shoppingListItemRepository.findByShoppingListIdOrderByPositionAscIdAsc(shoppingList.getId());
 
-        return toDto(shoppingList, items, permission.getRole());
+        return toDto(shoppingList, items, role);
     }
 
     @Transactional
@@ -149,23 +155,15 @@ class ShoppingListService {
         limitsFacade.release(requireOwnerEmail(listId), listId.toString(), SHOPPING_LIST_ITEM_RESOURCE);
     }
 
-    private ShoppingListPermission requireEditorPermission(UUID listId, String userEmail) {
+    private ResourceRole requireEditorPermission(UUID listId, String userEmail) {
         if (!shoppingListRepository.existsById(listId)) {
             throw new ShoppingListNotFoundException(listId);
         }
-
-        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, listId))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(listId));
-
-        if (!permission.hasEditorRights()) {
-            throw new ShoppingListAccessDeniedException(listId);
-        }
-
-        return permission;
+        return permissionsFacade.requireEditor(SHOPPING_LIST_RESOURCE, listId, userEmail);
     }
 
     private String requireOwnerEmail(UUID listId) {
-        return permissionRepository.findOwnerEmailByShoppingListId(listId)
+        return permissionsFacade.ownerEmail(SHOPPING_LIST_RESOURCE, listId)
                 .orElseThrow(() -> new ShoppingListNotFoundException(listId));
     }
 
@@ -177,17 +175,11 @@ class ShoppingListService {
             throw new ShoppingListNotFoundException(id);
         }
 
-        ShoppingListPermission permission = permissionRepository.findById(new ShoppingListPermissionId(userEmail, id))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(id));
+        permissionsFacade.requireOwner(SHOPPING_LIST_RESOURCE, id, userEmail);
 
-        if (!permission.hasOwnerRights()) {
-            throw new ShoppingListAccessDeniedException(id);
-        }
+        log.debug("Clearing permissions and pending invites for shopping list {}", id);
+        permissionsFacade.resourceDeleted(SHOPPING_LIST_RESOURCE, id);
 
-        log.debug("Deleting all permissions for shopping list {}", id);
-        permissionRepository.deleteAllByShoppingListId(id);
-
-        // Delete the shopping list itself
         shoppingListRepository.deleteById(id);
 
         limitsFacade.release(userEmail, SHOPPING_LIST_RESOURCE);
@@ -213,7 +205,7 @@ class ShoppingListService {
         return new ShoppingListListDto(list.getId(), list.getName());
     }
 
-    private ShoppingListDto toDto(ShoppingList list, List<ShoppingListItem> items, UserRole role) {
+    private ShoppingListDto toDto(ShoppingList list, List<ShoppingListItem> items, ResourceRole role) {
         List<ShoppingListItemDto> itemDtos = items.stream()
                 .map(this::toItemDto)
                 .toList();
@@ -233,81 +225,44 @@ class ShoppingListService {
         );
     }
 
-    void shareShoppingList(String targetEmail, UUID shoppingListId, String requesterEmail) {
-        log.debug("Sharing shopping list {} from {} to {}", shoppingListId, requesterEmail, targetEmail);
+    void shareShoppingList(ShareRequest request, UUID shoppingListId, String requesterEmail) {
+        log.debug("Sharing shopping list {} from {} to {}", shoppingListId, requesterEmail, request.email());
 
-        // Validate shopping list exists
-        if (!shoppingListRepository.existsById(shoppingListId)) {
-            throw new ShoppingListNotFoundException(shoppingListId);
-        }
+        ShoppingList shoppingList = shoppingListRepository.findById(shoppingListId)
+                .orElseThrow(() -> new ShoppingListNotFoundException(shoppingListId));
 
-        // Validate requester has access (OWNER or EDITOR can share)
-        permissionRepository.findById(new ShoppingListPermissionId(requesterEmail, shoppingListId))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+        permissionsFacade.requireEditor(SHOPPING_LIST_RESOURCE, shoppingListId, requesterEmail);
 
-        // Check if target already has access - no-op if already shared
-        ShoppingListPermissionId targetPermissionId = new ShoppingListPermissionId(targetEmail, shoppingListId);
-        if (permissionRepository.findById(targetPermissionId).isPresent()) {
-            log.warn("Shopping list {} is already shared with user {}", shoppingListId, targetEmail);
-            return;
-        }
+        permissionsFacade.invite(SHOPPING_LIST_RESOURCE, shoppingListId, request.email(), request.role(),
+                shoppingList.getName(), requesterEmail);
 
-        // Create EDITOR permission for target user
-        ShoppingListPermission permission = new ShoppingListPermission(targetPermissionId, UserRole.EDITOR);
-        permissionRepository.save(permission);
-
-        log.info("Shopping list {} shared from {} to {}", shoppingListId, requesterEmail, targetEmail);
+        log.info("Shopping list {} invite created from {} to {}", shoppingListId, requesterEmail, request.email());
     }
 
     void unshareShoppingList(String targetEmail, UUID shoppingListId, String requesterEmail) {
         log.debug("Unsharing shopping list {} from {} for {}", shoppingListId, requesterEmail, targetEmail);
 
-        // Validate shopping list exists
         if (!shoppingListRepository.existsById(shoppingListId)) {
             throw new ShoppingListNotFoundException(shoppingListId);
         }
 
-        // Validate requester has access
-        permissionRepository.findById(new ShoppingListPermissionId(requesterEmail, shoppingListId))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+        permissionsFacade.requireEditor(SHOPPING_LIST_RESOURCE, shoppingListId, requesterEmail);
 
-        // Get target user's permission
-        ShoppingListPermissionId targetPermissionId = new ShoppingListPermissionId(targetEmail, shoppingListId);
-        ShoppingListPermission targetPermission = permissionRepository.findById(targetPermissionId)
-                .orElse(null);
-
-        // Prevent unsharing OWNER
-        if (targetPermission != null && targetPermission.hasOwnerRights()) {
-            if (targetEmail.equals(requesterEmail)) {
-                log.warn("OWNER {} cannot unshare themselves from shopping list {}", requesterEmail, shoppingListId);
-            } else {
-                log.warn("Cannot unshare OWNER {} from shopping list {}", targetEmail, shoppingListId);
-            }
-            throw new ShoppingListAccessDeniedException(shoppingListId);
-        }
-
-        // Remove EDITOR permission (deleteById is no-op if record doesn't exist)
-        permissionRepository.deleteById(targetPermissionId);
+        permissionsFacade.revoke(SHOPPING_LIST_RESOURCE, shoppingListId, targetEmail, requesterEmail);
 
         log.info("Shopping list {} unshared from {} for {}", shoppingListId, requesterEmail, targetEmail);
     }
 
-    List<SharedUserDto> getSharedUsers(UUID shoppingListId, String userEmail) {
-        log.debug("Getting shared users for shopping list: {} by user: {}", shoppingListId, userEmail);
+    List<PermissionDto> getPermissions(UUID shoppingListId, String userEmail) {
+        log.debug("Getting permissions for shopping list: {} by user: {}", shoppingListId, userEmail);
 
-        // Validate shopping list exists
         if (!shoppingListRepository.existsById(shoppingListId)) {
             throw new ShoppingListNotFoundException(shoppingListId);
         }
 
-        // Validate user has access
-        permissionRepository.findById(new ShoppingListPermissionId(userEmail, shoppingListId))
-                .orElseThrow(() -> new ShoppingListAccessDeniedException(shoppingListId));
+        permissionsFacade.requireEditor(SHOPPING_LIST_RESOURCE, shoppingListId, userEmail);
 
-        // Return all users with access, OWNER first
-        return permissionRepository.findAllByShoppingListId(shoppingListId).stream()
-                .map(perm -> new SharedUserDto(perm.getId().email(), perm.getRole()))
-                .toList();
+        return permissionsFacade.getPermissions(SHOPPING_LIST_RESOURCE, shoppingListId);
     }
 
 }
