@@ -58,7 +58,16 @@ role in the system is in `docs/project/architecture.md`.
 #### Shopping Lists (`backend/modules/shopping-lists/`)
 - `module.md` — description, file tree, and the `SHOPPING_LIST`/`SHOPPING_LIST_ITEM` quota behaviour
 - `api.md` — all `/shopping-lists` endpoints including item operations
-- `db.md` — `shopping_lists`, `shopping_list_permission`, `shopping_list_items` tables
+- `db.md` — `shopping_lists`, `shopping_list_items` tables
+
+#### Permissions (`backend/modules/permissions/`)
+- `module.md` — description, file tree, module boundary, the invite handshake, the refusal rules, and
+  the unshare/self-unshare guards shared by every resource type
+- `api.md` — `/invites` (the invitee's surface), and the shared `ShareRequest`/`UnshareRequest`/
+  `PermissionDto` shapes and error contract every migrated resource module's `share`/`unshare`/
+  `permissions` endpoints use
+- `db.md` — `resource_permission`, `resource_invite` tables, and the migration that copies each
+  resource module's permission table in as it migrates
 
 #### Planning (`backend/modules/planning/`)
 - `module.md` — description, file tree, and the `MEAL_PLAN` quota behaviour
@@ -86,7 +95,7 @@ Located in `docs/backend/standards/`
 Standards for how to write Java code in this project: DTO structure using records, JPA entity conventions, and class visibility rules.
 
 ### Module Structure (`backend/standards/module-structure.md`)
-Standards for feature module organisation: how to expose cross-module access via facades, how to structure exception handlers, RESTful endpoint naming conventions, and SLF4J logging patterns.
+Standards for feature module organisation: how to expose cross-module access via facades, how to structure exception handlers, RESTful endpoint naming conventions, SLF4J logging patterns, and application services for coordinating multiple services in one transaction.
 
 ### Configuration Profiles (`backend/standards/configuration-profiles.md`)
 Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.

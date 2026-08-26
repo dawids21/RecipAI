@@ -10,6 +10,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import xyz.stasiak.recipai.limits.LimitQuota;
 import xyz.stasiak.recipai.limits.LimitBalance;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
+import xyz.stasiak.recipai.permissions.dto.UnshareRequest;
 import xyz.stasiak.recipai.shoppinglists.dto.*;
 
 import java.util.List;
@@ -115,23 +118,23 @@ class ShoppingListController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/users")
-    List<SharedUserDto> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/{id}/permissions")
+    List<PermissionDto> getPermissions(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting shared users for shopping list: {} by user: {}", id, userEmail);
-        return shoppingListService.getSharedUsers(id, userEmail);
+        log.debug("Getting permissions for shopping list: {} by user: {}", id, userEmail);
+        return shoppingListService.getPermissions(id, userEmail);
     }
 
     @PostMapping("/{id}/share")
-    ResponseEntity<Void> shareShoppingList(@PathVariable UUID id, @Valid @RequestBody ShareShoppingListRequest request, @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<Void> shareShoppingList(@PathVariable UUID id, @Valid @RequestBody ShareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Sharing shopping list {} from {} to {}", id, userEmail, request.email());
-        shoppingListService.shareShoppingList(request.email(), id, userEmail);
+        shoppingListService.shareShoppingList(request, id, userEmail);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/unshare")
-    ResponseEntity<Void> unshareShoppingList(@PathVariable UUID id, @Valid @RequestBody UnshareShoppingListRequest request, @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<Void> unshareShoppingList(@PathVariable UUID id, @Valid @RequestBody UnshareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Unsharing shopping list {} from {} for {}", id, userEmail, request.email());
         shoppingListService.unshareShoppingList(request.email(), id, userEmail);

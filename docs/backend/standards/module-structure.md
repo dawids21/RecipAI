@@ -16,14 +16,49 @@ class PlanningService {
 ```
 
 ### Exception Handler per Feature Module
-Each feature module has a dedicated `@ControllerAdvice` class (e.g., `RecipesExceptionHandler`) that maps module-specific exceptions to HTTP responses using `ResponseEntity<ErrorResponse>`. Custom exceptions extend `RuntimeException` and are thrown directly from service methods.
+Each feature module has a dedicated `@ControllerAdvice` (or `@RestControllerAdvice`) class (e.g.,
+`RecipesExceptionHandler`) that maps module-specific exceptions to HTTP responses. Custom exceptions
+extend `RuntimeException` and are thrown directly from service methods.
+
+A handler method returns a bare `ProblemDetail` built with `ProblemDetail.forStatusAndDetail(...)` and
+`setTitle(...)`; Spring takes the response status from the `ProblemDetail` itself, so it is stated
+once. Reach for `ResponseEntity<ProblemDetail>` only when the response needs something a
+`ProblemDetail` return can't carry: an extra header (e.g. a 429's `Retry-After`) or a body that isn't
+a `ProblemDetail` at all (e.g. a 412 returning the winning resource for a client to roll back to).
 
 ```java
-@ControllerAdvice
+@RestControllerAdvice
 class RecipesExceptionHandler {
     @ExceptionHandler(RecipeNotFoundException.class)
-    ResponseEntity<ErrorResponse> handleNotFound(RecipeNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
+    ProblemDetail handleNotFound(RecipeNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problemDetail.setTitle("Recipe Not Found");
+        return problemDetail;
+    }
+}
+```
+
+### Application Service for Multi-Service Coordination
+When one operation needs two or more services that are otherwise independent — typically to hold
+them in a single transaction — put the coordination in a `<Module>ApplicationService`, not by
+injecting one service into the other. A service owns its own repositories and never reaches into
+another service's. The application service owns the `@Transactional` boundary and calls each
+service in turn. The facade delegates single-service calls straight to the service and coordinated
+calls to the application service.
+
+```java
+@Service
+@RequiredArgsConstructor
+class PermissionsApplicationService {
+    private final PermissionService permissionService;
+    private final InviteService inviteService;
+
+    @Transactional
+    void revoke(String resourceType, UUID resourceId, String targetEmail, String requesterEmail) {
+        boolean removed = permissionService.revoke(resourceType, resourceId, targetEmail, requesterEmail);
+        if (!removed) {
+            inviteService.cancel(resourceType, resourceId, targetEmail);
+        }
     }
 }
 ```

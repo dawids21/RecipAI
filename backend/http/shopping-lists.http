@@ -59,18 +59,35 @@ Authorization: Bearer {{user}}
 GET {{baseUrl}}/shopping-lists/{{listId}}/limits
 Authorization: Bearer {{user}}
 
-### List users the shopping list is shared with
-GET {{baseUrl}}/shopping-lists/{{listId}}/users
+### List the list's permissions - granted users and any pending invite, OWNER first
+GET {{baseUrl}}/shopping-lists/{{listId}}/permissions
 Authorization: Bearer {{user}}
 
-### Share it with bob
+### Share it with bob - creates a pending invite carrying a role and a label; grants nothing until
+### bob accepts it (see invites.http for the accept/decline side)
 POST {{baseUrl}}/shopping-lists/{{listId}}/share
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
-{ "email": "{{otherUser}}@local.test" }
+{ "email": "{{otherUser}}@local.test", "role": "EDITOR" }
 
-### Unshare it from bob
+### bob shows up in /permissions with pending: true until he accepts
+GET {{baseUrl}}/shopping-lists/{{listId}}/permissions
+Authorization: Bearer {{user}}
+
+### Nothing yet for bob - a pending invite grants no access
+GET {{baseUrl}}/shopping-lists
+Authorization: Bearer {{otherUser}}
+
+### Once bob accepts the invite (invites.http), the list shows up here and is readable and editable
+GET {{baseUrl}}/shopping-lists
+Authorization: Bearer {{otherUser}}
+
+###
+GET {{baseUrl}}/shopping-lists/{{listId}}
+Authorization: Bearer {{otherUser}}
+
+### Unshare bob - revokes his permission if he accepted, or cancels the pending invite if he hasn't
 POST {{baseUrl}}/shopping-lists/{{listId}}/unshare
 Authorization: Bearer {{user}}
 Content-Type: application/json

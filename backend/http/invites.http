@@ -1,0 +1,18 @@
+@baseUrl = http://localhost:8080
+@user = bob
+
+### Everything waiting for the caller, across every resource type. Invites are created by sharing a
+### resource - see shopping-lists.http for the share/unshare side.
+GET {{baseUrl}}/invites
+Authorization: Bearer {{user}}
+
+### Fill this in with an id from the listing above
+@inviteId = 762d240e-cb10-4fc1-b9c8-567d81db83d7
+
+### Accept - the resource becomes visible to the caller with the role the invite carries
+POST {{baseUrl}}/invites/{{inviteId}}/accept
+Authorization: Bearer {{user}}
+
+### Decline - 204, the resource stays invisible and the invite is gone from both sides
+POST {{baseUrl}}/invites/{{inviteId}}/decline
+Authorization: Bearer {{user}}

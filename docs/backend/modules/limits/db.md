@@ -55,17 +55,20 @@ is inserted separately (e.g. the developer's own account); it is never seeded by
 ## Recompute
 
 `R__recompute_limit_usage.sql` is a repeatable migration that rebuilds `limit_usage` for `RECIPE`,
-`RECIPES_COLLECTION`, `SHOPPING_LIST` and `MEAL_PLAN` from their owning module's permission tables
-(`recipe_permission`, `recipes_collection_permission`, `shopping_list_permission`,
-`meal_plan_permissions`), counting rows with `role = 'OWNER'`. `SHOPPING_LIST_ITEM` is rebuilt
-instead from `shopping_list_items` grouped by `shopping_list_id`, so its usage subject is a list UUID
-rather than an email; it joins `shopping_list_permission` only to reach the owner whose configuration
-decides the `FLOW` exclusion below. It runs once at rollout, seeding usage for pre-existing owners
-and lists, and again whenever a later task extends the file, re-asserting every resource's count. It
-also serves as the drift repair for a missed release: re-running it (by hand, or by bumping the file
-so its checksum changes) makes `limit_usage` match the source tables again. A subject whose effective
-configuration is `FLOW` is excluded — the recompute would overwrite its `used`/`period_start` window
-with a stock count, so it leaves that subject's row untouched.
+`RECIPES_COLLECTION`, `SHOPPING_LIST` and `MEAL_PLAN`, counting rows with `role = 'OWNER'` from each
+resource's system of record. `SHOPPING_LIST` reads `permissions`' `resource_permission` (filtered to
+`resource_type = 'SHOPPING_LIST'`); `RECIPE`, `RECIPES_COLLECTION` and `MEAL_PLAN` read their own
+per-module permission tables (`recipe_permission`, `recipes_collection_permission`,
+`meal_plan_permissions`) — see `docs/tasks/2026-08-26-share-invites/tasks.md`. `SHOPPING_LIST_ITEM`
+is rebuilt instead from
+`shopping_list_items` grouped by `shopping_list_id`, so its usage subject is a list UUID rather than
+an email; it joins `resource_permission` (`resource_type = 'SHOPPING_LIST'`) only to reach the owner
+whose configuration decides the `FLOW` exclusion below. It runs once at rollout, seeding usage for
+pre-existing owners and lists, and again whenever a later task extends the file, re-asserting every
+resource's count. It also serves as the drift repair for a missed release: re-running it (by hand, or
+by bumping the file so its checksum changes) makes `limit_usage` match the source tables again. A
+subject whose effective configuration is `FLOW` is excluded — the recompute would overwrite its
+`used`/`period_start` window with a stock count, so it leaves that subject's row untouched.
 "Effective" resolves the same way a check does, the config subject's own override first and the
 resource default second, so flipping a default to `FLOW` spares every subject that has no override.
 
