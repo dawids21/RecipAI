@@ -88,3 +88,8 @@ anything you deliberately left alone and why.
   and aligns the prose to it.
 - **Drift only.** Don't rewrite docs that are already accurate just because you'd
   have phrased them differently.
+- **The current state, not the change.** The docs describe the system as it is
+  now, not what this change did to it, and they never reference anything under
+  `docs/tasks/` — no task directories, task IDs or plans. `CLAUDE.md` carries the
+  full rule and the phrasings that give it away; watch for them in your own edits,
+  where you have just read the diff and the docs haven't.

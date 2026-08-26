@@ -1,5 +1,24 @@
 # Module Structure Conventions
 
+### Package Layout Inside a Module
+DTOs live in a `dto` sub-package and custom exceptions in an `exception` sub-package. Everything else
+— controller, facade, application service, services, entities, repositories and the exception
+handler — sits at the module root.
+
+```
+xyz/stasiak/recipai/shoppinglists/
+├── dto/
+│   ├── ShoppingListDto.java
+│   └── CreateShoppingListRequest.java
+├── exception/
+│   └── ShoppingListNotFoundException.java
+├── ShoppingListController.java
+├── ShoppingListService.java
+├── ShoppingList.java
+├── ShoppingListRepository.java
+└── ShoppingListsExceptionHandler.java
+```
+
 ### Facade Pattern for Cross-Module Access
 Modules expose a `public` facade (e.g., `RecipeFacade`, `ProvisioningFacade`) for use by other modules. Internal service classes are package-private. Never access another module's service directly.
 
@@ -38,13 +57,17 @@ class RecipesExceptionHandler {
 }
 ```
 
+### A Service Owns Its Repositories
+A service injects only the repositories for the entities it owns, and never a sibling service from
+the same module. When an operation needs data or behaviour the service does not own, it does not
+reach for the other service's repository — the coordination moves up to an application service.
+
 ### Application Service for Multi-Service Coordination
 When one operation needs two or more services that are otherwise independent — typically to hold
-them in a single transaction — put the coordination in a `<Module>ApplicationService`, not by
-injecting one service into the other. A service owns its own repositories and never reaches into
-another service's. The application service owns the `@Transactional` boundary and calls each
-service in turn. The facade delegates single-service calls straight to the service and coordinated
-calls to the application service.
+them in a single transaction — put the coordination in a `<Module>ApplicationService`. The
+application service owns the `@Transactional` boundary and calls each service in turn. The facade
+delegates single-service calls straight to the service and coordinated calls to the application
+service.
 
 ```java
 @Service

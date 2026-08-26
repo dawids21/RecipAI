@@ -16,6 +16,9 @@
   decisions. If standards conflict with the task, ask the user.
 - When writing or editing a markdown document, keep it concise and do not repeat information — state each fact once and
   cross-reference it instead of restating it.
+- Documentation states the current behaviour in the present tense - never how the code used to work or what a change
+  altered ("was X before", "no longer", "as of this task"), and never referencing `docs/tasks/` (task directories, task
+  IDs, plans). `docs/tasks/` and `docs/ADRs/` are themselves exempt: they record history by design.
 
 ### Standards Evolution
 

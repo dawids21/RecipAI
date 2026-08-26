@@ -92,6 +92,10 @@ Review the changes as an engineer who knows this codebase would, looking for:
 - **Codebase consistency** — naming, structure, layering, and idiom against the
   sibling code it sits next to. Read those siblings; "consistent" is a claim about
   this repo, not about general good practice.
+- **Standards conformance** — open the standards that cover what this change
+  touches (the project's `CLAUDE.md` says where they live) and check the change
+  against them rule by rule. Sibling code can be older than the standard, so a
+  pattern copied from a neighbour is not evidence it conforms.
 - **Duplication** — logic reimplemented that already exists somewhere here.
 - **Tests** — do they exist, do they test behavior rather than implementation, do
   they cover the edge cases the requirements named?
@@ -125,6 +129,10 @@ you couldn't determine the scope rather than guessing from filenames.
 You're looking for drift this change introduced: renamed commands, changed
 defaults, new surface area that goes unmentioned, removed behavior still
 documented as present.
+
+Also check how the docs are *framed*, not just whether they're accurate: a doc
+that narrates the change ("was X before", "no longer", "as of this task") is a
+finding even when every fact in it is true, unless the project says otherwise.
 
 ### 6. Report to the user
 
