@@ -83,18 +83,18 @@ Content-Type: application/json
   }
 }
 
-### List the recipe's shared users — note the underscore, unlike every other module's /users
-GET {{baseUrl}}/recipes/{{recipeId}}/shared_users
+### List the recipe's permissions
+GET {{baseUrl}}/recipes/{{recipeId}}/permissions
 Authorization: Bearer {{user}}
 
-### Share the recipe with bob — returns 200, unlike every other module's share (204)
+### Share the recipe with bob — creates a pending invite; answer it from invites.http as bob
 POST {{baseUrl}}/recipes/{{recipeId}}/share
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
-{ "email": "{{otherUser}}@local.test" }
+{ "email": "{{otherUser}}@local.test", "role": "EDITOR" }
 
-### Unshare the recipe from bob — returns 200, unlike every other module's unshare (204)
+### Unshare the recipe from bob
 POST {{baseUrl}}/recipes/{{recipeId}}/unshare
 Authorization: Bearer {{user}}
 Content-Type: application/json

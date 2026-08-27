@@ -95,8 +95,11 @@ combines the answers itself — the module never learns that recipes belong to c
 
 ## Consumers
 
-- `shoppinglists` — the module's only consumer: it holds every shopping-list permission and pending
-  invite, and `share` creates an invite carrying the list's name as its label.
+- `shoppinglists` — holds every shopping-list permission and pending invite, and `share` creates an
+  invite carrying the list's name as its label.
+- `recipes` — holds every direct recipe permission and pending invite, and `share` creates an invite
+  carrying the recipe's name as its label. Composes the facade's answer with collection-derived access
+  itself; see `docs/backend/modules/recipes/module.md` > Access Composition and
+  `docs/ADRs/0007-shared-permissions-module.md`.
 
-Recipes, recipe collections and meal plans own their permission tables directly and do not call this
-module. T2 and T3 bring them here (`docs/tasks/2026-08-26-share-invites/tasks.md`).
+Recipe collections and meal plans own their permission tables directly and do not call this module.

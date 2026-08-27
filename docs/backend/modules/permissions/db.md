@@ -55,6 +55,6 @@ pending invite for a resource, and every resource module's delete path must call
 `V20__resource_permission_and_invite.sql` creates both tables and copies
 `shopping_list_permission` into `resource_permission` under the `SHOPPING_LIST` resource type, with no
 change in meaning: everyone who had access at rollout keeps it, at the same role, with no invite
-involved. The old `shopping_list_permission` table is left in place, unread and unwritten, until T3
-drops it (`docs/tasks/2026-08-26-share-invites/tasks.md`). Recipe, collection and meal-plan
-permissions are copied the same way in T2 and T3.
+involved. `V21__recipe_permission_to_resource_permission.sql` copies `recipe_permission` the same way
+under the `RECIPE` resource type. Both old tables remain in place, unread and unwritten by the
+application.

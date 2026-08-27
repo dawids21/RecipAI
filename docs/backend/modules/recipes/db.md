@@ -40,12 +40,10 @@
 - images: JSONB NOT NULL — Structure: `{"imagesMetadata": [{"id": "uuid", "type": "image/jpeg"}]}`
 - version: BIGINT NOT NULL
 
-### recipe_permission
-
-- email: VARCHAR(255) NOT NULL
-- recipe_id: UUID NOT NULL (FK -> recipes.id)
-- role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
-- PRIMARY KEY (email, recipe_id)
+Direct recipe access and sharing are recorded in `permissions`' `resource_permission` and
+`resource_invite` tables under the `RECIPE` resource type — see
+`docs/backend/modules/permissions/db.md`. The `recipe_permission` table exists in the schema but is
+not part of the system of record: `recipes` neither reads nor writes it.
 
 ### recipes_collections
 
@@ -62,12 +60,6 @@
 
 ## Relationships
 
-- **recipe_permission** ↔ **recipes**: Many-to-Many through `recipe_permission` join table with role-based access
-    - One user (identified by email) can have many recipes with different roles
-    - One recipe can belong to multiple users with different access levels
-    - **OWNER**: Can view, edit, delete, share, and unshare recipes
-    - **EDITOR**: Can view, edit, share, unshare recipes (granted through sharing)
-- **recipe_permission.recipe_id** → **recipes.id**: Foreign key relationship
 - **recipe_images** → **recipes**: One-to-One relationship
     - One recipe can have one recipe_images record storing metadata about associated images
     - The `images` JSONB field contains an object with an `imagesMetadata` array:
@@ -87,13 +79,14 @@
     - One recipe can optionally belong to one collection (via `recipes.recipes_collection_id`)
     - Many recipes can belong to the same collection
     - When a collection is deleted, the foreign key is set to NULL (ON DELETE SET NULL)
-    - Recipe permissions and collection permissions remain independent (no automatic syncing)
+    - Direct recipe access (in `permissions`) and collection permissions remain independent (no
+      automatic syncing) — see **Access Composition** in `module.md` for how the two combine at read
+      time
 - **recipes.recipes_collection_id** → **recipes_collections.id**: Foreign key with ON DELETE SET NULL
 
 ## Indexes
 
 - Primary key indexes on all tables
-- Composite primary key index on `recipe_permission(email, recipe_id)`
 - Composite primary key index on `recipes_collection_permission(email, recipes_collection_id)`
 - Index on `recipes(created_at)` — for ordering recipes by creation date
 - Index on `recipes_collections(created_at)` — for ordering collections by creation date

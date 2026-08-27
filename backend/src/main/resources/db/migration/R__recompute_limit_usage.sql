@@ -20,8 +20,9 @@ DELETE FROM limit_usage u
 
 INSERT INTO limit_usage (resource, subject, used, period_start)
 SELECT 'RECIPE', p.email, COUNT(*), now()
-  FROM recipe_permission p
- WHERE p.role = 'OWNER'
+  FROM resource_permission p
+ WHERE p.resource_type = 'RECIPE'
+   AND p.role = 'OWNER'
    AND COALESCE(
            (SELECT c.kind FROM limit_config c
              WHERE c.resource = 'RECIPE' AND c.subject = p.email),
