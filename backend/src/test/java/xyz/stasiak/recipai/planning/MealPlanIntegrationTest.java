@@ -20,6 +20,9 @@ import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
+import xyz.stasiak.recipai.permissions.dto.PendingInviteDto;
+import xyz.stasiak.recipai.permissions.dto.ResourceRole;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.dto.SharedUserDto;
 import xyz.stasiak.recipai.recipes.*;
@@ -134,6 +137,35 @@ class MealPlanIntegrationTest {
         client
                 .delete()
                 .uri("/recipes/" + id)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void shareRecipe(RestClient client, UUID recipeId, String email) {
+        ShareRequest request = new ShareRequest(email, ResourceRole.EDITOR);
+        client
+                .post()
+                .uri("/recipes/" + recipeId + "/share")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void acceptPendingRecipeInvite(RestClient client, String recipeName) {
+        List<PendingInviteDto> invites = client
+                .get()
+                .uri("/invites")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+        UUID inviteId = invites.stream()
+                .filter(invite -> invite.resourceType().equals("RECIPE") && invite.label().equals(recipeName))
+                .findFirst()
+                .orElseThrow()
+                .id();
+        client
+                .post()
+                .uri("/invites/" + inviteId + "/accept")
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -878,6 +910,40 @@ class MealPlanIntegrationTest {
         assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
         assertThat(calendarEntry.recipeName()).isEqualTo("Private Recipe");
         assertThat(calendarEntry.hasRecipeAccess()).isFalse();
+    }
+
+    @Test
+    void shouldIndicateRecipeAccessGrantedThroughResourcePermission() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Shared Plan For Invite", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+
+        RecipeDetailsDto recipe = createRecipe(client1, "Invited Recipe");
+
+        CreateMealPlanEntryRequest entry = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), recipe.id(), null, 2);
+        createEntry(client1, plan.id(), entry);
+
+        // Before the invite is accepted, user2 has no access to the recipe
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendarBefore = getCalendarView(
+                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), plan.id().toString());
+        assertThat(calendarBefore.get(LocalDate.of(2026, 2, 1)).getFirst().hasRecipeAccess()).isFalse();
+
+        shareRecipe(client1, recipe.id(), "user2@example.com");
+        acceptPendingRecipeInvite(client2, recipe.name());
+
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendarAfter = getCalendarView(
+                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), plan.id().toString());
+
+        assertThat(calendarAfter).hasSize(1);
+        List<MealPlanCalendarViewDto> entries = calendarAfter.get(LocalDate.of(2026, 2, 1));
+        assertThat(entries).hasSize(1);
+
+        MealPlanCalendarViewDto calendarEntry = entries.getFirst();
+        assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
+        assertThat(calendarEntry.hasRecipeAccess()).isTrue();
     }
 
     @Test

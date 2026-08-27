@@ -56,9 +56,9 @@ is inserted separately (e.g. the developer's own account); it is never seeded by
 
 `R__recompute_limit_usage.sql` is a repeatable migration that rebuilds `limit_usage` for `RECIPE`,
 `RECIPES_COLLECTION`, `SHOPPING_LIST` and `MEAL_PLAN`, counting rows with `role = 'OWNER'` from each
-resource's system of record. `SHOPPING_LIST` reads `permissions`' `resource_permission` (filtered to
-`resource_type = 'SHOPPING_LIST'`); `RECIPE`, `RECIPES_COLLECTION` and `MEAL_PLAN` read their own
-per-module permission tables (`recipe_permission`, `recipes_collection_permission`,
+resource's system of record. `SHOPPING_LIST` and `RECIPE` read `permissions`' `resource_permission`
+(filtered to `resource_type = 'SHOPPING_LIST'` and `'RECIPE'` respectively); `RECIPES_COLLECTION` and
+`MEAL_PLAN` read their own per-module permission tables (`recipes_collection_permission`,
 `meal_plan_permissions`) — see `docs/tasks/2026-08-26-share-invites/tasks.md`. `SHOPPING_LIST_ITEM`
 is rebuilt instead from
 `shopping_list_items` grouped by `shopping_list_id`, so its usage subject is a list UUID rather than

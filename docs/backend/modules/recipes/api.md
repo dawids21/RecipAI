@@ -24,7 +24,7 @@
     - `unassigned` (boolean, optional): Filter recipes not assigned to any collection (use `true` to enable)
     - Note: `collectionId` and `unassigned` are mutually exclusive and cannot be specified together
 - Behavior:
-    - No parameters: Returns all recipes accessible by the user (either through direct permission or collection permission)
+    - No parameters: Returns all recipes accessible by the user (either through a direct permission or collection permission) — a recipe with a pending, unaccepted invite does not appear
     - With `collectionId`: Returns only recipes in the specified collection (requires user to have access to the collection)
     - With `unassigned=true`: Returns recipes that the user has direct permission to access and are either: (1) not assigned to any collection, or (2) assigned to a collection the user does not have access to
     - All results are ordered by creation date in ascending order (oldest first)
@@ -101,7 +101,7 @@
   ```
 - Success: 200 OK
 - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
-- Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare, and change collection assignment) or "EDITOR" (can view and edit only, cannot change collection assignment — attempts to change it are silently ignored). Users with access to a collection automatically receive EDITOR access to all recipes in that collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection. When the user does not have access to the assigned collection, `collectionId` is still returned but `collectionName` is null. The `sourceUrl` field in `data` is optional and contains the URL of the original recipe source. The `servingSize` field in `data` is optional (defaults to 1 if not provided) and must be a positive integer (1-100) if specified. The `images` array contains presigned S3 URLs valid for a limited time (configured by server). Maximum of 2 images per recipe.
+- Note: `role` field indicates user's access level: "OWNER" (can view, edit, delete, share, unshare, and change collection assignment) or "EDITOR" (can view and edit only, cannot change collection assignment — attempts to change it are silently ignored). Users with access to a collection automatically receive EDITOR access to all recipes in that collection. `collectionId` and `collectionName` fields are null when recipe is not assigned to a collection. When the user does not have access to the assigned collection, `collectionId` is still returned but `collectionName` is null. The `sourceUrl` field in `data` is optional and contains the URL of the original recipe source. The `servingSize` field in `data` is optional (defaults to 1 if not provided) and must be a positive integer (1-100) if specified. The `images` array contains presigned S3 URLs valid for a limited time (configured by server). Maximum of 2 images per recipe. A recipe is absent and unreadable to an invited-but-not-yet-accepted user — see the invite handshake below.
 
 ### POST /recipes (JSON)
 - Description: Add new recipe with JSON data
@@ -224,37 +224,50 @@
 - Authenticated: true
 - Success: 204 No Content
 - Errors: 403 Forbidden (if user is not OWNER of the recipe), 404 Not Found
-- Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes. Publishes a `RecipeDeleted` event and returns the owner's `RECIPE` unit.
+- Note: Only OWNER role can delete recipes. Users with access via collection permission cannot delete recipes. Publishes a `RecipeDeleted` event, deletes every permission and pending invite for the recipe (so it disappears from an invitee's `/invites` too), and returns the owner's `RECIPE` unit.
 
-### GET /recipes/{uuid}/shared_users
-- Description: Get all users that a recipe is shared with, including their roles
+### GET /recipes/{uuid}/permissions
+- Description: Get everyone who holds direct access or a pending invite to the recipe, including
+  their roles
 - Authenticated: true
 - Example response:
   ```json
   [
-    {"email": "owner@example.com", "role": "OWNER"},
-    {"email": "editor@example.com", "role": "EDITOR"}
+    {"email": "owner@example.com", "role": "OWNER", "pending": false},
+    {"email": "editor@example.com", "role": "EDITOR", "pending": false},
+    {"email": "invitee@example.com", "role": "EDITOR", "pending": true}
   ]
   ```
 - Success: 200 OK
 - Errors: 403 Forbidden (if user lacks access to recipe), 404 Not Found
-- Note: OWNER appears first in the returned list. Users can access this endpoint if they have direct recipe permission or access to the collection containing the recipe.
+- Note: OWNER appears first, then granted EDITORs, then pending invites by age. Collection-derived
+  access is not listed — only direct permissions and pending invites are. Callers who reach the recipe
+  only through a shared collection can still read this endpoint (`resolveAccess` accepts either path).
+  See `docs/backend/modules/permissions/api.md` for the shared `PermissionDto`.
 
 ### POST /recipes/{uuid}/share
-- Description: Share recipe with another user (grants EDITOR access)
+- Description: Invite another user to the recipe with a role. Grants nothing by itself — the invite
+  is pending until the invitee accepts it over `POST /invites/{id}/accept`
+  (`docs/backend/modules/permissions/api.md`)
 - Authenticated: true
-- Request body: `{"email": "user@example.com"}`
-- Success: 200 OK
-- Errors: 400 Bad request, 403 Forbidden (if user has no access to the recipe), 404 Not Found
-- Note: Shared user receives EDITOR access. Users with access to a collection can share recipes within that collection.
+- Request body: `{"email": "user@example.com", "role": "EDITOR"}`
+- Success: 204 No Content
+- Errors: 400 Bad Request, 403 Forbidden (if user has no access to the recipe), 404 Not Found,
+  409 Conflict (the target already holds access, including the recipe's own owner, or already has a
+  pending invite for this recipe — shape in `docs/backend/modules/permissions/api.md`)
+- Note: The invite's label is the recipe's name, snapshotted at invite time. Users with access to a
+  collection can share recipes within that collection; inviting someone who already reaches the recipe
+  through a shared collection is still allowed and still creates a direct invite.
 
 ### POST /recipes/{uuid}/unshare
-- Description: Remove shared access from another user
+- Description: Remove a granted permission, or cancel a pending invite, for a user — whichever exists
 - Authenticated: true
 - Request body: `{"email": "user@example.com"}`
-- Success: 200 OK
-- Errors: 400 Bad request, 403 Forbidden (if user has no access to the recipe or EDITOR tries to unshare from OWNER), 404 Not Found
-- Note: Removes EDITOR access from target user.
+- Success: 204 No Content
+- Errors: 400 Bad Request, 403 Forbidden (if user has no access to the recipe, target is OWNER, or
+  the caller is unsharing themselves), 404 Not Found
+- Note: No caller — OWNER or EDITOR — may unshare themselves. Unsharing someone with neither a granted
+  permission nor a pending invite is a no-op.
 
 ---
 

@@ -11,6 +11,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import xyz.stasiak.recipai.limits.LimitBalance;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
+import xyz.stasiak.recipai.permissions.dto.UnshareRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -122,26 +125,26 @@ class RecipeController {
     }
 
     @PostMapping("/{id}/share")
-    public ResponseEntity<Void> shareRecipe(@PathVariable UUID id, @Valid @RequestBody ShareRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> shareRecipe(@PathVariable UUID id, @Valid @RequestBody ShareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Sharing recipe with id: {} from user: {} to user: {}", id, userEmail, request.email());
-        recipeService.shareRecipe(request.email(), id, userEmail);
-        return ResponseEntity.ok().build();
+        recipeService.shareRecipe(request, id, userEmail);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/unshare")
-    public ResponseEntity<Void> unshareRecipe(@PathVariable UUID id, @Valid @RequestBody UnshareRecipeRequest request, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Void> unshareRecipe(@PathVariable UUID id, @Valid @RequestBody UnshareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Unsharing recipe with id: {} from user: {} for user: {}", id, userEmail, request.email());
         recipeService.unshareRecipe(request.email(), id, userEmail);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/shared_users")
-    public List<SharedUserDto> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/{id}/permissions")
+    public List<PermissionDto> getPermissions(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting shared users for recipe: {} by user: {}", id, userEmail);
-        return recipeService.getSharedUsers(id, userEmail);
+        log.debug("Getting permissions for recipe: {} by user: {}", id, userEmail);
+        return recipeService.getPermissions(id, userEmail);
     }
 
 }

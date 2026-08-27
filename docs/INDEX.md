@@ -49,7 +49,8 @@ role in the system is in `docs/project/architecture.md`.
 #### Recipes & Collections (`backend/modules/recipes/`)
 - `module.md` — description, file tree for `recipes`, `recipes.collections`, `recipes.images`, and the `RECIPE`/`RECIPES_COLLECTION` quota behaviour
 - `api.md` — all `/recipes` and `/collections` endpoints including sharing and image upload
-- `db.md` — `recipes`, `recipe_images`, `recipe_permission`, `recipes_collections`, `recipes_collection_permission` tables
+- `db.md` — `recipes`, `recipe_images`, `recipes_collections`, `recipes_collection_permission` tables;
+  recipe access control lives in `permissions/db.md`
 
 #### Extraction (`backend/modules/extraction/`)
 - `module.md` — description, file tree, and the `EXTRACTION` budget behaviour

@@ -309,6 +309,11 @@ the shared-users list, visibly distinct from people who already have access, and
   400 against the migrated backend, so sharing does not work at all until this lands — not just the
   "Shared with" list failing to update as `tasks.md`'s original wording implied. Send `"EDITOR"`, per
   the anti-requirement that the mobile app never offers a role picker. See `T1-review.md` finding S3.
+- **`recipe_repository.dart` must accept 204 from `shareRecipe` and `unshareRecipe`.** T2 moves the
+  two recipe endpoints from 200 to 204, aligning them with the other three, which already return 204
+  and whose mobile repositories already expect it. Recipes is the only client still checking for
+  `200`, so both calls throw against the migrated backend until this lands. See
+  `plans/T2-task-design.md` > Decisions made.
 - Any further repository path or response-shape catch-up from decisions T1 made, for the endpoints
   this task touches.
 

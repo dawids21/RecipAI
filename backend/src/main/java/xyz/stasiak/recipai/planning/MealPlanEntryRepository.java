@@ -39,8 +39,9 @@ interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Long> {
                 CASE
                     WHEN e.recipeId IS NULL THEN true
                     WHEN EXISTS (
-                        SELECT 1 FROM RecipePermission rp
-                        WHERE rp.id.recipeId = e.recipeId
+                        SELECT 1 FROM xyz.stasiak.recipai.permissions.ResourcePermission rp
+                        WHERE rp.id.resourceType = 'RECIPE'
+                        AND rp.id.resourceId = e.recipeId
                         AND rp.id.email = :email
                     ) THEN true
                     WHEN r.recipesCollectionId IS NOT NULL AND EXISTS (
