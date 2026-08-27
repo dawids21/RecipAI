@@ -42,8 +42,7 @@ The token names the caller, and the two places that reference an identity want d
   a share goes to `bob@local.test`, and permission listings come back in that form too.
 
 Two different bearer tokens are two different users with no setup: `Bearer alice` cannot see what
-`Bearer bob` created until it is shared and — for shopping lists — the invite is accepted with
-`POST /invites/{id}/accept`.
+`Bearer bob` created until it is shared and the invite is accepted with `POST /invites/{id}/accept`.
 
 ## Environment variables
 

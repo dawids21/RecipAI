@@ -8,6 +8,10 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
+import xyz.stasiak.recipai.permissions.PermissionsFacade;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.dto.ResourceRole;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
 import xyz.stasiak.recipai.planning.dto.*;
 import xyz.stasiak.recipai.planning.exception.*;
 import xyz.stasiak.recipai.provisioning.ProvisioningFacade;
@@ -34,8 +38,8 @@ class MealPlanService {
     static final String MEAL_PLAN_RESOURCE = "MEAL_PLAN";
 
     private final MealPlanRepository mealPlanRepository;
-    private final MealPlanPermissionRepository permissionRepository;
     private final MealPlanEntryRepository entryRepository;
+    private final PermissionsFacade permissionsFacade;
     private final RecipeFacade recipeFacade;
     private final ProvisioningFacade provisioningFacade;
     private final LimitsFacade limitsFacade;
@@ -47,12 +51,12 @@ class MealPlanService {
 
     List<MealPlanDto> findAll(String userEmail) {
         log.debug("Fetching all meal plans for user: {}", userEmail);
-        return mealPlanRepository.findAllByUserEmail(userEmail).stream()
-                .map(plan -> {
-                    MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, plan.getId()))
-                            .orElseThrow(() -> new MealPlanAccessDeniedException(plan.getId()));
-                    return toDto(plan, permission.getRole());
-                })
+        Map<UUID, ResourceRole> access = permissionsFacade.accessibleResources(MEAL_PLAN_RESOURCE, userEmail);
+        if (access.isEmpty()) {
+            return List.of();
+        }
+        return mealPlanRepository.findByIdInOrderByCreatedAtAsc(access.keySet()).stream()
+                .map(plan -> toDto(plan, access.get(plan.getId())))
                 .toList();
     }
 
@@ -65,12 +69,10 @@ class MealPlanService {
         MealPlan mealPlan = new MealPlan(request.name(), request.color());
         MealPlan savedPlan = mealPlanRepository.save(mealPlan);
 
-        MealPlanPermissionId permissionId = new MealPlanPermissionId(userEmail, savedPlan.getId());
-        MealPlanPermission permission = new MealPlanPermission(permissionId, UserRole.OWNER);
-        permissionRepository.save(permission);
+        permissionsFacade.grantOwner(MEAL_PLAN_RESOURCE, savedPlan.getId(), userEmail);
 
         log.debug("Meal plan created with id: {} for user: {}", savedPlan.getId(), userEmail);
-        return toDto(savedPlan, UserRole.OWNER);
+        return toDto(savedPlan, ResourceRole.OWNER);
     }
 
     MealPlanDto update(UUID id, UpdateMealPlanRequest request, String userEmail) {
@@ -79,18 +81,13 @@ class MealPlanService {
         MealPlan mealPlan = mealPlanRepository.findById(id)
                 .orElseThrow(() -> new MealPlanNotFoundException(id));
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, id))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(id));
-
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(id);
-        }
+        ResourceRole role = permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, id, userEmail);
 
         mealPlan.setName(request.name());
         mealPlan.setColor(request.color());
 
         MealPlan savedPlan = mealPlanRepository.save(mealPlan);
-        return toDto(savedPlan, permission.getRole());
+        return toDto(savedPlan, role);
     }
 
     @Transactional
@@ -101,14 +98,11 @@ class MealPlanService {
             throw new MealPlanNotFoundException(id);
         }
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, id))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(id));
+        permissionsFacade.requireOwner(MEAL_PLAN_RESOURCE, id, userEmail);
 
-        if (!permission.hasOwnerRights()) {
-            throw new MealPlanAccessDeniedException(id);
-        }
+        log.debug("Clearing permissions and pending invites for meal plan {}", id);
+        permissionsFacade.resourceDeleted(MEAL_PLAN_RESOURCE, id);
 
-        permissionRepository.deleteAllByPlanId(id);
         mealPlanRepository.deleteById(id);
 
         limitsFacade.release(userEmail, MEAL_PLAN_RESOURCE);
@@ -122,12 +116,7 @@ class MealPlanService {
             throw new MealPlanNotFoundException(planId);
         }
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
-
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(planId);
-        }
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, userEmail);
 
         validateEntry(request.recipeId(), request.placeholderText(), request.servingSize());
 
@@ -149,20 +138,8 @@ class MealPlanService {
             throw new MealPlanNotFoundException(request.planId());
         }
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
-
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(planId);
-        }
-
-        MealPlanPermission targetPlanPermission = permissionRepository
-                .findById(new MealPlanPermissionId(userEmail, request.planId()))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(request.planId()));
-
-        if (!targetPlanPermission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(request.planId());
-        }
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, userEmail);
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, request.planId(), userEmail);
 
         MealPlanEntry entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new MealPlanEntryNotFoundException(entryId));
@@ -191,12 +168,7 @@ class MealPlanService {
             throw new MealPlanNotFoundException(planId);
         }
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
-
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(planId);
-        }
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, userEmail);
 
         MealPlanEntry entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new MealPlanEntryNotFoundException(entryId));
@@ -242,7 +214,7 @@ class MealPlanService {
         }
     }
 
-    private MealPlanDto toDto(MealPlan plan, UserRole role) {
+    private MealPlanDto toDto(MealPlan plan, ResourceRole role) {
         return new MealPlanDto(plan.getId(), plan.getName(), plan.getColor(), role, plan.getCreatedAt());
     }
 
@@ -253,11 +225,10 @@ class MealPlanService {
             if (!mealPlanRepository.existsById(planId)) {
                 throw new MealPlanNotFoundException(planId);
             }
-            permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
-                    .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+            permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, userEmail);
         }
 
-        List<MealPlanEntry> entries = entryRepository.findEntriesWithRecipes(userEmail, planIds, dates);
+        List<MealPlanEntry> entries = entryRepository.findEntriesWithRecipes(planIds, dates);
 
         if (entries.isEmpty()) {
             return new GeneratedShoppingListResponse(List.of(), List.of());
@@ -292,30 +263,18 @@ class MealPlanService {
         return new GeneratedShoppingListResponse(items, recipeInfos.inaccessibleRecipeNames());
     }
 
-    void shareMealPlan(String targetEmail, UUID planId, String requesterEmail) {
-        log.debug("Sharing meal plan {} from {} to {}", planId, requesterEmail, targetEmail);
+    void shareMealPlan(ShareRequest request, UUID planId, String requesterEmail) {
+        log.debug("Sharing meal plan {} from {} to {}", planId, requesterEmail, request.email());
 
-        if (!mealPlanRepository.existsById(planId)) {
-            throw new MealPlanNotFoundException(planId);
-        }
+        MealPlan plan = mealPlanRepository.findById(planId)
+                .orElseThrow(() -> new MealPlanNotFoundException(planId));
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(requesterEmail, planId))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, requesterEmail);
 
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(planId);
-        }
+        permissionsFacade.invite(MEAL_PLAN_RESOURCE, planId, request.email(), request.role(),
+                plan.getName(), requesterEmail);
 
-        MealPlanPermissionId targetPermissionId = new MealPlanPermissionId(targetEmail, planId);
-        if (permissionRepository.findById(targetPermissionId).isPresent()) {
-            log.warn("Meal plan {} is already shared with user {}", planId, targetEmail);
-            return;
-        }
-
-        MealPlanPermission newPermission = new MealPlanPermission(targetPermissionId, UserRole.EDITOR);
-        permissionRepository.save(newPermission);
-
-        log.info("Meal plan {} shared from {} to {}", planId, requesterEmail, targetEmail);
+        log.info("Meal plan {} invite created from {} to {}", planId, requesterEmail, request.email());
     }
 
     void unshareMealPlan(String targetEmail, UUID planId, String requesterEmail) {
@@ -325,48 +284,23 @@ class MealPlanService {
             throw new MealPlanNotFoundException(planId);
         }
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(requesterEmail, planId))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, requesterEmail);
 
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(planId);
-        }
-
-        MealPlanPermissionId targetPermissionId = new MealPlanPermissionId(targetEmail, planId);
-        MealPlanPermission targetPermission = permissionRepository.findById(targetPermissionId)
-                .orElse(null);
-
-        if (targetPermission != null && targetPermission.hasOwnerRights()) {
-            if (targetEmail.equals(requesterEmail)) {
-                log.warn("OWNER {} cannot unshare themselves from meal plan {}", requesterEmail, planId);
-            } else {
-                log.warn("Cannot unshare OWNER {} from meal plan {}", targetEmail, planId);
-            }
-            throw new MealPlanAccessDeniedException(planId);
-        }
-
-        permissionRepository.deleteById(targetPermissionId);
+        permissionsFacade.revoke(MEAL_PLAN_RESOURCE, planId, targetEmail, requesterEmail);
 
         log.info("Meal plan {} unshared from {} for {}", planId, requesterEmail, targetEmail);
     }
 
-    List<SharedUserDto> getSharedUsers(UUID planId, String userEmail) {
-        log.debug("Getting shared users for meal plan: {} by user: {}", planId, userEmail);
+    List<PermissionDto> getPermissions(UUID planId, String userEmail) {
+        log.debug("Getting permissions for meal plan: {} by user: {}", planId, userEmail);
 
         if (!mealPlanRepository.existsById(planId)) {
             throw new MealPlanNotFoundException(planId);
         }
 
-        MealPlanPermission permission = permissionRepository.findById(new MealPlanPermissionId(userEmail, planId))
-                .orElseThrow(() -> new MealPlanAccessDeniedException(planId));
+        permissionsFacade.requireEditor(MEAL_PLAN_RESOURCE, planId, userEmail);
 
-        if (!permission.hasEditorRights()) {
-            throw new MealPlanAccessDeniedException(planId);
-        }
-
-        return permissionRepository.findAllByPlanId(planId).stream()
-                .map(perm -> new SharedUserDto(perm.getId().email(), perm.getRole()))
-                .toList();
+        return permissionsFacade.getPermissions(MEAL_PLAN_RESOURCE, planId);
     }
 
     private MealPlanEntryDto toEntryDto(MealPlanEntry entry) {

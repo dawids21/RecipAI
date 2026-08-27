@@ -3,13 +3,16 @@ package xyz.stasiak.recipai.planning;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import xyz.stasiak.recipai.permissions.PermissionsFacade;
 import xyz.stasiak.recipai.planning.dto.MealPlanCalendarViewDto;
 import xyz.stasiak.recipai.planning.exception.InvalidDateRangeException;
+import xyz.stasiak.recipai.recipes.RecipeFacade;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -20,17 +23,27 @@ import java.util.stream.Collectors;
 class MealPlanCalendarService {
 
     private final MealPlanEntryRepository entryRepository;
+    private final PermissionsFacade permissionsFacade;
+    private final RecipeFacade recipeFacade;
 
     Map<LocalDate, List<MealPlanCalendarViewDto>> getCalendarView(
             String userEmail,
             LocalDate startDate,
             LocalDate endDate,
-            List<UUID> planIds) {
+            List<UUID> requestedPlanIds) {
 
         validateDateRange(startDate, endDate);
 
+        Set<UUID> accessiblePlanIds = permissionsFacade.accessibleResources(MealPlanService.MEAL_PLAN_RESOURCE, userEmail).keySet();
+        List<UUID> planIds = requestedPlanIds.stream().filter(accessiblePlanIds::contains).toList();
+        if (planIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Set<UUID> recipeIds = recipeFacade.getAccessibleRecipeIds(userEmail);
+
         List<MealPlanCalendarEntryProjection> projections =
-                entryRepository.findCalendarEntries(userEmail, startDate, endDate, planIds);
+                entryRepository.findCalendarEntries(startDate, endDate, planIds, recipeIds);
 
         List<MealPlanCalendarViewDto> dtos = projections.stream()
                 .map(this::toDto)

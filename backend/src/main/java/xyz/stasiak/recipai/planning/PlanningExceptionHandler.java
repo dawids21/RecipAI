@@ -2,15 +2,15 @@ package xyz.stasiak.recipai.planning;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import xyz.stasiak.recipai.planning.exception.*;
 
-@ControllerAdvice
+@RestControllerAdvice
 class PlanningExceptionHandler {
 
     @ExceptionHandler(MealPlanNotFoundException.class)
-    public ProblemDetail handleMealPlanNotFound(MealPlanNotFoundException ex) {
+    ProblemDetail handleMealPlanNotFound(MealPlanNotFoundException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND,
                 ex.getMessage()
@@ -19,18 +19,8 @@ class PlanningExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler(MealPlanAccessDeniedException.class)
-    public ProblemDetail handleMealPlanAccessDenied(MealPlanAccessDeniedException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.FORBIDDEN,
-                ex.getMessage()
-        );
-        problemDetail.setTitle("Meal Plan Access Denied");
-        return problemDetail;
-    }
-
     @ExceptionHandler(MealPlanEntryNotFoundException.class)
-    public ProblemDetail handleMealPlanEntryNotFound(MealPlanEntryNotFoundException ex) {
+    ProblemDetail handleMealPlanEntryNotFound(MealPlanEntryNotFoundException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.NOT_FOUND,
                 ex.getMessage()
@@ -40,7 +30,7 @@ class PlanningExceptionHandler {
     }
 
     @ExceptionHandler(InvalidMealPlanEntryException.class)
-    public ProblemDetail handleInvalidMealPlanEntry(InvalidMealPlanEntryException ex) {
+    ProblemDetail handleInvalidMealPlanEntry(InvalidMealPlanEntryException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage()
@@ -50,7 +40,7 @@ class PlanningExceptionHandler {
     }
 
     @ExceptionHandler(InvalidDateRangeException.class)
-    public ProblemDetail handleInvalidDateRange(InvalidDateRangeException ex) {
+    ProblemDetail handleInvalidDateRange(InvalidDateRangeException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST,
                 ex.getMessage()

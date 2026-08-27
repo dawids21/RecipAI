@@ -44,8 +44,9 @@ DELETE FROM limit_usage u
 
 INSERT INTO limit_usage (resource, subject, used, period_start)
 SELECT 'RECIPES_COLLECTION', p.email, COUNT(*), now()
-  FROM recipes_collection_permission p
- WHERE p.role = 'OWNER'
+  FROM resource_permission p
+ WHERE p.resource_type = 'RECIPES_COLLECTION'
+   AND p.role = 'OWNER'
    AND COALESCE(
            (SELECT c.kind FROM limit_config c
              WHERE c.resource = 'RECIPES_COLLECTION' AND c.subject = p.email),
@@ -91,8 +92,9 @@ DELETE FROM limit_usage u
 
 INSERT INTO limit_usage (resource, subject, used, period_start)
 SELECT 'MEAL_PLAN', p.email, COUNT(*), now()
-  FROM meal_plan_permissions p
- WHERE p.role = 'OWNER'
+  FROM resource_permission p
+ WHERE p.resource_type = 'MEAL_PLAN'
+   AND p.role = 'OWNER'
    AND COALESCE(
            (SELECT c.kind FROM limit_config c
              WHERE c.resource = 'MEAL_PLAN' AND c.subject = p.email),

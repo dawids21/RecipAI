@@ -85,16 +85,16 @@ Content-Type: application/json
 
 { "planIds": ["{{planId}}"], "selectedDates": ["{{$localDatetime "YYYY-MM-DD"}}"] }
 
-### List users the meal plan is shared with
-GET {{baseUrl}}/meal-plans/{{planId}}/users
+### List the meal plan's permissions
+GET {{baseUrl}}/meal-plans/{{planId}}/permissions
 Authorization: Bearer {{user}}
 
-### Share it with bob
+### Share it with bob — creates a pending invite; answer it from invites.http as bob
 POST {{baseUrl}}/meal-plans/{{planId}}/share
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
-{ "email": "{{otherUser}}@local.test" }
+{ "email": "{{otherUser}}@local.test", "role": "EDITOR" }
 
 ### Unshare it from bob
 POST {{baseUrl}}/meal-plans/{{planId}}/unshare

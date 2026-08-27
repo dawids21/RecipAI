@@ -75,11 +75,9 @@ controller stays package-private. See `docs/ADRs/0006-shared-limits-module.md`.
   `getQuota` resolves one, both by the same override-then-default rule as a check. Neither touches
   usage, so a quota can be read for a subject that has never used anything.
 - **Recompute** — `R__recompute_limit_usage.sql`, a repeatable migration, rebuilds `limit_usage` for
-  the owner-scoped resources from their owning module's system of record (`SHOPPING_LIST` and
-  `RECIPE` from `permissions`' `resource_permission`; `RECIPES_COLLECTION` and `MEAL_PLAN` from their
-  own per-module permission tables), and `SHOPPING_LIST_ITEM` from
-  `shopping_list_items` grouped by list. It is both the rollout seed and the drift repair for a missed
-  release; see `db.md`.
+  the owner-scoped resources (`RECIPE`, `RECIPES_COLLECTION`, `SHOPPING_LIST`, `MEAL_PLAN`) from
+  `permissions`' `resource_permission`, and `SHOPPING_LIST_ITEM` from `shopping_list_items` grouped by
+  list. It is both the rollout seed and the drift repair for a missed release; see `db.md`.
 
 `limit_config` has no write API — operators edit it with SQL. Limits' own integration test suites seed
 quotas the same way, via a private `setLimitQuota` upsert helper (`ON CONFLICT (resource, subject) DO

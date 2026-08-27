@@ -9,12 +9,9 @@
 - color: VARCHAR(7) NOT NULL
 - created_at: TIMESTAMP NOT NULL
 
-### meal_plan_permissions
-
-- email: VARCHAR(255) NOT NULL
-- plan_id: UUID NOT NULL (FK -> meal_plans.id)
-- role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
-- PRIMARY KEY (email, plan_id)
+Access to a meal plan, and any pending invite to one, are recorded in `permissions`'
+`resource_permission` and `resource_invite` tables under the `MEAL_PLAN` resource type — see
+`docs/backend/modules/permissions/db.md`.
 
 ### meal_plan_entries
 
@@ -28,12 +25,6 @@
 
 ## Relationships
 
-- **meal_plan_permissions** ↔ **meal_plans**: Many-to-Many through `meal_plan_permissions` join table with role-based access
-    - One user (identified by email) can have many meal plans with different roles
-    - One meal plan can belong to multiple users with different access levels
-    - **OWNER**: Can view, edit, delete meal plans
-    - **EDITOR**: Can view and edit meal plans
-- **meal_plan_permissions.plan_id** → **meal_plans.id**: Foreign key relationship
 - **meal_plan_entries** → **meal_plans**: One-to-Many relationship
     - One meal plan can have many entries
     - When a meal plan is deleted, all its entries are deleted (CASCADE)
@@ -44,6 +35,5 @@
 ## Indexes
 
 - Primary key indexes on all tables
-- Composite primary key index on `meal_plan_permissions(email, plan_id)`
 - Index on `meal_plans(created_at)` — for ordering meal plans by creation date
 - Composite index on `meal_plan_entries(plan_id, date)` — for querying entries by plan and date

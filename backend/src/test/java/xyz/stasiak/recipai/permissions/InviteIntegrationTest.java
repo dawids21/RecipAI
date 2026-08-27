@@ -25,13 +25,17 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.tuple;
 
 @Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "recipai.limits.enabled=false")
 class InviteIntegrationTest {
 
-    // An opaque key no module owns: the module holds no domain knowledge and never inspects it.
+    // Opaque keys no module owns: the module holds no domain knowledge and never inspects them.
+    // Two distinct types so a test can prove /invites mixes resource types in one response without
+    // reaching into another module's resource type.
     private static final String RESOURCE_TYPE = "INVITE_TEST_RESOURCE";
+    private static final String OTHER_RESOURCE_TYPE = "INVITE_TEST_RESOURCE_OTHER";
 
     private static final String SHARER = "user1@example.com";
     private static final String INVITEE = "user2@example.com";
@@ -43,7 +47,10 @@ class InviteIntegrationTest {
     @Autowired
     private PermissionsFacade permissionsFacade;
 
-    private final List<UUID> createdResources = new ArrayList<>();
+    private record TrackedResource(String resourceType, UUID resourceId) {
+    }
+
+    private final List<TrackedResource> createdResources = new ArrayList<>();
 
     private RestClient restClient(String authToken) {
         return RestClient.builder()
@@ -60,21 +67,29 @@ class InviteIntegrationTest {
     // pending invites, resetting the invitee's and stranger's inboxes for the next test.
     @AfterEach
     void tearDown() {
-        for (UUID resourceId : createdResources) {
-            permissionsFacade.resourceDeleted(RESOURCE_TYPE, resourceId);
+        for (TrackedResource resource : createdResources) {
+            permissionsFacade.resourceDeleted(resource.resourceType(), resource.resourceId());
         }
         createdResources.clear();
     }
 
     private UUID ownedResource() {
+        return ownedResource(RESOURCE_TYPE);
+    }
+
+    private UUID ownedResource(String resourceType) {
         UUID resourceId = UUID.randomUUID();
-        permissionsFacade.grantOwner(RESOURCE_TYPE, resourceId, SHARER);
-        createdResources.add(resourceId);
+        permissionsFacade.grantOwner(resourceType, resourceId, SHARER);
+        createdResources.add(new TrackedResource(resourceType, resourceId));
         return resourceId;
     }
 
     private UUID invite(UUID resourceId, String label, String targetEmail) {
-        return permissionsFacade.invite(RESOURCE_TYPE, resourceId, targetEmail, ResourceRole.EDITOR, label, SHARER);
+        return invite(RESOURCE_TYPE, resourceId, label, targetEmail);
+    }
+
+    private UUID invite(String resourceType, UUID resourceId, String label, String targetEmail) {
+        return permissionsFacade.invite(resourceType, resourceId, targetEmail, ResourceRole.EDITOR, label, SHARER);
     }
 
     private List<PendingInviteDto> getPendingInvites(RestClient client) {
@@ -311,5 +326,23 @@ class InviteIntegrationTest {
                 new PermissionDto(INVITEE, ResourceRole.EDITOR, false),
                 new PermissionDto(STRANGER, ResourceRole.EDITOR, true)
         );
+    }
+
+    @Test
+    void shouldListPendingInvitesAcrossDifferentResourceTypesInOneResponse() {
+        UUID firstResourceId = ownedResource(RESOURCE_TYPE);
+        UUID secondResourceId = ownedResource(OTHER_RESOURCE_TYPE);
+
+        invite(RESOURCE_TYPE, firstResourceId, "First Type Test", INVITEE);
+        invite(OTHER_RESOURCE_TYPE, secondResourceId, "Second Type Test", INVITEE);
+
+        List<PendingInviteDto> invites = getPendingInvites(inviteeClient());
+
+        assertThat(invites)
+                .extracting(PendingInviteDto::resourceType, PendingInviteDto::label, PendingInviteDto::invitedBy)
+                .containsExactlyInAnyOrder(
+                        tuple(RESOURCE_TYPE, "First Type Test", SHARER),
+                        tuple(OTHER_RESOURCE_TYPE, "Second Type Test", SHARER)
+                );
     }
 }

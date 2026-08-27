@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,14 +15,11 @@ interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Long> {
 
     @Query("""
             SELECT e FROM MealPlanEntry e
-            INNER JOIN MealPlanPermission mpp ON mpp.id.planId = e.planId
-            WHERE mpp.id.email = :email
-            AND e.planId IN :planIds
+            WHERE e.planId IN :planIds
             AND e.date IN :dates
             AND e.recipeId IS NOT NULL
             """)
     List<MealPlanEntry> findEntriesWithRecipes(
-            @Param("email") String email,
             @Param("planIds") List<UUID> planIds,
             @Param("dates") List<LocalDate> dates
     );
@@ -38,32 +36,20 @@ interface MealPlanEntryRepository extends JpaRepository<MealPlanEntry, Long> {
                 e.servingSize AS servingSize,
                 CASE
                     WHEN e.recipeId IS NULL THEN true
-                    WHEN EXISTS (
-                        SELECT 1 FROM xyz.stasiak.recipai.permissions.ResourcePermission rp
-                        WHERE rp.id.resourceType = 'RECIPE'
-                        AND rp.id.resourceId = e.recipeId
-                        AND rp.id.email = :email
-                    ) THEN true
-                    WHEN r.recipesCollectionId IS NOT NULL AND EXISTS (
-                        SELECT 1 FROM xyz.stasiak.recipai.recipes.collections.RecipesCollectionPermission rcp
-                        WHERE rcp.id.recipesCollectionId = r.recipesCollectionId
-                        AND rcp.id.email = :email
-                    ) THEN true
+                    WHEN e.recipeId IN :recipeIds THEN true
                     ELSE false
                 END AS hasRecipeAccess
             FROM MealPlanEntry e
             INNER JOIN MealPlan mp ON mp.id = e.planId
-            INNER JOIN MealPlanPermission mpp ON mpp.id.planId = e.planId
             LEFT JOIN Recipe r ON r.id = e.recipeId
-            WHERE mpp.id.email = :email
-            AND e.date BETWEEN :startDate AND :endDate
+            WHERE e.date BETWEEN :startDate AND :endDate
             AND e.planId IN :planIds
             ORDER BY e.date, e.createdAt
             """)
     List<MealPlanCalendarEntryProjection> findCalendarEntries(
-            @Param("email") String email,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
-            @Param("planIds") List<UUID> planIds
+            @Param("planIds") Collection<UUID> planIds,
+            @Param("recipeIds") Collection<UUID> recipeIds
     );
 }

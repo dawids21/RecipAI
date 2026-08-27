@@ -29,10 +29,7 @@
 
 Who may access a list, and any pending invite to one, live in `resource_permission` and
 `resource_invite` — see `docs/backend/modules/permissions/db.md`
-(`resource_type = 'SHOPPING_LIST'`, `resource_id = shopping_lists.id`). The `shopping_list_permission`
-table is present in the database, copied into `resource_permission` by `permissions`' `V20__`
-migration, but is unread and unwritten; it is dropped once collections and meal plans finish migrating
-(`docs/tasks/2026-08-26-share-invites/tasks.md`).
+(`resource_type = 'SHOPPING_LIST'`, `resource_id = shopping_lists.id`).
 
 ## Indexes
 

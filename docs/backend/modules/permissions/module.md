@@ -101,5 +101,7 @@ combines the answers itself — the module never learns that recipes belong to c
   carrying the recipe's name as its label. Composes the facade's answer with collection-derived access
   itself; see `docs/backend/modules/recipes/module.md` > Access Composition and
   `docs/ADRs/0007-shared-permissions-module.md`.
-
-Recipe collections and meal plans own their permission tables directly and do not call this module.
+- `recipes.collections` — holds every collection permission and pending invite under
+  `RECIPES_COLLECTION`, and `share` creates an invite carrying the collection's name as its label.
+- `planning` — holds every meal-plan permission and pending invite under `MEAL_PLAN`, and `share`
+  creates an invite carrying the plan's name as its label.

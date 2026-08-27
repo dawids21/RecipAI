@@ -7,11 +7,16 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
+import xyz.stasiak.recipai.permissions.PermissionsFacade;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.dto.ResourceRole;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
-import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
 import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionNotFoundException;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -22,7 +27,7 @@ public class RecipesCollectionService {
     static final String RECIPES_COLLECTION_RESOURCE = "RECIPES_COLLECTION";
 
     private final RecipesCollectionRepository recipesCollectionRepository;
-    private final RecipesCollectionPermissionRepository permissionRepository;
+    private final PermissionsFacade permissionsFacade;
     private final ApplicationEventPublisher eventPublisher;
     private final LimitsFacade limitsFacade;
 
@@ -33,7 +38,11 @@ public class RecipesCollectionService {
 
     List<RecipesCollectionListDto> findAll(String userEmail) {
         log.debug("Fetching all recipes collections for user: {}", userEmail);
-        return recipesCollectionRepository.findAllByUserEmail(userEmail).stream()
+        Set<UUID> ids = permissionsFacade.accessibleResources(RECIPES_COLLECTION_RESOURCE, userEmail).keySet();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return recipesCollectionRepository.findByIdInOrderByCreatedAtAsc(ids).stream()
                 .map(this::toListDto)
                 .toList();
     }
@@ -44,14 +53,7 @@ public class RecipesCollectionService {
         RecipesCollection collection = recipesCollectionRepository.findById(collectionId)
                 .orElseThrow(() -> new RecipesCollectionNotFoundException(collectionId));
 
-        // Validate user has permission (at least EDITOR role)
-        RecipesCollectionPermission permission = permissionRepository.findById(
-                        new RecipesCollectionPermissionId(userEmail, collectionId))
-                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(collectionId));
-
-        if (!permission.hasEditorRights()) {
-            throw new RecipesCollectionAccessDeniedException(collectionId);
-        }
+        permissionsFacade.requireEditor(RECIPES_COLLECTION_RESOURCE, collectionId, userEmail);
 
         return toListDto(collection);
     }
@@ -65,9 +67,7 @@ public class RecipesCollectionService {
         RecipesCollection recipesCollection = new RecipesCollection(request.name());
         RecipesCollection savedCollection = recipesCollectionRepository.save(recipesCollection);
 
-        RecipesCollectionPermissionId permissionId = new RecipesCollectionPermissionId(userEmail, savedCollection.getId());
-        RecipesCollectionPermission permission = new RecipesCollectionPermission(permissionId, UserRole.OWNER);
-        permissionRepository.save(permission);
+        permissionsFacade.grantOwner(RECIPES_COLLECTION_RESOURCE, savedCollection.getId(), userEmail);
 
         log.debug("Recipes collection created with id: {} for user: {}", savedCollection.getId(), userEmail);
         return toListDto(savedCollection);
@@ -79,12 +79,7 @@ public class RecipesCollectionService {
         RecipesCollection recipesCollection = recipesCollectionRepository.findById(id)
                 .orElseThrow(() -> new RecipesCollectionNotFoundException(id));
 
-        RecipesCollectionPermission permission = permissionRepository.findById(new RecipesCollectionPermissionId(userEmail, id))
-                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(id));
-
-        if (!permission.hasEditorRights()) {
-            throw new RecipesCollectionAccessDeniedException(id);
-        }
+        permissionsFacade.requireEditor(RECIPES_COLLECTION_RESOURCE, id, userEmail);
 
         recipesCollection.setName(request.name());
 
@@ -101,99 +96,73 @@ public class RecipesCollectionService {
             throw new RecipesCollectionNotFoundException(id);
         }
 
-        RecipesCollectionPermission permission = permissionRepository.findById(new RecipesCollectionPermissionId(userEmail, id))
-                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(id));
+        permissionsFacade.requireOwner(RECIPES_COLLECTION_RESOURCE, id, userEmail);
 
-        if (!permission.hasOwnerRights()) {
-            throw new RecipesCollectionAccessDeniedException(id);
-        }
-
-        log.debug("Deleting all permissions for recipes collection {}", id);
-        permissionRepository.deleteAllByRecipesCollectionId(id);
+        log.debug("Clearing permissions and pending invites for recipes collection {}", id);
+        permissionsFacade.resourceDeleted(RECIPES_COLLECTION_RESOURCE, id);
 
         recipesCollectionRepository.deleteById(id);
 
         limitsFacade.release(userEmail, RECIPES_COLLECTION_RESOURCE);
     }
 
-    void shareRecipesCollection(String targetEmail, UUID recipesCollectionId, String requesterEmail) {
-        log.debug("Sharing recipes collection {} from {} to {}", recipesCollectionId, requesterEmail, targetEmail);
+    void shareRecipesCollection(ShareRequest request, UUID collectionId, String requesterEmail) {
+        log.debug("Sharing recipes collection {} from {} to {}", collectionId, requesterEmail, request.email());
 
-        // Validate recipes collection exists
-        if (!recipesCollectionRepository.existsById(recipesCollectionId)) {
-            throw new RecipesCollectionNotFoundException(recipesCollectionId);
-        }
+        RecipesCollection collection = recipesCollectionRepository.findById(collectionId)
+                .orElseThrow(() -> new RecipesCollectionNotFoundException(collectionId));
 
-        // Validate requester has access (OWNER or EDITOR can share)
-        permissionRepository.findById(new RecipesCollectionPermissionId(requesterEmail, recipesCollectionId))
-                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(recipesCollectionId));
+        permissionsFacade.requireEditor(RECIPES_COLLECTION_RESOURCE, collectionId, requesterEmail);
 
-        // Check if target already has access - no-op if already shared
-        RecipesCollectionPermissionId targetPermissionId = new RecipesCollectionPermissionId(targetEmail, recipesCollectionId);
-        if (permissionRepository.findById(targetPermissionId).isPresent()) {
-            log.warn("Recipes collection {} is already shared with user {}", recipesCollectionId, targetEmail);
-            return;
-        }
+        permissionsFacade.invite(RECIPES_COLLECTION_RESOURCE, collectionId, request.email(), request.role(),
+                collection.getName(), requesterEmail);
 
-        // Create EDITOR permission for target user
-        RecipesCollectionPermission permission = new RecipesCollectionPermission(targetPermissionId, UserRole.EDITOR);
-        permissionRepository.save(permission);
-
-        log.info("Recipes collection {} shared from {} to {}", recipesCollectionId, requesterEmail, targetEmail);
+        log.info("Recipes collection {} invite created from {} to {}", collectionId, requesterEmail, request.email());
     }
 
     @Transactional
-    void unshareRecipesCollection(String targetEmail, UUID recipesCollectionId, String requesterEmail) {
-        log.debug("Unsharing recipes collection {} from {} for {}", recipesCollectionId, requesterEmail, targetEmail);
+    void unshareRecipesCollection(String targetEmail, UUID collectionId, String requesterEmail) {
+        log.debug("Unsharing recipes collection {} from {} for {}", collectionId, requesterEmail, targetEmail);
 
-        // Validate recipes collection exists
-        if (!recipesCollectionRepository.existsById(recipesCollectionId)) {
-            throw new RecipesCollectionNotFoundException(recipesCollectionId);
+        if (!recipesCollectionRepository.existsById(collectionId)) {
+            throw new RecipesCollectionNotFoundException(collectionId);
         }
 
-        // Validate requester has access
-        permissionRepository.findById(new RecipesCollectionPermissionId(requesterEmail, recipesCollectionId))
-                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(recipesCollectionId));
+        permissionsFacade.requireEditor(RECIPES_COLLECTION_RESOURCE, collectionId, requesterEmail);
 
-        // Get target user's permission
-        RecipesCollectionPermissionId targetPermissionId = new RecipesCollectionPermissionId(targetEmail, recipesCollectionId);
-        RecipesCollectionPermission targetPermission = permissionRepository.findById(targetPermissionId)
-                .orElse(null);
+        // Read before the write: revoke() cannot tell us afterwards whether it removed a permission
+        // or cancelled an invite, and only the first should detach recipes.
+        boolean hadPermission = permissionsFacade.roleOf(RECIPES_COLLECTION_RESOURCE, collectionId, targetEmail).isPresent();
 
-        // Prevent unsharing OWNER
-        if (targetPermission != null && targetPermission.hasOwnerRights()) {
-            if (targetEmail.equals(requesterEmail)) {
-                log.warn("OWNER {} cannot unshare themselves from recipes collection {}", requesterEmail, recipesCollectionId);
-            } else {
-                log.warn("Cannot unshare OWNER {} from recipes collection {}", targetEmail, recipesCollectionId);
-            }
-            throw new RecipesCollectionAccessDeniedException(recipesCollectionId);
+        permissionsFacade.revoke(RECIPES_COLLECTION_RESOURCE, collectionId, targetEmail, requesterEmail);
+
+        if (hadPermission) {
+            eventPublisher.publishEvent(new RecipesCollectionUnshared(collectionId, targetEmail));
         }
 
-        // Remove EDITOR permission (deleteById is no-op if record doesn't exist)
-        permissionRepository.deleteById(targetPermissionId);
-
-        eventPublisher.publishEvent(new RecipesCollectionUnshared(recipesCollectionId, targetEmail));
-
-        log.info("Recipes collection {} unshared from {} for {}", recipesCollectionId, requesterEmail, targetEmail);
+        log.info("Recipes collection {} unshared from {} for {}", collectionId, requesterEmail, targetEmail);
     }
 
-    List<SharedUserDto> getSharedUsers(UUID recipesCollectionId, String userEmail) {
-        log.debug("Getting shared users for recipes collection: {} by user: {}", recipesCollectionId, userEmail);
+    List<PermissionDto> getPermissions(UUID collectionId, String userEmail) {
+        log.debug("Getting permissions for recipes collection: {} by user: {}", collectionId, userEmail);
 
-        // Validate recipes collection exists
-        if (!recipesCollectionRepository.existsById(recipesCollectionId)) {
-            throw new RecipesCollectionNotFoundException(recipesCollectionId);
+        if (!recipesCollectionRepository.existsById(collectionId)) {
+            throw new RecipesCollectionNotFoundException(collectionId);
         }
 
-        // Validate user has access
-        permissionRepository.findById(new RecipesCollectionPermissionId(userEmail, recipesCollectionId))
-                .orElseThrow(() -> new RecipesCollectionAccessDeniedException(recipesCollectionId));
+        permissionsFacade.requireEditor(RECIPES_COLLECTION_RESOURCE, collectionId, userEmail);
 
-        // Return all users with access, OWNER first
-        return permissionRepository.findAllByRecipesCollectionId(recipesCollectionId).stream()
-                .map(perm -> new SharedUserDto(perm.getId().email(), perm.getRole()))
-                .toList();
+        return permissionsFacade.getPermissions(RECIPES_COLLECTION_RESOURCE, collectionId);
+    }
+
+    public Optional<ResourceRole> roleOf(UUID collectionId, String userEmail) {
+        log.debug("Getting role on collection: {} for user: {}", collectionId, userEmail);
+        return permissionsFacade.roleOf(RECIPES_COLLECTION_RESOURCE, collectionId, userEmail);
+    }
+
+    public Set<UUID> accessibleCollectionIds(String userEmail) {
+        log.debug("Getting accessible collection ids for user: {}", userEmail);
+        return permissionsFacade.accessibleResources(RECIPES_COLLECTION_RESOURCE, userEmail).keySet();
     }
 
     private RecipesCollectionListDto toListDto(RecipesCollection recipesCollection) {

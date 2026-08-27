@@ -20,6 +20,11 @@ import xyz.stasiak.recipai.TestSecurityConfiguration;
 import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
+import xyz.stasiak.recipai.permissions.dto.PendingInviteDto;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.dto.ResourceRole;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
+import xyz.stasiak.recipai.permissions.dto.UnshareRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 
 import javax.sql.DataSource;
@@ -87,7 +92,7 @@ class RecipesCollectionIntegrationTest {
     }
 
     private void shareRecipesCollection(RestClient client, UUID recipesCollectionId, String email) {
-        ShareRecipesCollectionRequest request = new ShareRecipesCollectionRequest(email);
+        ShareRequest request = new ShareRequest(email, ResourceRole.EDITOR);
         client
                 .post()
                 .uri("/collections/" + recipesCollectionId + "/share")
@@ -97,7 +102,7 @@ class RecipesCollectionIntegrationTest {
     }
 
     private void unshareRecipesCollection(RestClient client, UUID recipesCollectionId, String email) {
-        UnshareRecipesCollectionRequest request = new UnshareRecipesCollectionRequest(email);
+        UnshareRequest request = new UnshareRequest(email);
         client
                 .post()
                 .uri("/collections/" + recipesCollectionId + "/unshare")
@@ -106,13 +111,42 @@ class RecipesCollectionIntegrationTest {
                 .toBodilessEntity();
     }
 
-    private List<SharedUserDto> getSharedUsers(RestClient client, UUID recipesCollectionId) {
+    private List<PermissionDto> getPermissions(RestClient client, UUID recipesCollectionId) {
         return client
                 .get()
-                .uri("/collections/" + recipesCollectionId + "/users")
+                .uri("/collections/" + recipesCollectionId + "/permissions")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
+    }
+
+    private List<PendingInviteDto> getPendingInvites(RestClient client) {
+        return client
+                .get()
+                .uri("/invites")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private void acceptInvite(RestClient client, UUID inviteId) {
+        client
+                .post()
+                .uri("/invites/" + inviteId + "/accept")
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private UUID findPendingInviteId(RestClient client, String resourceType, String label) {
+        return getPendingInvites(client).stream()
+                .filter(invite -> invite.resourceType().equals(resourceType) && invite.label().equals(label))
+                .findFirst()
+                .orElseThrow()
+                .id();
+    }
+
+    private void acceptPendingCollectionInvite(RestClient client, String collectionName) {
+        acceptInvite(client, findPendingInviteId(client, "RECIPES_COLLECTION", collectionName));
     }
 
     @Test
@@ -213,8 +247,8 @@ class RecipesCollectionIntegrationTest {
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
             String responseBody = ex.getResponseBodyAsString();
-            assertThat(responseBody).contains("Access denied to recipes collection with id: " + user1Collection.id());
-            assertThat(responseBody).contains("Recipes Collection Access Denied");
+            assertThat(responseBody).contains("Access denied to RECIPES_COLLECTION with id: " + user1Collection.id());
+            assertThat(responseBody).contains("Resource Access Denied");
         }
     }
 
@@ -235,18 +269,25 @@ class RecipesCollectionIntegrationTest {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
         }
 
-        // User 1 shares with User 2
+        // User 1 shares with User 2 - creates a pending invite, grants nothing yet
         shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
 
-        // Verify shared users list
-        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, collection.id());
-        assertThat(sharedUsers).hasSize(2);
-        assertThat(sharedUsers)
-                .extracting(SharedUserDto::email)
-                .containsExactly("user1@example.com", "user2@example.com");
-        assertThat(sharedUsers)
-                .extracting(SharedUserDto::role)
-                .containsExactly(UserRole.OWNER, UserRole.EDITOR);
+        try {
+            deleteRecipesCollection(user2Client, collection.id());
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        }
+
+        // User 2 accepts the invite
+        acceptPendingCollectionInvite(user2Client, collection.name());
+
+        // Verify permissions list - both granted, neither pending
+        List<PermissionDto> permissions = getPermissions(user1Client, collection.id());
+        assertThat(permissions).containsExactly(
+                new PermissionDto("user1@example.com", ResourceRole.OWNER, false),
+                new PermissionDto("user2@example.com", ResourceRole.EDITOR, false)
+        );
 
         // User 1 unshares from User 2
         unshareRecipesCollection(user1Client, collection.id(), "user2@example.com");
@@ -264,24 +305,33 @@ class RecipesCollectionIntegrationTest {
     void shouldAllowEditorsToShareAndUnshare() {
         RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user3Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
 
-        // User 1 creates and shares with User 2
+        // User 1 creates and shares with User 2, who accepts
         RecipesCollectionListDto collection = createRecipesCollection(user1Client, "Editor Share Test");
         shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
-        // User 2 (EDITOR) can share with another user
+        // User 2 (EDITOR) can share with another user - stays pending
         shareRecipesCollection(user2Client, collection.id(), "user@example.com");
 
-        // Verify three users have access
-        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, collection.id());
-        assertThat(sharedUsers).hasSize(3);
+        // Verify three entries: two granted, one pending
+        List<PermissionDto> permissions = getPermissions(user1Client, collection.id());
+        assertThat(permissions).hasSize(3);
+        assertThat(permissions)
+                .filteredOn(PermissionDto::pending)
+                .extracting(PermissionDto::email)
+                .containsExactly("user@example.com");
 
-        // User 2 (EDITOR) can unshare
+        // The third user accepts
+        acceptPendingCollectionInvite(user3Client, collection.name());
+
+        // User 2 (EDITOR) can unshare the third user
         unshareRecipesCollection(user2Client, collection.id(), "user@example.com");
 
-        // Verify only two users remain
-        sharedUsers = getSharedUsers(user1Client, collection.id());
-        assertThat(sharedUsers).hasSize(2);
+        // Verify only two entries remain
+        permissions = getPermissions(user1Client, collection.id());
+        assertThat(permissions).hasSize(2);
     }
 
     @Test
@@ -302,27 +352,86 @@ class RecipesCollectionIntegrationTest {
         }
 
         // Verify User 1 still has access
-        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, collection.id());
-        assertThat(sharedUsers).hasSize(2);
-        assertThat(sharedUsers)
-                .extracting(SharedUserDto::email)
+        List<PermissionDto> permissions = getPermissions(user1Client, collection.id());
+        assertThat(permissions).hasSize(2);
+        assertThat(permissions)
+                .extracting(PermissionDto::email)
                 .contains("user1@example.com");
     }
 
     @Test
-    void shouldBeIdempotentWhenSharingTwice() {
+    void shouldRefuseSecondShareWhenTargetAlreadyHasAccess() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipesCollectionListDto collection = createRecipesCollection(user1Client, "Already Has Access Test");
+        shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
+
+        try {
+            shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(409);
+            Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<>() {
+            });
+            assertThat(body.get("reason")).isEqualTo("ALREADY_HAS_ACCESS");
+        }
+    }
+
+    @Test
+    void shouldRefuseSecondShareWhileFirstInviteIsPending() {
         RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
 
-        // User 1 creates and shares with User 2
         RecipesCollectionListDto collection = createRecipesCollection(user1Client, "Duplicate Share Test");
         shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
 
-        // Share again - should be no-op
+        // Share again while the first invite is still pending - refused, not silently ignored
+        try {
+            shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
+            fail("Should have thrown RestClientResponseException");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(409);
+            Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<>() {
+            });
+            assertThat(body.get("reason")).isEqualTo("ALREADY_INVITED");
+        }
+
+        // Verify still only owner + one pending invite, not two
+        List<PermissionDto> permissions = getPermissions(user1Client, collection.id());
+        assertThat(permissions).hasSize(2);
+    }
+
+    @Test
+    void shouldCancelPendingInviteOnUnshare() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipesCollectionListDto collection = createRecipesCollection(user1Client, "Cancel Invite Test");
         shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
 
-        // Verify still only 2 users
-        List<SharedUserDto> sharedUsers = getSharedUsers(user1Client, collection.id());
-        assertThat(sharedUsers).hasSize(2);
+        // User 1 unshares before User 2 accepts - the pending invite is cancelled, not a permission removal
+        unshareRecipesCollection(user1Client, collection.id(), "user2@example.com");
+
+        assertThat(getPendingInvites(user2Client))
+                .filteredOn(invite -> invite.resourceType().equals("RECIPES_COLLECTION") && invite.label().equals(collection.name()))
+                .isEmpty();
+        assertThat(getPermissions(user1Client, collection.id())).hasSize(1);
+    }
+
+    @Test
+    void shouldClearPendingInvitesWhenCollectionIsDeleted() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipesCollectionListDto collection = createRecipesCollection(user1Client, "Delete With Pending Invite");
+        shareRecipesCollection(user1Client, collection.id(), "user2@example.com");
+
+        deleteRecipesCollection(user1Client, collection.id());
+
+        assertThat(getPendingInvites(user2Client))
+                .filteredOn(invite -> invite.resourceType().equals("RECIPES_COLLECTION") && invite.label().equals(collection.name()))
+                .isEmpty();
     }
 
     @Nested
@@ -486,10 +595,12 @@ class RecipesCollectionIntegrationTest {
         @Test
         void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
+            RestClient recipientClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
             RecipesCollectionListDto collection = createRecipesCollection(client, "Shared Collection");
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
 
             shareRecipesCollection(client, collection.id(), "user2@example.com");
+            acceptPendingCollectionInvite(recipientClient, collection.name());
             assertThat(usedFor("user2@example.com")).isZero();
 
             unshareRecipesCollection(client, collection.id(), "user2@example.com");

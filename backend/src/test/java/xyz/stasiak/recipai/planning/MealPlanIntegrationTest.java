@@ -21,11 +21,14 @@ import xyz.stasiak.recipai.TestcontainersConfiguration;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.permissions.dto.PendingInviteDto;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
 import xyz.stasiak.recipai.permissions.dto.ResourceRole;
 import xyz.stasiak.recipai.permissions.dto.ShareRequest;
+import xyz.stasiak.recipai.permissions.dto.UnshareRequest;
 import xyz.stasiak.recipai.planning.dto.*;
-import xyz.stasiak.recipai.planning.dto.SharedUserDto;
 import xyz.stasiak.recipai.recipes.*;
+import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
+import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -123,7 +126,11 @@ class MealPlanIntegrationTest {
     }
 
     private RecipeDetailsDto createRecipe(RestClient client, String name, RecipeData data) {
-        CreateRecipeRequest request = new CreateRecipeRequest(name, data, null, List.of());
+        return createRecipe(client, name, data, null);
+    }
+
+    private RecipeDetailsDto createRecipe(RestClient client, String name, RecipeData data, UUID collectionId) {
+        CreateRecipeRequest request = new CreateRecipeRequest(name, data, collectionId, List.of());
         return client
                 .post()
                 .uri("/recipes")
@@ -141,6 +148,24 @@ class MealPlanIntegrationTest {
                 .toBodilessEntity();
     }
 
+    private List<RecipeListDto> getAllRecipes(RestClient client) {
+        return client
+                .get()
+                .uri("/recipes")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private RecipeData createTestRecipeData() {
+        return new RecipeData(
+                List.of(new Ingredient("flour", new BigDecimal(300), "g", null)),
+                List.of(new Instruction("Mix")),
+                null,
+                1
+        );
+    }
+
     private void shareRecipe(RestClient client, UUID recipeId, String email) {
         ShareRequest request = new ShareRequest(email, ResourceRole.EDITOR);
         client
@@ -151,21 +176,68 @@ class MealPlanIntegrationTest {
                 .toBodilessEntity();
     }
 
-    private void acceptPendingRecipeInvite(RestClient client, String recipeName) {
-        List<PendingInviteDto> invites = client
+    private List<PermissionDto> getRecipePermissions(RestClient client, UUID recipeId) {
+        return client
+                .get()
+                .uri("/recipes/" + recipeId + "/permissions")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+    }
+
+    private List<PendingInviteDto> getPendingInvites(RestClient client) {
+        return client
                 .get()
                 .uri("/invites")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
-        UUID inviteId = invites.stream()
-                .filter(invite -> invite.resourceType().equals("RECIPE") && invite.label().equals(recipeName))
-                .findFirst()
-                .orElseThrow()
-                .id();
+    }
+
+    private void acceptInvite(RestClient client, UUID inviteId) {
         client
                 .post()
                 .uri("/invites/" + inviteId + "/accept")
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private UUID findPendingInviteId(RestClient client, String resourceType, String label) {
+        return getPendingInvites(client).stream()
+                .filter(invite -> invite.resourceType().equals(resourceType) && invite.label().equals(label))
+                .findFirst()
+                .orElseThrow()
+                .id();
+    }
+
+    private void acceptPendingRecipeInvite(RestClient client, String recipeName) {
+        acceptInvite(client, findPendingInviteId(client, "RECIPE", recipeName));
+    }
+
+    private void acceptPendingMealPlanInvite(RestClient client, String planName) {
+        acceptInvite(client, findPendingInviteId(client, "MEAL_PLAN", planName));
+    }
+
+    private void acceptPendingCollectionInvite(RestClient client, String collectionName) {
+        acceptInvite(client, findPendingInviteId(client, "RECIPES_COLLECTION", collectionName));
+    }
+
+    private RecipesCollectionListDto createCollection(RestClient client, String name) {
+        CreateRecipesCollectionRequest request = new CreateRecipesCollectionRequest(name);
+        return client
+                .post()
+                .uri("/collections")
+                .body(request)
+                .retrieve()
+                .body(RecipesCollectionListDto.class);
+    }
+
+    private void shareCollection(RestClient client, UUID collectionId, String email) {
+        ShareRequest request = new ShareRequest(email, ResourceRole.EDITOR);
+        client
+                .post()
+                .uri("/collections/" + collectionId + "/share")
+                .body(request)
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -198,17 +270,17 @@ class MealPlanIntegrationTest {
                 .toBodilessEntity();
     }
 
-    private List<SharedUserDto> getSharedUsers(RestClient client, UUID planId) {
+    private List<PermissionDto> getPermissions(RestClient client, UUID planId) {
         return client
                 .get()
-                .uri("/meal-plans/" + planId + "/users")
+                .uri("/meal-plans/" + planId + "/permissions")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {
                 });
     }
 
     private void shareMealPlan(RestClient client, UUID planId, String email) {
-        ShareMealPlanRequest request = new ShareMealPlanRequest(email);
+        ShareRequest request = new ShareRequest(email, ResourceRole.EDITOR);
         client
                 .post()
                 .uri("/meal-plans/" + planId + "/share")
@@ -219,7 +291,7 @@ class MealPlanIntegrationTest {
     }
 
     private void unshareMealPlan(RestClient client, UUID planId, String email) {
-        UnshareMealPlanRequest request = new UnshareMealPlanRequest(email);
+        UnshareRequest request = new UnshareRequest(email);
         client
                 .post()
                 .uri("/meal-plans/" + planId + "/unshare")
@@ -264,7 +336,7 @@ class MealPlanIntegrationTest {
         assertThat(created.id()).isNotNull();
         assertThat(created.name()).isEqualTo("Weekly Plan");
         assertThat(created.color()).isEqualTo("#FF5733");
-        assertThat(created.role()).isEqualTo(UserRole.OWNER);
+        assertThat(created.role()).isEqualTo(ResourceRole.OWNER);
         assertThat(created.createdAt()).isNotNull();
 
         List<MealPlanDto> plans = getAllMealPlans(client);
@@ -618,11 +690,9 @@ class MealPlanIntegrationTest {
         RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         MealPlanDto plan = createMealPlan(client, "Shared Users Test", "#FF5733");
 
-        List<SharedUserDto> users = getSharedUsers(client, plan.id());
+        List<PermissionDto> permissions = getPermissions(client, plan.id());
 
-        assertThat(users).hasSize(1);
-        assertThat(users.getFirst().email()).isEqualTo("user1@example.com");
-        assertThat(users.getFirst().role()).isEqualTo(UserRole.OWNER);
+        assertThat(permissions).containsExactly(new PermissionDto("user1@example.com", ResourceRole.OWNER, false));
     }
 
     @Test
@@ -632,36 +702,67 @@ class MealPlanIntegrationTest {
 
         MealPlanDto plan = createMealPlan(client1, "Shared Plan", "#FF5733");
 
+        // Sharing creates a pending invite - grants nothing yet
         shareMealPlan(client1, plan.id(), "user2@example.com");
 
-        List<SharedUserDto> users = getSharedUsers(client1, plan.id());
-        assertThat(users).hasSize(2);
-        assertThat(users.get(0).email()).isEqualTo("user1@example.com");
-        assertThat(users.get(0).role()).isEqualTo(UserRole.OWNER);
-        assertThat(users.get(1).email()).isEqualTo("user2@example.com");
-        assertThat(users.get(1).role()).isEqualTo(UserRole.EDITOR);
+        assertThat(getAllMealPlans(client2)).extracting(MealPlanDto::id).doesNotContain(plan.id());
+
+        List<PermissionDto> permissionsWhilePending = getPermissions(client1, plan.id());
+        assertThat(permissionsWhilePending).containsExactly(
+                new PermissionDto("user1@example.com", ResourceRole.OWNER, false),
+                new PermissionDto("user2@example.com", ResourceRole.EDITOR, true)
+        );
+
+        acceptPendingMealPlanInvite(client2, plan.name());
+
+        List<PermissionDto> permissionsAfterAccept = getPermissions(client1, plan.id());
+        assertThat(permissionsAfterAccept).containsExactly(
+                new PermissionDto("user1@example.com", ResourceRole.OWNER, false),
+                new PermissionDto("user2@example.com", ResourceRole.EDITOR, false)
+        );
 
         List<MealPlanDto> user2Plans = getAllMealPlans(client2);
         assertThat(user2Plans).extracting(MealPlanDto::id).contains(plan.id());
         assertThat(user2Plans.stream().filter(p -> p.id().equals(plan.id())).findFirst().orElseThrow().role())
-                .isEqualTo(UserRole.EDITOR);
+                .isEqualTo(ResourceRole.EDITOR);
     }
 
     @Test
-    void shouldBeIdempotentWhenSharingTwice() {
+    void shouldRefuseSecondShareWhenTargetAlreadyHasAccess() {
         RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
 
-        MealPlanDto plan = createMealPlan(client1, "Idempotent Share Test", "#FF5733");
-
+        MealPlanDto plan = createMealPlan(client1, "Already Has Access Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
-        List<SharedUserDto> users1 = getSharedUsers(client1, plan.id());
+        acceptPendingMealPlanInvite(client2, plan.name());
 
+        try {
+            shareMealPlan(client1, plan.id(), "user2@example.com");
+            fail("Should have thrown exception");
+        } catch (RestClientResponseException ex) {
+            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.CONFLICT.value());
+            Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<>() {
+            });
+            assertThat(body.get("reason")).isEqualTo("ALREADY_HAS_ACCESS");
+        }
+    }
+
+    @Test
+    void shouldListPlansWithRoleFromOneAccessMap() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Role From Access Map Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
-        List<SharedUserDto> users2 = getSharedUsers(client1, plan.id());
+        acceptPendingMealPlanInvite(client2, plan.name());
 
-        assertThat(users1).hasSize(2);
-        assertThat(users2).hasSize(2);
-        assertThat(users1).isEqualTo(users2);
+        List<MealPlanDto> ownerPlans = getAllMealPlans(client1);
+        assertThat(ownerPlans.stream().filter(p -> p.id().equals(plan.id())).findFirst().orElseThrow().role())
+                .isEqualTo(ResourceRole.OWNER);
+
+        List<MealPlanDto> editorPlans = getAllMealPlans(client2);
+        assertThat(editorPlans.stream().filter(p -> p.id().equals(plan.id())).findFirst().orElseThrow().role())
+                .isEqualTo(ResourceRole.EDITOR);
     }
 
     @Test
@@ -671,12 +772,13 @@ class MealPlanIntegrationTest {
 
         MealPlanDto plan = createMealPlan(client1, "Editor Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         MealPlanDto updated = updateMealPlan(client2, plan.id(), "Updated by Editor", "#00FF00");
 
         assertThat(updated.name()).isEqualTo("Updated by Editor");
         assertThat(updated.color()).isEqualTo("#00FF00");
-        assertThat(updated.role()).isEqualTo(UserRole.EDITOR);
+        assertThat(updated.role()).isEqualTo(ResourceRole.EDITOR);
     }
 
     @Test
@@ -686,6 +788,7 @@ class MealPlanIntegrationTest {
 
         MealPlanDto plan = createMealPlan(client1, "Editor Entry Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         CreateMealPlanEntryRequest request = new CreateMealPlanEntryRequest(
                 LocalDate.of(2026, 2, 1), null, "Entry by Editor", null
@@ -703,6 +806,7 @@ class MealPlanIntegrationTest {
 
         MealPlanDto plan = createMealPlan(client1, "Editor Delete Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         try {
             deleteMealPlan(client2, plan.id());
@@ -719,15 +823,15 @@ class MealPlanIntegrationTest {
 
         MealPlanDto plan = createMealPlan(client1, "Unshare Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         List<MealPlanDto> user2Plans = getAllMealPlans(client2);
         assertThat(user2Plans).extracting(MealPlanDto::id).contains(plan.id());
 
         unshareMealPlan(client1, plan.id(), "user2@example.com");
 
-        List<SharedUserDto> users = getSharedUsers(client1, plan.id());
-        assertThat(users).hasSize(1);
-        assertThat(users.getFirst().email()).isEqualTo("user1@example.com");
+        List<PermissionDto> permissions = getPermissions(client1, plan.id());
+        assertThat(permissions).containsExactly(new PermissionDto("user1@example.com", ResourceRole.OWNER, false));
 
         List<MealPlanDto> user2PlansAfter = getAllMealPlans(client2);
         assertThat(user2PlansAfter).extracting(MealPlanDto::id).doesNotContain(plan.id());
@@ -740,6 +844,7 @@ class MealPlanIntegrationTest {
 
         MealPlanDto plan = createMealPlan(client1, "Unshare Owner Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         try {
             unshareMealPlan(client2, plan.id(), "user1@example.com");
@@ -789,7 +894,7 @@ class MealPlanIntegrationTest {
         RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         MealPlanDto plan = createMealPlan(client, "Email Validation Test", "#FF5733");
 
-        ShareMealPlanRequest request = new ShareMealPlanRequest("invalid-email");
+        ShareRequest request = new ShareRequest("invalid-email", ResourceRole.EDITOR);
         try {
             client
                     .post()
@@ -808,15 +913,18 @@ class MealPlanIntegrationTest {
     void shouldAllowEditorToShareMealPlan() {
         RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient client3 = restClient(TestSecurityConfiguration.AUTH_TOKEN);
 
         MealPlanDto plan = createMealPlan(client1, "Editor Share Test", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         shareMealPlan(client2, plan.id(), "user@example.com");
+        acceptPendingMealPlanInvite(client3, plan.name());
 
-        List<SharedUserDto> users = getSharedUsers(client1, plan.id());
-        assertThat(users).hasSize(3);
-        assertThat(users).extracting(SharedUserDto::email)
+        List<PermissionDto> permissions = getPermissions(client1, plan.id());
+        assertThat(permissions).hasSize(3);
+        assertThat(permissions).extracting(PermissionDto::email)
                 .contains("user1@example.com", "user2@example.com", "user@example.com");
     }
 
@@ -886,12 +994,13 @@ class MealPlanIntegrationTest {
     }
 
     @Test
-    void shouldIndicateRestrictedRecipeAccess() {
+    void shouldRefuseCalendarRecipeAccessWhenNeitherPathReaches() {
         RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
 
         MealPlanDto plan = createMealPlan(client1, "Shared Plan", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         RecipeDetailsDto recipe = createRecipe(client1, "Private Recipe");
 
@@ -910,15 +1019,21 @@ class MealPlanIntegrationTest {
         assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
         assertThat(calendarEntry.recipeName()).isEqualTo("Private Recipe");
         assertThat(calendarEntry.hasRecipeAccess()).isFalse();
+
+        // Neither path reaches: user2 holds no direct recipe permission and no collection access
+        assertThat(getRecipePermissions(client1, recipe.id())).extracting(PermissionDto::email)
+                .doesNotContain("user2@example.com");
+        assertThat(getAllRecipes(client2)).extracting(RecipeListDto::id).doesNotContain(recipe.id());
     }
 
     @Test
-    void shouldIndicateRecipeAccessGrantedThroughResourcePermission() {
+    void shouldGrantCalendarRecipeAccessThroughDirectRecipePermission() {
         RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
 
         MealPlanDto plan = createMealPlan(client1, "Shared Plan For Invite", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         RecipeDetailsDto recipe = createRecipe(client1, "Invited Recipe");
 
@@ -944,6 +1059,79 @@ class MealPlanIntegrationTest {
         MealPlanCalendarViewDto calendarEntry = entries.getFirst();
         assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
         assertThat(calendarEntry.hasRecipeAccess()).isTrue();
+    }
+
+    @Test
+    void shouldGrantCalendarRecipeAccessThroughSharedCollection() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Shared Plan For Collection Access", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
+
+        RecipesCollectionListDto collection = createCollection(client1, "Calendar Collection");
+        shareCollection(client1, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(client2, collection.name());
+
+        RecipeDetailsDto recipe = createRecipe(client1, "Collection Recipe", createTestRecipeData(), collection.id());
+
+        CreateMealPlanEntryRequest entry = new CreateMealPlanEntryRequest(
+                LocalDate.of(2026, 2, 1), recipe.id(), null, 2);
+        createEntry(client1, plan.id(), entry);
+
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
+                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), plan.id().toString());
+
+        assertThat(calendar).hasSize(1);
+        List<MealPlanCalendarViewDto> entries = calendar.get(LocalDate.of(2026, 2, 1));
+        assertThat(entries).hasSize(1);
+
+        MealPlanCalendarViewDto calendarEntry = entries.getFirst();
+        assertThat(calendarEntry.recipeId()).isEqualTo(recipe.id());
+        assertThat(calendarEntry.hasRecipeAccess()).isTrue();
+
+        // No direct recipe permission exists - access is entirely collection-derived
+        assertThat(getRecipePermissions(client1, recipe.id())).extracting(PermissionDto::email)
+                .doesNotContain("user2@example.com");
+    }
+
+    @Test
+    void shouldReturnEmptyCalendarWhenNoRequestedPlanIsAccessible() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto plan = createMealPlan(client1, "Unshared Plan For Calendar", "#FF5733");
+
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
+                client2, LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1), plan.id().toString());
+
+        // Today's join silently dropped an unreachable plan - the intersection preserves that: no 403
+        assertThat(calendar).isEmpty();
+    }
+
+    @Test
+    void shouldIncludeOnlyAccessiblePlansWhenSomeRequestedPlansAreNot() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        MealPlanDto sharedPlan = createMealPlan(client1, "Shared Plan For Mixed Access", "#FF5733");
+        shareMealPlan(client1, sharedPlan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, sharedPlan.name());
+
+        MealPlanDto privatePlan = createMealPlan(client1, "Private Plan For Mixed Access", "#00FF00");
+
+        LocalDate date = LocalDate.of(2026, 2, 1);
+        createEntry(client1, sharedPlan.id(), new CreateMealPlanEntryRequest(date, null, "Shared Entry", null));
+        createEntry(client1, privatePlan.id(), new CreateMealPlanEntryRequest(date, null, "Private Entry", null));
+
+        String requestedPlanIds = sharedPlan.id() + "," + privatePlan.id();
+        Map<LocalDate, List<MealPlanCalendarViewDto>> calendar = getCalendarView(
+                client2, date, date, requestedPlanIds);
+
+        assertThat(calendar).hasSize(1);
+        assertThat(calendar.get(date)).hasSize(1);
+        assertThat(calendar.get(date).getFirst().planId()).isEqualTo(sharedPlan.id());
     }
 
     @Test
@@ -1007,6 +1195,7 @@ class MealPlanIntegrationTest {
         RecipeDetailsDto privateRecipe = createRecipe(client1, "Private Recipe");
         MealPlanDto plan = createMealPlan(client1, "Shared Plan With Private Recipe", "#FF5733");
         shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
 
         LocalDate date = LocalDate.of(2026, 3, 1);
         createEntry(client1, plan.id(), new CreateMealPlanEntryRequest(date, privateRecipe.id(), null, 2));
@@ -1019,6 +1208,31 @@ class MealPlanIntegrationTest {
         assertThat(response.inaccessibleRecipeNames().getFirst()).isEqualTo("Private Recipe");
 
         deleteRecipe(client1, privateRecipe.id());
+    }
+
+    @Test
+    void shouldGenerateShoppingListItemsForAnEditorWithoutTheDeJoinedFilter() {
+        RestClient client1 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client2 = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipeDetailsDto recipe = createRecipe(client1, "Editor Accessible Recipe");
+        MealPlanDto plan = createMealPlan(client1, "Shared Plan For Editor Generation", "#FF5733");
+        shareMealPlan(client1, plan.id(), "user2@example.com");
+        acceptPendingMealPlanInvite(client2, plan.name());
+        shareRecipe(client1, recipe.id(), "user2@example.com");
+        acceptPendingRecipeInvite(client2, recipe.name());
+
+        LocalDate date = LocalDate.of(2026, 3, 1);
+        createEntry(client1, plan.id(), new CreateMealPlanEntryRequest(date, recipe.id(), null, 2));
+
+        GeneratedShoppingListResponse response = generateShoppingListItems(
+                client2, List.of(plan.id()), List.of(date));
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().getFirst().name()).isEqualTo("flour");
+        assertThat(response.inaccessibleRecipeNames()).isEmpty();
+
+        deleteRecipe(client1, recipe.id());
     }
 
     @Test
@@ -1339,10 +1553,12 @@ class MealPlanIntegrationTest {
         @Test
         void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
+            RestClient recipientClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
             MealPlanDto plan = createMealPlan(client, "Shared Plan", "#FF5733");
             assertThat(usedFor(SUBJECT)).isEqualTo(1);
 
             shareMealPlan(client, plan.id(), "user2@example.com");
+            acceptPendingMealPlanInvite(recipientClient, plan.name());
             assertThat(usedFor("user2@example.com")).isZero();
 
             unshareMealPlan(client, plan.id(), "user2@example.com");
@@ -1401,6 +1617,27 @@ class MealPlanIntegrationTest {
             } finally {
                 setLimitQuota("MEAL_PLAN", SUBJECT, 2);
                 limitsFacade.clear(SUBJECT, MealPlanService.MEAL_PLAN_RESOURCE);
+            }
+        }
+
+        @Test
+        void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
+            String defaultFlowSubject = "user1@example.com";
+            RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            setLimitQuota("MEAL_PLAN", null, "FLOW", 5);
+            try {
+                MealPlanDto first = createMealPlan(client, "Flow 1", "#FF5733");
+                createMealPlan(client, "Flow 2", "#FF5733");
+                // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
+                deleteMealPlan(client, first.id());
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
+
+                RecomputeMigration.run(dataSource);
+
+                assertThat(usedFor(defaultFlowSubject)).isEqualTo(2);
+            } finally {
+                setLimitQuota("MEAL_PLAN", null, "STOCK", 2);
+                limitsFacade.clear(defaultFlowSubject, MealPlanService.MEAL_PLAN_RESOURCE);
             }
         }
 

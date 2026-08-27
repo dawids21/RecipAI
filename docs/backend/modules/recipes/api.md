@@ -318,39 +318,51 @@
 - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden (user lacks EDITOR/OWNER permission), 404 Not Found
 
 ### DELETE /collections/{id}
-- Description: Delete a recipes collection and all associated permissions
+- Description: Delete a recipes collection and all associated permissions and pending invites
 - Authenticated: true
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the collection and its permissions; returns the owner's `RECIPES_COLLECTION` unit. Recipes in it are unassigned (`recipes_collection_id` set to null via ON DELETE SET NULL), not deleted, so no `RECIPE` unit is returned.
+- Note: Deletes the collection, and every permission and pending invite for it (so it disappears from an invitee's `/invites` too); returns the owner's `RECIPES_COLLECTION` unit. Recipes in it are unassigned (`recipes_collection_id` set to null via ON DELETE SET NULL), not deleted, so no `RECIPE` unit is returned.
 
-### GET /collections/{id}/users
-- Description: Get all users that a recipes collection is shared with, including their roles
+### GET /collections/{id}/permissions
+- Description: Get everyone who holds direct access or a pending invite to the collection, including
+  their roles
 - Authenticated: true
 - Example response:
   ```json
   [
-    {"email": "owner@example.com", "role": "OWNER"},
-    {"email": "editor@example.com", "role": "EDITOR"}
+    {"email": "owner@example.com", "role": "OWNER", "pending": false},
+    {"email": "editor@example.com", "role": "EDITOR", "pending": false},
+    {"email": "invitee@example.com", "role": "EDITOR", "pending": true}
   ]
   ```
 - Success: 200 OK
 - Errors: 401 Unauthorized, 403 Forbidden (if user lacks access), 404 Not Found
-- Note: OWNER appears first in the returned list.
+- Note: OWNER appears first, then granted EDITORs, then pending invites by age. See
+  `docs/backend/modules/permissions/api.md` for the shared `PermissionDto`.
 
 ### POST /collections/{id}/share
-- Description: Share recipes collection with another user (grants EDITOR access)
+- Description: Invite another user to the collection with a role. Grants nothing by itself — the
+  invite is pending until the invitee accepts it over `POST /invites/{id}/accept`
+  (`docs/backend/modules/permissions/api.md`)
 - Authenticated: true
-- Request body: `{"email": "user@example.com"}`
+- Request body: `{"email": "user@example.com", "role": "EDITOR"}`
 - Success: 204 No Content
-- Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden, 404 Not Found
-- Note: Shared user receives EDITOR access. Duplicate shares are silently ignored (idempotent).
+- Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found,
+  409 Conflict (the target already holds access, including the collection's own owner, or already has
+  a pending invite for this collection — shape in `docs/backend/modules/permissions/api.md`)
+- Note: The invite's label is the collection's name, snapshotted at invite time.
 
 ### POST /collections/{id}/unshare
-- Description: Remove shared access from a user
+- Description: Remove a granted permission, or cancel a pending invite, for a user — whichever exists
 - Authenticated: true
 - Request body: `{"email": "user@example.com"}`
 - Success: 204 No Content
-- Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden (if user has no access, or trying to unshare OWNER), 404 Not Found
-- Note: EDITOR can unshare EDITORs (including self); EDITOR cannot remove OWNER; OWNER cannot remove themselves. When a collection is unshared from a user, all recipes owned by that user in the collection are automatically removed from the collection (`recipesCollectionId` set to null).
+- Errors: 400 Bad Request (invalid email format), 401 Unauthorized, 403 Forbidden (if user has no
+  access, target is OWNER, or the caller is unsharing themselves), 404 Not Found
+- Note: No caller — OWNER or EDITOR — may unshare themselves. Unsharing someone with neither a granted
+  permission nor a pending invite is a no-op. When a *granted* permission is removed, all recipes
+  owned by that user in the collection are automatically removed from the collection
+  (`recipesCollectionId` set to null); cancelling a pending invite detaches nothing, since a pending
+  invitee cannot yet reach the collection to file recipes into it.
