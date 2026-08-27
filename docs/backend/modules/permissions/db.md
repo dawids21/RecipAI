@@ -49,12 +49,3 @@ pending invite for a resource, and every resource module's delete path must call
 - `idx_resource_invite_email` on `resource_invite(email)` — serves the cross-resource pending list
 - `idx_resource_invite_resource` on `resource_invite(resource_type, resource_id)` — serves
   `getPermissions` and `resourceDeleted`
-
-## Migration
-
-`V20__resource_permission_and_invite.sql` creates both tables and copies
-`shopping_list_permission` into `resource_permission` under the `SHOPPING_LIST` resource type, with no
-change in meaning: everyone who had access at rollout keeps it, at the same role, with no invite
-involved. `V21__recipe_permission_to_resource_permission.sql` copies `recipe_permission` the same way
-under the `RECIPE` resource type. Both old tables remain in place, unread and unwritten by the
-application.

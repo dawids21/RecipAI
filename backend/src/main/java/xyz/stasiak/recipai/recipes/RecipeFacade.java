@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,12 +20,16 @@ public class RecipeFacade {
     private final RecipeService recipeService;
     private final ObjectMapper objectMapper;
 
+    // Every recipe the caller reaches, directly or through a collection they have access to.
+    public Set<UUID> getAccessibleRecipeIds(String userEmail) {
+        log.debug("Getting accessible recipe ids for user {}", userEmail);
+        return recipeService.accessibleRecipeIds(userEmail);
+    }
+
     public RecipeInfoResult getRecipes(Collection<UUID> recipeIds, String userEmail) {
         log.debug("Getting recipes for {} recipe ids for user {}", recipeIds.size(), userEmail);
 
-        Set<UUID> accessibleRecipeIds = recipeService.findAll(userEmail).stream()
-                .map(RecipeListDto::id)
-                .collect(Collectors.toSet());
+        Set<UUID> accessibleRecipeIds = recipeService.accessibleRecipeIds(userEmail);
 
         List<Recipe> recipes = recipeRepository.findAllById(recipeIds);
 

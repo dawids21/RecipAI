@@ -1,6 +1,6 @@
 package xyz.stasiak.recipai.planning.dto;
 
-import xyz.stasiak.recipai.planning.UserRole;
+import xyz.stasiak.recipai.permissions.dto.ResourceRole;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -9,7 +9,7 @@ public record MealPlanDto(
         UUID id,
         String name,
         String color,
-        UserRole role,
+        ResourceRole role,
         Instant createdAt
 ) {
 }

@@ -9,6 +9,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import xyz.stasiak.recipai.limits.LimitBalance;
+import xyz.stasiak.recipai.permissions.dto.PermissionDto;
+import xyz.stasiak.recipai.permissions.dto.ShareRequest;
+import xyz.stasiak.recipai.permissions.dto.UnshareRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.*;
 
 import java.util.List;
@@ -63,23 +66,23 @@ class RecipesCollectionController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/users")
-    List<SharedUserDto> getSharedUsers(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+    @GetMapping("/{id}/permissions")
+    List<PermissionDto> getPermissions(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
-        log.debug("Getting shared users for recipes collection: {} by user: {}", id, userEmail);
-        return recipesCollectionService.getSharedUsers(id, userEmail);
+        log.debug("Getting permissions for recipes collection: {} by user: {}", id, userEmail);
+        return recipesCollectionService.getPermissions(id, userEmail);
     }
 
     @PostMapping("/{id}/share")
-    ResponseEntity<Void> shareRecipesCollection(@PathVariable UUID id, @Valid @RequestBody ShareRecipesCollectionRequest request, @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<Void> shareRecipesCollection(@PathVariable UUID id, @Valid @RequestBody ShareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Sharing recipes collection {} from {} to {}", id, userEmail, request.email());
-        recipesCollectionService.shareRecipesCollection(request.email(), id, userEmail);
+        recipesCollectionService.shareRecipesCollection(request, id, userEmail);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/unshare")
-    ResponseEntity<Void> unshareRecipesCollection(@PathVariable UUID id, @Valid @RequestBody UnshareRecipesCollectionRequest request, @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<Void> unshareRecipesCollection(@PathVariable UUID id, @Valid @RequestBody UnshareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Unsharing recipes collection {} from {} for {}", id, userEmail, request.email());
         recipesCollectionService.unshareRecipesCollection(request.email(), id, userEmail);

@@ -42,8 +42,7 @@
 
 Direct recipe access and sharing are recorded in `permissions`' `resource_permission` and
 `resource_invite` tables under the `RECIPE` resource type — see
-`docs/backend/modules/permissions/db.md`. The `recipe_permission` table exists in the schema but is
-not part of the system of record: `recipes` neither reads nor writes it.
+`docs/backend/modules/permissions/db.md`.
 
 ### recipes_collections
 
@@ -51,12 +50,9 @@ not part of the system of record: `recipes` neither reads nor writes it.
 - name: VARCHAR(255) NOT NULL
 - created_at: TIMESTAMP NOT NULL
 
-### recipes_collection_permission
-
-- email: VARCHAR(255) NOT NULL
-- recipes_collection_id: UUID NOT NULL (FK -> recipes_collections.id)
-- role: VARCHAR(255) NOT NULL CHECK (role IN ('OWNER', 'EDITOR'))
-- PRIMARY KEY (email, recipes_collection_id)
+Collection access and sharing are recorded in `permissions`' `resource_permission` and
+`resource_invite` tables under the `RECIPES_COLLECTION` resource type — see
+`docs/backend/modules/permissions/db.md`.
 
 ## Relationships
 
@@ -69,12 +65,6 @@ not part of the system of record: `recipes` neither reads nor writes it.
     - When a recipe is deleted, its recipe_images record is deleted (CASCADE)
     - Maximum of 2 images per recipe enforced at application level
 - **recipe_images.id** → **recipes.id**: Foreign key with ON DELETE CASCADE
-- **recipes_collection_permission** ↔ **recipes_collections**: Many-to-Many through `recipes_collection_permission` join table with role-based access
-    - One user (identified by email) can have many collections with different roles
-    - One collection can belong to multiple users with different access levels
-    - **OWNER**: Can view, edit, delete collections
-    - **EDITOR**: Can view and edit collections
-- **recipes_collection_permission.recipes_collection_id** → **recipes_collections.id**: Foreign key relationship
 - **recipes** → **recipes_collections**: Optional Many-to-One relationship
     - One recipe can optionally belong to one collection (via `recipes.recipes_collection_id`)
     - Many recipes can belong to the same collection
@@ -87,6 +77,5 @@ not part of the system of record: `recipes` neither reads nor writes it.
 ## Indexes
 
 - Primary key indexes on all tables
-- Composite primary key index on `recipes_collection_permission(email, recipes_collection_id)`
 - Index on `recipes(created_at)` — for ordering recipes by creation date
 - Index on `recipes_collections(created_at)` — for ordering collections by creation date

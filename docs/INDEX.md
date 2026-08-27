@@ -49,8 +49,8 @@ role in the system is in `docs/project/architecture.md`.
 #### Recipes & Collections (`backend/modules/recipes/`)
 - `module.md` — description, file tree for `recipes`, `recipes.collections`, `recipes.images`, and the `RECIPE`/`RECIPES_COLLECTION` quota behaviour
 - `api.md` — all `/recipes` and `/collections` endpoints including sharing and image upload
-- `db.md` — `recipes`, `recipe_images`, `recipes_collections`, `recipes_collection_permission` tables;
-  recipe access control lives in `permissions/db.md`
+- `db.md` — `recipes`, `recipe_images`, `recipes_collections` tables; recipe and collection access
+  control lives in `permissions/db.md`
 
 #### Extraction (`backend/modules/extraction/`)
 - `module.md` — description, file tree, and the `EXTRACTION` budget behaviour
@@ -65,20 +65,21 @@ role in the system is in `docs/project/architecture.md`.
 - `module.md` — description, file tree, module boundary, the invite handshake, the refusal rules, and
   the unshare/self-unshare guards shared by every resource type
 - `api.md` — `/invites` (the invitee's surface), and the shared `ShareRequest`/`UnshareRequest`/
-  `PermissionDto` shapes and error contract every migrated resource module's `share`/`unshare`/
-  `permissions` endpoints use
-- `db.md` — `resource_permission`, `resource_invite` tables, and the migration that copies each
-  resource module's permission table in as it migrates
+  `PermissionDto` shapes and error contract every resource module's `share`/`unshare`/`permissions`
+  endpoints use
+- `db.md` — `resource_permission`, `resource_invite` tables, and the migration that copied every
+  resource module's permission table in and dropped the originals
 
 #### Planning (`backend/modules/planning/`)
 - `module.md` — description, file tree, and the `MEAL_PLAN` quota behaviour
 - `api.md` — all `/meal-plans` endpoints including calendar view and shopping list generation
-- `db.md` — `meal_plans`, `meal_plan_permissions`, `meal_plan_entries` tables
+- `db.md` — `meal_plans`, `meal_plan_entries` tables; meal plan access control lives in
+  `permissions/db.md`
 
 #### Limits (`backend/modules/limits/`)
 - `module.md` — description, file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the usage reads, the `recipai.limits.enabled` kill-switch, and the consuming modules
 - `api.md` — `GET /limits` and the shared 429 refusal contract
-- `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from the permission tables and, for shopping-list items, from the items themselves
+- `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from `resource_permission` and, for shopping-list items, from the items themselves
 
 #### Provisioning (`backend/modules/provisioning/`)
 - `module.md` — description and file tree (no HTTP endpoints, no DB tables)

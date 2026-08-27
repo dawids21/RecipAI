@@ -27,8 +27,6 @@ import xyz.stasiak.recipai.permissions.dto.ShareRequest;
 import xyz.stasiak.recipai.permissions.dto.UnshareRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.CreateRecipesCollectionRequest;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
-import xyz.stasiak.recipai.recipes.collections.dto.ShareRecipesCollectionRequest;
-import xyz.stasiak.recipai.recipes.collections.dto.UnshareRecipesCollectionRequest;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -182,6 +180,10 @@ class RecipeIntegrationTest {
         acceptInvite(client, findPendingInviteId(client, "RECIPE", recipeName));
     }
 
+    private void acceptPendingCollectionInvite(RestClient client, String collectionName) {
+        acceptInvite(client, findPendingInviteId(client, "RECIPES_COLLECTION", collectionName));
+    }
+
     private RecipesCollectionListDto createCollection(RestClient client, String name) {
         CreateRecipesCollectionRequest request = new CreateRecipesCollectionRequest(name);
         return client
@@ -193,10 +195,20 @@ class RecipeIntegrationTest {
     }
 
     private void shareCollection(RestClient client, UUID collectionId, String email) {
-        ShareRecipesCollectionRequest request = new ShareRecipesCollectionRequest(email);
+        ShareRequest request = new ShareRequest(email, ResourceRole.EDITOR);
         client
                 .post()
                 .uri("/collections/" + collectionId + "/share")
+                .body(request)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    private void unshareCollection(RestClient client, UUID collectionId, String email) {
+        UnshareRequest request = new UnshareRequest(email);
+        client
+                .post()
+                .uri("/collections/" + collectionId + "/unshare")
                 .body(request)
                 .retrieve()
                 .toBodilessEntity();
@@ -954,6 +966,54 @@ class RecipeIntegrationTest {
     }
 
     @Test
+    void shouldListRecipesWhenCallerHasNoAccessibleCollections() {
+        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+
+        RecipeDetailsDto recipe = createRecipe(client, "No Collections At All", createTestRecipeData(), null);
+
+        // The caller holds a direct RECIPE permission and reaches no collection whatsoever - the
+        // empty IN :collectionIds branch must not 500.
+        List<RecipeListDto> recipes = getAllRecipes(client);
+
+        assertThat(recipes).extracting(RecipeListDto::id).contains(recipe.id());
+    }
+
+    @Test
+    void shouldListUnassignedRecipesWhenCallerHasNoAccessibleCollections() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipesCollectionListDto collection = createCollection(user1Client, "Collection User 2 Cannot Reach");
+        RecipeDetailsDto recipe = createRecipe(user1Client, "Directly Shared But Collection Unreachable", createTestRecipeData(), collection.id());
+        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        acceptPendingRecipeInvite(user2Client, recipe.name());
+
+        // User 2 holds a direct RECIPE permission but reaches no collection at all - the empty
+        // NOT IN :collectionIds must render as a true predicate, not invalid SQL, and the recipe
+        // counts as unassigned from user2's perspective.
+        List<RecipeListDto> unassigned = getUnassignedRecipes(user2Client);
+
+        assertThat(unassigned).extracting(RecipeListDto::id).contains(recipe.id());
+    }
+
+    @Test
+    void shouldExcludeRecipeInAReachableCollectionFromUnassignedList() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        RecipesCollectionListDto collection = createCollection(user1Client, "Reachable Collection For NOT IN Check");
+        shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
+
+        // User 2 directly owns a recipe assigned to a collection they can also reach
+        RecipeDetailsDto recipe = createRecipe(user2Client, "Directly Owned In Reachable Collection", createTestRecipeData(), collection.id());
+
+        List<RecipeListDto> unassigned = getUnassignedRecipes(user2Client);
+
+        assertThat(unassigned).extracting(RecipeListDto::id).doesNotContain(recipe.id());
+    }
+
+    @Test
     void shouldAccessRecipeInSharedCollection() {
         RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
         RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
@@ -964,6 +1024,7 @@ class RecipeIntegrationTest {
         createRecipe(user1Client, "Pizza", testData, collection.id());
 
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // Test: User2 filters by shared collection (no recipe permission needed)
         List<RecipeListDto> user2Recipes = getRecipesByCollection(user2Client, collection.id());
@@ -1013,6 +1074,7 @@ class RecipeIntegrationTest {
 
         // User1 shares collection with User2
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // Test: User2 should now have access to recipe via shared collection
         RecipeDetailsDto recipeForUser2 = getRecipe(user2Client, createdRecipe.id());
@@ -1044,6 +1106,7 @@ class RecipeIntegrationTest {
 
         // User 1 shares collection with User 2
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 (EDITOR) tries to assign the recipe to the collection - should succeed but ignore the change
         RecipeDetailsDto updatedRecipe = updateRecipe(user2Client, recipe.id(), "Updated Pizza", recipeData, collection.id());
@@ -1131,13 +1194,14 @@ class RecipeIntegrationTest {
 
         // User 1 shares collection with User 2
         assertThat(collection).isNotNull();
-        ShareRecipesCollectionRequest shareRequest = new ShareRecipesCollectionRequest("user2@example.com");
+        ShareRequest shareRequest = new ShareRequest("user2@example.com", ResourceRole.EDITOR);
         user1Client
                 .post()
                 .uri("/collections/" + collection.id() + "/share")
                 .body(shareRequest)
                 .retrieve()
                 .toBodilessEntity();
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 creates a recipe in the shared collection
         RecipeData recipeData = createTestRecipeData();
@@ -1147,7 +1211,7 @@ class RecipeIntegrationTest {
         assertThat(recipe.collectionId()).isEqualTo(collection.id());
 
         // User 1 unshares the collection from User 2
-        UnshareRecipesCollectionRequest unshareRequest = new UnshareRecipesCollectionRequest("user2@example.com");
+        UnshareRequest unshareRequest = new UnshareRequest("user2@example.com");
         user1Client
                 .post()
                 .uri("/collections/" + collection.id() + "/unshare")
@@ -1164,6 +1228,29 @@ class RecipeIntegrationTest {
     }
 
     @Test
+    void shouldNotDetachRecipesWhenCancellingAPendingCollectionInvite() {
+        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+
+        // User 2 owns a recipe assigned to a collection they already have accepted access to
+        RecipesCollectionListDto ownedCollection = createCollection(user1Client, "User 2 Accessible Collection");
+        shareCollection(user1Client, ownedCollection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, ownedCollection.name());
+        RecipeDetailsDto recipe = createRecipe(user2Client, "User 2 Recipe Elsewhere", createTestRecipeData(), ownedCollection.id());
+
+        // User 1 invites User 2 to a second, unrelated collection but never gets accepted
+        RecipesCollectionListDto pendingCollection = createCollection(user1Client, "Cancelled Before Accept");
+        shareCollection(user1Client, pendingCollection.id(), "user2@example.com");
+
+        // Cancelling the still-pending invite must not publish RecipesCollectionUnshared
+        unshareCollection(user1Client, pendingCollection.id(), "user2@example.com");
+
+        // The recipe user2 owns elsewhere is untouched
+        RecipeDetailsDto stillAssigned = getRecipe(user2Client, recipe.id());
+        assertThat(stillAssigned.collectionId()).isEqualTo(ownedCollection.id());
+    }
+
+    @Test
     void shouldListCollectionDerivedRecipeWithoutAnyDirectPermission() {
         RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
         RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
@@ -1172,6 +1259,7 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe = createRecipe(user1Client, "Collection Derived Recipe", createTestRecipeData(), collection.id());
 
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 holds no direct RECIPE permission at all - the empty-IN case must not 500
         List<RecipeListDto> user2Recipes = getAllRecipes(user2Client);
@@ -1188,6 +1276,7 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe = createRecipe(user1Client, "Collection Derived Recipe Unassigned Check", createTestRecipeData(), collection.id());
 
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // The deliberate short-circuit: collection-derived access never counts as unassigned
         List<RecipeListDto> unassigned = getUnassignedRecipes(user2Client);
@@ -1202,6 +1291,7 @@ class RecipeIntegrationTest {
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared Collection With Owned Recipe");
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 owns a recipe placed directly into the collection they can also reach
         RecipeDetailsDto recipe = createRecipe(user2Client, "User 2 Owned Recipe", createTestRecipeData(), collection.id());
@@ -1219,6 +1309,7 @@ class RecipeIntegrationTest {
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared Collection For Direct Invite");
         RecipeDetailsDto recipe = createRecipe(user1Client, "Reachable Via Collection", createTestRecipeData(), collection.id());
         shareCollection(user1Client, collection.id(), "user2@example.com");
+        acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 can already reach the recipe through the shared collection (a synthetic EDITOR)
         RecipeDetailsDto beforeInvite = getRecipe(user2Client, recipe.id());

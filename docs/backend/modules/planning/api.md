@@ -67,12 +67,13 @@
 - Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
 
 ### DELETE /meal-plans/{id}
-- Description: Delete a meal plan and all associated entries and permissions
+- Description: Delete a meal plan and all associated entries, permissions and pending invites
 - Authenticated: true
 - Roles: Only OWNER can delete
 - Success: 204 No Content
 - Errors: 401 Unauthorized, 403 Forbidden (user is not OWNER), 404 Not Found
-- Note: Deletes the plan, its entries (CASCADE) and permissions; releases the owner's `MEAL_PLAN` unit.
+- Note: Deletes the plan, its entries (CASCADE), and every permission and pending invite for it (so it
+  disappears from an invitee's `/invites` too); releases the owner's `MEAL_PLAN` unit.
 
 ### POST /meal-plans/{planId}/entries
 - Description: Create a new entry in a meal plan
@@ -186,37 +187,46 @@
 
 ## Sharing & Permissions
 
-### GET /meal-plans/{id}/users
-- Description: Get all users that a meal plan is shared with, including their roles
+### GET /meal-plans/{id}/permissions
+- Description: Get everyone who holds direct access or a pending invite to the meal plan, including
+  their roles
 - Authenticated: true
 - Example response:
   ```json
   [
-    {"email": "owner@example.com", "role": "OWNER"},
-    {"email": "editor@example.com", "role": "EDITOR"}
+    {"email": "owner@example.com", "role": "OWNER", "pending": false},
+    {"email": "editor@example.com", "role": "EDITOR", "pending": false},
+    {"email": "invitee@example.com", "role": "EDITOR", "pending": true}
   ]
   ```
 - Success: 200 OK
 - Errors: 403 Forbidden (if user lacks access), 404 Not Found
-- Note: OWNER appears first in the returned list.
+- Note: OWNER appears first, then granted EDITORs, then pending invites by age. See
+  `docs/backend/modules/permissions/api.md` for the shared `PermissionDto`.
 
 ### POST /meal-plans/{id}/share
-- Description: Share meal plan with another user (grants EDITOR access)
+- Description: Invite another user to the meal plan with a role. Grants nothing by itself — the
+  invite is pending until the invitee accepts it over `POST /invites/{id}/accept`
+  (`docs/backend/modules/permissions/api.md`)
 - Authenticated: true
 - Roles: OWNER and EDITOR can share
-- Request body: `{"email": "user@example.com"}`
+- Request body: `{"email": "user@example.com", "role": "EDITOR"}`
 - Success: 204 No Content
-- Errors: 400 Bad Request (invalid email format), 403 Forbidden, 404 Not Found
-- Note: Shared user receives EDITOR access. Duplicate shares are silently ignored (idempotent).
+- Errors: 400 Bad Request, 403 Forbidden, 404 Not Found, 409 Conflict (the
+  target already holds access, including the plan's own owner, or already has a pending invite for
+  this plan — shape in `docs/backend/modules/permissions/api.md`)
+- Note: The invite's label is the plan's name, snapshotted at invite time.
 
 ### POST /meal-plans/{id}/unshare
-- Description: Remove shared access from a user
+- Description: Remove a granted permission, or cancel a pending invite, for a user — whichever exists
 - Authenticated: true
-- Roles: OWNER and EDITOR can unshare (except EDITOR cannot unshare OWNER)
+- Roles: OWNER and EDITOR can unshare (neither may unshare the OWNER)
 - Request body: `{"email": "user@example.com"}`
 - Success: 204 No Content
-- Errors: 400 Bad Request (invalid email format), 403 Forbidden (if user has no access, or EDITOR tries to unshare OWNER, or OWNER tries to unshare themselves), 404 Not Found
-- Note: EDITOR can unshare EDITORs (including themselves); EDITOR cannot remove OWNER; OWNER cannot remove themselves.
+- Errors: 400 Bad Request (invalid email format), 403 Forbidden (if user has no access, target is
+  OWNER, or the caller is unsharing themselves), 404 Not Found
+- Note: No caller — OWNER or EDITOR — may unshare themselves. Unsharing someone with neither a granted
+  permission nor a pending invite is a no-op.
 
 ---
 
@@ -280,6 +290,8 @@
 - Notes:
     - Entries are grouped by date and sorted by date (ascending), then by creation time within each date
     - `planIds` is required and must be present in the request; empty string returns `{}`
+    - A `planIds` entry the caller cannot access is silently omitted from the response rather than
+      refused with a 403; only the intersection with the caller's accessible plans is queried
     - `hasRecipeAccess` is `true` if the user has permission to view the recipe (either direct permission or via recipe collection), or if the entry is a placeholder
     - `hasRecipeAccess` is `false` if the entry references a recipe the user cannot access
     - When a recipe is deleted, the entry is converted to a placeholder: `recipeId` and `recipeName` become null, `placeholderText` is set to the original recipe name

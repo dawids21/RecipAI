@@ -49,9 +49,21 @@ derived: a join across aggregates, a projection, native SQL, or a bulk `@Modifyi
 Optional<ResourcePermission> findByIdResourceTypeAndIdResourceIdAndRole(String resourceType, UUID resourceId, ResourceRole role);
 void deleteByResourceTypeAndResourceId(String resourceType, UUID resourceId);
 
-// @Query — joins two aggregates, cannot be derived
-@Query("SELECT mp FROM MealPlan mp INNER JOIN MealPlanPermission mpp ON mpp.id.planId = mp.id WHERE mpp.id.email = :email ORDER BY mp.createdAt")
-List<MealPlan> findAllByUserEmail(String email);
+// @Query — a CASE-derived projection joined against another aggregate, cannot be derived
+@Query("""
+        SELECT e.id AS id, e.planId AS planId, r.name AS recipeName,
+            CASE
+                WHEN e.recipeId IS NULL THEN true
+                WHEN e.recipeId IN :recipeIds THEN true
+                ELSE false
+            END AS hasRecipeAccess
+        FROM MealPlanEntry e
+        LEFT JOIN Recipe r ON r.id = e.recipeId
+        WHERE e.planId IN :planIds
+        """)
+List<MealPlanCalendarEntryProjection> findCalendarEntries(
+        @Param("planIds") Collection<UUID> planIds,
+        @Param("recipeIds") Collection<UUID> recipeIds);
 ```
 
 ### Package-Private Class Visibility

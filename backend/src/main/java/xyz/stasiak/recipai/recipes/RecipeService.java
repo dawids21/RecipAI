@@ -20,14 +20,13 @@ import xyz.stasiak.recipai.permissions.exception.ResourceAccessDeniedException;
 import xyz.stasiak.recipai.recipes.collections.RecipesCollectionService;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionListDto;
 import xyz.stasiak.recipai.recipes.collections.dto.RecipesCollectionUnshared;
-import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionAccessDeniedException;
-import xyz.stasiak.recipai.recipes.collections.exception.RecipesCollectionNotFoundException;
 import xyz.stasiak.recipai.recipes.images.RecipeImagesService;
 import xyz.stasiak.recipai.recipes.images.dto.RecipeImageDto;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -53,13 +52,14 @@ class RecipeService {
     public List<RecipeListDto> findAll(String userEmail) {
         log.debug("Finding all accessible recipes for user {}", userEmail);
 
-        // No empty-map short-circuit here (unlike findAllUnassigned): a collection-derived reader has
-        // no direct recipe permission, so an empty access map must still reach the query's
+        // No empty-set short-circuit here (unlike findAllUnassigned): a collection-derived reader has
+        // no direct recipe permission, so an empty recipe id set must still reach the query's
         // collection-membership OR branch instead of skipping it. This relies on Hibernate 6
         // rendering an empty `IN` list as a false predicate rather than invalid SQL.
-        Map<UUID, ResourceRole> access = permissionsFacade.accessibleResources(RECIPE_RESOURCE, userEmail);
+        Set<UUID> recipeIds = permissionsFacade.accessibleResources(RECIPE_RESOURCE, userEmail).keySet();
+        Set<UUID> collectionIds = recipesCollectionService.accessibleCollectionIds(userEmail);
 
-        return recipeRepository.findAllByUserEmail(access.keySet(), userEmail).stream()
+        return recipeRepository.findAllByUserEmail(recipeIds, collectionIds).stream()
                 .map(this::toRecipeListDto)
                 .toList();
     }
@@ -67,7 +67,7 @@ class RecipeService {
     public List<RecipeListDto> findAllByCollectionId(UUID collectionId, String userEmail) {
         log.debug("Finding recipes in collection {} for user {}", collectionId, userEmail);
 
-        // Validate user has access to the collection (throws RecipesCollectionNotFoundException or RecipesCollectionAccessDeniedException)
+        // Validate user has access to the collection (throws RecipesCollectionNotFoundException or ResourceAccessDeniedException)
         recipesCollectionService.findById(collectionId, userEmail);
 
         // If validation passes, fetch recipes in this collection
@@ -79,12 +79,14 @@ class RecipeService {
     public List<RecipeListDto> findAllUnassigned(String userEmail) {
         log.debug("Finding unassigned recipes for user {}", userEmail);
 
-        Map<UUID, ResourceRole> access = permissionsFacade.accessibleResources(RECIPE_RESOURCE, userEmail);
-        if (access.isEmpty()) {
+        Set<UUID> recipeIds = permissionsFacade.accessibleResources(RECIPE_RESOURCE, userEmail).keySet();
+        if (recipeIds.isEmpty()) {
             return List.of();
         }
 
-        return recipeRepository.findAllUnassignedByUserEmail(access.keySet(), userEmail).stream()
+        Set<UUID> collectionIds = recipesCollectionService.accessibleCollectionIds(userEmail);
+
+        return recipeRepository.findAllUnassignedByUserEmail(recipeIds, collectionIds).stream()
                 .map(this::toRecipeListDto)
                 .toList();
     }
@@ -102,7 +104,7 @@ class RecipeService {
             try {
                 RecipesCollectionListDto collectionDto = recipesCollectionService.findById(recipe.getRecipesCollectionId(), userEmail);
                 collectionName = collectionDto.name();
-            } catch (RecipesCollectionAccessDeniedException _) {
+            } catch (ResourceAccessDeniedException _) {
                 // we don't show collection name if user has no access
             }
         }
@@ -184,7 +186,7 @@ class RecipeService {
             try {
                 RecipesCollectionListDto collectionDto = recipesCollectionService.findById(savedRecipe.getRecipesCollectionId(), userEmail);
                 collectionName = collectionDto.name();
-            } catch (RecipesCollectionAccessDeniedException _) {
+            } catch (ResourceAccessDeniedException _) {
                 // we don't show collection name if user has no access
             }
         }
@@ -318,17 +320,24 @@ class RecipeService {
             return direct.get();
         }
 
-        if (recipe.getRecipesCollectionId() != null) {
-            try {
-                recipesCollectionService.findById(recipe.getRecipesCollectionId(), userEmail);
-                log.debug("User {} has access to recipe {} via collection {}", userEmail, recipe.getId(), recipe.getRecipesCollectionId());
-                return ResourceRole.EDITOR;
-            } catch (RecipesCollectionAccessDeniedException | RecipesCollectionNotFoundException _) {
-                log.debug("User {} does not have access to collection {} for recipe {}", userEmail, recipe.getRecipesCollectionId(), recipe.getId());
-            }
+        if (recipe.getRecipesCollectionId() != null
+                && recipesCollectionService.roleOf(recipe.getRecipesCollectionId(), userEmail).isPresent()) {
+            log.debug("User {} has access to recipe {} via collection {}", userEmail, recipe.getId(), recipe.getRecipesCollectionId());
+            return ResourceRole.EDITOR;
         }
 
         throw new ResourceAccessDeniedException(RECIPE_RESOURCE, recipe.getId());
+    }
+
+    Set<UUID> accessibleRecipeIds(String userEmail) {
+        // Same composition findAll performs, ids only: a direct permission or membership of an
+        // accessible collection. Neither set short-circuits — a collection-derived reader holds no
+        // direct recipe permission, so an empty recipe id set must still reach the query's
+        // collection-membership OR branch.
+        Set<UUID> recipeIds = permissionsFacade.accessibleResources(RECIPE_RESOURCE, userEmail).keySet();
+        Set<UUID> collectionIds = recipesCollectionService.accessibleCollectionIds(userEmail);
+
+        return recipeRepository.findAccessibleIds(recipeIds, collectionIds);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)

@@ -28,16 +28,16 @@ Content-Type: application/json
 
 { "name": "European Recipes" }
 
-### List users the collection is shared with
-GET {{baseUrl}}/collections/{{collectionId}}/users
+### List the collection's permissions
+GET {{baseUrl}}/collections/{{collectionId}}/permissions
 Authorization: Bearer {{user}}
 
-### Share it with bob
+### Share it with bob — creates a pending invite; answer it from invites.http as bob
 POST {{baseUrl}}/collections/{{collectionId}}/share
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
-{ "email": "{{otherUser}}@local.test" }
+{ "email": "{{otherUser}}@local.test", "role": "EDITOR" }
 
 ### Unshare it from bob
 POST {{baseUrl}}/collections/{{collectionId}}/unshare
