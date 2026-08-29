@@ -36,6 +36,8 @@ mobile/
 │   ├── features/
 │   │   ├── extraction/
 │   │   │   └── share_payload_test.dart # Share payload classification (URL, URL-in-text, non-URL text, image)
+│   │   ├── invites/
+│   │   │   └── invites_screen_widget_test.dart # Invites screen widget test
 │   │   ├── recipe/
 │   │   │   └── main_screen_recipes_tab_widget_test.dart # Recipes tab widget test
 │   │   └── shopping_list/

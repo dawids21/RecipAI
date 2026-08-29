@@ -10,6 +10,8 @@ import '../features/extraction/extraction_service.dart';
 import '../features/extraction/image_extraction_screen.dart';
 import '../features/extraction/share_route_extras.dart';
 import '../features/extraction/url_extraction_screen.dart';
+import '../features/invites/invites_screen.dart';
+import '../features/invites/invites_service.dart';
 import '../features/limits/limits_service.dart';
 import '../features/planning/meal_plan_calendar_service.dart';
 import '../features/planning/meal_plan_list_service.dart';
@@ -44,6 +46,7 @@ enum AppRoute {
   recipeDetail('recipes/:id'), // '/recipes/:id'
   recipeEdit('edit'), // '/recipes/:id/edit'
   recipesCollections('recipes-collections'), // '/recipes-collections'
+  invites('invites'), // '/invites'
   recipeToShoppingList('to-shopping-list'), // '/recipes/:id/to-shopping-list'
   shoppingListGeneration(
     'shopping-list-generation',
@@ -142,6 +145,7 @@ GoRouter createAppRouter() {
           mealPlanListService: getIt<MealPlanListService>(),
           mealPlanVisibilityService: getIt<MealPlanVisibilityService>(),
           limitsService: getIt<LimitsService>(),
+          invitesService: getIt<InvitesService>(),
         ),
         routes: [
           GoRoute(
@@ -243,6 +247,13 @@ GoRouter createAppRouter() {
                     getIt<RecipesCollectionListService>(),
                 limitsService: getIt<LimitsService>(),
               );
+            },
+          ),
+          GoRoute(
+            path: AppRoute.invites.path,
+            name: AppRoute.invites.name,
+            builder: (context, state) {
+              return InvitesScreen(invitesService: getIt<InvitesService>());
             },
           ),
           GoRoute(

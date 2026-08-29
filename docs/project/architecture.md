@@ -115,6 +115,10 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
   `used / limit` counter widget every limited surface renders. The count beside it comes from the
   feature that owns the resource, so each surface can disable its action at the quota; a missing quota or a
   failed count leaves the action enabled and the server the only thing that refuses
+- **`invites`** — the invitee-facing surface for the backend's `permissions` module: a full-screen `/invites`
+  list (accept/decline, with decline confirmed) reached from a dot-badged overflow icon and a counted menu
+  row on the Main Screen. One notifier feeds both indicator and screen; accepting reloads the resource's own
+  list so it appears in its tab immediately
 
 ### Routing
 
