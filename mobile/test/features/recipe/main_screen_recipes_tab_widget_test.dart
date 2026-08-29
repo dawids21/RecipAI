@@ -8,6 +8,9 @@ import 'package:recipai_mobile/core/preferences_service.dart';
 import 'package:recipai_mobile/core/routes.dart';
 import 'package:recipai_mobile/features/auth/auth_setup.dart';
 import 'package:recipai_mobile/features/auth/auth_user.dart';
+import 'package:recipai_mobile/features/invites/invite.dart';
+import 'package:recipai_mobile/features/invites/invites_service.dart';
+import 'package:recipai_mobile/features/invites/invites_setup.dart';
 import 'package:recipai_mobile/features/limits/limits_service.dart';
 import 'package:recipai_mobile/features/limits/limits_setup.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_calendar_data.dart';
@@ -47,6 +50,7 @@ void main() {
   late MockShoppingListItemDao shoppingListItemDao;
   late MockMealPlanRepository mealPlanRepository;
   late MockLimitsRepository limitsRepository;
+  late MockInvitesRepository invitesRepository;
   late _NavPushSpy navSpy;
   late Widget app;
 
@@ -66,8 +70,12 @@ void main() {
     shoppingListItemDao = MockShoppingListItemDao();
     mealPlanRepository = MockMealPlanRepository();
     limitsRepository = MockLimitsRepository();
+    invitesRepository = MockInvitesRepository();
 
     when(() => limitsRepository.fetchQuotas(any())).thenAnswer((_) async => {});
+    when(
+      () => invitesRepository.fetchInvites(any()),
+    ).thenAnswer((_) async => <Invite>[]);
     when(
       () => authRepository.watchAuthState(),
     ).thenAnswer((_) => const Stream<AuthUser?>.empty());
@@ -93,6 +101,7 @@ void main() {
       store: ShoppingListItemStoreService(dao: shoppingListItemDao),
     );
     setupMealPlan(mealPlanRepository: mealPlanRepository);
+    setupInvites(invitesRepository: invitesRepository);
 
     navSpy = _NavPushSpy();
     final router = GoRouter(
@@ -110,6 +119,7 @@ void main() {
             mealPlanListService: GetIt.I<MealPlanListService>(),
             mealPlanVisibilityService: GetIt.I<MealPlanVisibilityService>(),
             limitsService: GetIt.I<LimitsService>(),
+            invitesService: GetIt.I<InvitesService>(),
           ),
         ),
         GoRoute(

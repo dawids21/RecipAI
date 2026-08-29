@@ -1,6 +1,7 @@
 import 'package:mocktail/mocktail.dart';
 import 'package:recipai_mobile/features/auth/auth_repository.dart';
 import 'package:recipai_mobile/features/extraction/extraction_repository.dart';
+import 'package:recipai_mobile/features/invites/invites_repository.dart';
 import 'package:recipai_mobile/features/limits/limits_repository.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_repository.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_repository.dart';
@@ -29,3 +30,5 @@ class MockShoppingListItemRepository extends Mock
 class MockShoppingListItemDao extends Mock implements ShoppingListItemDao {}
 
 class MockMealPlanRepository extends Mock implements MealPlanRepository {}
+
+class MockInvitesRepository extends Mock implements InvitesRepository {}

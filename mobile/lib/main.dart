@@ -19,6 +19,7 @@ import 'features/auth/auth_setup.dart';
 import 'features/extraction/extraction_setup.dart';
 import 'features/extraction/share_intent_service.dart';
 import 'features/extraction/share_intent_setup.dart';
+import 'features/invites/invites_setup.dart';
 import 'features/limits/limits_service.dart';
 import 'features/limits/limits_setup.dart';
 import 'features/planning/meal_plan_setup.dart';
@@ -54,6 +55,7 @@ void main() async {
   setupRecipesCollection();
   setupMealPlan();
   setupShoppingList();
+  setupInvites();
   setupExtraction();
 
   final appRouter = createAppRouter();

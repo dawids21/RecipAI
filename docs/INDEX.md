@@ -147,6 +147,10 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `codebase_structure.md` — file tree for `features/limits/`, and where each limited resource's count lives instead
 - `ui.md` — the `used / limit` counter widget, how quotas and counts are loaded, the fail-open rule, and the surfaces that block at the quota
 
+#### Invites (`mobile/modules/invites/`)
+- `codebase_structure.md` — file tree for `features/invites/`
+- `ui.md` — the `/invites` screen and its states, the invite row, the app-shell indicator, load triggers, and the accept-time list reload
+
 ---
 
 ## Mobile Standards

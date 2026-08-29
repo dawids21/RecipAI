@@ -7,9 +7,12 @@
 - Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing recipe,
   planning, and shopping list tabs. Displays RecipeGrid, MealPlanCalendarScreen, or ShoppingListList widgets based on
   selected tab, with corresponding FABs (RecipeListFab, MealPlanCalendarFab, or ShoppingListListFab). Features
-  PopupMenuButton in AppBar with "Recipes collections", "Generate shopping list", and logout options, followed by a
-  "Send logs" item (bug_report icon) that shares the current log file via the `recipai/share` platform channel. When
-  Planning tab is active and meal planning feature flag is enabled, shows "Manage Plans" IconButton before the
+  PopupMenuButton in AppBar with an "Invites" row (mail icon carrying a corner `Badge.count` while invites are
+  pending), "Recipes collections", "Generate shopping list", and logout options, followed by a "Send logs" item
+  (bug_report icon) that shares the current log file via the `recipai/share` platform channel. The overflow icon
+  itself carries a dot `Badge` whenever any invite is pending — see `docs/mobile/modules/invites/ui.md` for the
+  shared `InvitesService` notifier the dot and the Invites row's count both read.
+  When Planning tab is active and meal planning feature flag is enabled, shows "Manage Plans" IconButton before the
   overflow menu.
 
 ## Shared Widgets
@@ -62,6 +65,7 @@ The app uses a simple GoRoute structure with embedded bottom navigation in MainS
 - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
 - `/recipes/picker` - Recipe picker screen for selecting a recipe (AppRoute.recipePicker, nested route)
 - `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections, shown when feature flag enabled)
+- `/invites` - Pending invites list screen (AppRoute.invites)
 - `/shopping-list-generation` - Shopping list generation wizard screen (AppRoute.shoppingListGeneration)
 - `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
 

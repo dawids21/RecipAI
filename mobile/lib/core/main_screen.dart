@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_service.dart';
+import '../features/invites/invite.dart';
+import '../features/invites/invites_service.dart';
 import '../features/limits/limits_service.dart';
 import '../features/planning/meal_plan_calendar_fab.dart';
 import '../features/planning/meal_plan_calendar_screen.dart';
@@ -31,6 +33,7 @@ class MainScreen extends StatefulWidget {
   final MealPlanListService mealPlanListService;
   final MealPlanVisibilityService mealPlanVisibilityService;
   final LimitsService limitsService;
+  final InvitesService invitesService;
 
   const MainScreen({
     super.key,
@@ -42,6 +45,7 @@ class MainScreen extends StatefulWidget {
     required this.mealPlanListService,
     required this.mealPlanVisibilityService,
     required this.limitsService,
+    required this.invitesService,
   });
 
   @override
@@ -64,12 +68,16 @@ class _MainScreenState extends State<MainScreen> {
       widget.recipesCollectionListService.loadRecipesCollections();
       widget.shoppingListListService.loadShoppingLists();
       widget.mealPlanListService.loadMealPlans();
+      widget.invitesService.loadInvites();
     }
   }
 
   @override
   void dispose() {
     // Reset both services on dispose
+    if (getIt.isRegistered<InvitesService>()) {
+      getIt.resetLazySingleton<InvitesService>();
+    }
     if (getIt.isRegistered<RecipeListService>()) {
       getIt.resetLazySingleton<RecipeListService>();
     }
@@ -150,60 +158,88 @@ class _MainScreenState extends State<MainScreen> {
                 },
               ),
             ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'recipes_collections') {
-                context.goNamed(AppRoute.recipesCollections.name);
-              } else if (value == 'generate_shopping_list') {
-                context.goNamed(AppRoute.shoppingListGeneration.name);
-              } else if (value == 'logout') {
-                _onLogoutTap(context);
-              } else if (value == 'send_logs') {
-                shareLogs();
-              }
+          ValueListenableBuilder(
+            valueListenable: widget.invitesService.invites,
+            builder: (context, asyncInvites, child) {
+              final count = asyncInvites
+                  .valueOrDefault(const <Invite>[])
+                  .length;
+              return PopupMenuButton<String>(
+                icon: Badge(
+                  isLabelVisible: count > 0,
+                  child: const Icon(Icons.more_vert),
+                ),
+                onSelected: (value) {
+                  if (value == 'invites') {
+                    context.goNamed(AppRoute.invites.name);
+                  } else if (value == 'recipes_collections') {
+                    context.goNamed(AppRoute.recipesCollections.name);
+                  } else if (value == 'generate_shopping_list') {
+                    context.goNamed(AppRoute.shoppingListGeneration.name);
+                  } else if (value == 'logout') {
+                    _onLogoutTap(context);
+                  } else if (value == 'send_logs') {
+                    shareLogs();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    value: 'invites',
+                    child: Row(
+                      children: [
+                        Badge.count(
+                          count: count,
+                          isLabelVisible: count > 0,
+                          child: const Icon(Icons.mail_outline),
+                        ),
+                        const SizedBox(width: AppSpacing.small),
+                        const Text('Invites'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'recipes_collections',
+                    child: Row(
+                      children: [
+                        Icon(Icons.folder),
+                        SizedBox(width: AppSpacing.small),
+                        Text('Recipes collections'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'generate_shopping_list',
+                    child: Row(
+                      children: [
+                        Icon(Icons.playlist_add),
+                        SizedBox(width: AppSpacing.small),
+                        Text('Generate shopping list'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout),
+                        SizedBox(width: AppSpacing.small),
+                        Text('Logout'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'send_logs',
+                    child: Row(
+                      children: [
+                        Icon(Icons.bug_report),
+                        SizedBox(width: AppSpacing.small),
+                        Text('Send logs'),
+                      ],
+                    ),
+                  ),
+                ],
+              );
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem<String>(
-                value: 'recipes_collections',
-                child: Row(
-                  children: [
-                    Icon(Icons.folder),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Recipes collections'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'generate_shopping_list',
-                child: Row(
-                  children: [
-                    Icon(Icons.playlist_add),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Generate shopping list'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'send_logs',
-                child: Row(
-                  children: [
-                    Icon(Icons.bug_report),
-                    SizedBox(width: AppSpacing.small),
-                    Text('Send logs'),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
