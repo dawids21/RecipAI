@@ -66,10 +66,15 @@ When a display-only widget would need several members of one service, that is th
 composition in the parent that already owns the service, or have the service expose a narrower view — as
 `LimitsService.quotaFor(resource)` hands out one resource's quota instead of the whole quotas map.
 
+A service must not re-expose another service's state as a passthrough getter (e.g. a resource service adding
+`String get currentUserEmail => _authService.email;` purely so a descendant widget can read it). The view that
+already holds both services composes them instead, passing each downstream widget the narrowest thing it needs.
+
 ### Feature-Based Directory Structure
 
 Code is organized by feature under `lib/features/`. Each feature directory contains all layers flat (no sub-folders).
-Shared/reusable code goes in `lib/core/` or `lib/shared/`.
+A feature directory may hold views and models that other features consume — features are slices of the app, not
+private silos — so `core/` and `shared/` are reserved for code with no feature identity of its own.
 
 ```
 lib/

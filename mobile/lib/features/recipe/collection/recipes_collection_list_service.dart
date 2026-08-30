@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/async_value.dart';
-import '../../../core/widgets/sharing_dialog.dart';
 import '../../auth/auth_service.dart';
 import '../../limits/limit_balance.dart';
+import '../../sharing/resource_permission.dart';
 import 'recipes_collection.dart';
 import 'recipes_collection_repository.dart';
 
@@ -23,10 +23,11 @@ class RecipesCollectionListService {
   ValueListenable<AsyncValue<List<RecipesCollection>>> get recipesCollections =>
       _recipesCollections;
 
-  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<ResourcePermission>>> _permissions =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueNotifier<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+  ValueListenable<AsyncValue<List<ResourcePermission>>> get permissions =>
+      _permissions;
 
   final ValueNotifier<AsyncValue<LimitBalance>> _collectionBalance =
       ValueNotifier(const AsyncValue.loading());
@@ -35,7 +36,7 @@ class RecipesCollectionListService {
       _collectionBalance;
 
   bool _isLoadRecipesCollectionsRunning = false;
-  bool _isLoadSharedUsersRunning = false;
+  bool _isLoadPermissionsRunning = false;
   bool _isShareRunning = false;
   bool _isUnshareRunning = false;
   bool _isLoadCollectionBalanceRunning = false;
@@ -79,28 +80,20 @@ class RecipesCollectionListService {
     await loadRecipesCollections();
   }
 
-  Future<void> loadSharedUsers(String collectionId) async {
-    if (_isLoadSharedUsersRunning) return;
-    _isLoadSharedUsersRunning = true;
+  Future<void> loadPermissions(String collectionId) async {
+    if (_isLoadPermissionsRunning) return;
+    _isLoadPermissionsRunning = true;
 
-    final idToken = await _authService.idToken;
-    _sharedUsers.value = await AsyncValue.guardAsync(() async {
-      final permissions = await _recipesCollectionRepository.fetchSharedUsers(
+    _permissions.value = const AsyncValue.loading();
+
+    _permissions.value = await AsyncValue.guardAsync(() async {
+      final idToken = await _authService.idToken;
+      return _recipesCollectionRepository.fetchPermissions(
         collectionId,
         idToken,
       );
-      final currentEmail = _authService.email;
-      return permissions
-          .map(
-            (permission) => SharedUser(
-              email: permission.email,
-              role: permission.role.displayName,
-              isCurrentUser: permission.email == currentEmail,
-            ),
-          )
-          .toList();
     });
-    _isLoadSharedUsersRunning = false;
+    _isLoadPermissionsRunning = false;
   }
 
   Future<void> shareCollection(String collectionId, String email) async {
@@ -109,14 +102,24 @@ class RecipesCollectionListService {
     }
     _isShareRunning = true;
 
-    final idToken = await _authService.idToken;
-    await _recipesCollectionRepository.shareCollection(
-      collectionId,
-      email,
-      idToken,
-    );
-    await loadSharedUsers(collectionId);
+    final result = await AsyncValue.guardAsync(() async {
+      final idToken = await _authService.idToken;
+      return _recipesCollectionRepository.shareCollection(
+        collectionId,
+        email,
+        idToken,
+      );
+    });
+
+    if (result is AsyncData) {
+      await loadPermissions(collectionId);
+    }
+
     _isShareRunning = false;
+
+    if (result is AsyncError) {
+      throw result.error;
+    }
   }
 
   Future<void> unshareCollection(String collectionId, String email) async {
@@ -125,20 +128,30 @@ class RecipesCollectionListService {
     }
     _isUnshareRunning = true;
 
-    final idToken = await _authService.idToken;
-    await _recipesCollectionRepository.unshareCollection(
-      collectionId,
-      email,
-      idToken,
-    );
-    await loadSharedUsers(collectionId);
-    await loadRecipesCollections(); // Refresh list in case user unshared themselves
+    final result = await AsyncValue.guardAsync(() async {
+      final idToken = await _authService.idToken;
+      return _recipesCollectionRepository.unshareCollection(
+        collectionId,
+        email,
+        idToken,
+      );
+    });
+
+    if (result is AsyncData) {
+      await loadPermissions(collectionId);
+      await loadRecipesCollections(); // Refresh list in case user unshared themselves
+    }
+
     _isUnshareRunning = false;
+
+    if (result is AsyncError) {
+      throw result.error;
+    }
   }
 
   void dispose() {
     _recipesCollections.dispose();
-    _sharedUsers.dispose();
+    _permissions.dispose();
     _collectionBalance.dispose();
   }
 }

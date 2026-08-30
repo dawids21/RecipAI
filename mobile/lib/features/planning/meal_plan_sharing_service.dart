@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:recipai_mobile/core/widgets/sharing_dialog.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
+import '../sharing/resource_permission.dart';
 import 'meal_plan_list_service.dart';
 import 'meal_plan_repository.dart';
 
@@ -21,38 +21,31 @@ class MealPlanSharingService {
        _authService = authService,
        _mealPlanListService = mealPlanListService;
 
-  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<ResourcePermission>>> _permissions =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+  ValueListenable<AsyncValue<List<ResourcePermission>>> get permissions =>
+      _permissions;
 
-  bool _isLoadSharedUsersRunning = false;
+  bool _isLoadPermissionsRunning = false;
   bool _isShareMealPlanRunning = false;
   bool _isUnshareMealPlanRunning = false;
 
-  Future<void> loadSharedUsers() async {
-    if (_isLoadSharedUsersRunning) return;
-    _isLoadSharedUsersRunning = true;
+  Future<void> loadPermissions() async {
+    if (_isLoadPermissionsRunning) return;
+    _isLoadPermissionsRunning = true;
 
-    _sharedUsers.value = const AsyncValue.loading();
+    _permissions.value = const AsyncValue.loading();
 
-    _sharedUsers.value = await AsyncValue.guardAsync(() async {
+    _permissions.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      final permissions = await _mealPlanRepository.fetchSharedUsers(
+      return _mealPlanRepository.fetchPermissions(
         mealPlanId: mealPlanId,
         idToken: token,
       );
-      final currentUserEmail = _authService.email;
-      return permissions.map((permission) {
-        return SharedUser(
-          email: permission.email,
-          role: permission.role.displayName,
-          isCurrentUser: permission.email == currentUserEmail,
-        );
-      }).toList();
     });
 
-    _isLoadSharedUsersRunning = false;
+    _isLoadPermissionsRunning = false;
   }
 
   Future<void> shareMealPlan(String email) async {
@@ -69,7 +62,7 @@ class MealPlanSharingService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers();
+      await loadPermissions();
       await _mealPlanListService.loadMealPlans();
     }
 
@@ -94,7 +87,7 @@ class MealPlanSharingService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers();
+      await loadPermissions();
       await _mealPlanListService.loadMealPlans();
     }
 
@@ -106,6 +99,6 @@ class MealPlanSharingService {
   }
 
   void dispose() {
-    _sharedUsers.dispose();
+    _permissions.dispose();
   }
 }

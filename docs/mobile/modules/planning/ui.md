@@ -9,9 +9,9 @@
 - Meal Plan Drawer (`meal_plan_drawer.dart`) - Side drawer for managing meal plans with unified list of all plans
   (personal and shared), visibility checkboxes for filtering calendar display, and three-dot menu per plan for
   Edit/Share/Delete actions (Delete only visible to owners, requires confirmation dialog). Share action opens
-  MealPlanSharingDialog with email input, shared users list, and unshare functionality. Includes "Create New Plan"
-  button with integrated form dialog, pull-to-refresh functionality, and comprehensive error handling with user-friendly
-  messages including special handling for plan limit exceeded (429).
+  MealPlanSharingDialog (below). Includes "Create New Plan" button with integrated form dialog, pull-to-refresh
+  functionality, and comprehensive error handling with user-friendly messages including special handling for plan
+  limit exceeded (429).
 - Plan Form Dialog (`plan_form_dialog.dart`) - Unified modal dialog for creating and editing meal plans with name input
   field (autofocus, validation) and color picker. In create mode it loads the plan count on open, shows the
   `used / limit` counter and disables Create at the quota (see `docs/mobile/modules/limits/ui.md`); edit mode shows
@@ -21,11 +21,10 @@
 - Plan List Tile (`plan_list_tile.dart`) - Card widget for individual plans with color indicator (CircleAvatar), plan
   name, visibility checkbox, and PopupMenuButton with role-based menu items (Edit, Share for all; Delete for owners
   only).
-- Meal Plan Sharing Dialog (`meal_plan_sharing_dialog.dart`) - Modal dialog for sharing meal plans with other users,
-  featuring email input with validation, shared users list with UserRole display, and unshare functionality with
-  Material Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current
-  user. Uses MealPlanSharingService for sharing operations, which automatically refreshes the meal plans list after
-  successful share/unshare actions.
+- Meal Plan Sharing Dialog (`meal_plan_sharing_dialog.dart`) - Binds `MealPlanSharingService` to the generic
+  `SharingDialog` (`docs/mobile/modules/sharing/ui.md`) — email input with validation, the granted/pending
+  permissions list, and cancel/unshare. Prevents users from unsharing themselves by hiding the remove button for the
+  current user. `MealPlanSharingService` refreshes the meal plans list after successful share/unshare actions.
 - Meal Entry Form Dialog (`meal_entry_form_dialog.dart`) - Modal dialog for creating and editing meal entries with plan
   dropdown (OWNER/EDITOR only), date picker, recipe/note mode toggle (segmented button with icons), recipe selection
   button (navigates to RecipePickerScreen), serving size input using ServingSizeInput widget (for recipes), and note
@@ -81,9 +80,10 @@
    to remove deleted plan entries
 6. **Plan Menu → Edit** → PlanFormDialog opens with pre-filled name and color → Edit fields → Tap "Save" → Plan
    updated → SnackBar "Plan updated successfully" → Drawer list refreshes
-7. **Plan Menu → Share** → MealPlanSharingDialog opens → Enter email and tap "Share" → Email validated → Shared user
-   added to list → SnackBar "Meal plan shared successfully!" → Can unshare users (except self) via remove icon →
-   SnackBar "Meal plan unshared successfully!" → Close dialog → Plan list refreshes
+7. **Plan Menu → Share** → MealPlanSharingDialog opens → Enter email and tap "Share" → Email validated → Invite
+   created and shown as a pending row → SnackBar "Invitation sent to {email}" → Can cancel a pending invite or remove
+   a granted user (except self) via the remove icon, each confirmed → SnackBar "Meal plan unshared successfully!" →
+   Close dialog → Plan list refreshes
 8. **Create New Plan Button** (bottom of drawer) → PlanFormDialog opens → Enter name and select color → Tap "Create" →
    Plan created → SnackBar "Plan created successfully" → New plan appears in drawer list
 9. **Create/Edit Validation Errors** → Name required, color required → Error messages displayed inline

@@ -5,7 +5,6 @@ mobile/lib/features/planning/
 ├── meal_plan.dart                              # Meal plan data model
 ├── meal_plan_calendar_entry.dart               # Meal plan entry data model
 ├── meal_plan_calendar_data.dart                # Calendar data model
-├── meal_plan_permission.dart                   # Permission data model for sharing
 ├── meal_entry_form_result.dart                 # Result model for meal entry form dialog
 ├── shopping_list_generated_items.dart          # Data model for shopping list generation API response
 ├── meal_plan_repository.dart                   # Meal plan data access layer with create/update/fetch operations

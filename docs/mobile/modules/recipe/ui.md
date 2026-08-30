@@ -53,9 +53,9 @@
 - Recipe Image Manager (`recipe_image_manager.dart`) - Widget for managing recipe images with camera/gallery selection
   via bottom sheet modal, horizontal scrollable thumbnail list with drag-and-drop reordering (ReorderableListView) and
   remove functionality.
-- Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Modal dialog for sharing recipes with other users, featuring
-  email input with validation, shared users list with UserRole enum display, and unshare functionality with Material
-  Design 3 styling. Prevents users from unsharing themselves by hiding the unshare button for the current user.
+- Recipe Sharing Dialog (`recipe_sharing_dialog.dart`) - Binds `RecipeDetailService` to the generic `SharingDialog`
+  (`docs/mobile/modules/sharing/ui.md`) — email input with validation, the granted/pending permissions list, and
+  cancel/unshare. Prevents users from unsharing themselves by hiding the remove button for the current user.
 - Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
   shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
   and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success.
@@ -87,7 +87,8 @@
 4. **Add to Meal Plan FAB Tap** (on Recipe Detail Screen) → MealEntryFormDialog opens with recipe preselected, serving
    size pre-filled → Select plan and date → Entry created → Success message → Dialog closes
 5. **Edit Menu Item Tap** (on Recipe Detail Screen) → Edit Recipe Screen (`/recipes/:id/edit` with recipe ID parameter)
-6. **Share Button Tap** (on Recipe Detail Screen) → List of shared users → Share recipe → Back to Recipe Detail Screen
+6. **Share Button Tap** (on Recipe Detail Screen) → RecipeSharingDialog listing granted users and pending invites →
+   Share by email (invitation sent) → Back to Recipe Detail Screen
 7. **Add to Shopping List Tap** (on Recipe Detail Screen) → Recipe To Shopping List Screen
    (`/recipes/:id/to-shopping-list`) → Select ingredients → Choose shopping list → Items queued for sync → Back to
    Recipe Detail Screen
@@ -106,6 +107,7 @@
 2. **FAB Tap** (on Collections screen) → Create dialog with name input → Collection created → List refreshed
 3. **Pull to Refresh** (on Collections screen) → Collections reloaded from API
 4. **Collection Item Menu → Rename** → Rename dialog with pre-filled name → Collection renamed → List refreshed
-5. **Collection Item Menu → Share** → Sharing dialog → Share/unshare collection with users → List refreshed
+5. **Collection Item Menu → Share** → Sharing dialog → Invite a user by email, or cancel an invite / remove a user →
+   List refreshed
 6. **Collection Item Menu → Delete** → Confirmation dialog → Collection deleted → List refreshed
 7. **Back Button** (on Collections screen) → Back to Main Screen

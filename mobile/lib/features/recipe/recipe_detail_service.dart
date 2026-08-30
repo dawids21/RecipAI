@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:recipai_mobile/core/widgets/sharing_dialog.dart';
 import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/async_value.dart';
 import '../auth/auth_service.dart';
+import '../sharing/resource_permission.dart';
 import 'recipe_detail.dart';
 import 'recipe_list_service.dart';
 import 'recipe_repository.dart';
@@ -27,15 +27,16 @@ class RecipeDetailService {
 
   ValueListenable<AsyncValue<RecipeDetail>> get recipeDetail => _recipeDetail;
 
-  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<ResourcePermission>>> _permissions =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+  ValueListenable<AsyncValue<List<ResourcePermission>>> get permissions =>
+      _permissions;
 
   bool _isLoadRecipeDetailRunning = false;
   bool _isDeleteRecipeRunning = false;
   bool _isUpdateRecipeRunning = false;
-  bool _isLoadSharedUsersRunning = false;
+  bool _isLoadPermissionsRunning = false;
   bool _isShareRecipeRunning = false;
   bool _isUnshareRecipeRunning = false;
 
@@ -105,26 +106,18 @@ class RecipeDetailService {
     }
   }
 
-  Future<void> loadSharedUsers(String id) async {
-    if (_isLoadSharedUsersRunning) return;
-    _isLoadSharedUsersRunning = true;
+  Future<void> loadPermissions(String id) async {
+    if (_isLoadPermissionsRunning) return;
+    _isLoadPermissionsRunning = true;
 
-    _sharedUsers.value = const AsyncValue.loading();
+    _permissions.value = const AsyncValue.loading();
 
-    _sharedUsers.value = await AsyncValue.guardAsync(() async {
+    _permissions.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      final permissions = await _recipeRepository.fetchSharedUsers(id, token);
-      final currentUserEmail = _authService.email;
-      return permissions.map((permission) {
-        return SharedUser(
-          email: permission.email,
-          role: permission.role.displayName,
-          isCurrentUser: permission.email == currentUserEmail,
-        );
-      }).toList();
+      return _recipeRepository.fetchPermissions(id, token);
     });
 
-    _isLoadSharedUsersRunning = false;
+    _isLoadPermissionsRunning = false;
   }
 
   Future<void> shareRecipe(String email) async {
@@ -145,7 +138,7 @@ class RecipeDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(recipeId); // Refresh list on success
+      await loadPermissions(recipeId); // Refresh list on success
     }
 
     _isShareRecipeRunning = false;
@@ -173,7 +166,7 @@ class RecipeDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(recipeId); // Refresh list on success
+      await loadPermissions(recipeId); // Refresh list on success
     }
 
     _isUnshareRecipeRunning = false;

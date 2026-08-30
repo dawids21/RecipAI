@@ -14,8 +14,9 @@
   render instantly while offline, surviving an app restart. Items are organized into two sections: active items
   (unchecked) at the top and "Done" section at the bottom for checked items, separated by the add item widget and a
   "Done" header. Each section uses ReorderableListView with custom drag handles. The Done section uses AnimatedSize for
-  smooth expand/collapse transitions. Features PopupMenuButton with actions: "Rename List", "Share List", "Delete All
-  Checked", "Uncheck All" (both expand into per-item local operations), and (for owners) "Delete List". Deleting an
+  smooth expand/collapse transitions. Features PopupMenuButton with actions: "Rename List", "Share List" (opens the
+  generic sharing dialog — `docs/mobile/modules/sharing/ui.md`), "Delete All Checked", "Uncheck All" (both expand into
+  per-item local operations), and (for owners) "Delete List". Deleting an
   item, "Delete All Checked" and "Uncheck All" each show a 5-second snackbar naming the number of affected items
   ("1 item deleted", "4 items unchecked") with an UNDO action; undo restores items to their original position and
   checked state. Nothing is shown when a bulk action affects zero items, a second destructive action replaces the

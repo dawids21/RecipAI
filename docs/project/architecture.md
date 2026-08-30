@@ -119,6 +119,10 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
   list (accept/decline, with decline confirmed) reached from a dot-badged overflow icon and a counted menu
   row on the Main Screen. One notifier feeds both indicator and screen; accepting reloads the resource's own
   list so it appears in its tab immediately
+- **`sharing`** — the sharer-facing counterpart to `invites`: one generic `SharingDialog` that recipes,
+  collections, shopping lists, and meal plans all open, rendering granted users and pending invites in one
+  list with a "Pending" marker, and cancelling an invite through the same `unshare` call that removes a
+  granted user
 
 ### Routing
 

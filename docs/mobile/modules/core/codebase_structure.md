@@ -14,12 +14,10 @@ mobile/
 │   │   ├── preferences_service.dart    # SharedPreferences wrapper for local storage (recipe filter, plan visibility, dev auth user name)
 │   │   ├── scheduler.dart              # Scheduler/ScheduledTimer abstraction over dart:async Timer, injected into services for testability (ADR-0005)
 │   │   ├── theme.dart                  # App theme and spacing constants
-│   │   ├── logging/                    # Logging infrastructure (capture always on; flag gates share UI only)
-│   │   │   ├── logging_setup.dart      # Wires root logger to AppLogSink, registers sink in get_it
-│   │   │   ├── app_log_sink.dart       # Rotating file sink (~1 MB active + 1 backup) under app support dir
-│   │   │   └── share_logs.dart         # Shares current log file via recipai/share platform channel (Android only)
-│   │   └── widgets/                    # Reusable widgets shared across features
-│   │       └── sharing_dialog.dart     # Generic sharing dialog with SharedUser DTO
+│   │   └── logging/                    # Logging infrastructure (capture always on; flag gates share UI only)
+│   │       ├── logging_setup.dart      # Wires root logger to AppLogSink, registers sink in get_it
+│   │       ├── app_log_sink.dart       # Rotating file sink (~1 MB active + 1 backup) under app support dir
+│   │       └── share_logs.dart         # Shares current log file via recipai/share platform channel (Android only)
 │   ├── shared/                         # Shared/reusable widgets and utilities
 │   │   ├── loading_widget.dart         # Loading indicator widget
 │   │   ├── api_error_widget.dart       # API error display widget
@@ -40,6 +38,8 @@ mobile/
 │   │   │   └── invites_screen_widget_test.dart # Invites screen widget test
 │   │   ├── recipe/
 │   │   │   └── main_screen_recipes_tab_widget_test.dart # Recipes tab widget test
+│   │   ├── sharing/
+│   │   │   └── sharing_dialog_widget_test.dart # SharingDialog pumped directly, no mocks
 │   │   └── shopping_list/
 │   │       └── shopping_list_sync_service_test.dart     # Outbox drain and poll sync
 │   ├── shared/

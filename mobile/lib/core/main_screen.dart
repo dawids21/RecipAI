@@ -248,6 +248,7 @@ class _MainScreenState extends State<MainScreen> {
               mealPlanListService: widget.mealPlanListService,
               visibilityService: widget.mealPlanVisibilityService,
               limitsService: widget.limitsService,
+              authService: widget.authService,
             )
           : null,
       body: IndexedStack(

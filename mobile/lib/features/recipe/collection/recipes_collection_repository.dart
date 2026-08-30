@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 
 import '../../../core/app_config.dart';
 import '../../limits/limit_balance.dart';
+import '../../sharing/resource_permission.dart';
+import '../../sharing/share_refused_exception.dart';
 import 'recipes_collection.dart';
-import 'recipes_collection_permission.dart';
 
 class RecipesCollectionRepository {
   final http.Client _client = http.Client();
@@ -130,13 +131,13 @@ class RecipesCollectionRepository {
     }
   }
 
-  Future<List<RecipesCollectionPermission>> fetchSharedUsers(
+  Future<List<ResourcePermission>> fetchPermissions(
     String collectionId,
     String? idToken,
   ) async {
     final headers = _getAuthHeaders(idToken);
     final response = await _client.get(
-      Uri.parse('$_baseUrl/collections/$collectionId/users'),
+      Uri.parse('$_baseUrl/collections/$collectionId/permissions'),
       headers: headers,
     );
 
@@ -144,15 +145,13 @@ class RecipesCollectionRepository {
       final List<dynamic> jsonList = json.decode(response.body);
       return jsonList
           .map(
-            (json) => RecipesCollectionPermission.fromJson(
-              json as Map<String, dynamic>,
-            ),
+            (json) => ResourcePermission.fromJson(json as Map<String, dynamic>),
           )
           .toList();
     } else if (response.statusCode == 404) {
       throw Exception('Recipes collection not found');
     } else {
-      throw Exception('Failed to load shared users: ${response.statusCode}');
+      throw Exception('Failed to load permissions: ${response.statusCode}');
     }
   }
 
@@ -165,11 +164,20 @@ class RecipesCollectionRepository {
     final response = await _client.post(
       Uri.parse('$_baseUrl/collections/$collectionId/share'),
       headers: headers,
-      body: json.encode({'email': email}),
+      body: json.encode({'email': email, 'role': 'EDITOR'}),
     );
 
     if (response.statusCode == 204) {
       return;
+    } else if (response.statusCode == 409) {
+      final refusal = ShareRefusedException.fromResponseBody(
+        response.body,
+        email,
+      );
+      if (refusal != null) throw refusal;
+      throw Exception(
+        'Failed to share recipes collection: ${response.statusCode}',
+      );
     } else if (response.statusCode == 404) {
       throw Exception('Recipes collection not found');
     } else if (response.statusCode == 403) {

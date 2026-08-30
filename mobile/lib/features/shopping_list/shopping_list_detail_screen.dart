@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import '../auth/auth_service.dart';
 import '../limits/limit_counter.dart';
 import 'local_shopping_list_item.dart';
 import 'shopping_list_detail_service.dart';
@@ -33,12 +34,14 @@ class ShoppingListDetailScreen extends StatefulWidget {
   /// is shown until known.
   final String? shoppingListName;
   final ShoppingListDetailService shoppingListDetailService;
+  final AuthService authService;
 
   const ShoppingListDetailScreen({
     super.key,
     required this.shoppingListId,
     this.shoppingListName,
     required this.shoppingListDetailService,
+    required this.authService,
   });
 
   @override
@@ -86,7 +89,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
   @override
   void initState() {
     super.initState();
-    service.loadSharedUsers(widget.shoppingListId);
+    service.loadPermissions(widget.shoppingListId);
     service.openShoppingList(widget.shoppingListId);
     _rejectionSubscription = service.rejections.listen(_showRejectionToast);
   }
@@ -363,8 +366,10 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
-      builder: (context) =>
-          ShoppingListSharingDialog(shoppingListDetailService: service),
+      builder: (context) => ShoppingListSharingDialog(
+        shoppingListDetailService: service,
+        currentUserEmail: widget.authService.email,
+      ),
     );
   }
 
@@ -523,7 +528,7 @@ class _ShoppingListDetailScreenState extends State<ShoppingListDetailScreen> {
 
   /// Builds the popup menu. Rebuilt each time the menu opens, so the owner-only
   /// "Delete List" item appears as soon as the role request
-  /// ([ShoppingListDetailService.loadSharedUsers]) has resolved for an owner.
+  /// ([ShoppingListDetailService.loadPermissions]) has resolved for an owner.
   List<PopupMenuItem<String>> _buildMenuItems() {
     final menuItems = <PopupMenuItem<String>>[
       const PopupMenuItem<String>(

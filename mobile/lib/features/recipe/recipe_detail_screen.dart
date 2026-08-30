@@ -8,6 +8,7 @@ import '../../core/theme.dart';
 import '../../shared/api_error_widget.dart';
 import '../../shared/loading_widget.dart';
 import '../../shared/user_role.dart';
+import '../auth/auth_service.dart';
 import '../planning/meal_entry_form_dialog.dart';
 import '../planning/meal_entry_form_result.dart';
 import '../planning/meal_plan_calendar_service.dart';
@@ -25,6 +26,7 @@ import 'step_number_badge.dart';
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
   final RecipeDetailService recipeDetailService;
+  final AuthService authService;
   final MealPlanCalendarService? mealPlanCalendarService;
   final MealPlanListService? mealPlanListService;
   final RecipesCollectionListService? recipesCollectionListService;
@@ -33,6 +35,7 @@ class RecipeDetailScreen extends StatefulWidget {
     super.key,
     required this.recipeId,
     required this.recipeDetailService,
+    required this.authService,
     this.mealPlanCalendarService,
     this.mealPlanListService,
     this.recipesCollectionListService,
@@ -47,7 +50,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void initState() {
     super.initState();
     widget.recipeDetailService.loadRecipeDetail(widget.recipeId);
-    widget.recipeDetailService.loadSharedUsers(widget.recipeId);
+    widget.recipeDetailService.loadPermissions(widget.recipeId);
     WakelockPlus.enable();
   }
 
@@ -172,8 +175,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Future<void> _showSharingDialog() async {
     await showDialog<void>(
       context: context,
-      builder: (context) =>
-          RecipeSharingDialog(recipeDetailService: widget.recipeDetailService),
+      builder: (context) => RecipeSharingDialog(
+        recipeDetailService: widget.recipeDetailService,
+        currentUserEmail: widget.authService.email,
+      ),
     );
   }
 

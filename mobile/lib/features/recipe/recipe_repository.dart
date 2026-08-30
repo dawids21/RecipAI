@@ -7,9 +7,10 @@ import 'package:recipai_mobile/features/recipe/recipe_image_input.dart';
 
 import '../../core/app_config.dart';
 import '../limits/limit_balance.dart';
+import '../sharing/resource_permission.dart';
+import '../sharing/share_refused_exception.dart';
 import 'recipe.dart';
 import 'recipe_detail.dart';
-import 'recipe_permission.dart';
 
 class RecipeRepository {
   final http.Client _client = http.Client();
@@ -182,14 +183,14 @@ class RecipeRepository {
     }
   }
 
-  Future<List<RecipePermission>> fetchSharedUsers(
+  Future<List<ResourcePermission>> fetchPermissions(
     String recipeId,
     String? idToken,
   ) async {
     try {
       final headers = _getAuthHeaders(idToken);
       final response = await _client.get(
-        Uri.parse('$_baseUrl/recipes/$recipeId/shared_users'),
+        Uri.parse('$_baseUrl/recipes/$recipeId/permissions'),
         headers: headers,
       );
 
@@ -197,16 +198,17 @@ class RecipeRepository {
         final List<dynamic> jsonList = json.decode(response.body);
         return jsonList
             .map(
-              (json) => RecipePermission.fromJson(json as Map<String, dynamic>),
+              (json) =>
+                  ResourcePermission.fromJson(json as Map<String, dynamic>),
             )
             .toList();
       } else if (response.statusCode == 404) {
         throw Exception('Recipe not found');
       } else {
-        throw Exception('Failed to load shared users: ${response.statusCode}');
+        throw Exception('Failed to load permissions: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Network error while fetching shared users: $e');
+      throw Exception('Network error while fetching permissions: $e');
     }
   }
 
@@ -220,16 +222,25 @@ class RecipeRepository {
       final response = await _client.post(
         Uri.parse('$_baseUrl/recipes/$recipeId/share'),
         headers: headers,
-        body: json.encode({'email': email}),
+        body: json.encode({'email': email, 'role': 'EDITOR'}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 204) {
         return;
+      } else if (response.statusCode == 409) {
+        final refusal = ShareRefusedException.fromResponseBody(
+          response.body,
+          email,
+        );
+        if (refusal != null) throw refusal;
+        throw Exception('Failed to share recipe: ${response.statusCode}');
       } else if (response.statusCode == 404) {
         throw Exception('Recipe not found');
       } else {
         throw Exception('Failed to share recipe: ${response.statusCode}');
       }
+    } on ShareRefusedException {
+      rethrow;
     } catch (e) {
       throw Exception('Network error while sharing recipe: $e');
     }
@@ -248,7 +259,7 @@ class RecipeRepository {
         body: json.encode({'email': email}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 204) {
         return;
       } else if (response.statusCode == 404) {
         throw Exception('Recipe not found');
