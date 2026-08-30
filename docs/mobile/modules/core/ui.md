@@ -24,22 +24,6 @@
   increment/decrement buttons. Minimum value is 1 (decrement disabled at 1). Uses IconButton.outlined with Material
   icons, displays value using headlineMedium text style. Used in RecipeFormWidget and MealEntryFormDialog.
 
-### Generic Sharing Dialog
-
-- **Implementation**: `lib/core/widgets/sharing_dialog.dart`
-- **Purpose**: Reusable dialog for managing ACLs (Recipes, Recipes Collections, Shopping Lists)
-- **SharedUser DTO**: Simple UI model with email (String), role (String displayName), isCurrentUser (bool)
-- **Usage Pattern**:
-    1. Service loads feature-specific Permission models (RecipePermission, RecipesCollectionPermission,
-       ShoppingListPermission)
-    2. Service wraps Permissions with isCurrentUser flag (RecipeSharedUser, etc.)
-    3. Screen creates ValueNotifier<AsyncValue<List<SharedUser>>> for mapped data
-    4. Screen sets up listener to map from SharedUser wrapper to SharedUser DTO
-    5. Screen passes mapped notifier and callbacks to SharingDialog
-    6. Dialog handles UI, validation, and user interactions
-    7. Screen handles success/error SnackBar feedback
-    8. Screen cleans up listener and disposes mapped notifier on dialog close
-
 ## Navigation
 
 ### Route Structure

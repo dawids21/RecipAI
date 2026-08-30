@@ -20,12 +20,14 @@ class MealPlanDrawer extends StatelessWidget {
   final MealPlanListService mealPlanListService;
   final MealPlanVisibilityService visibilityService;
   final LimitsService limitsService;
+  final AuthService authService;
 
   const MealPlanDrawer({
     super.key,
     required this.mealPlanListService,
     required this.visibilityService,
     required this.limitsService,
+    required this.authService,
   });
 
   @override
@@ -223,12 +225,12 @@ class MealPlanDrawer extends StatelessWidget {
   Future<void> _handleSharePlan(BuildContext context, MealPlan plan) async {
     final sharingService = MealPlanSharingService(
       mealPlanRepository: getIt<MealPlanRepository>(),
-      authService: getIt<AuthService>(),
+      authService: authService,
       mealPlanListService: mealPlanListService,
       mealPlanId: plan.id,
     );
 
-    await sharingService.loadSharedUsers();
+    await sharingService.loadPermissions();
 
     if (!context.mounted) {
       sharingService.dispose();
@@ -237,8 +239,10 @@ class MealPlanDrawer extends StatelessWidget {
 
     await showDialog(
       context: context,
-      builder: (context) =>
-          MealPlanSharingDialog(mealPlanSharingService: sharingService),
+      builder: (context) => MealPlanSharingDialog(
+        mealPlanSharingService: sharingService,
+        currentUserEmail: authService.email,
+      ),
     );
 
     sharingService.dispose();

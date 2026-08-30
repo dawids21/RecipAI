@@ -151,6 +151,10 @@ Module descriptions (what each module does) are in `docs/project/architecture.md
 - `codebase_structure.md` — file tree for `features/invites/`
 - `ui.md` — the `/invites` screen and its states, the invite row, the app-shell indicator, load triggers, and the accept-time list reload
 
+#### Sharing (`mobile/modules/sharing/`)
+- `codebase_structure.md` — file tree for `features/sharing/`
+- `ui.md` — the generic sharing dialog, its granted/pending row kinds, the cancel/unshare confirmation, the 409 refusal copy, and the four call sites that open it
+
 ---
 
 ## Mobile Standards

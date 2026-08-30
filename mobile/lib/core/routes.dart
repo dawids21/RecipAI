@@ -203,6 +203,7 @@ GoRouter createAppRouter() {
               return RecipeDetailScreen(
                 recipeId: id,
                 recipeDetailService: getIt<RecipeDetailService>(),
+                authService: getIt<AuthService>(),
                 mealPlanCalendarService: getIt<MealPlanCalendarService>(),
                 mealPlanListService: getIt<MealPlanListService>(),
                 recipesCollectionListService:
@@ -246,6 +247,7 @@ GoRouter createAppRouter() {
                 recipesCollectionListService:
                     getIt<RecipesCollectionListService>(),
                 limitsService: getIt<LimitsService>(),
+                authService: getIt<AuthService>(),
               );
             },
           ),
@@ -277,6 +279,7 @@ GoRouter createAppRouter() {
                 shoppingListId: id,
                 shoppingListName: name,
                 shoppingListDetailService: getIt<ShoppingListDetailService>(),
+                authService: getIt<AuthService>(),
               );
             },
           ),

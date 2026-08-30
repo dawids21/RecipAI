@@ -1,31 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../async_value.dart';
-import '../theme.dart';
-
-class SharedUser {
-  final String email;
-  final String role;
-  final bool isCurrentUser;
-
-  const SharedUser({
-    required this.email,
-    required this.role,
-    required this.isCurrentUser,
-  });
-}
+import '../../core/async_value.dart';
+import '../../core/theme.dart';
+import 'resource_permission.dart';
 
 class SharingDialog extends StatefulWidget {
   final String title;
-  final ValueListenable<AsyncValue<List<SharedUser>>> sharedUsers;
+  final ValueListenable<AsyncValue<List<ResourcePermission>>> permissions;
+  final String currentUserEmail;
   final Future<void> Function(String email) onShare;
   final Future<void> Function(String email) onUnshare;
 
   const SharingDialog({
     super.key,
     required this.title,
-    required this.sharedUsers,
+    required this.permissions,
+    required this.currentUserEmail,
     required this.onShare,
     required this.onUnshare,
   });
@@ -77,13 +68,17 @@ class _SharingDialogState extends State<SharingDialog> {
     }
   }
 
-  Future<void> _handleUnshare(String email) async {
+  Future<void> _handleUnshare(ResourcePermission permission) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Unshare'),
+        title: Text(
+          permission.pending ? 'Cancel Invitation' : 'Confirm Unshare',
+        ),
         content: Text(
-          'Remove access for $email? They will no longer be able to view or edit this item.',
+          permission.pending
+              ? 'Cancel the invitation for ${permission.email}? They will not be able to accept it any more.'
+              : 'Remove access for ${permission.email}? They will no longer be able to view or edit this item.',
         ),
         actions: [
           TextButton(
@@ -95,7 +90,7 @@ class _SharingDialogState extends State<SharingDialog> {
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Unshare'),
+            child: Text(permission.pending ? 'Confirm' : 'Unshare'),
           ),
         ],
       ),
@@ -104,7 +99,7 @@ class _SharingDialogState extends State<SharingDialog> {
     if (confirmed != true) return;
 
     try {
-      await widget.onUnshare(email);
+      await widget.onUnshare(permission.email);
     } catch (e) {
       // Error feedback handled by caller
       rethrow;
@@ -146,7 +141,7 @@ class _SharingDialogState extends State<SharingDialog> {
     );
   }
 
-  Widget _buildSharedUsersList(List<SharedUser> users) {
+  Widget _buildPermissionsList(List<ResourcePermission> permissions) {
     final theme = Theme.of(context);
 
     return Column(
@@ -154,16 +149,41 @@ class _SharingDialogState extends State<SharingDialog> {
       children: [
         Text('Shared with', style: theme.textTheme.titleSmall),
         const SizedBox(height: AppSpacing.small),
-        ...users.map(
-          (user) => ListTile(
-            title: Text(user.email),
-            subtitle: Text(user.role),
-            trailing: user.isCurrentUser
+        ...permissions.map(
+          (permission) => ListTile(
+            title: permission.pending
+                ? Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          permission.email,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      Chip(
+                        label: const Text('Pending'),
+                        labelStyle: theme.textTheme.labelSmall,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ],
+                  )
+                : Text(permission.email),
+            subtitle: Text(
+              permission.pending
+                  ? 'Invited as ${permission.role.displayName}'
+                  : permission.role.displayName,
+            ),
+            trailing: permission.email == widget.currentUserEmail
                 ? null
                 : IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
-                    onPressed: () => _handleUnshare(user.email),
-                    tooltip: 'Remove access',
+                    onPressed: () => _handleUnshare(permission),
+                    tooltip: permission.pending
+                        ? 'Cancel invitation'
+                        : 'Remove access',
                   ),
           ),
         ),
@@ -186,40 +206,45 @@ class _SharingDialogState extends State<SharingDialog> {
             const SizedBox(height: AppSpacing.medium),
             Flexible(
               child: SingleChildScrollView(
-                child: ValueListenableBuilder<AsyncValue<List<SharedUser>>>(
-                  valueListenable: widget.sharedUsers,
-                  builder: (context, asyncValue, child) {
-                    return asyncValue.when(
-                      data: (users) => users.isEmpty
-                          ? const Center(
-                              child: Text('Not shared with anyone yet'),
-                            )
-                          : _buildSharedUsersList(users),
-                      loading: () => const SizedBox(
-                        height: 100,
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                      error: (error) => Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: theme.colorScheme.error,
-                              size: 48,
+                child:
+                    ValueListenableBuilder<
+                      AsyncValue<List<ResourcePermission>>
+                    >(
+                      valueListenable: widget.permissions,
+                      builder: (context, asyncValue, child) {
+                        return asyncValue.when(
+                          data: (permissions) => permissions.isEmpty
+                              ? const Center(
+                                  child: Text('Not shared with anyone yet'),
+                                )
+                              : _buildPermissionsList(permissions),
+                          loading: () => const SizedBox(
+                            height: 100,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                          error: (error) => Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: theme.colorScheme.error,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: AppSpacing.small),
+                                Text(
+                                  'Error: $error',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: AppSpacing.small),
-                            Text(
-                              'Error: $error',
-                              style: TextStyle(color: theme.colorScheme.error),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                          ),
+                        );
+                      },
+                    ),
               ),
             ),
           ],

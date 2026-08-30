@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
 import '../../core/async_value.dart';
-import '../../core/widgets/sharing_dialog.dart';
 import '../../shared/user_role.dart';
 import '../auth/auth_service.dart';
 import '../limits/limit_quota.dart';
+import '../sharing/resource_permission.dart';
 import 'local_shopping_list_item.dart';
 import 'shopping_list_item_store_service.dart';
 import 'shopping_list_item_widget.dart';
@@ -39,18 +39,20 @@ class ShoppingListDetailService {
 
   /// The current user's role for the open list, gating owner-only actions
   /// (e.g. "Delete List"). Defaults to [UserRole.editor] — i.e. no delete
-  /// rights — and is upgraded once [loadSharedUsers] resolves and confirms the
-  /// user is an owner. Sourced from the `/users` request, not the detail fetch.
+  /// rights — and is upgraded once [loadPermissions] resolves and confirms the
+  /// user is an owner. Sourced from the `/permissions` request, not the detail
+  /// fetch.
   final ValueNotifier<UserRole> _currentUserRole = ValueNotifier(
     UserRole.editor,
   );
 
   ValueListenable<UserRole> get currentUserRole => _currentUserRole;
 
-  final ValueNotifier<AsyncValue<List<SharedUser>>> _sharedUsers =
+  final ValueNotifier<AsyncValue<List<ResourcePermission>>> _permissions =
       ValueNotifier(const AsyncValue.loading());
 
-  ValueListenable<AsyncValue<List<SharedUser>>> get sharedUsers => _sharedUsers;
+  ValueListenable<AsyncValue<List<ResourcePermission>>> get permissions =>
+      _permissions;
 
   final ValueNotifier<AsyncValue<List<LocalShoppingListItem>>> _items =
       ValueNotifier(const AsyncValue.loading());
@@ -71,7 +73,7 @@ class ShoppingListDetailService {
 
   bool _isRenameRunning = false;
   bool _isDeleteRunning = false;
-  bool _isLoadSharedUsersRunning = false;
+  bool _isLoadPermissionsRunning = false;
   bool _isShareShoppingListRunning = false;
   bool _isUnshareShoppingListRunning = false;
 
@@ -275,35 +277,29 @@ class ShoppingListDetailService {
     }
   }
 
-  Future<void> loadSharedUsers(String id) async {
-    if (_isLoadSharedUsersRunning) return;
-    _isLoadSharedUsersRunning = true;
+  Future<void> loadPermissions(String id) async {
+    if (_isLoadPermissionsRunning) return;
+    _isLoadPermissionsRunning = true;
 
-    _sharedUsers.value = const AsyncValue.loading();
+    _permissions.value = const AsyncValue.loading();
 
-    _sharedUsers.value = await AsyncValue.guardAsync(() async {
+    _permissions.value = await AsyncValue.guardAsync(() async {
       final token = await _authService.idToken;
-      final permissions = await _shoppingListRepository.fetchSharedUsers(
+      final permissions = await _shoppingListRepository.fetchPermissions(
         id,
         token,
       );
-      final currentUserEmail = _authService.email;
       for (final permission in permissions) {
-        if (permission.email == currentUserEmail) {
+        if (permission.pending) continue;
+        if (permission.email == _authService.email) {
           _currentUserRole.value = permission.role;
           break;
         }
       }
-      return permissions.map((permission) {
-        return SharedUser(
-          email: permission.email,
-          role: permission.role.displayName,
-          isCurrentUser: permission.email == currentUserEmail,
-        );
-      }).toList();
+      return permissions;
     });
 
-    _isLoadSharedUsersRunning = false;
+    _isLoadPermissionsRunning = false;
   }
 
   Future<void> shareShoppingList(String email) async {
@@ -326,7 +322,7 @@ class ShoppingListDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(shoppingListId);
+      await loadPermissions(shoppingListId);
       await _shoppingListListService.loadShoppingLists();
     }
 
@@ -357,7 +353,7 @@ class ShoppingListDetailService {
     });
 
     if (result is AsyncData) {
-      await loadSharedUsers(shoppingListId);
+      await loadPermissions(shoppingListId);
       await _shoppingListListService.loadShoppingLists();
     }
 
@@ -377,7 +373,7 @@ class ShoppingListDetailService {
       _watchedListenable!.removeListener(_itemsListener!);
     }
     _currentUserRole.dispose();
-    _sharedUsers.dispose();
+    _permissions.dispose();
     _items.dispose();
     _itemQuota.dispose();
   }

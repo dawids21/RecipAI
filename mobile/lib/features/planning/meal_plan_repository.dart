@@ -6,9 +6,10 @@ import 'package:recipai_mobile/shared/extensions.dart';
 
 import '../../core/app_config.dart';
 import '../limits/limit_balance.dart';
+import '../sharing/resource_permission.dart';
+import '../sharing/share_refused_exception.dart';
 import 'meal_plan.dart';
 import 'meal_plan_calendar_data.dart';
-import 'meal_plan_permission.dart';
 import 'shopping_list_generated_items.dart';
 
 class MealPlanRepository {
@@ -166,22 +167,26 @@ class MealPlanRepository {
     }
   }
 
-  Future<List<MealPlanPermission>> fetchSharedUsers({
+  Future<List<ResourcePermission>> fetchPermissions({
     required String mealPlanId,
     required String? idToken,
   }) async {
     final headers = _getAuthHeaders(idToken);
-    final uri = Uri.parse('$_baseUrl/meal-plans/$mealPlanId/users');
+    final uri = Uri.parse('$_baseUrl/meal-plans/$mealPlanId/permissions');
 
     final response = await _client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList.map((json) => MealPlanPermission.fromJson(json)).toList();
+      return jsonList
+          .map(
+            (json) => ResourcePermission.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
     } else if (response.statusCode == 404) {
       throw Exception('Plan not found');
     } else {
-      throw Exception('Failed to load shared users: ${response.statusCode}');
+      throw Exception('Failed to load permissions: ${response.statusCode}');
     }
   }
 
@@ -194,11 +199,18 @@ class MealPlanRepository {
     final response = await _client.post(
       Uri.parse('$_baseUrl/meal-plans/$mealPlanId/share'),
       headers: headers,
-      body: jsonEncode({'email': email}),
+      body: jsonEncode({'email': email, 'role': 'EDITOR'}),
     );
 
     if (response.statusCode == 204) {
       return;
+    } else if (response.statusCode == 409) {
+      final refusal = ShareRefusedException.fromResponseBody(
+        response.body,
+        email,
+      );
+      if (refusal != null) throw refusal;
+      throw Exception('Failed to share meal plan: ${response.statusCode}');
     } else if (response.statusCode == 403) {
       throw Exception('You do not have permission to share this plan');
     } else if (response.statusCode == 404) {

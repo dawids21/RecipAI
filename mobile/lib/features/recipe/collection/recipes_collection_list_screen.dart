@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/widgets/sharing_dialog.dart';
 import '../../../shared/api_error_widget.dart';
 import '../../../shared/loading_widget.dart';
+import '../../auth/auth_service.dart';
 import '../../limits/limits_service.dart';
+import '../../sharing/share_refused_exception.dart';
+import '../../sharing/sharing_dialog.dart';
 import 'recipes_collection.dart';
 import 'recipes_collection_create_dialog.dart';
 import 'recipes_collection_list_item.dart';
@@ -13,11 +15,13 @@ import 'recipes_collection_list_service.dart';
 class RecipesCollectionListScreen extends StatefulWidget {
   final RecipesCollectionListService recipesCollectionListService;
   final LimitsService limitsService;
+  final AuthService authService;
 
   const RecipesCollectionListScreen({
     super.key,
     required this.recipesCollectionListService,
     required this.limitsService,
+    required this.authService,
   });
 
   @override
@@ -123,7 +127,7 @@ class _RecipesCollectionListScreenState
   }
 
   Future<void> _showSharingDialog(RecipesCollection collection) async {
-    widget.recipesCollectionListService.loadSharedUsers(collection.id);
+    widget.recipesCollectionListService.loadPermissions(collection.id);
 
     if (!mounted) return;
 
@@ -131,7 +135,8 @@ class _RecipesCollectionListScreenState
       context: context,
       builder: (context) => SharingDialog(
         title: 'Share ${collection.name}',
-        sharedUsers: widget.recipesCollectionListService.sharedUsers,
+        permissions: widget.recipesCollectionListService.permissions,
+        currentUserEmail: widget.authService.email,
         onShare: (email) async {
           final scaffoldMessenger = ScaffoldMessenger.of(context);
           try {
@@ -141,9 +146,23 @@ class _RecipesCollectionListScreenState
             );
             if (mounted) {
               scaffoldMessenger.showSnackBar(
-                SnackBar(content: Text('Collection shared with $email')),
+                SnackBar(content: Text('Invitation sent to $email')),
               );
             }
+          } on ShareRefusedException catch (e) {
+            if (mounted) {
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text(switch (e.reason) {
+                    ShareRefusedReason.alreadyInvited =>
+                      '${e.email} already has a pending invitation',
+                    ShareRefusedReason.alreadyHasAccess =>
+                      '${e.email} already has access',
+                  }),
+                ),
+              );
+            }
+            rethrow;
           } catch (e) {
             if (mounted) {
               scaffoldMessenger.showSnackBar(
