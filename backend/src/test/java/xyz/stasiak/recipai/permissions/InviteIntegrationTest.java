@@ -1,16 +1,15 @@
 package xyz.stasiak.recipai.permissions;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
-import xyz.stasiak.recipai.TestSecurityConfiguration;
-import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.IntegrationTest;
+import xyz.stasiak.recipai.TestRestClients;
+import xyz.stasiak.recipai.TestIdentities;
 import xyz.stasiak.recipai.permissions.dto.PendingInviteDto;
 import xyz.stasiak.recipai.permissions.dto.PermissionDto;
 import xyz.stasiak.recipai.permissions.dto.ResourceRole;
@@ -18,7 +17,6 @@ import xyz.stasiak.recipai.permissions.exception.InvalidInviteRoleException;
 import xyz.stasiak.recipai.permissions.exception.InviteRefusedException;
 import xyz.stasiak.recipai.permissions.exception.ResourceAccessDeniedException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,8 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.Assertions.tuple;
 
-@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "recipai.limits.enabled=false")
+@IntegrationTest
 class InviteIntegrationTest {
 
     // Opaque keys no module owns: the module holds no domain knowledge and never inspects them.
@@ -37,9 +34,13 @@ class InviteIntegrationTest {
     private static final String RESOURCE_TYPE = "INVITE_TEST_RESOURCE";
     private static final String OTHER_RESOURCE_TYPE = "INVITE_TEST_RESOURCE_OTHER";
 
-    private static final String SHARER = "user1@example.com";
-    private static final String INVITEE = "user2@example.com";
-    private static final String STRANGER = "user@example.com";
+    private String sharerToken;
+    private String inviteeToken;
+    private String strangerToken;
+
+    private String sharerEmail;
+    private String inviteeEmail;
+    private String strangerEmail;
 
     @LocalServerPort
     private int port;
@@ -47,30 +48,22 @@ class InviteIntegrationTest {
     @Autowired
     private PermissionsFacade permissionsFacade;
 
-    private record TrackedResource(String resourceType, UUID resourceId) {
+    @BeforeEach
+    void freshUsers() {
+        sharerToken = TestIdentities.freshToken();
+        inviteeToken = TestIdentities.freshToken();
+        strangerToken = TestIdentities.freshToken();
+        sharerEmail = TestIdentities.emailOf(sharerToken);
+        inviteeEmail = TestIdentities.emailOf(inviteeToken);
+        strangerEmail = TestIdentities.emailOf(strangerToken);
     }
 
-    private final List<TrackedResource> createdResources = new ArrayList<>();
-
     private RestClient restClient(String authToken) {
-        return RestClient.builder()
-                .baseUrl("http://localhost:" + port)
-                .defaultHeader("Authorization", "Bearer " + authToken)
-                .build();
+        return TestRestClients.forToken(port, authToken);
     }
 
     private RestClient inviteeClient() {
-        return restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
-    }
-
-    // Every resource is owned by the sharer; reporting it deleted cascades to its permissions and
-    // pending invites, resetting the invitee's and stranger's inboxes for the next test.
-    @AfterEach
-    void tearDown() {
-        for (TrackedResource resource : createdResources) {
-            permissionsFacade.resourceDeleted(resource.resourceType(), resource.resourceId());
-        }
-        createdResources.clear();
+        return restClient(inviteeToken);
     }
 
     private UUID ownedResource() {
@@ -79,8 +72,7 @@ class InviteIntegrationTest {
 
     private UUID ownedResource(String resourceType) {
         UUID resourceId = UUID.randomUUID();
-        permissionsFacade.grantOwner(resourceType, resourceId, SHARER);
-        createdResources.add(new TrackedResource(resourceType, resourceId));
+        permissionsFacade.grantOwner(resourceType, resourceId, sharerEmail);
         return resourceId;
     }
 
@@ -89,7 +81,7 @@ class InviteIntegrationTest {
     }
 
     private UUID invite(String resourceType, UUID resourceId, String label, String targetEmail) {
-        return permissionsFacade.invite(resourceType, resourceId, targetEmail, ResourceRole.EDITOR, label, SHARER);
+        return permissionsFacade.invite(resourceType, resourceId, targetEmail, ResourceRole.EDITOR, label, sharerEmail);
     }
 
     private List<PendingInviteDto> getPendingInvites(RestClient client) {
@@ -124,24 +116,24 @@ class InviteIntegrationTest {
     void shouldNotGrantAnyAccessWhileInviteIsPending() {
         UUID resourceId = ownedResource();
 
-        invite(resourceId, "Pending Access Test", INVITEE);
+        invite(resourceId, "Pending Access Test", inviteeEmail);
 
-        assertThat(permissionsFacade.roleOf(RESOURCE_TYPE, resourceId, INVITEE)).isEmpty();
-        assertThat(permissionsFacade.accessibleResources(RESOURCE_TYPE, INVITEE)).doesNotContainKey(resourceId);
+        assertThat(permissionsFacade.roleOf(RESOURCE_TYPE, resourceId, inviteeEmail)).isEmpty();
+        assertThat(permissionsFacade.accessibleResources(RESOURCE_TYPE, inviteeEmail)).doesNotContainKey(resourceId);
         assertThatExceptionOfType(ResourceAccessDeniedException.class)
-                .isThrownBy(() -> permissionsFacade.requireEditor(RESOURCE_TYPE, resourceId, INVITEE));
+                .isThrownBy(() -> permissionsFacade.requireEditor(RESOURCE_TYPE, resourceId, inviteeEmail));
     }
 
     @Test
     void shouldListPendingInviteWithLabelAndSender() {
         UUID resourceId = ownedResource();
 
-        invite(resourceId, "My Groceries", INVITEE);
+        invite(resourceId, "My Groceries", inviteeEmail);
 
         PendingInviteDto invite = onlyPendingInviteFor(inviteeClient());
         assertThat(invite.resourceType()).isEqualTo(RESOURCE_TYPE);
         assertThat(invite.label()).isEqualTo("My Groceries");
-        assertThat(invite.invitedBy()).isEqualTo(SHARER);
+        assertThat(invite.invitedBy()).isEqualTo(sharerEmail);
         assertThat(invite.role()).isEqualTo(ResourceRole.EDITOR);
     }
 
@@ -149,12 +141,12 @@ class InviteIntegrationTest {
     void shouldGrantAccessWhenInviteIsAccepted() {
         RestClient invitee = inviteeClient();
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Accept Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Accept Test", inviteeEmail);
 
         acceptInvite(invitee, inviteId);
 
-        assertThat(permissionsFacade.roleOf(RESOURCE_TYPE, resourceId, INVITEE)).contains(ResourceRole.EDITOR);
-        assertThat(permissionsFacade.accessibleResources(RESOURCE_TYPE, INVITEE))
+        assertThat(permissionsFacade.roleOf(RESOURCE_TYPE, resourceId, inviteeEmail)).contains(ResourceRole.EDITOR);
+        assertThat(permissionsFacade.accessibleResources(RESOURCE_TYPE, inviteeEmail))
                 .containsEntry(resourceId, ResourceRole.EDITOR);
     }
 
@@ -162,52 +154,52 @@ class InviteIntegrationTest {
     void shouldRemoveInviteFromBothSidesWhenAccepted() {
         RestClient invitee = inviteeClient();
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Remove From Both Sides Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Remove From Both Sides Test", inviteeEmail);
 
         acceptInvite(invitee, inviteId);
 
         assertThat(getPendingInvites(invitee)).isEmpty();
         assertThat(permissionsFacade.getPermissions(RESOURCE_TYPE, resourceId))
-                .contains(new PermissionDto(INVITEE, ResourceRole.EDITOR, false));
+                .contains(new PermissionDto(inviteeEmail, ResourceRole.EDITOR, false));
     }
 
     @Test
     void shouldLeaveResourceInvisibleWhenInviteIsDeclined() {
         RestClient invitee = inviteeClient();
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Decline Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Decline Test", inviteeEmail);
 
         declineInvite(invitee, inviteId);
 
         assertThat(getPendingInvites(invitee)).isEmpty();
-        assertThat(permissionsFacade.roleOf(RESOURCE_TYPE, resourceId, INVITEE)).isEmpty();
+        assertThat(permissionsFacade.roleOf(RESOURCE_TYPE, resourceId, inviteeEmail)).isEmpty();
         assertThat(permissionsFacade.getPermissions(RESOURCE_TYPE, resourceId))
                 .extracting(PermissionDto::email)
-                .doesNotContain(INVITEE);
+                .doesNotContain(inviteeEmail);
     }
 
     @Test
     void shouldCancelPendingInviteWhenSharerUnshares() {
         RestClient invitee = inviteeClient();
         UUID resourceId = ownedResource();
-        invite(resourceId, "Cancel Test", INVITEE);
+        invite(resourceId, "Cancel Test", inviteeEmail);
         assertThat(getPendingInvites(invitee)).hasSize(1);
 
-        permissionsFacade.revoke(RESOURCE_TYPE, resourceId, INVITEE, SHARER);
+        permissionsFacade.revoke(RESOURCE_TYPE, resourceId, inviteeEmail, sharerEmail);
 
         assertThat(getPendingInvites(invitee)).isEmpty();
         assertThat(permissionsFacade.getPermissions(RESOURCE_TYPE, resourceId))
                 .extracting(PermissionDto::email)
-                .doesNotContain(INVITEE);
+                .doesNotContain(inviteeEmail);
     }
 
     @Test
     void shouldRefuseSecondInviteWhenOneIsAlreadyPending() {
         UUID resourceId = ownedResource();
-        invite(resourceId, "Second Invite Test", INVITEE);
+        invite(resourceId, "Second Invite Test", inviteeEmail);
 
         assertThatExceptionOfType(InviteRefusedException.class)
-                .isThrownBy(() -> invite(resourceId, "Second Invite Test", INVITEE))
+                .isThrownBy(() -> invite(resourceId, "Second Invite Test", inviteeEmail))
                 .extracting(InviteRefusedException::reason)
                 .isEqualTo(InviteRefusedException.Reason.ALREADY_INVITED);
     }
@@ -215,11 +207,11 @@ class InviteIntegrationTest {
     @Test
     void shouldRefuseInviteWhenTargetAlreadyHasAccess() {
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Already Has Access Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Already Has Access Test", inviteeEmail);
         acceptInvite(inviteeClient(), inviteId);
 
         assertThatExceptionOfType(InviteRefusedException.class)
-                .isThrownBy(() -> invite(resourceId, "Already Has Access Test", INVITEE))
+                .isThrownBy(() -> invite(resourceId, "Already Has Access Test", inviteeEmail))
                 .extracting(InviteRefusedException::reason)
                 .isEqualTo(InviteRefusedException.Reason.ALREADY_HAS_ACCESS);
     }
@@ -229,7 +221,7 @@ class InviteIntegrationTest {
         UUID resourceId = ownedResource();
 
         assertThatExceptionOfType(InviteRefusedException.class)
-                .isThrownBy(() -> invite(resourceId, "Invite Owner Test", SHARER))
+                .isThrownBy(() -> invite(resourceId, "Invite Owner Test", sharerEmail))
                 .extracting(InviteRefusedException::reason)
                 .isEqualTo(InviteRefusedException.Reason.ALREADY_HAS_ACCESS);
     }
@@ -239,8 +231,8 @@ class InviteIntegrationTest {
         UUID resourceId = ownedResource();
 
         assertThatExceptionOfType(InvalidInviteRoleException.class)
-                .isThrownBy(() -> permissionsFacade.invite(RESOURCE_TYPE, resourceId, INVITEE,
-                        ResourceRole.OWNER, "Invite At Owner Role Test", SHARER));
+                .isThrownBy(() -> permissionsFacade.invite(RESOURCE_TYPE, resourceId, inviteeEmail,
+                        ResourceRole.OWNER, "Invite At Owner Role Test", sharerEmail));
 
         assertThat(getPendingInvites(inviteeClient())).isEmpty();
     }
@@ -248,9 +240,9 @@ class InviteIntegrationTest {
     @Test
     void shouldReturn404WhenAcceptingAnInviteBelongingToSomeoneElse() {
         RestClient invitee = inviteeClient();
-        RestClient stranger = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        RestClient stranger = restClient(strangerToken);
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Wrong Owner Accept Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Wrong Owner Accept Test", inviteeEmail);
 
         try {
             acceptInvite(stranger, inviteId);
@@ -279,7 +271,7 @@ class InviteIntegrationTest {
     void shouldReturn404WhenDecliningAnAlreadyAnsweredInvite() {
         RestClient invitee = inviteeClient();
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Already Answered Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Already Answered Test", inviteeEmail);
         acceptInvite(invitee, inviteId);
 
         try {
@@ -294,7 +286,7 @@ class InviteIntegrationTest {
     void shouldRemovePendingInviteWhenResourceIsDeleted() {
         RestClient invitee = inviteeClient();
         UUID resourceId = ownedResource();
-        invite(resourceId, "Delete Cascade Test", INVITEE);
+        invite(resourceId, "Delete Cascade Test", inviteeEmail);
         assertThat(getPendingInvites(invitee)).hasSize(1);
 
         permissionsFacade.resourceDeleted(RESOURCE_TYPE, resourceId);
@@ -305,10 +297,10 @@ class InviteIntegrationTest {
     @Test
     void shouldListInvitesOnlyForTheCallingEmail() {
         RestClient invitee = inviteeClient();
-        RestClient stranger = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        RestClient stranger = restClient(strangerToken);
 
-        invite(ownedResource(), "For Invitee", INVITEE);
-        invite(ownedResource(), "For Stranger", STRANGER);
+        invite(ownedResource(), "For Invitee", inviteeEmail);
+        invite(ownedResource(), "For Stranger", strangerEmail);
 
         assertThat(getPendingInvites(invitee)).extracting(PendingInviteDto::label).containsExactly("For Invitee");
         assertThat(getPendingInvites(stranger)).extracting(PendingInviteDto::label).containsExactly("For Stranger");
@@ -317,14 +309,14 @@ class InviteIntegrationTest {
     @Test
     void shouldShowPendingAndGrantedTogetherInPermissions() {
         UUID resourceId = ownedResource();
-        UUID inviteId = invite(resourceId, "Mixed Permissions Test", INVITEE);
+        UUID inviteId = invite(resourceId, "Mixed Permissions Test", inviteeEmail);
         acceptInvite(inviteeClient(), inviteId);
-        invite(resourceId, "Mixed Permissions Test", STRANGER);
+        invite(resourceId, "Mixed Permissions Test", strangerEmail);
 
         assertThat(permissionsFacade.getPermissions(RESOURCE_TYPE, resourceId)).containsExactly(
-                new PermissionDto(SHARER, ResourceRole.OWNER, false),
-                new PermissionDto(INVITEE, ResourceRole.EDITOR, false),
-                new PermissionDto(STRANGER, ResourceRole.EDITOR, true)
+                new PermissionDto(sharerEmail, ResourceRole.OWNER, false),
+                new PermissionDto(inviteeEmail, ResourceRole.EDITOR, false),
+                new PermissionDto(strangerEmail, ResourceRole.EDITOR, true)
         );
     }
 
@@ -333,16 +325,16 @@ class InviteIntegrationTest {
         UUID firstResourceId = ownedResource(RESOURCE_TYPE);
         UUID secondResourceId = ownedResource(OTHER_RESOURCE_TYPE);
 
-        invite(RESOURCE_TYPE, firstResourceId, "First Type Test", INVITEE);
-        invite(OTHER_RESOURCE_TYPE, secondResourceId, "Second Type Test", INVITEE);
+        invite(RESOURCE_TYPE, firstResourceId, "First Type Test", inviteeEmail);
+        invite(OTHER_RESOURCE_TYPE, secondResourceId, "Second Type Test", inviteeEmail);
 
         List<PendingInviteDto> invites = getPendingInvites(inviteeClient());
 
         assertThat(invites)
                 .extracting(PendingInviteDto::resourceType, PendingInviteDto::label, PendingInviteDto::invitedBy)
                 .containsExactlyInAnyOrder(
-                        tuple(RESOURCE_TYPE, "First Type Test", SHARER),
-                        tuple(OTHER_RESOURCE_TYPE, "Second Type Test", SHARER)
+                        tuple(RESOURCE_TYPE, "First Type Test", sharerEmail),
+                        tuple(OTHER_RESOURCE_TYPE, "Second Type Test", sharerEmail)
                 );
     }
 }

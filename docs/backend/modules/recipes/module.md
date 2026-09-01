@@ -38,8 +38,8 @@ backend/src/main/java/xyz/stasiak/recipai/
     │   ├── Images.java                      # Value object for image metadata list with add/delete/reorder operations
     │   ├── RecipeImagesUpdated.java         # Value object for tracking image changes (toAdd and toDelete sets)
     │   ├── RecipeImagesRepository.java      # Recipe images data access
-    │   ├── RecipeImagesService.java         # Image management service (upload, update with add/delete/reorder, retrieve, delete all)
-    │   ├── S3Service.java                   # S3 operations service (upload, presigned URLs, delete single/all images)
+    │   ├── RecipeImagesService.java         # Image management service (upload, update with add/delete/reorder, retrieve, delete all); catches config.s3.S3StorageException from ImageService
+    │   ├── ImageService.java                # Image-specific object-storage logic (key building, the recipes/<recipeId>/ prefix, ContentType handling) delegating to the config.s3.S3Service seam
     │   ├── ImageProcessingService.java      # Image validation and thumbnail generation
     │   ├── ContentType.java                 # Content type value object
     │   ├── ImageMetadata.java               # Image metadata value object (id and extension)
@@ -48,7 +48,6 @@ backend/src/main/java/xyz/stasiak/recipai/
     │   └── exception/
     │       ├── InvalidImageException.java
     │       ├── ImageLimitExceededException.java
-    │       ├── S3StorageException.java
     │       └── RecipeImagesExceptionHandler.java
     └── collections/
         ├── RecipesCollection.java                       # RecipesCollection entity

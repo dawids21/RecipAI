@@ -6,9 +6,9 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import xyz.stasiak.recipai.config.s3.S3Properties;
+import xyz.stasiak.recipai.config.s3.S3StorageException;
 import xyz.stasiak.recipai.recipes.images.dto.RecipeImageDto;
 import xyz.stasiak.recipai.recipes.images.exception.InvalidImageException;
-import xyz.stasiak.recipai.recipes.images.exception.S3StorageException;
 
 import java.time.Duration;
 import java.util.*;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class RecipeImagesService {
 
     private final RecipeImagesRepository recipeImagesRepository;
-    private final S3Service s3Service;
+    private final ImageService imageService;
     private final ImageProcessingService imageProcessingService = new ImageProcessingService();
     private final S3Properties s3Properties;
 
@@ -53,8 +53,8 @@ public class RecipeImagesService {
                         String imageKey = String.format("recipes/%s/%s.%s", recipeId, metadata.id(), metadata.contentType().toExtension());
                         String thumbnailKey = String.format("recipes/%s/%s-thumb.%s", recipeId, metadata.id(), metadata.contentType().toExtension());
 
-                        String imageUrl = s3Service.generatePresignedUrl(imageKey, expiration);
-                        String thumbnailUrl = s3Service.generatePresignedUrl(thumbnailKey, expiration);
+                        String imageUrl = imageService.generatePresignedUrl(imageKey, expiration);
+                        String thumbnailUrl = imageService.generatePresignedUrl(thumbnailKey, expiration);
 
                         return new RecipeImageDto(metadata.id(), imageUrl, thumbnailUrl);
                     } catch (S3StorageException e) {
@@ -73,7 +73,7 @@ public class RecipeImagesService {
                     String thumbnailKey = String.format("recipes/%s/%s-thumb.%s", recipeId, metadata.id(), metadata.contentType().toExtension());
                     Duration expiration = Duration.ofMinutes(s3Properties.presignedUrlExpirationMinutes());
                     try {
-                        return s3Service.generatePresignedUrl(thumbnailKey, expiration);
+                        return imageService.generatePresignedUrl(thumbnailKey, expiration);
                     } catch (S3StorageException e) {
                         log.error("Failed to generate presigned URL for thumbnail: recipeId={}, imageId={}", recipeId, metadata.id(), e);
                         return null;
@@ -124,7 +124,7 @@ public class RecipeImagesService {
     private void deleteImagesFromS3(UUID recipeId, Set<ImageMetadata> imagesToDelete) {
         for (ImageMetadata imageToDelete : imagesToDelete) {
             try {
-                s3Service.deleteImage(recipeId, imageToDelete.id(), imageToDelete.contentType());
+                imageService.deleteImage(recipeId, imageToDelete.id(), imageToDelete.contentType());
             } catch (S3StorageException e) {
                 log.error("Failed to delete image from S3, continuing: recipeId={}, imageId={}",
                         recipeId, imageToDelete.id(), e);
@@ -143,11 +143,11 @@ public class RecipeImagesService {
                 byte[] imageBytes = imageFile.getBytes();
 
                 // Upload full-size image
-                s3Service.uploadImage(recipeId, imageId, imageBytes, contentType);
+                imageService.uploadImage(recipeId, imageId, imageBytes, contentType);
 
                 // Generate and upload thumbnail
                 byte[] thumbnail = imageProcessingService.generateThumbnail(imageBytes);
-                s3Service.uploadThumbnail(recipeId, imageId, thumbnail, ContentType.JPEG());
+                imageService.uploadThumbnail(recipeId, imageId, thumbnail, ContentType.JPEG());
 
                 log.debug("Successfully uploaded image and thumbnail for recipeId={}, imageId={}", recipeId, imageId);
             } catch (Exception e) {
@@ -159,7 +159,7 @@ public class RecipeImagesService {
     public void deleteAllImages(UUID recipeId) {
         log.debug("Deleting all imagesMetadata for recipeId={}", recipeId);
         try {
-            s3Service.deleteAllRecipeImages(recipeId);
+            imageService.deleteAllRecipeImages(recipeId);
         } catch (S3StorageException e) {
             log.error("Failed to delete S3 imagesMetadata for recipe {}, manual cleanup may be required", recipeId, e);
         }

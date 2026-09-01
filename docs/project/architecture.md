@@ -32,7 +32,7 @@ indexed in `docs/INDEX.md`); the role of each in the system:
 - **`shoppinglists`** — shopping lists, populated manually or generated from `planning`
 - **`provisioning`** — ingredient-to-shopping-list-item transformation used by `planning`
 - **`config.security`** — OAuth2 Resource Server / JWT validation for every request
-- **`config.s3`** — AWS S3 client configuration backing `recipes.images`
+- **`config.s3`** — AWS S3 client configuration and the object-storage seam backing `recipes.images`
 - **`config.time`** — the `Clock` bean time-dependent services read instead of the system clock
 
 ### Layer Structure (within each feature)

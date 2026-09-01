@@ -1,15 +1,13 @@
 package xyz.stasiak.recipai.extraction;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
@@ -21,9 +19,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.IntegrationTest;
+import xyz.stasiak.recipai.LimitsEnabled;
 import xyz.stasiak.recipai.TestAiConfiguration;
-import xyz.stasiak.recipai.TestSecurityConfiguration;
-import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.TestRestClients;
+import xyz.stasiak.recipai.TestIdentities;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 
@@ -39,9 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 
-@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class, TestAiConfiguration.class})
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"spring.ai.google.genai.api-key=test-key", "recipai.limits.enabled=true"})
+@IntegrationTest
 class ExtractionIntegrationTest {
 
     private static final ExtractedRecipe FIXTURE_RECIPE = new ExtractedRecipe(
@@ -51,8 +49,11 @@ class ExtractionIntegrationTest {
             4
     );
 
-    private static final String SUBJECT = "user@example.com";
-    private static final List<String> SUBJECTS = List.of(SUBJECT, "user1@example.com", "user2@example.com");
+    private String owner;
+    private String user1;
+    private String user2;
+    private String ownerSubject;
+    private List<String> quotaSubjects;
 
     @LocalServerPort
     private int port;
@@ -68,23 +69,17 @@ class ExtractionIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        owner = TestIdentities.freshToken();
+        user1 = TestIdentities.freshToken();
+        user2 = TestIdentities.freshToken();
+        ownerSubject = TestIdentities.emailOf(owner);
+        quotaSubjects = List.of(ownerSubject, TestIdentities.emailOf(user1), TestIdentities.emailOf(user2));
+
         Mockito.reset(testAiConfiguration.getChatClient());
         Mockito.when(testAiConfiguration.getChatClient().prompt(any(Prompt.class)).call().entity(ExtractedRecipe.class))
                 .thenReturn(FIXTURE_RECIPE);
 
-        SUBJECTS.forEach(subject -> setLimitQuota(ExtractionService.EXTRACTION_RESOURCE, subject, 2));
-    }
-
-    @AfterEach
-    void tearDown() {
-        // Teardown of rows no API deletes: extraction has no release path, so the usage it records
-        // outlives the test, and limit_config has no write API either.
-        jdbcClient.sql("DELETE FROM recipai.limit_usage WHERE resource = 'EXTRACTION' AND subject IN (:subjects)")
-                .param("subjects", SUBJECTS)
-                .update();
-        jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'EXTRACTION' AND subject IN (:subjects)")
-                .param("subjects", SUBJECTS)
-                .update();
+        quotaSubjects.forEach(subject -> setLimitQuota(ExtractionService.EXTRACTION_RESOURCE, subject, 2));
     }
 
     /**
@@ -105,14 +100,11 @@ class ExtractionIntegrationTest {
     }
 
     private RestClient restClient() {
-        return restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        return restClient(owner);
     }
 
     private RestClient restClient(String authToken) {
-        return RestClient.builder()
-                .baseUrl("http://localhost:" + port)
-                .defaultHeader("Authorization", "Bearer " + authToken)
-                .build();
+        return TestRestClients.forToken(port, authToken);
     }
 
     private ExtractedRecipe extractText(RestClient client, String text) {
@@ -159,101 +151,6 @@ class ExtractionIntegrationTest {
     }
 
     @Test
-    void shouldReturn429WithProblemDetailsOnThirdCallAtSeededLimit() {
-        RestClient client = restClient();
-
-        extractText(client, "recipe 1");
-        extractText(client, "recipe 2");
-
-        try {
-            extractText(client, "recipe 3");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-            assertThat(ex.getResponseHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
-
-            Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
-            });
-            assertThat(body).isNotNull();
-            assertThat(body.get("resource")).isEqualTo("EXTRACTION");
-            assertThat(body.get("kind")).isEqualTo("FLOW");
-            assertThat(body.get("limit")).isEqualTo(2);
-            assertThat(body.get("used")).isEqualTo(2);
-        }
-    }
-
-    @Test
-    void shouldReturn429WithNoRetryAfterHeaderOrBodyKey() {
-        RestClient client = restClient();
-
-        extractText(client, "recipe 1");
-        extractText(client, "recipe 2");
-
-        try {
-            extractText(client, "recipe 3");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getResponseHeaders().get("Retry-After")).isNull();
-
-            Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
-            });
-            assertThat(body).isNotNull();
-            assertThat(body).doesNotContainKey("retryAfterSeconds");
-        }
-    }
-
-    @Test
-    void shouldAdmitNextCallWithNoRestartAfterRaisingQuota() {
-        RestClient client = restClient();
-
-        extractText(client, "recipe 1");
-        extractText(client, "recipe 2");
-        try {
-            extractText(client, "recipe 3");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-        }
-
-        setLimitQuota(ExtractionService.EXTRACTION_RESOURCE, SUBJECT, 5);
-
-        ExtractedRecipe recipe = extractText(client, "recipe 4");
-
-        assertThat(recipe).isEqualTo(FIXTURE_RECIPE);
-        assertThat(usedFor("user@example.com")).isEqualTo(3);
-    }
-
-    @Test
-    void shouldConsumeBudgetWhenChatClientThrows() {
-        RestClient client = restClient();
-
-        Mockito.when(testAiConfiguration.getChatClient().prompt(any(Prompt.class)).call().entity(ExtractedRecipe.class))
-                .thenThrow(new RuntimeException("AI provider failure"));
-
-        try {
-            extractText(client, "recipe 1");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        }
-
-        assertThat(usedFor("user@example.com")).isEqualTo(1);
-
-        Mockito.reset(testAiConfiguration.getChatClient());
-        Mockito.when(testAiConfiguration.getChatClient().prompt(any(Prompt.class)).call().entity(ExtractedRecipe.class))
-                .thenReturn(FIXTURE_RECIPE);
-
-        extractText(client, "recipe 2");
-
-        try {
-            extractText(client, "recipe 3");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-        }
-    }
-
-    @Test
     void shouldReturn500ExtractionFailedWhenChatClientReturnsNullAndStillConsumeTheUnit() {
         RestClient client = restClient();
 
@@ -271,7 +168,7 @@ class ExtractionIntegrationTest {
             assertThat(body.get("title")).isEqualTo("Extraction Failed");
         }
 
-        assertThat(usedFor("user@example.com")).isEqualTo(1);
+        assertThat(usedFor(TestIdentities.emailOf(owner))).isEqualTo(1);
     }
 
     @Test
@@ -297,7 +194,7 @@ class ExtractionIntegrationTest {
             assertThat(body.get("title")).isEqualTo("Unsupported Image Type");
         }
 
-        assertThat(usedFor("user@example.com")).isZero();
+        assertThat(usedFor(TestIdentities.emailOf(owner))).isZero();
     }
 
     @Test
@@ -309,30 +206,8 @@ class ExtractionIntegrationTest {
         ExtractedRecipe recipe = extractImage(client, imageResource, MediaType.IMAGE_JPEG);
 
         assertThat(recipe).isEqualTo(FIXTURE_RECIPE);
-        assertThat(usedFor("user@example.com")).isEqualTo(1);
+        assertThat(usedFor(TestIdentities.emailOf(owner))).isEqualTo(1);
     }
-
-    @Test
-    void shouldGiveUser1AndUser2IndependentBudgets() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
-
-        extractText(user1Client, "recipe 1");
-        extractText(user1Client, "recipe 2");
-        try {
-            extractText(user1Client, "recipe 3");
-            fail("Should have thrown exception");
-        } catch (RestClientResponseException ex) {
-            assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
-        }
-
-        ExtractedRecipe recipe = extractText(user2Client, "recipe 1");
-        assertThat(recipe).isEqualTo(FIXTURE_RECIPE);
-
-        assertThat(usedFor("user1@example.com")).isEqualTo(2);
-        assertThat(usedFor("user2@example.com")).isEqualTo(1);
-    }
-
 
     @Test
     @Disabled("Calls the real AI provider - the mocked ChatClient must be removed to run it")
@@ -411,6 +286,127 @@ class ExtractionIntegrationTest {
     private String loadResourceContent(ClassPathResource resource) throws IOException {
         try (InputStream inputStream = resource.getInputStream()) {
             return FileCopyUtils.copyToString(new InputStreamReader(inputStream));
+        }
+    }
+
+    @Nested
+    @LimitsEnabled
+    class LimitsEnforced {
+
+        @Test
+        void shouldReturn429WithProblemDetailsOnThirdCallAtSeededLimit() {
+            RestClient client = restClient();
+
+            extractText(client, "recipe 1");
+            extractText(client, "recipe 2");
+
+            try {
+                extractText(client, "recipe 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+                assertThat(ex.getResponseHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body.get("resource")).isEqualTo("EXTRACTION");
+                assertThat(body.get("kind")).isEqualTo("FLOW");
+                assertThat(body.get("limit")).isEqualTo(2);
+                assertThat(body.get("used")).isEqualTo(2);
+            }
+        }
+
+        @Test
+        void shouldReturn429WithNoRetryAfterHeaderOrBodyKey() {
+            RestClient client = restClient();
+
+            extractText(client, "recipe 1");
+            extractText(client, "recipe 2");
+
+            try {
+                extractText(client, "recipe 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getResponseHeaders().get("Retry-After")).isNull();
+
+                Map<String, Object> body = ex.getResponseBodyAs(new ParameterizedTypeReference<Map<String, Object>>() {
+                });
+                assertThat(body).isNotNull();
+                assertThat(body).doesNotContainKey("retryAfterSeconds");
+            }
+        }
+
+        @Test
+        void shouldAdmitNextCallWithNoRestartAfterRaisingQuota() {
+            RestClient client = restClient();
+
+            extractText(client, "recipe 1");
+            extractText(client, "recipe 2");
+            try {
+                extractText(client, "recipe 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+
+            setLimitQuota(ExtractionService.EXTRACTION_RESOURCE, ownerSubject, 5);
+
+            ExtractedRecipe recipe = extractText(client, "recipe 4");
+
+            assertThat(recipe).isEqualTo(FIXTURE_RECIPE);
+            assertThat(usedFor(TestIdentities.emailOf(owner))).isEqualTo(3);
+        }
+
+        @Test
+        void shouldConsumeBudgetWhenChatClientThrows() {
+            RestClient client = restClient();
+
+            Mockito.when(testAiConfiguration.getChatClient().prompt(any(Prompt.class)).call().entity(ExtractedRecipe.class))
+                    .thenThrow(new RuntimeException("AI provider failure"));
+
+            try {
+                extractText(client, "recipe 1");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            }
+
+            assertThat(usedFor(TestIdentities.emailOf(owner))).isEqualTo(1);
+
+            Mockito.reset(testAiConfiguration.getChatClient());
+            Mockito.when(testAiConfiguration.getChatClient().prompt(any(Prompt.class)).call().entity(ExtractedRecipe.class))
+                    .thenReturn(FIXTURE_RECIPE);
+
+            extractText(client, "recipe 2");
+
+            try {
+                extractText(client, "recipe 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+        }
+
+        @Test
+        void shouldGiveUser1AndUser2IndependentBudgets() {
+            RestClient user1Client = restClient(user1);
+            RestClient user2Client = restClient(user2);
+
+            extractText(user1Client, "recipe 1");
+            extractText(user1Client, "recipe 2");
+            try {
+                extractText(user1Client, "recipe 3");
+                fail("Should have thrown exception");
+            } catch (RestClientResponseException ex) {
+                assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
+            }
+
+            ExtractedRecipe recipe = extractText(user2Client, "recipe 1");
+            assertThat(recipe).isEqualTo(FIXTURE_RECIPE);
+
+            assertThat(usedFor(TestIdentities.emailOf(user1))).isEqualTo(2);
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isEqualTo(1);
         }
     }
 }
