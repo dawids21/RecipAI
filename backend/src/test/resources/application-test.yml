@@ -1,0 +1,13 @@
+logging:
+  level:
+    xyz.stasiak: INFO
+spring:
+  ai:
+    google:
+      genai:
+        api-key: test-key
+recipai:
+  limits:
+    enabled: false
+  s3:
+    presigned-url-expiration-minutes: 10

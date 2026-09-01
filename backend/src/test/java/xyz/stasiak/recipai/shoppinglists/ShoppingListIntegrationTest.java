@@ -1,24 +1,22 @@
 package xyz.stasiak.recipai.shoppinglists;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.IntegrationTest;
+import xyz.stasiak.recipai.LimitsEnabled;
 import xyz.stasiak.recipai.RecomputeMigration;
-import xyz.stasiak.recipai.TestSecurityConfiguration;
-import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.TestRestClients;
+import xyz.stasiak.recipai.TestIdentities;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.permissions.dto.PendingInviteDto;
@@ -38,22 +36,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "recipai.limits.enabled=false")
+@IntegrationTest
 class ShoppingListIntegrationTest {
 
     @LocalServerPort
     private int port;
 
+    private String owner;
+    private String user1;
+    private String user2;
+
+    @BeforeEach
+    void freshUsers() {
+        owner = TestIdentities.freshToken();
+        user1 = TestIdentities.freshToken();
+        user2 = TestIdentities.freshToken();
+    }
+
     private RestClient restClient() {
-        return restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        return restClient(owner);
     }
 
     private RestClient restClient(String authToken) {
-        return RestClient.builder()
-                .baseUrl("http://localhost:" + port)
-                .defaultHeader("Authorization", "Bearer " + authToken)
-                .build();
+        return TestRestClients.forToken(port, authToken);
     }
 
     private ShoppingListListDto createShoppingList(RestClient client, String name) {
@@ -276,8 +281,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldIsolateShoppingListsBetweenUsers() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a shopping list
         ShoppingListListDto user1List = createShoppingList(user1Client, "User 1 List");
@@ -310,8 +315,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldPreventCrossUserAccess() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a shopping list
         ShoppingListListDto user1List = createShoppingList(user1Client, "User 1 Private List");
@@ -388,8 +393,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenUnauthorizedUserTriesToUpdate() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates list (becomes OWNER)
         ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
@@ -407,8 +412,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenUnauthorizedUserTriesToDelete() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates list (becomes OWNER)
         ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
@@ -426,8 +431,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldShareAndUnshareShoppingLists() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a shopping list
         ShoppingListListDto list = createShoppingList(user1Client, "Shared List");
@@ -442,7 +447,7 @@ class ShoppingListIntegrationTest {
         }
 
         // User 1 shares with User 2 - creates a pending invite, grants nothing yet
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
 
         try {
             getShoppingList(user2Client, list.id());
@@ -463,12 +468,12 @@ class ShoppingListIntegrationTest {
         // Verify the permissions list - both granted, neither pending
         List<PermissionDto> permissions = getPermissions(user1Client, list.id());
         assertThat(permissions).containsExactly(
-                new PermissionDto("user1@example.com", ResourceRole.OWNER, false),
-                new PermissionDto("user2@example.com", ResourceRole.EDITOR, false)
+                new PermissionDto(TestIdentities.emailOf(user1), ResourceRole.OWNER, false),
+                new PermissionDto(TestIdentities.emailOf(user2), ResourceRole.EDITOR, false)
         );
 
         // User 1 unshares from User 2
-        unshareShoppingList(user1Client, list.id(), "user2@example.com");
+        unshareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
 
         // User 2 can no longer access
         try {
@@ -481,16 +486,16 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldAllowEditorsToShareAndUnshare() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates and shares with User 2, who accepts
         ShoppingListListDto list = createShoppingList(user1Client, "Editor Share Test");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
         acceptPendingShoppingListInvite(user2Client);
 
         // User 2 (EDITOR) can share with another user
-        shareShoppingList(user2Client, list.id(), "user@example.com");
+        shareShoppingList(user2Client, list.id(), TestIdentities.emailOf(owner));
 
         // Verify three entries: two granted, one pending
         List<PermissionDto> permissions = getPermissions(user1Client, list.id());
@@ -498,10 +503,10 @@ class ShoppingListIntegrationTest {
         assertThat(permissions)
                 .filteredOn(PermissionDto::pending)
                 .extracting(PermissionDto::email)
-                .containsExactly("user@example.com");
+                .containsExactly(TestIdentities.emailOf(owner));
 
         // User 2 (EDITOR) can cancel the pending invite
-        unshareShoppingList(user2Client, list.id(), "user@example.com");
+        unshareShoppingList(user2Client, list.id(), TestIdentities.emailOf(owner));
 
         // Verify only two entries remain
         permissions = getPermissions(user1Client, list.id());
@@ -510,16 +515,16 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldPreventUnsharingOwner() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates and shares with User 2
         ShoppingListListDto list = createShoppingList(user1Client, "Unshare Owner Test");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
 
         // User 2 tries to unshare User 1 (OWNER) - should fail
         try {
-            unshareShoppingList(user2Client, list.id(), "user1@example.com");
+            unshareShoppingList(user2Client, list.id(), TestIdentities.emailOf(user1));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -530,22 +535,22 @@ class ShoppingListIntegrationTest {
         assertThat(permissions).hasSize(2);
         assertThat(permissions)
                 .extracting(PermissionDto::email)
-                .contains("user1@example.com");
+                .contains(TestIdentities.emailOf(user1));
     }
 
     @Test
     void shouldPreventEditorFromUnsharingThemselves() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates and shares with User 2, who accepts
         ShoppingListListDto list = createShoppingList(user1Client, "Self Unshare Test");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
         acceptPendingShoppingListInvite(user2Client);
 
         // User 2 cannot unshare themselves - the self-unshare guard now applies to every role
         try {
-            unshareShoppingList(user2Client, list.id(), "user2@example.com");
+            unshareShoppingList(user2Client, list.id(), TestIdentities.emailOf(user2));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -558,14 +563,14 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldPreventOwnerFromUnsharingThemselves() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user1Client = restClient(user1);
 
         // User 1 creates a list
         ShoppingListListDto list = createShoppingList(user1Client, "Owner Self Unshare Test");
 
         // User 1 tries to unshare themselves - should fail
         try {
-            unshareShoppingList(user1Client, list.id(), "user1@example.com");
+            unshareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user1));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -578,15 +583,15 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldRefuseDuplicateShare() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user1Client = restClient(user1);
 
         // User 1 creates and shares with User 2
         ShoppingListListDto list = createShoppingList(user1Client, "Duplicate Share Test");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
 
         // Share again while the first invite is still pending - refused, not silently ignored
         try {
-            shareShoppingList(user1Client, list.id(), "user2@example.com");
+            shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(409);
@@ -602,7 +607,7 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldRejectShareAtOwnerRole() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user1Client = restClient(user1);
 
         ShoppingListListDto list = createShoppingList(user1Client, "Share At Owner Role Test");
 
@@ -611,7 +616,7 @@ class ShoppingListIntegrationTest {
             user1Client
                     .post()
                     .uri("/shopping-lists/" + list.id() + "/share")
-                    .body(new ShareRequest("user2@example.com", ResourceRole.OWNER))
+                    .body(new ShareRequest(TestIdentities.emailOf(user2), ResourceRole.OWNER))
                     .retrieve()
                     .toBodilessEntity();
             fail("Should have thrown RestClientResponseException");
@@ -624,13 +629,13 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldHandleUnshareNonExistentAsNoOp() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user1Client = restClient(user1);
 
         // User 1 creates a list
         ShoppingListListDto list = createShoppingList(user1Client, "Unshare Non-existent Test");
 
         // Unshare someone who doesn't have access - should be no-op
-        unshareShoppingList(user1Client, list.id(), "nonexistent@example.com");
+        unshareShoppingList(user1Client, list.id(), TestIdentities.emailOf("nonexistent"));
 
         // Verify still only 1 user
         List<PermissionDto> permissions = getPermissions(user1Client, list.id());
@@ -639,12 +644,12 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldAllowSharedUserToViewList() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates and shares with User 2, who accepts
         ShoppingListListDto list = createShoppingList(user1Client, "Shared Edit Test");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
         acceptPendingShoppingListInvite(user2Client);
 
         // User 2 can access the list
@@ -660,12 +665,12 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldPreventSharedUserFromDeletingList() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates and shares with User 2, who accepts
         ShoppingListListDto list = createShoppingList(user1Client, "Delete Permission Test");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
         acceptPendingShoppingListInvite(user2Client);
 
         // User 2 (EDITOR) tries to delete - should fail
@@ -825,8 +830,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenCreatingItemWithoutPermission() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
 
@@ -840,11 +845,11 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldAllowSharedEditorToCreateItem() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         ShoppingListListDto list = createShoppingList(user1Client, "Shared List");
-        shareShoppingList(user1Client, list.id(), "user2@example.com");
+        shareShoppingList(user1Client, list.id(), TestIdentities.emailOf(user2));
         acceptPendingShoppingListInvite(user2Client);
 
         ShoppingListItemDto item = createItem(user2Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
@@ -977,8 +982,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenUpdatingItemWithoutPermission() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
         ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
         ShoppingListItemDto item = createItem(user1Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
 
@@ -1080,8 +1085,8 @@ class ShoppingListIntegrationTest {
 
     @Test
     void shouldReturn403WhenDeletingItemWithoutPermission() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
         ShoppingListListDto list = createShoppingList(user1Client, "User 1 List");
         ShoppingListItemDto item = createItem(user1Client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
 
@@ -1111,10 +1116,10 @@ class ShoppingListIntegrationTest {
     }
 
     @Nested
-    @TestPropertySource(properties = "recipai.limits.enabled=true")
+    @LimitsEnabled
     class LimitsEnforced {
 
-        private static final String SUBJECT = "user@example.com";
+        private String ownerSubject;
 
         @Autowired
         private LimitsFacade limitsFacade;
@@ -1127,50 +1132,9 @@ class ShoppingListIntegrationTest {
 
         @BeforeEach
         void seedOverride() {
-            setLimitQuota("SHOPPING_LIST", SUBJECT, 2);
-            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 3);
-        }
-
-        @AfterEach
-        void tearDown() {
-            for (String token : List.of(
-                    TestSecurityConfiguration.AUTH_TOKEN,
-                    TestSecurityConfiguration.AUTH_TOKEN_USER_1,
-                    TestSecurityConfiguration.AUTH_TOKEN_USER_2)) {
-                RestClient client = restClient(token);
-                for (ShoppingListListDto list : getAllShoppingLists(client)) {
-                    try {
-                        deleteShoppingList(client, list.id());
-                    } catch (RestClientResponseException ignored) {
-                        // not the owner, ignore
-                    }
-                }
-            }
-
-            // Teardown of rows no API deletes: the config overrides, and usage fabricated for subjects
-            // with no API presence.
-            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'SHOPPING_LIST' AND subject IS NOT NULL").update();
-            jdbcClient.sql("""
-                            DELETE FROM recipai.limit_usage
-                             WHERE resource = 'SHOPPING_LIST' AND subject NOT IN (:subject, :user1, :user2)
-                            """)
-                    .param("subject", SUBJECT)
-                    .param("user1", "user1@example.com")
-                    .param("user2", "user2@example.com")
-                    .update();
-
-            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'SHOPPING_LIST_ITEM' AND subject IS NOT NULL").update();
-
-            // Count first, sweep second: every list these tests create is deleted through the API
-            // above, which fires clear, so any surviving row is a missed clear. Sweeping before the
-            // assertion would delete exactly that evidence; sweeping after it is read keeps one
-            // test's leftovers from failing every later teardown too.
-            int itemUsageRows = jdbcClient.sql("SELECT COUNT(*) FROM recipai.limit_usage WHERE resource = 'SHOPPING_LIST_ITEM'")
-                    .query(Integer.class).single();
-            jdbcClient.sql("DELETE FROM recipai.limit_usage WHERE resource = 'SHOPPING_LIST_ITEM'").update();
-
-            assertThat(usedFor(SUBJECT)).isZero();
-            assertThat(itemUsageRows).isZero();
+            ownerSubject = TestIdentities.emailOf(owner);
+            setLimitQuota("SHOPPING_LIST", ownerSubject, 2);
+            setLimitQuota("SHOPPING_LIST_ITEM", ownerSubject, 3);
         }
 
         private int usedFor(String subject) {
@@ -1256,7 +1220,7 @@ class ShoppingListIntegrationTest {
             ShoppingListListDto list1 = createShoppingList(client, "List 1");
             createShoppingList(client, "List 2");
 
-            setLimitQuota("SHOPPING_LIST", SUBJECT, 1);
+            setLimitQuota("SHOPPING_LIST", ownerSubject, 1);
 
             ShoppingListDto fetched = getShoppingList(client, list1.id());
             assertThat(fetched.id()).isEqualTo(list1.id());
@@ -1277,53 +1241,53 @@ class ShoppingListIntegrationTest {
             RestClient client = restClient();
             ShoppingListListDto list1 = createShoppingList(client, "List 1");
             createShoppingList(client, "List 2");
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
 
             deleteShoppingList(client, list1.id());
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
             createShoppingList(client, "List 3");
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
         }
 
         @Test
         void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
-            RestClient recipientClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+            RestClient recipientClient = restClient(user2);
             ShoppingListListDto list = createShoppingList(client, "Shared List");
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
-            shareShoppingList(client, list.id(), "user2@example.com");
+            shareShoppingList(client, list.id(), TestIdentities.emailOf(user2));
             acceptPendingShoppingListInvite(recipientClient);
-            assertThat(usedFor("user2@example.com")).isZero();
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isZero();
 
-            unshareShoppingList(client, list.id(), "user2@example.com");
-            assertThat(usedFor("user2@example.com")).isZero();
+            unshareShoppingList(client, list.id(), TestIdentities.emailOf(user2));
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isZero();
         }
 
         @Test
         void shouldNotCountPendingInviteTowardsRecipientQuota() {
             RestClient client = restClient();
             ShoppingListListDto list = createShoppingList(client, "Shared List");
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
-            shareShoppingList(client, list.id(), "user2@example.com");
+            shareShoppingList(client, list.id(), TestIdentities.emailOf(user2));
 
-            assertThat(usedFor("user2@example.com")).isZero();
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isZero();
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
         }
 
         @Test
         void shouldNotMoveListBalanceWhenAddingAndDeletingItems() {
             RestClient client = restClient();
             ShoppingListListDto list = createShoppingList(client, "List With Items");
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
             ShoppingListItemDto item = createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
             deleteItem(client, list.id(), item.id(), item.version());
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
         }
 
         @Test
@@ -1331,22 +1295,22 @@ class ShoppingListIntegrationTest {
             RestClient client = restClient();
             createShoppingList(client, "List 1");
             createShoppingList(client, "List 2");
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
 
             // Deliberate drift: no business path can move used away from the owned count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'SHOPPING_LIST' AND subject = :subject")
-                    .param("subject", SUBJECT)
+                    .param("subject", ownerSubject)
                     .update();
-            assertThat(usedFor(SUBJECT)).isEqualTo(99);
+            assertThat(usedFor(ownerSubject)).isEqualTo(99);
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
         }
 
         @Test
         void shouldClearUsageForSubjectThatOwnsNothing() {
-            String ghost = "ghost@example.com";
+            String ghost = TestIdentities.emailOf(TestIdentities.freshToken());
             // A usage row for a subject that owns nothing: no business path leaves one behind.
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
@@ -1364,27 +1328,27 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldSpareFlowConfiguredSubjectFromRecompute() {
             RestClient client = restClient();
-            setLimitQuota("SHOPPING_LIST", SUBJECT, "FLOW", 5);
+            setLimitQuota("SHOPPING_LIST", ownerSubject, "FLOW", 5);
             try {
                 ShoppingListListDto first = createShoppingList(client, "Flow 1");
                 createShoppingList(client, "Flow 2");
                 // A flow release refunds nothing, so the balance stays at 2 while only one is owned.
                 deleteShoppingList(client, first.id());
-                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+                assertThat(usedFor(ownerSubject)).isEqualTo(2);
 
                 RecomputeMigration.run(dataSource);
 
-                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+                assertThat(usedFor(ownerSubject)).isEqualTo(2);
             } finally {
-                setLimitQuota("SHOPPING_LIST", SUBJECT, 2);
-                limitsFacade.clear(SUBJECT, ShoppingListService.SHOPPING_LIST_RESOURCE);
+                setLimitQuota("SHOPPING_LIST", ownerSubject, 2);
+                limitsFacade.clear(ownerSubject, ShoppingListService.SHOPPING_LIST_RESOURCE);
             }
         }
 
         @Test
         void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
-            String defaultFlowSubject = "user1@example.com";
-            RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            String defaultFlowSubject = TestIdentities.emailOf(user1);
+            RestClient client = restClient(user1);
             setLimitQuota("SHOPPING_LIST", null, "FLOW", 5);
             try {
                 ShoppingListListDto first = createShoppingList(client, "Default flow 1");
@@ -1408,10 +1372,10 @@ class ShoppingListIntegrationTest {
             createShoppingList(client, "List 1");
 
             RecomputeMigration.run(dataSource);
-            int firstRun = usedFor(SUBJECT);
+            int firstRun = usedFor(ownerSubject);
 
             RecomputeMigration.run(dataSource);
-            int secondRun = usedFor(SUBJECT);
+            int secondRun = usedFor(ownerSubject);
 
             assertThat(secondRun).isEqualTo(firstRun);
             assertThat(secondRun).isEqualTo(1);
@@ -1528,7 +1492,7 @@ class ShoppingListIntegrationTest {
             createItem(client, list.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
             createItem(client, list.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
 
-            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 1);
+            setLimitQuota("SHOPPING_LIST_ITEM", ownerSubject, 1);
 
             ShoppingListDto fetched = getShoppingList(client, list.id());
             assertThat(fetched.items()).hasSize(3);
@@ -1565,7 +1529,7 @@ class ShoppingListIntegrationTest {
                 }
             }
 
-            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 4);
+            setLimitQuota("SHOPPING_LIST_ITEM", ownerSubject, 4);
 
             ShoppingListItemDto itemA = createItem(client, listA.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
             ShoppingListItemDto itemB = createItem(client, listB.id(), itemRequest("Butter", null, null, new BigDecimal("4.0")));
@@ -1583,7 +1547,7 @@ class ShoppingListIntegrationTest {
             createItem(client, list1.id(), itemRequest("Bread", null, null, new BigDecimal("2.0")));
             createItem(client, list1.id(), itemRequest("Eggs", null, null, new BigDecimal("3.0")));
 
-            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 4);
+            setLimitQuota("SHOPPING_LIST_ITEM", ownerSubject, 4);
 
             deleteShoppingList(client, list1.id());
 
@@ -1600,11 +1564,11 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldChargeTheListAndResolveTheOwnersQuotaWhenAnEditorAddsAnItem() {
             RestClient ownerClient = restClient();
-            RestClient editorClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
-            setLimitQuota("SHOPPING_LIST_ITEM", "user2@example.com", 10);
+            RestClient editorClient = restClient(user2);
+            setLimitQuota("SHOPPING_LIST_ITEM", TestIdentities.emailOf(user2), 10);
 
             ShoppingListListDto list = createShoppingList(ownerClient, "Shared List");
-            shareShoppingList(ownerClient, list.id(), "user2@example.com");
+            shareShoppingList(ownerClient, list.id(), TestIdentities.emailOf(user2));
             acceptPendingShoppingListInvite(editorClient);
 
             createItem(ownerClient, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
@@ -1621,7 +1585,7 @@ class ShoppingListIntegrationTest {
                 assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS.value());
             }
 
-            assertThat(limitsFacade.getBalance("user2@example.com", ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
+            assertThat(limitsFacade.getBalance(TestIdentities.emailOf(user2), ShoppingListService.SHOPPING_LIST_ITEM_RESOURCE)).isEmpty();
         }
 
         @Test
@@ -1678,7 +1642,7 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldSpareListWhoseOwnerIsFlowConfiguredFromItemRecompute() {
             RestClient client = restClient();
-            setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, "FLOW", 5);
+            setLimitQuota("SHOPPING_LIST_ITEM", ownerSubject, "FLOW", 5);
             try {
                 ShoppingListListDto list = createShoppingList(client, "List 1");
                 createItem(client, list.id(), itemRequest("Milk", null, null, new BigDecimal("1.0")));
@@ -1691,7 +1655,7 @@ class ShoppingListIntegrationTest {
 
                 assertThat(usedForItem(list.id())).isEqualTo(2);
             } finally {
-                setLimitQuota("SHOPPING_LIST_ITEM", SUBJECT, 3);
+                setLimitQuota("SHOPPING_LIST_ITEM", ownerSubject, 3);
             }
         }
 
@@ -1737,11 +1701,11 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldReturnOwnerConfiguredQuotaWhenReadBySharedEditorNotEditorsOwnOverride() {
             RestClient owner = restClient();
-            RestClient editor = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            RestClient editor = restClient(user1);
             ShoppingListListDto list = createShoppingList(owner, "List 1");
-            shareShoppingList(owner, list.id(), "user1@example.com");
+            shareShoppingList(owner, list.id(), TestIdentities.emailOf(user1));
             acceptPendingShoppingListInvite(editor);
-            setLimitQuota("SHOPPING_LIST_ITEM", "user1@example.com", 99);
+            setLimitQuota("SHOPPING_LIST_ITEM", TestIdentities.emailOf(user1), 99);
 
             Map<String, Object> quota = getItemQuota(editor, list.id());
 
@@ -1751,7 +1715,7 @@ class ShoppingListIntegrationTest {
         @Test
         void shouldReturn403ForUserWithNoPermissionOnList() {
             RestClient owner = restClient();
-            RestClient stranger = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+            RestClient stranger = restClient(user2);
             ShoppingListListDto list = createShoppingList(owner, "List 1");
 
             try {

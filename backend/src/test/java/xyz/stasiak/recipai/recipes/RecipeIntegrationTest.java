@@ -1,23 +1,21 @@
 package xyz.stasiak.recipai.recipes;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import xyz.stasiak.recipai.IntegrationTest;
+import xyz.stasiak.recipai.LimitsEnabled;
 import xyz.stasiak.recipai.RecomputeMigration;
-import xyz.stasiak.recipai.TestSecurityConfiguration;
-import xyz.stasiak.recipai.TestcontainersConfiguration;
+import xyz.stasiak.recipai.TestRestClients;
+import xyz.stasiak.recipai.TestIdentities;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 import xyz.stasiak.recipai.permissions.dto.PendingInviteDto;
@@ -38,8 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 @SuppressWarnings("SameParameterValue")
-@Import({TestcontainersConfiguration.class, TestSecurityConfiguration.class})
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "recipai.limits.enabled=false")
+@IntegrationTest
 class RecipeIntegrationTest {
 
     @LocalServerPort
@@ -48,15 +45,23 @@ class RecipeIntegrationTest {
     @Autowired
     private RecipeFacade recipeFacade;
 
+    private String owner;
+    private String user1;
+    private String user2;
+
+    @BeforeEach
+    void freshUsers() {
+        owner = TestIdentities.freshToken();
+        user1 = TestIdentities.freshToken();
+        user2 = TestIdentities.freshToken();
+    }
+
     private RestClient restClient() {
-        return restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        return restClient(owner);
     }
 
     private RestClient restClient(String authToken) {
-        return RestClient.builder()
-                .baseUrl("http://localhost:" + port)
-                .defaultHeader("Authorization", "Bearer " + authToken)
-                .build();
+        return TestRestClients.forToken(port, authToken);
     }
 
     private RecipeDetailsDto createRecipe(RestClient client, String name, RecipeData data, UUID collectionId) {
@@ -377,8 +382,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldIsolateRecipesBetweenUsers() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a recipe
         RecipeData user1RecipeData = new RecipeData(
@@ -404,33 +409,33 @@ class RecipeIntegrationTest {
         assertThat(user2Recipe).isNotNull();
         assertThat(user2Recipe.name()).isEqualTo("User 2 Recipe");
 
-        // User 1 should see their own recipes (including those created in other tests)
+        // User 1 should see their own recipes
         List<RecipeListDto> user1Recipes = getAllRecipes(user1Client);
 
         assertThat(user1Recipes)
                 .extracting(RecipeListDto::id)
-                .contains(user1Recipe.id());
+                .containsExactly(user1Recipe.id());
         assertThat(user1Recipes)
                 .extracting(RecipeListDto::name)
-                .contains("User 1 Recipe");
+                .containsExactly("User 1 Recipe");
 
         // User 2 should only see their own recipes
         List<RecipeListDto> user2Recipes = getAllRecipes(user2Client);
 
         assertThat(user2Recipes)
                 .extracting(RecipeListDto::id)
-                .contains(user2Recipe.id())
+                .containsExactly(user2Recipe.id())
                 .doesNotContain(user1Recipe.id());
         assertThat(user2Recipes)
                 .extracting(RecipeListDto::name)
-                .contains("User 2 Recipe")
+                .containsExactly("User 2 Recipe")
                 .doesNotContain("User 1 Recipe");
     }
 
     @Test
     void shouldPreventCrossUserAccess() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
@@ -470,8 +475,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldShareAndUnshareRecipes() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
@@ -494,7 +499,7 @@ class RecipeIntegrationTest {
         }
 
         // User 1 shares recipe with User 2 - creates a pending invite, grants nothing yet
-        shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
+        shareRecipe(user1Client, ownerRecipe.id(), TestIdentities.emailOf(user2));
 
         try {
             getRecipe(user2Client, ownerRecipe.id());
@@ -507,8 +512,8 @@ class RecipeIntegrationTest {
         // Verify the permissions list - owner granted, user2 pending
         List<PermissionDto> permissionsWhilePending = getPermissions(user1Client, ownerRecipe.id());
         assertThat(permissionsWhilePending).containsExactly(
-                new PermissionDto("user1@example.com", ResourceRole.OWNER, false),
-                new PermissionDto("user2@example.com", ResourceRole.EDITOR, true)
+                new PermissionDto(TestIdentities.emailOf(user1), ResourceRole.OWNER, false),
+                new PermissionDto(TestIdentities.emailOf(user2), ResourceRole.EDITOR, true)
         );
 
         // User 2 accepts the invite
@@ -523,8 +528,8 @@ class RecipeIntegrationTest {
         // Verify the permissions list now shows both granted, neither pending
         List<PermissionDto> permissionsAfterAccept = getPermissions(user1Client, ownerRecipe.id());
         assertThat(permissionsAfterAccept).containsExactly(
-                new PermissionDto("user1@example.com", ResourceRole.OWNER, false),
-                new PermissionDto("user2@example.com", ResourceRole.EDITOR, false)
+                new PermissionDto(TestIdentities.emailOf(user1), ResourceRole.OWNER, false),
+                new PermissionDto(TestIdentities.emailOf(user2), ResourceRole.EDITOR, false)
         );
 
         // User 2 (EDITOR) should be able to update the recipe
@@ -549,7 +554,7 @@ class RecipeIntegrationTest {
         }
 
         // User 1 unshares the recipe from User 2
-        unshareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
+        unshareRecipe(user1Client, ownerRecipe.id(), TestIdentities.emailOf(user2));
 
         // User 2 should no longer have access
         try {
@@ -562,7 +567,7 @@ class RecipeIntegrationTest {
         // Test permissions endpoint after unsharing - should show only OWNER
         List<PermissionDto> permissionsAfterUnsharing = getPermissions(user1Client, ownerRecipe.id());
         assertThat(permissionsAfterUnsharing).containsExactly(
-                new PermissionDto("user1@example.com", ResourceRole.OWNER, false)
+                new PermissionDto(TestIdentities.emailOf(user1), ResourceRole.OWNER, false)
         );
 
         // User 1 (OWNER) should still be able to delete the recipe
@@ -571,9 +576,9 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldAllowEditorsToShareAndUnshareButPreventUnsharingOwner() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
-        RestClient user3Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
+        RestClient user3Client = restClient(owner);
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
@@ -587,11 +592,11 @@ class RecipeIntegrationTest {
         assertThat(ownerRecipe).isNotNull();
 
         // User 1 shares recipe with User 2 (making User 2 an EDITOR once accepted)
-        shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
+        shareRecipe(user1Client, ownerRecipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, ownerRecipe.name());
 
         // User 2 (EDITOR) should be able to invite a third user - it stays pending
-        shareRecipe(user2Client, ownerRecipe.id(), "user@example.com");
+        shareRecipe(user2Client, ownerRecipe.id(), TestIdentities.emailOf(owner));
 
         try {
             getRecipe(user3Client, ownerRecipe.id());
@@ -601,15 +606,15 @@ class RecipeIntegrationTest {
         }
 
         // User 2 (EDITOR) should be able to cancel the pending invite
-        unshareRecipe(user2Client, ownerRecipe.id(), "user@example.com");
+        unshareRecipe(user2Client, ownerRecipe.id(), TestIdentities.emailOf(owner));
 
         // Verify third user no longer has a pending invite
         List<PermissionDto> permissions = getPermissions(user1Client, ownerRecipe.id());
-        assertThat(permissions).extracting(PermissionDto::email).doesNotContain("user@example.com");
+        assertThat(permissions).extracting(PermissionDto::email).doesNotContain(TestIdentities.emailOf(owner));
 
         // User 2 (EDITOR) should NOT be able to unshare the OWNER (User 1)
         try {
-            unshareRecipe(user2Client, ownerRecipe.id(), "user1@example.com");
+            unshareRecipe(user2Client, ownerRecipe.id(), TestIdentities.emailOf(user1));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -623,16 +628,16 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldPreventEditorFromUnsharingThemselves() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipeDetailsDto recipe = createRecipe(user1Client, "Self Unshare Test", createTestRecipeData(), null);
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         // User 2 cannot unshare themselves - the self-unshare guard applies to every role
         try {
-            unshareRecipe(user2Client, recipe.id(), "user2@example.com");
+            unshareRecipe(user2Client, recipe.id(), TestIdentities.emailOf(user2));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -645,14 +650,14 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldRefuseSecondInviteWhenOneIsAlreadyPending() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient user1Client = restClient(user1);
 
         RecipeDetailsDto recipe = createRecipe(user1Client, "Duplicate Invite Test", createTestRecipeData(), null);
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
 
         // Share again while the first invite is still pending - refused, not silently ignored
         try {
-            shareRecipe(user1Client, recipe.id(), "user2@example.com");
+            shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(409);
@@ -664,15 +669,15 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldRefuseInviteWhenTargetAlreadyHasAccess() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipeDetailsDto recipe = createRecipe(user1Client, "Already Has Access Test", createTestRecipeData(), null);
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         try {
-            shareRecipe(user1Client, recipe.id(), "user2@example.com");
+            shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(409);
@@ -683,7 +688,7 @@ class RecipeIntegrationTest {
 
         // Inviting the resource's own owner is the same refusal
         try {
-            shareRecipe(user1Client, recipe.id(), "user1@example.com");
+            shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user1));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(409);
@@ -695,11 +700,11 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldRemovePendingInviteWhenRecipeIsDeleted() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipeDetailsDto recipe = createRecipe(user1Client, "Delete With Pending Invite", createTestRecipeData(), null);
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
 
         deleteRecipe(user1Client, recipe.id());
 
@@ -714,7 +719,7 @@ class RecipeIntegrationTest {
         UUID nonExistentId = UUID.randomUUID();
 
         try {
-            shareRecipe(client, nonExistentId, "user2@example.com");
+            shareRecipe(client, nonExistentId, TestIdentities.emailOf(user2));
             fail("Should have thrown RestClientResponseException");
         } catch (RestClientResponseException ex) {
             assertThat(ex.getStatusCode().value()).isEqualTo(404);
@@ -723,8 +728,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldHandleSharedRecipesInUserRecipeList() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a recipe
         RecipeData recipeData = new RecipeData(
@@ -745,7 +750,7 @@ class RecipeIntegrationTest {
                 .doesNotContain(ownerRecipe.id());
 
         // User 1 shares recipe with User 2 - stays absent while the invite is pending
-        shareRecipe(user1Client, ownerRecipe.id(), "user2@example.com");
+        shareRecipe(user1Client, ownerRecipe.id(), TestIdentities.emailOf(user2));
 
         assertThat(getAllRecipes(user2Client))
                 .extracting(RecipeListDto::id)
@@ -766,7 +771,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldCreateRecipeWithCollection() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         // Create a collection first
         RecipesCollectionListDto collection = createCollection(client, "Italian Recipes");
@@ -786,7 +791,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldCreateRecipeWithoutCollection() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         // Create a recipe without collection assignment
         RecipeData recipeData = createTestRecipeData();
@@ -801,7 +806,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldUpdateRecipeCollectionAssignment() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         // Create a recipe without collection
         RecipeData recipeData = createTestRecipeData();
@@ -823,7 +828,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldRemoveRecipeFromCollection() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         // Create a collection
         RecipesCollectionListDto collection = createCollection(client, "Temporary Collection");
@@ -845,7 +850,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturnCollectionNameInRecipeDetail() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         // Create a collection
         RecipesCollectionListDto collection = createCollection(client, "Desserts");
@@ -866,7 +871,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturn404WhenAssigningToNonExistentCollection() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         // Try to create a recipe with a non-existent collection ID
         RecipeData recipeData = createTestRecipeData();
@@ -882,8 +887,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturn403WhenAssigningToUnauthorizedCollection() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a collection
         RecipesCollectionListDto user1Collection = createCollection(user1Client, "User 1 Collection");
@@ -967,7 +972,7 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldListRecipesWhenCallerHasNoAccessibleCollections() {
-        RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+        RestClient client = restClient(user1);
 
         RecipeDetailsDto recipe = createRecipe(client, "No Collections At All", createTestRecipeData(), null);
 
@@ -980,12 +985,12 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldListUnassignedRecipesWhenCallerHasNoAccessibleCollections() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Collection User 2 Cannot Reach");
         RecipeDetailsDto recipe = createRecipe(user1Client, "Directly Shared But Collection Unreachable", createTestRecipeData(), collection.id());
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         // User 2 holds a direct RECIPE permission but reaches no collection at all - the empty
@@ -998,11 +1003,11 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldExcludeRecipeInAReachableCollectionFromUnassignedList() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Reachable Collection For NOT IN Check");
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 directly owns a recipe assigned to a collection they can also reach
@@ -1015,15 +1020,15 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldAccessRecipeInSharedCollection() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(owner);
+        RestClient user2Client = restClient(user2);
 
         // Setup: User1 creates collection and recipe, shares collection with User2
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared");
         RecipeData testData = createTestRecipeData();
         createRecipe(user1Client, "Pizza", testData, collection.id());
 
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // Test: User2 filters by shared collection (no recipe permission needed)
@@ -1036,8 +1041,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldNotAccessRecipeInCollectionWithoutPermission() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(owner);
+        RestClient user2Client = restClient(user2);
 
         // Setup: User1 creates collection with recipe (not shared)
         RecipesCollectionListDto collection = createCollection(user1Client, "Private");
@@ -1056,8 +1061,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldAccessRecipeDetailInSharedCollectionWithEditorRole() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(owner);
+        RestClient user2Client = restClient(user2);
 
         // Setup: User1 creates collection with recipe
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared Recipes");
@@ -1073,7 +1078,7 @@ class RecipeIntegrationTest {
         }
 
         // User1 shares collection with User2
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // Test: User2 should now have access to recipe via shared collection
@@ -1090,22 +1095,22 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldIgnoreCollectionAssignmentChangeByEditor() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a recipe without a collection
         RecipeData recipeData = createTestRecipeData();
         RecipeDetailsDto recipe = createRecipe(user1Client, "Pizza", recipeData, null);
 
         // User 1 shares recipe with User 2 (making User 2 an EDITOR once accepted)
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         // User 1 creates a collection
         RecipesCollectionListDto collection = createCollection(user1Client, "Italian Recipes");
 
         // User 1 shares collection with User 2
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 (EDITOR) tries to assign the recipe to the collection - should succeed but ignore the change
@@ -1124,8 +1129,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturnNullCollectionNameWhenUserLacksCollectionAccess() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a collection
         RecipesCollectionListDto collection = createCollection(user1Client, "Secret Collection");
@@ -1135,7 +1140,7 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe = createRecipe(user1Client, "Secret Recipe", recipeData, collection.id());
 
         // User 1 shares the recipe (but NOT the collection) with User 2
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         // User 2 should be able to access the recipe but not see the collection name
@@ -1151,8 +1156,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldAllowEditorToUpdateRecipeWhileEchoingBackCollectionIdTheyCannotAccess() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a collection
         RecipesCollectionListDto collection = createCollection(user1Client, "Inaccessible Collection");
@@ -1162,7 +1167,7 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe = createRecipe(user1Client, "Editable Secret Recipe", recipeData, collection.id());
 
         // User 1 shares the recipe (but NOT the collection) with User 2
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         // User 2 (EDITOR, no access to the collection) echoes the recipe's existing collectionId back
@@ -1180,8 +1185,8 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldRemoveOwnedRecipesFromCollectionWhenUnshared() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 1 creates a collection
         CreateRecipesCollectionRequest collectionRequest = new CreateRecipesCollectionRequest("Shared Collection");
@@ -1194,7 +1199,7 @@ class RecipeIntegrationTest {
 
         // User 1 shares collection with User 2
         assertThat(collection).isNotNull();
-        ShareRequest shareRequest = new ShareRequest("user2@example.com", ResourceRole.EDITOR);
+        ShareRequest shareRequest = new ShareRequest(TestIdentities.emailOf(user2), ResourceRole.EDITOR);
         user1Client
                 .post()
                 .uri("/collections/" + collection.id() + "/share")
@@ -1211,7 +1216,7 @@ class RecipeIntegrationTest {
         assertThat(recipe.collectionId()).isEqualTo(collection.id());
 
         // User 1 unshares the collection from User 2
-        UnshareRequest unshareRequest = new UnshareRequest("user2@example.com");
+        UnshareRequest unshareRequest = new UnshareRequest(TestIdentities.emailOf(user2));
         user1Client
                 .post()
                 .uri("/collections/" + collection.id() + "/unshare")
@@ -1229,21 +1234,21 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldNotDetachRecipesWhenCancellingAPendingCollectionInvite() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         // User 2 owns a recipe assigned to a collection they already have accepted access to
         RecipesCollectionListDto ownedCollection = createCollection(user1Client, "User 2 Accessible Collection");
-        shareCollection(user1Client, ownedCollection.id(), "user2@example.com");
+        shareCollection(user1Client, ownedCollection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, ownedCollection.name());
         RecipeDetailsDto recipe = createRecipe(user2Client, "User 2 Recipe Elsewhere", createTestRecipeData(), ownedCollection.id());
 
         // User 1 invites User 2 to a second, unrelated collection but never gets accepted
         RecipesCollectionListDto pendingCollection = createCollection(user1Client, "Cancelled Before Accept");
-        shareCollection(user1Client, pendingCollection.id(), "user2@example.com");
+        shareCollection(user1Client, pendingCollection.id(), TestIdentities.emailOf(user2));
 
         // Cancelling the still-pending invite must not publish RecipesCollectionUnshared
-        unshareCollection(user1Client, pendingCollection.id(), "user2@example.com");
+        unshareCollection(user1Client, pendingCollection.id(), TestIdentities.emailOf(user2));
 
         // The recipe user2 owns elsewhere is untouched
         RecipeDetailsDto stillAssigned = getRecipe(user2Client, recipe.id());
@@ -1252,13 +1257,13 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldListCollectionDerivedRecipeWithoutAnyDirectPermission() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Collection Only Access");
         RecipeDetailsDto recipe = createRecipe(user1Client, "Collection Derived Recipe", createTestRecipeData(), collection.id());
 
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 holds no direct RECIPE permission at all - the empty-IN case must not 500
@@ -1269,13 +1274,13 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldExcludeCollectionDerivedRecipeFromUnassignedList() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Collection Only Access Unassigned");
         RecipeDetailsDto recipe = createRecipe(user1Client, "Collection Derived Recipe Unassigned Check", createTestRecipeData(), collection.id());
 
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // The deliberate short-circuit: collection-derived access never counts as unassigned
@@ -1286,11 +1291,11 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldKeepDirectRoleForRecipeAlsoReachableThroughCollection() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared Collection With Owned Recipe");
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 owns a recipe placed directly into the collection they can also reach
@@ -1303,12 +1308,12 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldStillInviteToRecipeAlreadyReachableThroughSharedCollection() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Shared Collection For Direct Invite");
         RecipeDetailsDto recipe = createRecipe(user1Client, "Reachable Via Collection", createTestRecipeData(), collection.id());
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
         acceptPendingCollectionInvite(user2Client, collection.name());
 
         // User 2 can already reach the recipe through the shared collection (a synthetic EDITOR)
@@ -1316,7 +1321,7 @@ class RecipeIntegrationTest {
         assertThat(beforeInvite.role()).isEqualTo(ResourceRole.EDITOR);
 
         // The refusal rules see only granted rows, so the direct invite is still created
-        shareRecipe(user1Client, recipe.id(), "user2@example.com");
+        shareRecipe(user1Client, recipe.id(), TestIdentities.emailOf(user2));
         acceptPendingRecipeInvite(user2Client, recipe.name());
 
         // The direct row shadows the composition with the same answer
@@ -1326,16 +1331,16 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldNotListCollectionDerivedUsersInPermissions() {
-        RestClient user1Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
-        RestClient user2Client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+        RestClient user1Client = restClient(user1);
+        RestClient user2Client = restClient(user2);
 
         RecipesCollectionListDto collection = createCollection(user1Client, "Collection For Permissions Test");
         RecipeDetailsDto recipe = createRecipe(user1Client, "Permissions Test Recipe", createTestRecipeData(), collection.id());
-        shareCollection(user1Client, collection.id(), "user2@example.com");
+        shareCollection(user1Client, collection.id(), TestIdentities.emailOf(user2));
 
         List<PermissionDto> permissions = getPermissions(user1Client, recipe.id());
 
-        assertThat(permissions).containsExactly(new PermissionDto("user1@example.com", ResourceRole.OWNER, false));
+        assertThat(permissions).containsExactly(new PermissionDto(TestIdentities.emailOf(user1), ResourceRole.OWNER, false));
     }
 
     @Test
@@ -1348,7 +1353,7 @@ class RecipeIntegrationTest {
         );
         RecipeDetailsDto recipe = createRecipe(client, "Cake", data, null);
 
-        RecipeInfoResult result = recipeFacade.getRecipes(List.of(recipe.id()), "user@example.com");
+        RecipeInfoResult result = recipeFacade.getRecipes(List.of(recipe.id()), TestIdentities.emailOf(owner));
 
         assertThat(result.recipes()).hasSize(1);
         assertThat(result.recipes().getFirst().id()).isEqualTo(recipe.id());
@@ -1375,7 +1380,7 @@ class RecipeIntegrationTest {
         RecipeDetailsDto recipe1 = createRecipe(client, "Omelette", data1, null);
         RecipeDetailsDto recipe2 = createRecipe(client, "Sauce", data2, null);
 
-        RecipeInfoResult result = recipeFacade.getRecipes(List.of(recipe1.id(), recipe2.id()), "user@example.com");
+        RecipeInfoResult result = recipeFacade.getRecipes(List.of(recipe1.id(), recipe2.id()), TestIdentities.emailOf(owner));
 
         assertThat(result.recipes()).hasSize(2);
         assertThat(result.recipes().stream().flatMap(r -> r.ingredients().stream()))
@@ -1385,17 +1390,17 @@ class RecipeIntegrationTest {
 
     @Test
     void shouldReturnEmptyListForUnknownRecipeId() {
-        RecipeInfoResult result = recipeFacade.getRecipes(List.of(UUID.randomUUID()), "user@example.com");
+        RecipeInfoResult result = recipeFacade.getRecipes(List.of(UUID.randomUUID()), TestIdentities.emailOf(owner));
 
         assertThat(result.recipes()).isEmpty();
         assertThat(result.inaccessibleRecipeNames()).isEmpty();
     }
 
     @Nested
-    @TestPropertySource(properties = "recipai.limits.enabled=true")
+    @LimitsEnabled
     class LimitsEnforced {
 
-        private static final String SUBJECT = "user@example.com";
+        private String ownerSubject;
 
         @Autowired
         private LimitsFacade limitsFacade;
@@ -1408,38 +1413,8 @@ class RecipeIntegrationTest {
 
         @BeforeEach
         void setUpQuota() {
-            setLimitQuota("RECIPE", SUBJECT, 2);
-        }
-
-        @AfterEach
-        void tearDown() {
-            for (String token : List.of(
-                    TestSecurityConfiguration.AUTH_TOKEN,
-                    TestSecurityConfiguration.AUTH_TOKEN_USER_1,
-                    TestSecurityConfiguration.AUTH_TOKEN_USER_2)) {
-                RestClient client = restClient(token);
-                for (RecipeListDto recipe : getAllRecipes(client)) {
-                    try {
-                        deleteRecipe(client, recipe.id());
-                    } catch (RestClientResponseException ignored) {
-                        // not the owner, ignore
-                    }
-                }
-            }
-
-            // Teardown of rows no API deletes: the config override, and usage fabricated for subjects
-            // with no API presence.
-            jdbcClient.sql("DELETE FROM recipai.limit_config WHERE resource = 'RECIPE' AND subject IS NOT NULL").update();
-            jdbcClient.sql("""
-                            DELETE FROM recipai.limit_usage
-                             WHERE resource = 'RECIPE' AND subject NOT IN (:subject, :user1, :user2)
-                            """)
-                    .param("subject", SUBJECT)
-                    .param("user1", "user1@example.com")
-                    .param("user2", "user2@example.com")
-                    .update();
-
-            assertThat(usedFor(SUBJECT)).isZero();
+            ownerSubject = TestIdentities.emailOf(owner);
+            setLimitQuota("RECIPE", ownerSubject, 2);
         }
 
         private int usedFor(String subject) {
@@ -1519,7 +1494,7 @@ class RecipeIntegrationTest {
             RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
 
-            setLimitQuota("RECIPE", SUBJECT, 1);
+            setLimitQuota("RECIPE", ownerSubject, 1);
 
             RecipeDetailsDto fetched = getRecipe(client, recipe1.id());
             assertThat(fetched.id()).isEqualTo(recipe1.id());
@@ -1540,13 +1515,13 @@ class RecipeIntegrationTest {
             RestClient client = restClient();
             RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
 
             deleteRecipe(client, recipe1.id());
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
             createRecipe(client, "Recipe 3", createTestRecipeData(), null);
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
         }
 
         @Test
@@ -1561,34 +1536,34 @@ class RecipeIntegrationTest {
                 assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
             }
 
-            assertThat(usedFor(SUBJECT)).isZero();
+            assertThat(usedFor(ownerSubject)).isZero();
         }
 
         @Test
         void shouldLeaveRecipientBalanceUntouchedOnShareAndUnshare() {
             RestClient client = restClient();
-            RestClient recipientClient = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_2);
+            RestClient recipientClient = restClient(user2);
             RecipeDetailsDto recipe = createRecipe(client, "Shared Recipe", createTestRecipeData(), null);
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
-            shareRecipe(client, recipe.id(), "user2@example.com");
+            shareRecipe(client, recipe.id(), TestIdentities.emailOf(user2));
             acceptPendingRecipeInvite(recipientClient, recipe.name());
-            assertThat(usedFor("user2@example.com")).isZero();
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isZero();
 
-            unshareRecipe(client, recipe.id(), "user2@example.com");
-            assertThat(usedFor("user2@example.com")).isZero();
+            unshareRecipe(client, recipe.id(), TestIdentities.emailOf(user2));
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isZero();
         }
 
         @Test
         void shouldNotCountPendingInviteTowardsRecipientQuota() {
             RestClient client = restClient();
             RecipeDetailsDto recipe = createRecipe(client, "Shared Recipe", createTestRecipeData(), null);
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
 
-            shareRecipe(client, recipe.id(), "user2@example.com");
+            shareRecipe(client, recipe.id(), TestIdentities.emailOf(user2));
 
-            assertThat(usedFor("user2@example.com")).isZero();
-            assertThat(usedFor(SUBJECT)).isEqualTo(1);
+            assertThat(usedFor(TestIdentities.emailOf(user2))).isZero();
+            assertThat(usedFor(ownerSubject)).isEqualTo(1);
         }
 
         @Test
@@ -1596,22 +1571,22 @@ class RecipeIntegrationTest {
             RestClient client = restClient();
             createRecipe(client, "Recipe 1", createTestRecipeData(), null);
             createRecipe(client, "Recipe 2", createTestRecipeData(), null);
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
 
             // Deliberate drift: no business path can move used away from the owned count.
             jdbcClient.sql("UPDATE recipai.limit_usage SET used = 99 WHERE resource = 'RECIPE' AND subject = :subject")
-                    .param("subject", SUBJECT)
+                    .param("subject", ownerSubject)
                     .update();
-            assertThat(usedFor(SUBJECT)).isEqualTo(99);
+            assertThat(usedFor(ownerSubject)).isEqualTo(99);
 
             RecomputeMigration.run(dataSource);
 
-            assertThat(usedFor(SUBJECT)).isEqualTo(2);
+            assertThat(usedFor(ownerSubject)).isEqualTo(2);
         }
 
         @Test
         void shouldClearUsageForSubjectThatOwnsNothing() {
-            String ghost = "ghost@example.com";
+            String ghost = TestIdentities.emailOf(TestIdentities.freshToken());
             // A usage row for a subject that owns nothing: no business path leaves one behind.
             jdbcClient.sql("""
                             INSERT INTO recipai.limit_usage (resource, subject, used, period_start)
@@ -1629,27 +1604,27 @@ class RecipeIntegrationTest {
         @Test
         void shouldSpareFlowConfiguredSubjectFromRecompute() {
             RestClient client = restClient();
-            setLimitQuota("RECIPE", SUBJECT, "FLOW", 5);
+            setLimitQuota("RECIPE", ownerSubject, "FLOW", 5);
             try {
                 RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
                 createRecipe(client, "Recipe 2", createTestRecipeData(), null);
                 // A flow release refunds nothing, so the balance stays at 2 while one recipe is owned.
                 deleteRecipe(client, recipe1.id());
-                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+                assertThat(usedFor(ownerSubject)).isEqualTo(2);
 
                 RecomputeMigration.run(dataSource);
 
-                assertThat(usedFor(SUBJECT)).isEqualTo(2);
+                assertThat(usedFor(ownerSubject)).isEqualTo(2);
             } finally {
-                setLimitQuota("RECIPE", SUBJECT, 2);
-                limitsFacade.clear(SUBJECT, RecipeService.RECIPE_RESOURCE);
+                setLimitQuota("RECIPE", ownerSubject, 2);
+                limitsFacade.clear(ownerSubject, RecipeService.RECIPE_RESOURCE);
             }
         }
 
         @Test
         void shouldSpareSubjectWithoutOverrideWhenResourceDefaultIsFlow() {
-            String defaultFlowSubject = "user1@example.com";
-            RestClient client = restClient(TestSecurityConfiguration.AUTH_TOKEN_USER_1);
+            String defaultFlowSubject = TestIdentities.emailOf(user1);
+            RestClient client = restClient(user1);
             setLimitQuota("RECIPE", null, "FLOW", 5);
             try {
                 RecipeDetailsDto recipe1 = createRecipe(client, "Recipe 1", createTestRecipeData(), null);
@@ -1673,10 +1648,10 @@ class RecipeIntegrationTest {
             createRecipe(client, "Recipe 1", createTestRecipeData(), null);
 
             RecomputeMigration.run(dataSource);
-            int firstRun = usedFor(SUBJECT);
+            int firstRun = usedFor(ownerSubject);
 
             RecomputeMigration.run(dataSource);
-            int secondRun = usedFor(SUBJECT);
+            int secondRun = usedFor(ownerSubject);
 
             assertThat(secondRun).isEqualTo(firstRun);
             assertThat(secondRun).isEqualTo(1);

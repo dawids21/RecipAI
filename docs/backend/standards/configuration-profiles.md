@@ -17,3 +17,8 @@ The backend uses Spring Boot profiles to support different deployment environmen
 - Activating `dev` arms an authentication bypass — `DevAuthConfig` replaces JWT validation with a decoder that accepts
   any bearer token as the caller `<token>@local.test`. `prod` is the default active profile, and a startup `WARN`
   announces the bypass whenever it is on
+- The backend test suite activates `dev` alongside `test` (`@ActiveProfiles({"dev", "test"})` on
+  `@IntegrationTest`) to authenticate through `DevAuthConfig` rather than a second bypass, so the startup
+  bypass `WARN` is expected in test output — once per Spring context. `application-test.yml` overrides
+  the `dev` settings tests must not inherit (log level, the limits kill-switch default, the presigned-URL
+  expiry); see `docs/backend/standards/integration-tests.md`
