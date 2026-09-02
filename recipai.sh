@@ -144,7 +144,7 @@ build_mobile() {
     ensure_upload_key
     echo -e "${YELLOW}Building AAB for RecipAI...${NC}"
     cd "$SCRIPT_DIR/mobile"
-    flutter build appbundle --dart-define=API_BASE_URL=https://api.recipai.stasiak.xyz
+    flutter build appbundle --dart-define=API_BASE_URL=https://recipai-api.stasiak.xyz
     echo -e "${GREEN}AAB build completed successfully!${NC}"
     echo "AAB location: $SCRIPT_DIR/mobile/build/app/outputs/bundle/release/app-release.aab"
 }
