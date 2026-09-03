@@ -23,7 +23,7 @@ class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(
                                 "/recipes/**", "/extract/**", "/users/**",
                                 "/shopping-lists/**", "/collections/**", "/meal-plans/**", "/limits/**",

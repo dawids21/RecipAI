@@ -34,6 +34,12 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 recipai:
   limits:
     enabled: true
