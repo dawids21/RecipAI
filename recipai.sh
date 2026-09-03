@@ -10,14 +10,9 @@ NC='\033[0m' # No Color
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Keystore paths
-KEYSTORES_DIR="$SCRIPT_DIR/scripts/keystores"
 ANDROID_DIR="$SCRIPT_DIR/mobile/android"
 
-DEBUG_KEYSTORE_GPG="$KEYSTORES_DIR/debug_keystore.jks.gpg"
 DEBUG_KEYSTORE="$ANDROID_DIR/debug_keystore.jks"
-UPLOAD_KEYSTORE_GPG="$KEYSTORES_DIR/upload_keystore.jks.gpg"
 UPLOAD_KEYSTORE="$ANDROID_DIR/upload_keystore.jks"
 UPLOAD_KEY_PROPERTIES="$ANDROID_DIR/upload-key.properties"
 
@@ -29,12 +24,26 @@ BACKEND_PORT="${SERVER_PORT:-8080}"
 BACKEND_URL="http://localhost:$BACKEND_PORT"
 
 # Keystore helpers
-decrypt_keystore() {  # <src.gpg> <dest>
-    gpg --yes --output "$2" --decrypt "$1"
+keystore_sha1() {  # <keystore> <storepass> -> SHA-1 line on stdout
+    keytool -list -v -keystore "$1" -storepass "$2" 2>/dev/null \
+        | grep -m1 "SHA1:" | sed "s/^[[:space:]]*//"
 }
 
-encrypt_keystore() {  # <src> <dest.gpg>
-    gpg --yes --symmetric --cipher-algo AES256 --output "$2" "$1"
+keystore_instructions() {  # <filename>
+    echo "Copy $1 from its secure location into mobile/android/."
+    echo "It is gitignored and must never be committed."
+}
+
+write_upload_properties() {  # <password>
+    # Created empty and locked down before the password is written into it.
+    : > "$UPLOAD_KEY_PROPERTIES"
+    chmod 600 "$UPLOAD_KEY_PROPERTIES"
+    cat > "$UPLOAD_KEY_PROPERTIES" << PROPS
+storePassword=$1
+keyPassword=$1
+keyAlias=upload
+storeFile=$UPLOAD_KEYSTORE
+PROPS
 }
 
 prompt_password() {  # <prompt-text> -> password on stdout
@@ -42,12 +51,6 @@ prompt_password() {  # <prompt-text> -> password on stdout
     read -r -s -p "$1: " value
     echo >&2
     printf '%s' "$value"
-}
-
-confirm() {  # <question> -> exit status, y/N default N
-    local answer
-    read -r -p "$1 [y/N] " answer
-    [[ "$answer" =~ ^[Yy]$ ]]
 }
 
 # Backend helpers
@@ -65,77 +68,32 @@ backend_healthy() {
 
 # Commands
 setup() {
-    if [[ ! -f "$DEBUG_KEYSTORE_GPG" ]]; then
-        echo -e "${RED}Encrypted debug keystore missing at scripts/keystores/debug_keystore.jks.gpg — is the repo up to date?${NC}"
-        exit 1
-    fi
-    echo -e "${YELLOW}Decrypting the shared debug keystore (passphrase is in the password manager)${NC}"
-    if ! decrypt_keystore "$DEBUG_KEYSTORE_GPG" "$DEBUG_KEYSTORE"; then
-        echo -e "${RED}Decryption failed — wrong passphrase, or gpg is not installed${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}Wrote mobile/android/debug_keystore.jks${NC}"
-}
-
-encrypt_key_debug() {
     if [[ ! -f "$DEBUG_KEYSTORE" ]]; then
-        echo -e "${RED}Nothing to encrypt at mobile/android/debug_keystore.jks${NC}"
+        echo -e "${RED}mobile/android/debug_keystore.jks is missing${NC}"
+        keystore_instructions debug_keystore.jks
         exit 1
     fi
-    if [[ -f "$DEBUG_KEYSTORE_GPG" ]]; then
-        if ! confirm "Replace scripts/keystores/debug_keystore.jks.gpg? The current key will only exist in git history."; then
-            echo "Aborted."
-            exit 1
-        fi
-    fi
-    if ! encrypt_keystore "$DEBUG_KEYSTORE" "$DEBUG_KEYSTORE_GPG"; then
-        echo -e "${RED}Encryption failed${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}Commit the new ciphertext and store the passphrase in the password manager${NC}"
-}
-
-encrypt_key_upload() {
-    if [[ ! -f "$UPLOAD_KEYSTORE" ]]; then
-        echo -e "${RED}Nothing to encrypt at mobile/android/upload_keystore.jks${NC}"
-        exit 1
-    fi
-    if [[ -f "$UPLOAD_KEYSTORE_GPG" ]]; then
-        if ! confirm "Replace scripts/keystores/upload_keystore.jks.gpg? The current key will only exist in git history."; then
-            echo "Aborted."
-            exit 1
-        fi
-    fi
-    if ! encrypt_keystore "$UPLOAD_KEYSTORE" "$UPLOAD_KEYSTORE_GPG"; then
-        echo -e "${RED}Encryption failed${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}Commit the new ciphertext and store the passphrase in the password manager${NC}"
+    echo -e "${GREEN}Debug keystore is in place. Check the fingerprint against its secure location:${NC}"
+    echo "  debug_keystore.jks  $(keystore_sha1 "$DEBUG_KEYSTORE" android)"
 }
 
 ensure_upload_key() {
     if [[ ! -f "$UPLOAD_KEYSTORE" ]]; then
-        if [[ ! -f "$UPLOAD_KEYSTORE_GPG" ]]; then
-            echo -e "${RED}Encrypted upload keystore missing at scripts/keystores/upload_keystore.jks.gpg${NC}"
-            exit 1
-        fi
-        echo -e "${YELLOW}Decrypting the upload keystore (passphrase is in the password manager)${NC}"
-        if ! decrypt_keystore "$UPLOAD_KEYSTORE_GPG" "$UPLOAD_KEYSTORE"; then
-            echo -e "${RED}Decryption failed — wrong passphrase, or gpg is not installed${NC}"
-            exit 1
-        fi
+        echo -e "${RED}mobile/android/upload_keystore.jks is missing${NC}"
+        keystore_instructions upload_keystore.jks
+        exit 1
     fi
 
     if [[ ! -f "$UPLOAD_KEY_PROPERTIES" ]]; then
         local password
         password="$(prompt_password "Upload keystore password")"
-        cat > "$UPLOAD_KEY_PROPERTIES" << PROPS
-storePassword=$password
-keyPassword=$password
-keyAlias=upload
-storeFile=$UPLOAD_KEYSTORE
-PROPS
-        chmod 600 "$UPLOAD_KEY_PROPERTIES"
+        # Proven against the keystore before it is written, so a typo cannot
+        # leave a broken properties file behind for later builds to pick up.
+        if [[ -z "$(keystore_sha1 "$UPLOAD_KEYSTORE" "$password")" ]]; then
+            echo -e "${RED}Could not read upload_keystore.jks — wrong password, or the wrong file${NC}"
+            exit 1
+        fi
+        write_upload_properties "$password"
         echo -e "${GREEN}Wrote upload-key.properties — later builds will not prompt again${NC}"
     fi
 }
@@ -274,15 +232,18 @@ RecipAI CLI
 Usage: recipai.sh <command> [options]
 
 Commands:
-    setup                     One-time: decrypt the shared debug keystore
-    encrypt-key-debug         Re-encrypt a local debug keystore into scripts/keystores/
-    encrypt-key-upload        Re-encrypt a local upload keystore into scripts/keystores/
+    setup                     Check the debug keystore is in place and print its fingerprint
     build-mobile              Build Android AAB with production configuration
     release-internal-mobile   Upload the built AAB to the Play Console internal track
     run-backend               Run the backend in the foreground on the dev profile (Ctrl+C to stop)
     start-backend             Start the backend detached, waiting until it is healthy
     stop-backend              Stop a backend started with start-backend
     help                      Show this help message
+
+Signing keystores (kept in a secure location, one entry each):
+    debug_keystore.jks   copy into mobile/android/, then run ./recipai.sh setup
+    upload_keystore.jks  copy into mobile/android/ for release builds only;
+                         build-mobile generates upload-key.properties from it
 
 Setup (one-time, required by release-internal-mobile):
     python3 -m venv scripts/.venv
@@ -292,8 +253,6 @@ Setup (one-time, required by release-internal-mobile):
 Examples:
     recipai.sh setup
     recipai.sh build-mobile
-    recipai.sh encrypt-key-debug
-    recipai.sh encrypt-key-upload
     recipai.sh release-internal-mobile
     recipai.sh run-backend
     recipai.sh start-backend
@@ -311,12 +270,6 @@ fi
 case "$1" in
     setup)
         setup
-        ;;
-    encrypt-key-debug)
-        encrypt_key_debug
-        ;;
-    encrypt-key-upload)
-        encrypt_key_upload
         ;;
     build-mobile)
         build_mobile

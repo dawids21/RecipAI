@@ -71,7 +71,7 @@ gradle.taskGraph.whenReady {
     val wantsRelease = allTasks.any { it.name.contains("Release") }
 
     if (wantsDebugSigning && !debugKeystoreFile.exists()) {
-        throw GradleException("Shared debug keystore missing. Run ./recipai.sh setup")
+        throw GradleException("mobile/android/debug_keystore.jks is missing. Copy it from the password manager, then run ./recipai.sh setup")
     }
     if (wantsRelease && !uploadKeyPropertiesFile.exists()) {
         throw GradleException("Upload signing not configured. Build with ./recipai.sh build-mobile")

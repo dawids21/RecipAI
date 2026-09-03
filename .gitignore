@@ -7,7 +7,7 @@ scripts/play-service-account.json
 # Python virtualenv for release scripts
 scripts/.venv/
 
-# Decrypted keystores must never be committed; only the .gpg files are tracked
+# Signing keystores live in the password manager and must never be committed
 **/*.jks
 **/*-key.properties
 
