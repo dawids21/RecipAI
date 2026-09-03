@@ -1,7 +1,6 @@
 package xyz.stasiak.recipai.extraction;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -10,13 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import xyz.stasiak.recipai.IntegrationTest;
@@ -27,9 +24,6 @@ import xyz.stasiak.recipai.TestIdentities;
 import xyz.stasiak.recipai.limits.LimitBalance;
 import xyz.stasiak.recipai.limits.LimitsFacade;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -201,7 +195,12 @@ class ExtractionIntegrationTest {
     void shouldConsumeOneUnitAndReturn200ForJpegImage() {
         RestClient client = restClient();
 
-        ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
+        Resource imageResource = new ByteArrayResource("not a real image".getBytes()) {
+            @Override
+            public String getFilename() {
+                return "recipe.jpg";
+            }
+        };
 
         ExtractedRecipe recipe = extractImage(client, imageResource, MediaType.IMAGE_JPEG);
 
@@ -209,47 +208,6 @@ class ExtractionIntegrationTest {
         assertThat(usedFor(TestIdentities.emailOf(owner))).isEqualTo(1);
     }
 
-    @Test
-    @Disabled("Calls the real AI provider - the mocked ChatClient must be removed to run it")
-    void shouldExtractRecipeFromText() throws Exception {
-        ClassPathResource textResource = new ClassPathResource("recipe_sources/kwestia_smaku.txt");
-        String content = loadResourceContent(textResource);
-
-        ExtractTextRequest request = new ExtractTextRequest(content);
-
-        ExtractedRecipe extractedRecipe = restClient()
-                .post()
-                .uri("/extract/text")
-                .body(request)
-                .retrieve()
-                .body(ExtractedRecipe.class);
-
-        assertThat(extractedRecipe).isNotNull();
-        assertThat(extractedRecipe.name()).isNotNull();
-        assertThat(extractedRecipe.ingredients()).isNotEmpty();
-        assertThat(extractedRecipe.instructions()).isNotEmpty();
-        assertThat(extractedRecipe.servingSize())
-                .isNotNull()
-                .isPositive()
-                .isLessThanOrEqualTo(100);
-    }
-
-    @Test
-    @Disabled("Calls the real AI provider - the mocked ChatClient must be removed to run it")
-    void shouldExtractRecipeFromImage() {
-        ClassPathResource imageResource = new ClassPathResource("recipe_sources/kwestia_smaku.jpg");
-
-        ExtractedRecipe extractedRecipe = extractImage(restClient(), imageResource, MediaType.IMAGE_JPEG);
-
-        assertThat(extractedRecipe).isNotNull();
-        assertThat(extractedRecipe.name()).isNotNull();
-        assertThat(extractedRecipe.ingredients()).isNotEmpty();
-        assertThat(extractedRecipe.instructions()).isNotEmpty();
-        assertThat(extractedRecipe.servingSize())
-                .isNotNull()
-                .isPositive()
-                .isLessThanOrEqualTo(100);
-    }
 
     @Test
     void shouldReturnZeroUsageBeforeAnyExtractionAndOneAfter() {
@@ -281,12 +239,6 @@ class ExtractionIntegrationTest {
         extractText(client, "recipe 2");
 
         assertThat(getBalance(client).get("used")).isEqualTo(2);
-    }
-
-    private String loadResourceContent(ClassPathResource resource) throws IOException {
-        try (InputStream inputStream = resource.getInputStream()) {
-            return FileCopyUtils.copyToString(new InputStreamReader(inputStream));
-        }
     }
 
     @Nested
