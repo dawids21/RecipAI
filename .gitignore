@@ -10,3 +10,5 @@ scripts/.venv/
 # Decrypted keystores must never be committed; only the .gpg files are tracked
 **/*.jks
 **/*-key.properties
+
+.env
