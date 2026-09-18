@@ -16,6 +16,12 @@ DEBUG_KEYSTORE="$ANDROID_DIR/debug_keystore.jks"
 UPLOAD_KEYSTORE="$ANDROID_DIR/upload_keystore.jks"
 UPLOAD_KEY_PROPERTIES="$ANDROID_DIR/upload-key.properties"
 
+# Release paths
+AAB_PATH="$SCRIPT_DIR/mobile/build/app/outputs/bundle/release/app-release.aab"
+VENV_PYTHON="$SCRIPT_DIR/scripts/.venv/bin/python3"
+PLAY_SERVICE_ACCOUNT="$SCRIPT_DIR/scripts/play-service-account.json"
+PLAY_STORE_URL="https://play.google.com/store/apps/details?id=xyz.stasiak.recipai"
+
 # Backend paths
 BACKEND_DIR="$SCRIPT_DIR/backend"
 BACKEND_LOG="$BACKEND_DIR/target/backend-run.log"
@@ -104,22 +110,105 @@ build_mobile() {
     cd "$SCRIPT_DIR/mobile"
     flutter build appbundle --dart-define=API_BASE_URL=https://recipai-api.stasiak.xyz
     echo -e "${GREEN}AAB build completed successfully!${NC}"
-    echo "AAB location: $SCRIPT_DIR/mobile/build/app/outputs/bundle/release/app-release.aab"
+    echo "AAB location: $AAB_PATH"
 }
 
-release_internal_mobile() {
-    echo -e "${YELLOW}Uploading AAB to Play Console internal track...${NC}"
-    cd "$SCRIPT_DIR"
-    local venv_python="$SCRIPT_DIR/scripts/.venv/bin/python3"
-    if [[ ! -x "$venv_python" ]]; then
+ensure_venv() {
+    if [[ ! -x "$VENV_PYTHON" ]]; then
         echo -e "${RED}venv not found at scripts/.venv${NC}"
         echo "Create it once with:"
         echo "    python3 -m venv scripts/.venv"
         echo "    scripts/.venv/bin/pip install -r scripts/requirements.txt"
         exit 1
     fi
-    "$venv_python" scripts/play_publish.py --track internal "$@"
-    echo -e "${GREEN}Upload completed successfully!${NC}"
+}
+
+abort() {  # <message>
+    echo -e "${RED}$1${NC}" >&2
+    exit 1
+}
+
+release_internal_mobile() {
+    [[ $# -eq 0 ]] || abort "release-internal-mobile takes no arguments (got: $*)"
+    cd "$SCRIPT_DIR"
+
+    # Preflight: everything that can fail is checked before anything is published.
+    ensure_venv
+    [[ -f "$PLAY_SERVICE_ACCOUNT" ]] \
+        || abort "scripts/play-service-account.json is missing — copy the Play service account key there"
+
+    command -v gh > /dev/null 2>&1 || abort "gh is not on PATH — install the GitHub CLI"
+    local gh_status
+    gh_status="$(gh auth status 2>&1)" || abort "gh is not authenticated — run: gh auth login"
+    grep -q "Token scopes:.*'repo'" <<< "$gh_status" \
+        || abort "the gh token lacks the 'repo' scope — run: gh auth refresh -s repo"
+
+    git rev-parse --git-dir > /dev/null 2>&1 || abort "not inside the git repository"
+    [[ -z "$(git status --porcelain)" ]] \
+        || abort "the working tree is dirty — commit or stash before releasing"
+    local head_sha short_sha
+    head_sha="$(git rev-parse HEAD)"
+    short_sha="$(git rev-parse --short HEAD)"
+    [[ -n "$(git branch -r --contains "$head_sha" --list 'origin/*' 2> /dev/null)" ]] \
+        || abort "HEAD ($short_sha) is not on origin — push it first"
+
+    [[ -f "$AAB_PATH" ]] \
+        || abort "AAB not found at ${AAB_PATH#$SCRIPT_DIR/} — build it first: ./recipai.sh build-mobile"
+
+    local version version_name version_code
+    version="$(grep -m1 '^version:' mobile/pubspec.yaml | awk '{print $2}')"
+    version_name="${version%%+*}"
+    version_code="${version##*+}"
+    [[ "$version" == *+* && -n "$version_name" && "$version_code" =~ ^[0-9]+$ ]] \
+        || abort "could not parse a <name>+<code> version from mobile/pubspec.yaml (got '$version')"
+
+    local tag="v$version_name+$version_code"
+    if gh release view "$tag" > /dev/null 2>&1; then
+        abort "GitHub release $tag already exists — bump the version in mobile/pubspec.yaml"
+    fi
+
+    local repo_info repo visibility aab_size
+    repo_info="$(gh repo view --json nameWithOwner,visibility \
+        -q '.nameWithOwner + " " + (.visibility | ascii_downcase)')" \
+        || abort "could not read the repository from origin — is it on GitHub?"
+    read -r repo visibility <<< "$repo_info"
+    aab_size="$(awk -v bytes="$(stat -c %s "$AAB_PATH")" 'BEGIN { printf "%.1f", bytes / 1048576 }')"
+
+    echo "About to release RecipAI $version_name ($version_code):"
+    echo "  Play internal track   upload app-release.aab ($aab_size MiB)"
+    echo "  GitHub release        $repo, tag $tag at $short_sha ($visibility, empty body)"
+    [[ -t 0 ]] || abort "stdin is not a terminal — this command needs an interactive confirmation"
+    local reply
+    read -r -p "Proceed? [y/N] " reply
+    [[ "$reply" == [yY] ]] || abort "aborted — nothing was published"
+
+    local report
+    report="$(mktemp)"
+    trap 'rm -f "$report"' EXIT
+
+    echo -e "${YELLOW}Publishing to the Play Console internal track...${NC}"
+    "$VENV_PYTHON" scripts/play_service.py \
+        --track internal --version-code "$version_code" --report "$report"
+
+    # The tag follows the version name Play reports for the release, not the pubspec one.
+    local play_name apk_path
+    play_name="$(grep -m1 '^version_name=' "$report" | cut -d= -f2-)"
+    apk_path="$(grep -m1 '^apk_path=' "$report" | cut -d= -f2-)"
+    [[ -n "$play_name" && -n "$apk_path" && -f "$apk_path" ]] \
+        || abort "play_service.py did not report a downloaded APK"
+
+    local play_tag="v$play_name+$version_code"
+    echo -e "${YELLOW}Creating GitHub release $play_tag...${NC}"
+    local release_url
+    release_url="$(gh release create "$play_tag" "$apk_path" \
+        --title "RecipAI $play_name ($version_code)" \
+        --notes "" \
+        --target "$head_sha" \
+        --latest)"
+
+    echo -e "${GREEN}Released RecipAI $play_name ($version_code)${NC}"
+    echo "  Play:   $PLAY_STORE_URL"
+    echo "  GitHub: $release_url"
 }
 
 run_backend() {
@@ -234,7 +323,8 @@ Usage: recipai.sh <command> [options]
 Commands:
     setup                     Check the debug keystore is in place and print its fingerprint
     build-mobile              Build Android AAB with production configuration
-    release-internal-mobile   Upload the built AAB to the Play Console internal track
+    release-internal-mobile   Publish the built AAB to the Play internal track, then publish the
+                              APK Play signs from it as a GitHub release
     run-backend               Run the backend in the foreground on the dev profile (Ctrl+C to stop)
     start-backend             Start the backend detached, waiting until it is healthy
     stop-backend              Stop a backend started with start-backend
@@ -249,6 +339,7 @@ Setup (one-time, required by release-internal-mobile):
     python3 -m venv scripts/.venv
     scripts/.venv/bin/pip install -r scripts/requirements.txt
     Place the Play service account key at scripts/play-service-account.json
+    Install the GitHub CLI and run: gh auth login   (the token needs the 'repo' scope)
 
 Examples:
     recipai.sh setup
