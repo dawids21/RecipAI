@@ -35,3 +35,16 @@ consequences. Read an ADR before changing code in the area it covers.
   The inviting module supplies the invite's human-readable title, stored opaquely and
   never refreshed, so the invitee's cross-resource list needs neither domain knowledge
   in the `permissions` module nor a read hole in the unreadable-while-pending rule.
+- [ADR-0009: The Firebase identity is deleted by the mobile client, never by the backend](0009-client-side-firebase-identity-deletion.md) —
+  The client SDK deletes the signed-in user's own identity after the re-authentication the
+  deletion flow already performs, keeping the Firebase Admin SDK and a long-lived service
+  account key off the backend; the admin path deletes data only and an operator finishes
+  the identity by hand.
+- [ADR-0010: Account deletion is orchestrated over per-module purges, not a bulk delete](0010-account-deletion-orchestrated-over-per-module-purges.md) —
+  A `settings` module owns the call order and nothing else while each module removes its own
+  data for an email through its existing delete path, preserving the recipe-deleted event,
+  the S3 cleanup, the limits release and third-party permission clearing that no cascade does.
+- [ADR-0011: Administrators are recognised by a configured email allowlist](0011-admin-authority-from-config-allowlist.md) —
+  Admin emails are configuration granted as an authority at the token-conversion seam and
+  enforced by a matcher in the existing chain, avoiding custom claims' refresh delay and
+  service account, and a roles table's migration, while keeping the move to either reversible.
