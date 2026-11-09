@@ -1,0 +1,14 @@
+# Gitignored files copied into every new worktree (gitignore syntax).
+# Only local-run config belongs here; release secrets stay out.
+
+# Agent settings, including the real SPRING_AI_API_KEY for /extract/**
+.claude/settings.local.json
+
+# Local environment overrides (see .env.example)
+.env
+
+# Debug signing key, required by every Android debug build
+mobile/android/debug_keystore.jks
+
+# Flutter/Android SDK paths, written by the Flutter tooling
+mobile/android/local.properties
