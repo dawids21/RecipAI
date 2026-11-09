@@ -10,14 +10,14 @@ refusal. Holds no domain knowledge — callers pass an opaque subject and resour
 ```
 backend/src/main/java/xyz/stasiak/recipai/
 └── limits/
-    ├── LimitsFacade.java                        # Public facade — delegates to LimitService and logs; reserve a unit, release one, clear a vanished subject's row, read a subject's balance, resolve a subject's quotas
+    ├── LimitsFacade.java                        # Public facade — delegates to LimitService and logs; reserve a unit, release one, clear a vanished subject's row, delete everything held for a subject, read a subject's balance, resolve a subject's quotas
     ├── LimitsController.java                    # Package-private @RestController — GET /limits returns the caller's resolved quotas
     ├── LimitService.java                        # Resolves the config subject's configuration, turns a refused reserve into an exception, decides whether a release refunds, applies the passed-period rule virtually on a balance read, and holds the recipai.limits.enabled behaviour
     ├── LimitConfig.java                         # Entity over limit_config — default row (subject IS NULL) or one subject's override; owns the kind/period predicates (isFlow, restarts, refundsOnRelease, cutoffFrom, hasPassed, resetsInSeconds) and toQuota()
-    ├── LimitConfigRepository.java               # Override-then-default resolution query, for one resource or (resolveAll) every configured one
+    ├── LimitConfigRepository.java               # Override-then-default resolution query, for one resource or (resolveAll) every configured one, and the @Modifying JPQL delete of a subject's override
     ├── LimitUsage.java                          # Entity over limit_usage — read only to report a balance, via toBalance()
     ├── LimitUsageId.java                        # Composite key (resource, subject)
-    ├── LimitUsageRepository.java                # Native conditional upsert that *is* the indivisible reserve, the floored decrement behind release, and the row delete behind clear
+    ├── LimitUsageRepository.java                # Native conditional upsert that *is* the indivisible reserve, the floored decrement behind release, the row delete behind clear, and the derived delete of every row for a subject
     ├── LimitBalance.java                        # Public balance DTO (used, periodStart, resetsInSeconds), with a zero() factory
     ├── LimitQuota.java                          # Public resolved-quota DTO (resource, kind, limit) — carries no period; the client does no period arithmetic
     ├── LimitKind.java                           # Public enum STOCK / FLOW — rides on the refusal
@@ -66,6 +66,10 @@ controller stays package-private. See `docs/ADRs/0006-shared-limits-module.md`.
 - **Clear** — deletes a subject's usage row outright, for when the subject itself has ceased to exist
   (a deleted shopping list has no records left to refund one at a time). It resolves no configuration,
   so it takes a single subject, has no `FLOW` branch, and never throws.
+- **Delete all by subject** — `deleteAllBySubject` removes every usage row for a subject across every
+  resource, and the subject's `limit_config` override if one exists, in one transaction, so a subject
+  that reappears resolves the defaults again. Account deletion calls it with the user's email; rows
+  keyed by a shopping list's UUID are cleared by that list's own delete, not here.
 - **Balance read** — `getBalance` reports what the *next* reserve would compare against, and writes
   nothing: a window whose `period_start` is already past the cutoff reports zero used and the row is
   left alone, so a read never re-anchors a subject's reset time. It carries `resetsInSeconds` only for
@@ -79,7 +83,8 @@ controller stays package-private. See `docs/ADRs/0006-shared-limits-module.md`.
   `permissions`' `resource_permission`, and `SHOPPING_LIST_ITEM` from `shopping_list_items` grouped by
   list. It is both the rollout seed and the drift repair for a missed release; see `db.md`.
 
-`limit_config` has no write API — operators edit it with SQL. Limits' own integration test suites seed
+`limit_config` has no API to create or change rows — operators edit it with SQL; the only write is
+`deleteAllBySubject` removing a subject's override. Limits' own integration test suites seed
 quotas the same way, via a private `setLimitQuota` upsert helper (`ON CONFLICT (resource, subject) DO
 UPDATE`) so a test can set a quota whether or not a row already exists.
 
@@ -104,7 +109,7 @@ All five share one contract:
 `LimitService`: when `false`, `reserve` still resolves configuration (still a 500 if there is none) and
 still runs its upsert — against `Integer.MAX_VALUE` instead of the configured maximum, so the unit is
 recorded and the statement cannot refuse — and `release` and `clear` behave exactly as they do when
-enabled. Dropping releases while keeping reservations would let
+enabled, as does `deleteAllBySubject`. Dropping releases while keeping reservations would let
 counts climb and never recover, which is why the flag reaches neither. Only `getQuotas`/`getQuota`
 resolve nothing, so a client that displays quotas shows none and leaves every action enabled;
 `getBalance` ignores the flag and keeps reporting recorded usage. The flag is set to `false` in
@@ -125,3 +130,5 @@ for a `@Nested` class inside a suite that runs with limits off; see
   Also reserves one unit of `SHOPPING_LIST_ITEM` per item created and releases it on item delete,
   counted against the list and configured from the list's owner; deleting a list clears its item row.
 - `planning` — reserves one unit of `MEAL_PLAN` on create, releases on delete; owner-keyed
+- `settings` — calls `deleteAllBySubject` with the user's email during account deletion, after every
+  resource module has released its units

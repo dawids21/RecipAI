@@ -16,4 +16,8 @@ interface ResourceInviteRepository extends JpaRepository<ResourceInvite, UUID> {
     void deleteByResourceTypeAndResourceIdAndEmail(String resourceType, UUID resourceId, String email);
 
     void deleteByResourceTypeAndResourceId(String resourceType, UUID resourceId);
+
+    void deleteByEmail(String email);
+
+    void deleteByInvitedBy(String invitedBy);
 }

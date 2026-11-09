@@ -11,6 +11,8 @@ interface ResourcePermissionRepository extends JpaRepository<ResourcePermission,
 
     List<ResourcePermission> findByIdEmailAndIdResourceType(String email, String resourceType);
 
+    List<ResourcePermission> findByIdEmailAndIdResourceTypeAndRole(String email, String resourceType, ResourceRole role);
+
     // EDITOR sorts before OWNER alphabetically on the @Enumerated(STRING) column, so DESC puts
     // OWNER first.
     List<ResourcePermission> findByIdResourceTypeAndIdResourceIdOrderByRoleDesc(String resourceType, UUID resourceId);
@@ -18,4 +20,6 @@ interface ResourcePermissionRepository extends JpaRepository<ResourcePermission,
     Optional<ResourcePermission> findByIdResourceTypeAndIdResourceIdAndRole(String resourceType, UUID resourceId, ResourceRole role);
 
     void deleteByIdResourceTypeAndIdResourceId(String resourceType, UUID resourceId);
+
+    void deleteByIdEmail(String email);
 }

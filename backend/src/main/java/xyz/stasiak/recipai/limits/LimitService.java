@@ -75,6 +75,13 @@ class LimitService {
         log.debug("Cleared usage of resource: {} for subject: {} (rows: {})", resource, subject, cleared);
     }
 
+    @Transactional
+    void deleteAllBySubject(String subject) {
+        long cleared = limitUsageRepository.deleteAllByIdSubject(subject);
+        limitConfigRepository.deleteBySubject(subject);
+        log.debug("Cleared {} usage rows and any quota override for subject: {}", cleared, subject);
+    }
+
     @Transactional(readOnly = true)
     Optional<LimitBalance> getBalance(String subject, String resource) {
         Optional<LimitUsage> usage = limitUsageRepository.findById(new LimitUsageId(resource, subject));

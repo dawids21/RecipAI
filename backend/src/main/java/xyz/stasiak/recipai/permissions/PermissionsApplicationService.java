@@ -61,4 +61,11 @@ class PermissionsApplicationService {
         inviteService.clear(resourceType, resourceId);
         log.info("Cleared permissions and pending invites for {} {}", resourceType, resourceId);
     }
+
+    @Transactional
+    void accountDeleted(String email) {
+        permissionService.clearForEmail(email);
+        inviteService.clearForEmail(email);
+        log.info("Cleared permissions and invites for {}", email);
+    }
 }

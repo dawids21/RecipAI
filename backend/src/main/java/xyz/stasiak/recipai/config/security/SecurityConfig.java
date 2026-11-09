@@ -27,7 +27,7 @@ class SecurityConfig {
                         .requestMatchers(
                                 "/recipes/**", "/extract/**", "/users/**",
                                 "/shopping-lists/**", "/collections/**", "/meal-plans/**", "/limits/**",
-                                "/invites/**"
+                                "/invites/**", "/settings/**"
                         ).authenticated()
                         .anyRequest().denyAll()
                 )

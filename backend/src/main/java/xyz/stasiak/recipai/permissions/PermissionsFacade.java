@@ -9,6 +9,7 @@ import xyz.stasiak.recipai.permissions.dto.ResourceRole;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -39,6 +40,11 @@ public class PermissionsFacade {
         return permissionService.accessibleResources(resourceType, email);
     }
 
+    public Set<UUID> ownedResources(String resourceType, String email) {
+        log.debug("Getting owned {} resources for {}", resourceType, email);
+        return permissionService.ownedResources(resourceType, email);
+    }
+
     public Optional<String> ownerEmail(String resourceType, UUID resourceId) {
         log.debug("Getting owner email for {} {}", resourceType, resourceId);
         return permissionService.ownerEmail(resourceType, resourceId);
@@ -67,5 +73,10 @@ public class PermissionsFacade {
     public void resourceDeleted(String resourceType, UUID resourceId) {
         log.debug("Reporting deletion of {} {}", resourceType, resourceId);
         applicationService.resourceDeleted(resourceType, resourceId);
+    }
+
+    public void deleteAllByEmail(String email) {
+        log.debug("Deleting all permissions and invites for {}", email);
+        applicationService.accountDeleted(email);
     }
 }

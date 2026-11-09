@@ -838,5 +838,16 @@ class LimitsIntegrationTest {
         void shouldReturnEmptyQuotaForUnconfiguredResource() {
             assertThat(limitsFacade.getQuota(newSubject(), newResource())).isEmpty();
         }
+
+        @Test
+        void shouldKeepResourceDefaultWhenDeletingAllForNullSubject() {
+            String resource = newResource();
+            setLimitQuota(resource, null, "STOCK", 5, null);
+
+            limitsFacade.deleteAllBySubject(null);
+
+            assertThat(limitsFacade.getQuota(newSubject(), resource))
+                    .contains(new LimitQuota(resource, LimitKind.STOCK, 5));
+        }
     }
 }

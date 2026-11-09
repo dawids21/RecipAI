@@ -226,6 +226,14 @@ class RecipeService {
         limitsFacade.release(userEmail, RECIPE_RESOURCE);
     }
 
+    @Transactional
+    void deleteAllByEmail(String email) {
+        log.debug("Deleting all recipes owned by user: {}", email);
+        for (UUID id : permissionsFacade.ownedResources(RECIPE_RESOURCE, email)) {
+            deleteById(id, email);
+        }
+    }
+
     private RecipeDetailsDto toDetailsDto(Recipe recipe, ResourceRole role, String collectionName, List<RecipeImageDto> images) {
         RecipeData recipeData = convertToRecipeData(recipe.getData());
         return new RecipeDetailsDto(recipe.getId(), recipe.getName(), recipeData, role, recipe.getRecipesCollectionId(), collectionName, images);

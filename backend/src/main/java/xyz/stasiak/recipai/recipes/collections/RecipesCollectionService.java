@@ -106,6 +106,14 @@ public class RecipesCollectionService {
         limitsFacade.release(userEmail, RECIPES_COLLECTION_RESOURCE);
     }
 
+    @Transactional
+    void deleteAllByEmail(String email) {
+        log.debug("Deleting all recipes collections owned by user: {}", email);
+        for (UUID id : permissionsFacade.ownedResources(RECIPES_COLLECTION_RESOURCE, email)) {
+            deleteById(id, email);
+        }
+    }
+
     void shareRecipesCollection(ShareRequest request, UUID collectionId, String requesterEmail) {
         log.debug("Sharing recipes collection {} from {} to {}", collectionId, requesterEmail, request.email());
 

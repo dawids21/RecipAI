@@ -26,6 +26,11 @@ public class RecipeFacade {
         return recipeService.accessibleRecipeIds(userEmail);
     }
 
+    public void deleteAllByEmail(String email) {
+        log.debug("Deleting all recipes owned by user {}", email);
+        recipeService.deleteAllByEmail(email);
+    }
+
     public RecipeInfoResult getRecipes(Collection<UUID> recipeIds, String userEmail) {
         log.debug("Getting recipes for {} recipe ids for user {}", recipeIds.size(), userEmail);
 

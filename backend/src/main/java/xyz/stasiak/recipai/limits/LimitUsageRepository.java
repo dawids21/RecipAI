@@ -37,4 +37,6 @@ interface LimitUsageRepository extends JpaRepository<LimitUsage, LimitUsageId> {
              WHERE resource = :resource AND subject = :subject
             """, nativeQuery = true)
     int clear(@Param("resource") String resource, @Param("subject") String subject);
+
+    long deleteAllByIdSubject(String subject);
 }

@@ -11,7 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,12 @@ class PermissionService {
             access.put(permission.getId().resourceId(), permission.getRole());
         }
         return access;
+    }
+
+    Set<UUID> ownedResources(String resourceType, String email) {
+        return permissionRepository.findByIdEmailAndIdResourceTypeAndRole(email, resourceType, ResourceRole.OWNER).stream()
+                .map(permission -> permission.getId().resourceId())
+                .collect(Collectors.toSet());
     }
 
     Optional<String> ownerEmail(String resourceType, UUID resourceId) {
@@ -93,5 +101,9 @@ class PermissionService {
 
     void clear(String resourceType, UUID resourceId) {
         permissionRepository.deleteByIdResourceTypeAndIdResourceId(resourceType, resourceId);
+    }
+
+    void clearForEmail(String email) {
+        permissionRepository.deleteByIdEmail(email);
     }
 }

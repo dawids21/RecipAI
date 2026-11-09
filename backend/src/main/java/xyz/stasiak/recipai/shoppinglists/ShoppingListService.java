@@ -186,6 +186,14 @@ class ShoppingListService {
         limitsFacade.clear(id.toString(), SHOPPING_LIST_ITEM_RESOURCE);
     }
 
+    @Transactional
+    void deleteAllByEmail(String email) {
+        log.debug("Deleting all shopping lists owned by user: {}", email);
+        for (UUID id : permissionsFacade.ownedResources(SHOPPING_LIST_RESOURCE, email)) {
+            deleteById(id, email);
+        }
+    }
+
     ShoppingListListDto updateById(UUID id, UpdateShoppingListRequest request, String userEmail) {
         log.debug("Updating shopping list with id: {} for user: {}", id, userEmail);
 

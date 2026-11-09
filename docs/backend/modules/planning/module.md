@@ -21,7 +21,8 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── MealPlanRepository.java                     # Meal plan data access — findByIdInOrderByCreatedAtAsc(ids), a derived query over the caller's accessible plan ids
     ├── MealPlanEntryRepository.java                # Meal plan entry data access with calendar view query (JPQL projection) — findEntriesWithRecipes and findCalendarEntries take accessible plan and recipe ids, no join to permissions or recipes.collections
     ├── MealPlanCalendarEntryProjection.java        # Projection interface for calendar entries
-    ├── MealPlanService.java                        # Meal plan business logic with entries, permissions and sharing; owns the MEAL_PLAN_RESOURCE key, reserved on create, released on delete; shares via PermissionsFacade.invite, unshares via revoke
+    ├── MealPlanService.java                        # Meal plan business logic with entries, permissions and sharing; owns the MEAL_PLAN_RESOURCE key, reserved on create, released on delete; shares via PermissionsFacade.invite, unshares via revoke; deleteAllByEmail deletes every owned plan through delete
+    ├── PlanningFacade.java                         # Public facade for use by other modules — deleteAllByEmail for account deletion
     ├── MealPlanCalendarService.java                # Calendar view service — intersects requested plan ids with the caller's accessible plans, resolves accessible recipe ids via RecipeFacade, then groups by date
     ├── MealPlanController.java                     # Meal plan REST endpoints with JWT authentication, sharing, and calendar endpoints
     ├── PlanningExceptionHandler.java               # Exception handling with ProblemDetail

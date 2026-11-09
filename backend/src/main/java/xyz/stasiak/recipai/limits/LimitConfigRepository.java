@@ -1,6 +1,7 @@
 package xyz.stasiak.recipai.limits;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -34,4 +35,9 @@ interface LimitConfigRepository extends JpaRepository<LimitConfig, UUID> {
         }
         return List.copyOf(byResource.values());
     }
+
+    // Not derived: a derived delete binds a null subject as IS NULL and would wipe the global defaults.
+    @Modifying
+    @Query("DELETE FROM LimitConfig c WHERE c.subject = :subject")
+    void deleteBySubject(@Param("subject") String subject);
 }

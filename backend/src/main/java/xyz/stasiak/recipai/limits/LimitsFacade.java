@@ -46,6 +46,11 @@ public class LimitsFacade {
         limitService.clear(subject, resource);
     }
 
+    public void deleteAllBySubject(String subject) {
+        log.debug("Deleting all usage and quota overrides for subject: {}", subject);
+        limitService.deleteAllBySubject(subject);
+    }
+
     public Optional<LimitBalance> getBalance(String subject, String resource) {
         log.debug("Getting balance of resource: {} for subject: {}", resource, subject);
         return limitService.getBalance(subject, resource);

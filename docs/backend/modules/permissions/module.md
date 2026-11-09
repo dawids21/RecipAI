@@ -22,17 +22,17 @@ backend/src/main/java/xyz/stasiak/recipai/
     │   ├── InviteNotFoundException.java         # Public — 404
     │   ├── InviteRefusedException.java          # Public — 409, carries a machine-readable Reason
     │   └── InvalidInviteRoleException.java      # Public — 400, a ShareRequest.role the module cannot grant via an invite (OWNER)
-    ├── PermissionsFacade.java                   # Public facade — delegates single-service calls to PermissionService, coordinated calls to PermissionsApplicationService, logs
-    ├── PermissionsApplicationService.java       # Package-private — owns the @Transactional boundary for invite, acceptInvite, revoke, getPermissions, resourceDeleted
-    ├── PermissionService.java                   # Package-private — owns ResourcePermissionRepository: role lookups, accessible-resources, owner email, grant, revoke (self-unshare and owner-unshare guards), granted-permission listing, deletion
-    ├── InviteService.java                       # Package-private — owns ResourceInviteRepository: invite create (both refusal rules), accept, decline, cancel, cross-resource pending list, deletion
+    ├── PermissionsFacade.java                   # Public facade — delegates single-service calls to PermissionService, coordinated calls to PermissionsApplicationService, logs; includes ownedResources and deleteAllByEmail
+    ├── PermissionsApplicationService.java       # Package-private — owns the @Transactional boundary for invite, acceptInvite, revoke, getPermissions, resourceDeleted, accountDeleted
+    ├── PermissionService.java                   # Package-private — owns ResourcePermissionRepository: role lookups, accessible-resources, owned-resources, owner email, grant, revoke (self-unshare and owner-unshare guards), granted-permission listing, deletion per resource and per email
+    ├── InviteService.java                       # Package-private — owns ResourceInviteRepository: invite create (both refusal rules), accept, decline, cancel, cross-resource pending list, deletion per resource and per email (addressed to or sent by)
     ├── InviteController.java                    # Package-private @RestController — /invites, the invitee's surface only (GET, accept, decline); pending list and decline talk to InviteService directly, accept goes through PermissionsApplicationService
     ├── PermissionsExceptionHandler.java         # Package-private @RestControllerAdvice for the four exceptions in exception/
     ├── ResourcePermission.java                  # Entity over resource_permission — composite key (email, resourceType, resourceId), owns hasOwnerRights()/hasEditorRights()
     ├── ResourcePermissionId.java                # Embeddable composite key (email, resourceType, resourceId)
-    ├── ResourcePermissionRepository.java        # Role lookup, accessible-resources projection, per-resource listing (OWNER first), owner-role lookup, delete-all-for-resource
+    ├── ResourcePermissionRepository.java        # Role lookup, accessible-resources projection, owned-by-email lookup, per-resource listing (OWNER first), owner-role lookup, delete-all-for-resource, delete-all-for-email
     ├── ResourceInvite.java                      # Entity over resource_invite — UUID primary key, target email, role to grant, sender, stored label
-    ├── ResourceInviteRepository.java            # By-email (cross-resource), per-resource listing, existence checks behind the refusal rules, delete-all-for-resource
+    ├── ResourceInviteRepository.java            # By-email (cross-resource), per-resource listing, existence checks behind the refusal rules, delete-all-for-resource, delete by target email and by sender
     └── AcceptedInvite.java                      # Package-private record (resourceType, resourceId, role) — returned by InviteService.accept
 ```
 
@@ -60,7 +60,8 @@ combines the answers itself — the module never learns that recipes belong to c
   directly and return the role they validated, so a caller cannot check and forget to act. `roleOf`
   answers without throwing — an unseen resource type answers "no access", the same as any other miss;
   the module holds no registry to tell the two apart. `accessibleResources` returns every resource of
-  a type an email may reach, as `Map<UUID, ResourceRole>`.
+  a type an email may reach, as `Map<UUID, ResourceRole>`; `ownedResources` returns only the ids of a
+  type the email holds as `OWNER`, as `Set<UUID>`.
 - **Invite lifecycle** — `invite` first rejects `role == OWNER` (`InvalidInviteRoleException`, 400 —
   the module has no ownership-transfer operation, so an invite can never be created at a role it
   cannot grant), then creates a pending row after the two refusal rules (`InviteRefusedException`, see
@@ -77,9 +78,10 @@ combines the answers itself — the module never learns that recipes belong to c
   otherwise cancels a pending invite, otherwise no-ops. Two guards apply to every resource type: a
   caller may not unshare an `OWNER`, and may not unshare themselves (checked before the lookup, so it
   holds whether the target is granted or pending).
-- **Coordinated across two services** — invite, accept, revoke, listing and deletion each touch both
-  `PermissionService` and `InviteService`; `PermissionsApplicationService` owns the `@Transactional`
-  boundary for each of these five operations, so neither service depends on the other's repository —
+- **Coordinated across two services** — invite, accept, revoke, listing, resource deletion and account
+  deletion each touch both `PermissionService` and `InviteService`; `PermissionsApplicationService`
+  owns the `@Transactional` boundary for each of these six operations, so neither service depends on
+  the other's repository —
   see `docs/backend/standards/module-structure.md` > Application Service for Multi-Service
   Coordination.
 - **`getPermissions`** — granted users first (`OWNER` then `EDITOR`), then pending invites by age,
@@ -87,6 +89,10 @@ combines the answers itself — the module never learns that recipes belong to c
   dialog.
 - **`resourceDeleted`** — destroys every permission and every pending invite for a resource. Every
   module's delete path must call this; there is no foreign key enforcing it (see `db.md`).
+- **`deleteAllByEmail`** — destroys every row carrying an email, in one transaction: its permission
+  rows in both roles, the invites addressed to it, and the invites it sent. Every resource module must
+  have purged the email's owned resources first — they find them through `ownedResources`, which this
+  call empties — so `settings` runs it last (see `docs/backend/modules/settings/module.md`).
 - **Unseen resource types** — a resource type nobody has ever granted a permission for answers "no
   access" rather than throwing; the module has no registry of valid resource type keys to check
   against.
@@ -105,3 +111,5 @@ combines the answers itself — the module never learns that recipes belong to c
   `RECIPES_COLLECTION`, and `share` creates an invite carrying the collection's name as its label.
 - `planning` — holds every meal-plan permission and pending invite under `MEAL_PLAN`, and `share`
   creates an invite carrying the plan's name as its label.
+- `settings` — calls `deleteAllByEmail` last in account deletion, after every resource module has
+  purged the resources `ownedResources` reports.

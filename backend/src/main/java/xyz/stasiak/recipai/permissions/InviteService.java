@@ -87,4 +87,9 @@ class InviteService {
     void clear(String resourceType, UUID resourceId) {
         inviteRepository.deleteByResourceTypeAndResourceId(resourceType, resourceId);
     }
+
+    void clearForEmail(String email) {
+        inviteRepository.deleteByEmail(email);
+        inviteRepository.deleteByInvitedBy(email);
+    }
 }

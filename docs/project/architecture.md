@@ -30,6 +30,7 @@ indexed in `docs/INDEX.md`); the role of each in the system:
 - **`permissions`** — the shared access-control module owning granted permissions and pending invites for every shareable resource
 - **`planning`** — meal plans that reference `recipes` and generate shopping lists
 - **`shoppinglists`** — shopping lists, populated manually or generated from `planning`
+- **`settings`** — self-service account deletion, ordering every module's per-account purge
 - **`provisioning`** — ingredient-to-shopping-list-item transformation used by `planning`
 - **`config.security`** — OAuth2 Resource Server / JWT validation for every request
 - **`config.s3`** — AWS S3 client configuration and the object-storage seam backing `recipes.images`
@@ -52,7 +53,7 @@ Controller → Service → Repository → Entity
 ### Key Patterns
 
 - **Package-private visibility** — internal classes not accessible outside feature package
-- **Facade pattern** — `RecipeFacade`, `ProvisioningFacade`, `LimitsFacade`, `PermissionsFacade` for cross-module access
+- **Facade pattern** — `RecipeFacade`, `RecipesCollectionsFacade`, `ShoppingListsFacade`, `PlanningFacade`, `ProvisioningFacade`, `LimitsFacade`, `PermissionsFacade` for cross-module access
 - **Event-driven cascade** — `RecipeDeleted` event triggers cascading cleanup in meal plans
 - **Role-based access** — OWNER/EDITOR roles on every shareable resource, answered by the `permissions` module; sharing is a two-step handshake that grants nothing until the invitee accepts the pending invite (see `docs/backend/modules/permissions/module.md`)
 - **Optimistic locking** — per-item `baseVersion` on shopping list item writes

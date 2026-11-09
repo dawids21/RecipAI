@@ -109,6 +109,14 @@ class MealPlanService {
     }
 
     @Transactional
+    void deleteAllByEmail(String email) {
+        log.debug("Deleting all meal plans owned by user: {}", email);
+        for (UUID id : permissionsFacade.ownedResources(MEAL_PLAN_RESOURCE, email)) {
+            delete(id, email);
+        }
+    }
+
+    @Transactional
     MealPlanEntryDto createEntry(UUID planId, CreateMealPlanEntryRequest request, String userEmail) {
         log.debug("Creating entry for meal plan {} by user {}", planId, userEmail);
 

@@ -18,9 +18,9 @@ backend/src/main/java/xyz/stasiak/recipai/
 └── recipes/
     ├── Recipe.java                          # Recipe entity
     ├── RecipeRepository.java                # Recipe data access with user filtering (all, by collection, unassigned, accessible) — findAllByUserEmail/findAllUnassignedByUserEmail/findAccessibleIds take the caller's accessible recipe ids and accessible collection ids as two IN parameters, no join
-    ├── RecipeService.java                   # Recipe business logic with collection assignment validation, image management (upload, update, reorder, delete), and resolveAccess() composing PermissionsFacade's direct role with collection-derived access; owns the RECIPE resource key, reserving one unit on create and releasing one on delete
+    ├── RecipeService.java                   # Recipe business logic with collection assignment validation, image management (upload, update, reorder, delete), and resolveAccess() composing PermissionsFacade's direct role with collection-derived access; owns the RECIPE resource key, reserving one unit on create and releasing one on delete; deleteAllByEmail deletes every recipe PermissionsFacade.ownedResources reports through deleteById, so RecipeDeleted, the S3 prefix delete and the limits release all fire
     ├── RecipeController.java                # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
-    ├── RecipeFacade.java                    # Public facade for use by other modules — recipe lookups plus getAccessibleRecipeIds, the composed id set planning's calendar reads hasRecipeAccess from
+    ├── RecipeFacade.java                    # Public facade for use by other modules — recipe lookups plus getAccessibleRecipeIds, the composed id set planning's calendar reads hasRecipeAccess from, and deleteAllByEmail for account deletion
     ├── RecipeIngredientsResult.java         # Result record holding list of RecipeWithIngredients and names of inaccessible recipes
     ├── RecipeWithIngredients.java           # Record holding recipeId, servingSize, and ingredients for a single recipe
     ├── RecipeDetailsDto.java                # Recipe details response DTO with images array and the caller's ResourceRole
@@ -52,7 +52,8 @@ backend/src/main/java/xyz/stasiak/recipai/
     └── collections/
         ├── RecipesCollection.java                       # RecipesCollection entity
         ├── RecipesCollectionRepository.java             # Collection data access — findByIdInOrderByCreatedAtAsc(ids), a derived query over the caller's accessible collection ids
-        ├── RecipesCollectionService.java                # Collection business logic with automatic removal of user-owned recipes when unshared; owns the RECIPES_COLLECTION_RESOURCE key and answers roleOf for a single collection, reserving one unit on create and releasing one on delete; shares via PermissionsFacade.invite, unshares via revoke
+        ├── RecipesCollectionsFacade.java                # Public facade for use by other modules — deleteAllByEmail for account deletion
+        ├── RecipesCollectionService.java                # Collection business logic with automatic removal of user-owned recipes when unshared; owns the RECIPES_COLLECTION_RESOURCE key and answers roleOf for a single collection, reserving one unit on create and releasing one on delete; shares via PermissionsFacade.invite, unshares via revoke; deleteAllByEmail deletes every owned collection through deleteById
         ├── RecipesCollectionController.java             # Collection REST endpoints
         ├── RecipesCollectionsExceptionHandler.java      # Exception handling (404 only; 403 for collection access comes from PermissionsExceptionHandler)
         ├── dto/

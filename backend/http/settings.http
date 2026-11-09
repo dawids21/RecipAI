@@ -1,0 +1,7 @@
+@baseUrl = http://localhost:8080
+@user = alice1
+
+### Delete the caller's account - DESTRUCTIVE: permanently removes every recipe, collection,
+# shopping list, meal plan, permission, invite and usage row belonging to {{user}}
+DELETE {{baseUrl}}/settings/account
+Authorization: Bearer {{user}}

@@ -63,7 +63,8 @@ role in the system is in `docs/project/architecture.md`.
 
 #### Permissions (`backend/modules/permissions/`)
 - `module.md` — description, file tree, module boundary, the invite handshake, the refusal rules, and
-  the unshare/self-unshare guards shared by every resource type
+  the unshare/self-unshare guards shared by every resource type, and the per-email purge behind
+  account deletion
 - `api.md` — `/invites` (the invitee's surface), and the shared `ShareRequest`/`UnshareRequest`/
   `PermissionDto` shapes and error contract every resource module's `share`/`unshare`/`permissions`
   endpoints use
@@ -80,6 +81,11 @@ role in the system is in `docs/project/architecture.md`.
 - `module.md` — description, file tree, module boundary, reserve/release/clear/resolution behaviour including the config-subject vs usage-subject split, the usage reads, the `recipai.limits.enabled` kill-switch, and the consuming modules
 - `api.md` — `GET /limits` and the shared 429 refusal contract
 - `db.md` — `limit_config`, `limit_usage` tables, the seeded defaults, and the repeatable recompute that rebuilds usage from `resource_permission` and, for shopping-list items, from the items themselves
+
+#### Settings (`backend/modules/settings/`)
+- `module.md` — description, file tree, and the account-deletion purge order, partial-failure repair
+  and missing-email refusal
+- `api.md` — `DELETE /settings/account`
 
 #### Provisioning (`backend/modules/provisioning/`)
 - `module.md` — description and file tree (no HTTP endpoints, no DB tables)
