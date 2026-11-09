@@ -5,7 +5,7 @@ a calendar, and turn those plans into shopping lists — with any of it shareabl
 
 A monorepo of two independent applications:
 
-- **`backend/`** — Spring Boot REST API (Java 26, PostgreSQL, Spring AI, OAuth2/JWT)
+- **`backend/`** — Spring Boot REST API (Java 27, PostgreSQL, Spring AI, OAuth2/JWT)
 - **`mobile/`** — Flutter app for Android (Firebase Google Sign-In)
 
 ## Features

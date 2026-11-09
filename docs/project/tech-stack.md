@@ -8,9 +8,9 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 
 ## Languages
 
-### Java 26
+### Java 27
 - **Usage**: ~100% of backend codebase
-- **Rationale**: Modern LTS with strong Spring Boot ecosystem; record types and pattern matching used for concise DTOs and clean code
+- **Rationale**: Latest feature release with strong Spring Boot ecosystem; record types and pattern matching used for concise DTOs and clean code
 - **Key Features Used**: Records for DTOs, sealed classes, text blocks, Lombok-reduced boilerplate
 
 ### Dart 3.12.2
@@ -27,7 +27,7 @@ RecipAI is a monorepo containing two independent applications: a Spring Boot RES
 - Material Design 3 theming via `ThemeData` with seed color
 - flutter_localizations for i18n support (en_US, en_GB, pl)
 
-### Backend — Spring Boot 4.1.0 (Spring Framework 7.0.8)
+### Backend — Spring Boot 4.1.2 (Spring Framework 7.0.10)
 - Spring Data JPA — ORM and data access
 - Spring Security + OAuth2 Resource Server — JWT authentication
 - Spring AI 2.0.0 — AI recipe extraction via Google Genai
@@ -83,12 +83,12 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 
 | Dependency | Version | Purpose |
 |-----------|---------|---------|
-| Spring Boot | 4.1.0 | Application framework |
+| Spring Boot | 4.1.2 | Application framework |
 | Spring AI | 2.0.0 | AI recipe extraction (Google Genai) |
 | Spring Security OAuth2 | — | JWT authentication |
 | PostgreSQL driver | — | Database connectivity |
 | Flyway | core | Database schema migrations |
-| Lombok | 1.18.46 | Boilerplate code generation |
+| Lombok | 1.18.48 | Boilerplate code generation |
 | AWS SDK for Java | 2.52.0 | S3 image storage |
 | Thumbnailator | 0.4.21 | Recipe image thumbnail generation |
 | Testcontainers | — | Integration test database |

@@ -220,8 +220,8 @@ Firebase config (`google-services.json`), API base URL in app config.
 
 The backend is containerized using a multi-stage Dockerfile:
 
-1. **Build stage** — `eclipse-temurin:25-jdk-alpine` with Maven compiles the application
-2. **Runtime stage** — `eclipse-temurin:25-jre-alpine` for a smaller production image
+1. **Build stage** — `eclipse-temurin:27-jdk-alpine` with Maven compiles the application
+2. **Runtime stage** — `eclipse-temurin:27-jre-alpine` for a smaller production image
 
 ### CI/CD
 
