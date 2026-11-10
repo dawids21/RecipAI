@@ -1,7 +1,6 @@
 # ADR-<NNNN>: <Title>
 
 **Date:** <YYYY-MM-DD>
-**Status:** proposed
 **Related ADRs:** <links to other ADRs only — do NOT link to the HLD or requirements files; they are ephemeral, this ADR is not.>
 
 ## Context

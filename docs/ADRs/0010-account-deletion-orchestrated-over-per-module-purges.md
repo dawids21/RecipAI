@@ -1,7 +1,6 @@
 # ADR-0010: Account deletion is orchestrated over per-module purges, not a bulk delete
 
 **Date:** 2026-09-04
-**Status:** accepted
 **Related ADRs:** [ADR-0006: Usage limits are owned end-to-end by a shared limits module](0006-shared-limits-module.md),
 [ADR-0007: Sharing is owned end-to-end by a shared permissions module](0007-shared-permissions-module.md)
 

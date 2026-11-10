@@ -1,7 +1,6 @@
 # ADR-0002: Mobile widget tests pump the real screen against a single-route test router with mocktail repositories
 
 **Date:** 2026-04-22
-**Status:** accepted
 **Related ADRs:** —
 
 ## Context

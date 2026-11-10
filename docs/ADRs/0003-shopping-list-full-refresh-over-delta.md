@@ -1,7 +1,6 @@
 # ADR-0003: Shopping-list items refresh via full-list pull, not a delta protocol
 
 **Date:** 2026-06-14
-**Status:** accepted
 **Related ADRs:** _None._
 
 ## Context

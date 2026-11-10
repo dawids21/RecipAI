@@ -1,7 +1,6 @@
 # ADR-0005: Shopping-list sync is made deterministically testable via an injected scheduler and a single-entry push seam
 
 **Date:** 2026-07-21
-**Status:** accepted
 **Related ADRs:** [ADR-0004: Shopping-list items are serialised through a dedicated store aggregate](0004-shopping-list-item-store-aggregate.md)
 
 ## Context

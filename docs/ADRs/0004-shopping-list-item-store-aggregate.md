@@ -1,7 +1,6 @@
 # ADR-0004: Shopping-list items are serialised through a dedicated store aggregate
 
 **Date:** 2026-07-18
-**Status:** accepted
 **Related ADRs:** [ADR-0003](0003-shopping-list-full-refresh-over-delta.md) — the
 full-list pull whose reconcile is one of the store paths serialised here.
 

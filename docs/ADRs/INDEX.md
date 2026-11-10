@@ -3,6 +3,7 @@
 Architecture Decision Records for RecipAI. Each ADR captures a single
 non-obvious technical decision with its context, alternatives, and
 consequences. Read an ADR before changing code in the area it covers.
+ADRs carry no status field: a record in this directory is an accepted decision.
 
 ## Records
 
