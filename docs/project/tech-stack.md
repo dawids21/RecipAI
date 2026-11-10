@@ -68,7 +68,7 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 - **Docker Compose** — local development PostgreSQL database (`backend/compose.yaml`)
 
 ### CI/CD
-- **GitHub Actions** — Docker image build and push to container registry on merge
+- **GitHub Actions** — manually triggered Docker image build and push to GHCR; see `architecture.md` → *CI/CD*
 
 ### Hosting
 - **Backend**: Self-hosted VPS
@@ -134,9 +134,3 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 - Semantic versioning on mobile (`pubspec.yaml`: `version: 1.0.0+14`)
 - Backend versioned via Maven POM and Docker image tags
 - Conventional commits enforced in git history (`feat:`, `fix:`, `build:`, `docs:`, `refactor:`)
-
----
-
-*Last Updated*: 2026-08-12
-*Auto-detected*: tech stack, dependencies, versions, build tools, CI/CD config, infrastructure
-*User-provided*: hosting details (VPS for backend, AWS S3 for assets)
