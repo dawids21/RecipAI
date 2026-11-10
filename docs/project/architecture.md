@@ -226,13 +226,7 @@ The backend is containerized using a multi-stage Dockerfile:
 
 ### CI/CD
 
-GitHub Actions runs on every push to `main`:
-
-1. Builds the Spring Boot application with Maven
-2. Builds the Docker image
-3. Publishes to GitHub Container Registry (`ghcr.io/dawids21/recipai/api`)
-4. Supports manual workflow triggers
-
----
-
-*Based on codebase analysis performed 2026-04-09*
+A single GitHub Actions workflow, `.github/workflows/docker-build-api.yml`, builds the backend image. It runs only
+when triggered manually (`workflow_dispatch`); merging to `main` does not trigger it. It builds `backend/` with its
+Dockerfile (the Maven build runs in the Docker build stage) and pushes the image to GitHub Container Registry as
+`ghcr.io/dawids21/recipai/api`, tagged with the triggering branch name and `latest`.
