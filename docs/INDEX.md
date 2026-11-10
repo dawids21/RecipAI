@@ -198,7 +198,7 @@ Standards for widget tests: repository-only mocking with mocktail (real services
 
 ## Architecture Decision Records (ADRs)
 
-Located in `docs/ADRs/`. See `ADRs/INDEX.md` for the full list of decisions and their status.
+Located in `docs/ADRs/`. See `ADRs/INDEX.md` for the full list of decisions.
 
 ADRs document significant architectural decisions: the context, the options considered, and the chosen approach.
 

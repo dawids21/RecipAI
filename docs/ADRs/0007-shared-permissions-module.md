@@ -1,7 +1,6 @@
 # ADR-0007: Sharing is owned end-to-end by a shared permissions module, with role composition left to the composing module
 
 **Date:** 2026-08-26
-**Status:** proposed
 **Related ADRs:** [ADR-0006](0006-shared-limits-module.md)
 
 ## Context

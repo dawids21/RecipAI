@@ -1,7 +1,6 @@
 # ADR-0009: The Firebase identity is deleted by the mobile client, never by the backend
 
 **Date:** 2026-09-04
-**Status:** accepted
 **Related ADRs:** [ADR-0011: Administrators are recognised by a configured email allowlist](0011-admin-authority-from-config-allowlist.md)
 
 ## Context

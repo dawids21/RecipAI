@@ -1,7 +1,6 @@
 # ADR-0011: Administrators are recognised by a configured email allowlist
 
 **Date:** 2026-09-04
-**Status:** accepted
 **Related ADRs:** [ADR-0009: The Firebase identity is deleted by the mobile client](0009-client-side-firebase-identity-deletion.md)
 
 ## Context

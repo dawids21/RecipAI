@@ -1,7 +1,6 @@
 # ADR-0008: A pending invite carries a display label snapshotted at invite time
 
 **Date:** 2026-08-26
-**Status:** proposed
 **Related ADRs:** [ADR-0007](0007-shared-permissions-module.md)
 
 ## Context
