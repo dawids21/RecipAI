@@ -58,8 +58,8 @@ combines the answers itself — the module never learns that recipes belong to c
   invite has an id, a sender and a label; see `db.md`.
 - **Access questions** — `requireEditor` / `requireOwner` throw `ResourceAccessDeniedException`
   directly and return the role they validated, so a caller cannot check and forget to act. `roleOf`
-  answers without throwing — an unseen resource type answers "no access", the same as any other miss;
-  the module holds no registry to tell the two apart. `accessibleResources` returns every resource of
+  answers without throwing — a miss, including an unseen resource type, answers "no access" (see
+  **Unseen resource types**). `accessibleResources` returns every resource of
   a type an email may reach, as `Map<UUID, ResourceRole>`; `ownedResources` returns only the ids of a
   type the email holds as `OWNER`, as `Set<UUID>`.
 - **Invite lifecycle** — `invite` first rejects `role == OWNER` (`InvalidInviteRoleException`, 400 —
