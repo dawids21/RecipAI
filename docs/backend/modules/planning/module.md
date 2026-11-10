@@ -28,10 +28,20 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── PlanningExceptionHandler.java               # Exception handling with ProblemDetail
     ├── dto/
     │   ├── MealPlanDto.java                        # Meal plan response DTO with the caller's ResourceRole
+    │   ├── CreateMealPlanRequest.java              # Create meal plan request DTO
+    │   ├── UpdateMealPlanRequest.java              # Update meal plan request DTO
+    │   ├── CreateMealPlanEntryRequest.java         # Create meal plan entry request DTO
+    │   ├── UpdateMealPlanEntryRequest.java         # Update meal plan entry request DTO
+    │   ├── MealPlanEntryDto.java                   # Meal plan entry response DTO
+    │   ├── MealPlanCalendarViewDto.java            # Calendar view response DTO
     │   ├── GenerateShoppingListItemsRequest.java   # Request DTO with planIds and selectedDates
     │   ├── GeneratedShoppingListItemDto.java       # Shopping list item DTO (name, quantity, unit, source)
     │   └── GeneratedShoppingListResponse.java      # Response DTO with items list and warnings list
-    └── exception/                                  # Meal planning custom exceptions
+    └── exception/
+        ├── MealPlanNotFoundException.java
+        ├── MealPlanEntryNotFoundException.java
+        ├── InvalidMealPlanEntryException.java
+        └── InvalidDateRangeException.java
 ```
 
 Sharing types (`ResourceRole`, `PermissionDto`, `ShareRequest`, `UnshareRequest`) and the access-denied
