@@ -102,8 +102,7 @@
 
 #### Recipe Collections Management Flow
 
-1. **AppBar Menu → Recipes collections** (when feature flag enabled) → Recipes Collection List Screen
-   (`/recipes-collections`)
+1. **AppBar Menu → Recipes collections** → Recipes Collection List Screen (`/recipes-collections`)
 2. **FAB Tap** (on Collections screen) → Create dialog with name input → Collection created → List refreshed
 3. **Pull to Refresh** (on Collections screen) → Collections reloaded from API
 4. **Collection Item Menu → Rename** → Rename dialog with pre-filled name → Collection renamed → List refreshed
