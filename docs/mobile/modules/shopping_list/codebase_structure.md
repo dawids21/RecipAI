@@ -4,7 +4,6 @@
 mobile/lib/features/shopping_list/
 ├── shopping_list.dart                  # Shopping list data model
 ├── shopping_list_item.dart             # Shopping list item data model
-├── shopping_list_detail.dart           # Shopping list detail data model (includes items)
 ├── local_shopping_list_item.dart       # Local item model with last-acked version, dirty, failed, and pending-delete flags
 ├── shopping_list_repository.dart       # Shopping list data access layer
 ├── shopping_list_item_database_factory.dart # Owns item DB creation: opens the on-device DB and holds the single-sourced items + outbox schema (shared with the in-memory test DB)
