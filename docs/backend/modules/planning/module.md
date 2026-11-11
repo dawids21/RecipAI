@@ -18,13 +18,13 @@ backend/src/main/java/xyz/stasiak/recipai/
 └── planning/
     ├── MealPlan.java                               # Meal plan entity
     ├── MealPlanEntry.java                          # Meal plan entry entity
-    ├── MealPlanRepository.java                     # Meal plan data access — findByIdInOrderByCreatedAtAsc(ids), a derived query over the caller's accessible plan ids
-    ├── MealPlanEntryRepository.java                # Meal plan entry data access with calendar view query (JPQL projection) — findEntriesWithRecipes and findCalendarEntries take accessible plan and recipe ids, no join to permissions or recipes.collections
+    ├── MealPlanRepository.java                     # Meal plan data access
+    ├── MealPlanEntryRepository.java                # Meal plan entry data access, including the calendar view projection query
     ├── MealPlanCalendarEntryProjection.java        # Projection interface for calendar entries
-    ├── MealPlanService.java                        # Meal plan business logic with entries, permissions and sharing; owns the MEAL_PLAN_RESOURCE key, reserved on create, released on delete; shares via PermissionsFacade.invite, unshares via revoke; deleteAllByEmail deletes every owned plan through delete
-    ├── PlanningFacade.java                         # Public facade for use by other modules — deleteAllByEmail for account deletion
-    ├── MealPlanCalendarService.java                # Calendar view service — intersects requested plan ids with the caller's accessible plans, resolves accessible recipe ids via RecipeFacade, then groups by date
-    ├── MealPlanController.java                     # Meal plan REST endpoints with JWT authentication, sharing, and calendar endpoints
+    ├── MealPlanService.java                        # Meal plan and entry logic and sharing; owns the MEAL_PLAN resource key (see Limits)
+    ├── PlanningFacade.java                         # Public facade — the account-deletion purge (see settings/module.md)
+    ├── MealPlanCalendarService.java                # Calendar view over the caller's accessible plans, grouped by date
+    ├── MealPlanController.java                     # Meal plan REST endpoints, including sharing and the calendar view
     ├── PlanningExceptionHandler.java               # Exception handling with ProblemDetail
     ├── dto/
     │   ├── MealPlanDto.java                        # Meal plan response DTO with the caller's ResourceRole

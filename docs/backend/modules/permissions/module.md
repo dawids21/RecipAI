@@ -20,20 +20,20 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── exception/
     │   ├── ResourceAccessDeniedException.java   # Public — 403
     │   ├── InviteNotFoundException.java         # Public — 404
-    │   ├── InviteRefusedException.java          # Public — 409, carries a machine-readable Reason
-    │   └── InvalidInviteRoleException.java      # Public — 400, a ShareRequest.role the module cannot grant via an invite (OWNER)
-    ├── PermissionsFacade.java                   # Public facade — delegates single-service calls to PermissionService, coordinated calls to PermissionsApplicationService, logs; includes ownedResources and deleteAllByEmail
-    ├── PermissionsApplicationService.java       # Package-private — owns the @Transactional boundary for invite, acceptInvite, revoke, getPermissions, resourceDeleted, accountDeleted
-    ├── PermissionService.java                   # Package-private — owns ResourcePermissionRepository: role lookups, accessible-resources, owned-resources, owner email, grant, revoke (self-unshare and owner-unshare guards), granted-permission listing, deletion per resource and per email
-    ├── InviteService.java                       # Package-private — owns ResourceInviteRepository: invite create (both refusal rules), accept, decline, cancel, cross-resource pending list, deletion per resource and per email (addressed to or sent by)
-    ├── InviteController.java                    # Package-private @RestController — /invites, the invitee's surface only (GET, accept, decline); pending list and decline talk to InviteService directly, accept goes through PermissionsApplicationService
+    │   ├── InviteRefusedException.java          # Public — 409, carries a machine-readable Reason (see Behaviour → Refusal rules)
+    │   └── InvalidInviteRoleException.java      # Public — 400, an invite role the module cannot grant (see Behaviour → Invite lifecycle)
+    ├── PermissionsFacade.java                   # Public facade — delegates to PermissionService or PermissionsApplicationService, and logs
+    ├── PermissionsApplicationService.java       # Package-private — @Transactional boundary for operations spanning both services; see Behaviour
+    ├── PermissionService.java                   # Package-private — owns ResourcePermissionRepository: granted permissions and the revoke guards
+    ├── InviteService.java                       # Package-private — owns ResourceInviteRepository: pending invites and the refusal rules
+    ├── InviteController.java                    # Package-private @RestController — /invites, the invitee's surface only (list, accept, decline)
     ├── PermissionsExceptionHandler.java         # Package-private @RestControllerAdvice for the four exceptions in exception/
-    ├── ResourcePermission.java                  # Entity over resource_permission — composite key (email, resourceType, resourceId), owns hasOwnerRights()/hasEditorRights()
+    ├── ResourcePermission.java                  # Entity over resource_permission — owns hasOwnerRights()/hasEditorRights()
     ├── ResourcePermissionId.java                # Embeddable composite key (email, resourceType, resourceId)
-    ├── ResourcePermissionRepository.java        # Role lookup, accessible-resources projection, owned-by-email lookup, per-resource listing (OWNER first), owner-role lookup, delete-all-for-resource, delete-all-for-email
-    ├── ResourceInvite.java                      # Entity over resource_invite — UUID primary key, target email, role to grant, sender, stored label
-    ├── ResourceInviteRepository.java            # By-email (cross-resource), per-resource listing, existence checks behind the refusal rules, delete-all-for-resource, delete by target email and by sender
-    └── AcceptedInvite.java                      # Package-private record (resourceType, resourceId, role) — returned by InviteService.accept
+    ├── ResourcePermissionRepository.java        # Granted-permission data access
+    ├── ResourceInvite.java                      # Entity over resource_invite — UUID id, target email, role to grant, sender, stored label
+    ├── ResourceInviteRepository.java            # Pending-invite data access
+    └── AcceptedInvite.java                      # Package-private record (resourceType, resourceId, role) returned by InviteService.accept
 ```
 
 ## Module Boundary

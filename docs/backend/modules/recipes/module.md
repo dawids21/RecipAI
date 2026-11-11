@@ -17,12 +17,12 @@ every access question goes to `PermissionsFacade` directly.
 backend/src/main/java/xyz/stasiak/recipai/
 └── recipes/
     ├── Recipe.java                          # Recipe entity
-    ├── RecipeRepository.java                # Recipe data access with user filtering (all, by collection, unassigned, accessible) — findAllByUserEmail/findAllUnassignedByUserEmail/findAccessibleIds take the caller's accessible recipe ids and accessible collection ids as two IN parameters, no join
-    ├── RecipeService.java                   # Recipe business logic with collection assignment validation, image management (upload, update, reorder, delete), and resolveAccess() composing PermissionsFacade's direct role with collection-derived access; owns the RECIPE resource key, reserving one unit on create and releasing one on delete; deleteAllByEmail deletes every recipe PermissionsFacade.ownedResources reports through deleteById, so RecipeDeleted, the S3 prefix delete and the limits release all fire
-    ├── RecipeController.java                # Recipe REST endpoints with sharing, filtering, multipart image upload support, and JSON/multipart update endpoints
-    ├── RecipeFacade.java                    # Public facade for use by other modules — recipe lookups plus getAccessibleRecipeIds, the composed id set planning's calendar reads hasRecipeAccess from, and deleteAllByEmail for account deletion
+    ├── RecipeRepository.java                # Recipe data access over the caller's accessible ids (see Access Composition)
+    ├── RecipeService.java                   # Recipe logic and images; resolveAccess (see Access Composition); owns the RECIPE key (see Limits)
+    ├── RecipeController.java                # Recipe REST endpoints, including sharing, filtering and multipart image upload
+    ├── RecipeFacade.java                    # Public facade — recipe lookups and the composed accessible ids (see Access Composition)
     ├── RecipeInfoResult.java                # Result record holding the list of RecipeInfo and the names of inaccessible recipes
-    ├── RecipeInfo.java                      # Record holding a recipe's id, name, collection id, createdAt, ingredients, instructions, sourceUrl, and servingSize
+    ├── RecipeInfo.java                      # Recipe snapshot record handed to other modules by RecipeFacade
     ├── RecipeDetailsDto.java                # Recipe details response DTO with images array and the caller's ResourceRole
     ├── RecipeListDto.java                   # Recipe list response DTO with thumbnail URL
     ├── CreateRecipeRequest.java             # Create recipe request DTO
@@ -32,14 +32,14 @@ backend/src/main/java/xyz/stasiak/recipai/
     ├── Instruction.java                     # Instruction model
     ├── RecipeDeleted.java                   # Recipe deleted event record
     ├── RecipeNotFoundException.java         # Recipe not found exception
-    ├── RecipesExceptionHandler.java         # Exception handling (404 only; 403 for recipe access comes from PermissionsExceptionHandler)
+    ├── RecipesExceptionHandler.java         # 404 only; 403 for recipe access comes from PermissionsExceptionHandler
     ├── images/
-    │   ├── RecipeImages.java                # Recipe images entity (stores image metadata, handles update/reorder/delete operations)
+    │   ├── RecipeImages.java                # Recipe images entity — stores image metadata, applies update/reorder/delete
     │   ├── Images.java                      # Value object for image metadata list with add/delete/reorder operations
     │   ├── RecipeImagesUpdated.java         # Value object for tracking image changes (toAdd and toDelete sets)
     │   ├── RecipeImagesRepository.java      # Recipe images data access
-    │   ├── RecipeImagesService.java         # Image management service (upload, update with add/delete/reorder, retrieve, delete all); catches config.s3.S3StorageException from ImageService
-    │   ├── ImageService.java                # Image-specific object-storage logic (key building, the recipes/<recipeId>/ prefix, ContentType handling) delegating to the config.s3.S3Service seam
+    │   ├── RecipeImagesService.java         # Image management service; catches config.s3.S3StorageException from ImageService
+    │   ├── ImageService.java                # Image object-storage logic (keys under recipes/<recipeId>/) over the config.s3.S3Service seam
     │   ├── ImageProcessingService.java      # Image validation and thumbnail generation
     │   ├── ContentType.java                 # Content type value object
     │   ├── ImageMetadata.java               # Image metadata value object (id and extension)
@@ -51,11 +51,11 @@ backend/src/main/java/xyz/stasiak/recipai/
     │       └── RecipeImagesExceptionHandler.java
     └── collections/
         ├── RecipesCollection.java                       # RecipesCollection entity
-        ├── RecipesCollectionRepository.java             # Collection data access — findByIdInOrderByCreatedAtAsc(ids), a derived query over the caller's accessible collection ids
-        ├── RecipesCollectionsFacade.java                # Public facade for use by other modules — deleteAllByEmail for account deletion
-        ├── RecipesCollectionService.java                # Collection business logic with automatic removal of user-owned recipes when unshared; owns the RECIPES_COLLECTION_RESOURCE key and answers roleOf for a single collection, reserving one unit on create and releasing one on delete; shares via PermissionsFacade.invite, unshares via revoke; deleteAllByEmail deletes every owned collection through deleteById
+        ├── RecipesCollectionRepository.java             # Collection data access
+        ├── RecipesCollectionsFacade.java                # Public facade — the account-deletion purge (see settings/module.md)
+        ├── RecipesCollectionService.java                # Collection logic, sharing and unshare cleanup; owns the RECIPES_COLLECTION key (see Limits)
         ├── RecipesCollectionController.java             # Collection REST endpoints
-        ├── RecipesCollectionsExceptionHandler.java      # Exception handling (404 only; 403 for collection access comes from PermissionsExceptionHandler)
+        ├── RecipesCollectionsExceptionHandler.java      # 404 only; 403 for collection access comes from PermissionsExceptionHandler
         ├── dto/
         │   ├── RecipesCollectionListDto.java            # Recipes collection list response DTO
         │   ├── CreateRecipesCollectionRequest.java

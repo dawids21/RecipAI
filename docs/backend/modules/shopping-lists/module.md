@@ -13,10 +13,10 @@ backend/src/main/java/xyz/stasiak/recipai/
 └── shoppinglists/
     ├── ShoppingList.java                            # Shopping list entity
     ├── ShoppingListItem.java                        # Shopping list item entity
-    ├── ShoppingListRepository.java                  # Shopping list data access — findByIdInOrderByCreatedAtAsc backs the accessible-list query
+    ├── ShoppingListRepository.java                  # Shopping list data access
     ├── ShoppingListItemRepository.java              # Shopping list item data access
-    ├── ShoppingListService.java                     # Shopping list business logic with items; asks PermissionsFacade for every access decision; owns the SHOPPING_LIST resource key, reserving one unit on create and releasing one on delete, and the SHOPPING_LIST_ITEM key, reserved and released per item against the list but configured from the list's owner (cleared outright when the list is deleted); deleteAllByEmail deletes every owned list through deleteById
-    ├── ShoppingListsFacade.java                     # Public facade for use by other modules — deleteAllByEmail for account deletion
+    ├── ShoppingListService.java                     # Shopping list and item logic; owns the SHOPPING_LIST and SHOPPING_LIST_ITEM keys (see Limits)
+    ├── ShoppingListsFacade.java                     # Public facade — the account-deletion purge (see settings/module.md)
     ├── ShoppingListController.java                  # Shopping list REST endpoints with JWT authentication
     ├── ShoppingListsExceptionHandler.java           # Exception handling with ProblemDetail
     ├── dto/

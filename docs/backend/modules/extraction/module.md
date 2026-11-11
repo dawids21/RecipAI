@@ -10,7 +10,7 @@ failed extraction still consumes its unit.
 backend/src/main/java/xyz/stasiak/recipai/
 └── extraction/
     ├── ExtractionController.java            # /extract REST endpoints with JWT authentication and image MIME validation
-    ├── ExtractionService.java               # Reserves the EXTRACTION budget, then prompts the AI provider; owns the resource key
+    ├── ExtractionService.java               # Prompts the AI provider; owns the EXTRACTION resource key (see Limits)
     ├── ExtractionExceptionHandler.java      # Exception handling with ProblemDetail
     ├── ExtractionConfig.java                # ChatClient bean configuration
     ├── ExtractedRecipe.java                 # Extracted recipe response DTO
