@@ -10,20 +10,6 @@ Project-level documentation covering vision, goals, architecture, and technology
 ### Technical Standards
 Coding standards and conventions organized by domain. Located in `docs/backend/standards/` and `docs/mobile/standards/`.
 
-### Documentation Standard
-How to write and lay out documentation. Located in `docs/standards/`.
-
----
-
-## Documentation Standard
-
-Located in `docs/standards/`
-
-### Documentation (`standards/documentation.md`)
-Standards for writing docs: the test for keeping a sentence, what docs contain and leave out, stating each fact once,
-file map comment length, the per-module doc layout for backend (`module.md`, `api.md`, `db.md`) and mobile
-(`module.md`, `ui.md`, `data.md`) including what a new module needs, and what belongs in project docs.
-
 ---
 
 ## Project Documentation
@@ -38,6 +24,11 @@ Lists all languages, frameworks, libraries, build tools, infrastructure, and hos
 
 ### Architecture (`project/architecture.md`)
 Describes the structural design of both applications: backend module breakdown and layer structure, mobile feature organisation and layer responsibilities, authentication flow, data flow diagram, external integrations, and deployment topology.
+
+### Documentation Standard (`project/documentation-standard.md`)
+Standards for writing docs: the test for keeping a sentence, present tense, what docs contain and leave out, stating
+each fact once, file map comment length, and the per-module doc layout for backend (`module.md`, `api.md`, `db.md`) and
+mobile (`module.md`, `ui.md`, `data.md`).
 
 ### Local Development (`project/local-development.md`)
 How to run the backend locally with `recipai.sh`, the dev-profile authentication bypass and how to

@@ -3,8 +3,13 @@
 ## Purpose
 
 Docs exist so an agent can understand a part of the codebase without reading its implementation. This standard covers
-`docs/project/`, `docs/backend/` and `docs/mobile/`. `docs/tasks/` and `docs/ADRs/` are exempt (see CLAUDE.md →
-Documentation).
+`docs/project/`, `docs/backend/` and `docs/mobile/`. `docs/tasks/` and `docs/ADRs/` are exempt: they record history by
+design.
+
+## Present Tense
+
+Docs state the current behaviour in the present tense — never how the code used to work or what a change altered ("was
+X before", "no longer", "as of this task"), and never reference `docs/tasks/` (task directories, task IDs, plans).
 
 ## The Test for a Sentence
 
@@ -59,20 +64,8 @@ Behaviour") instead of restating it, even in summary.
 A file map is a tree of the module's files with a comment per file.
 
 - A comment is about **100 characters or fewer**: what the file is for, plus at most one distinguishing fact.
-- When the file takes part in a rule stated in a section, point to it ("see Limits") instead of restating it.
+- When the file takes part in a rule stated in a section, point to it ("see Rules") instead of restating it.
 - A file whose name says everything (e.g. request/response DTOs, setup files) may have no comment.
-
-Before:
-
-```
-├── ShoppingListService.java  # Shopping list business logic with items; asks PermissionsFacade for every access decision; owns the SHOPPING_LIST resource key, reserving one unit on create and releasing one on delete, and the SHOPPING_LIST_ITEM key, ... deleteAllByEmail deletes every owned list through deleteById
-```
-
-After:
-
-```
-├── ShoppingListService.java  # Shopping list and item business logic; see Limits
-```
 
 ## Module Doc Layout
 
@@ -87,10 +80,8 @@ small modules get short docs.
 - **Boundary** — what the module owns, the facades it calls, and the modules that call its facade.
 - **File map** — `backend/src/main/...` sources.
 - **Rules** *(when applicable)* — business rules and their reasons.
-- **Limits** *(when applicable)* — which limited resources the module owns and how it consumes them.
+- **Cross-module Flows** *(when applicable)* — one subsection per flow the module drives.
 - **Gotchas** *(when applicable)*.
-
-Further sections are added when a topic is too large for Rules (e.g. a cross-module flow the module drives).
 
 **`api.md`** *(when the module exposes endpoints)* — per endpoint: method and path, request shape, response shape, and
 status codes with their meaning. Shapes shared across modules are documented once and linked.
@@ -110,6 +101,7 @@ A mobile module is a folder under `mobile/lib/features/`, plus `core` (covering 
 - **File map** — `mobile/lib/...` and `mobile/test/...` sources.
 - **Services and State** — what each service holds, its lifetime (singleton or lazy singleton; screen- or
   session-scoped), and its rules.
+- **Cross-module Flows** *(when applicable)* — one subsection per flow the module drives.
 - **Gotchas** *(when applicable)*.
 
 **`ui.md`** — screens and widgets, and the flows the user goes through: what the user sees and can do. Service logic
@@ -118,20 +110,3 @@ and rules live in `module.md` and are linked from here.
 **`data.md`** *(when the module stores data on the device)* — tables, columns and constraints, the schema version and
 the rule for changing it, and what survives a restart or sign-out. This data outlives app versions, so a wrong change
 breaks installed apps.
-
-### Adding a New Module
-
-1. Create the module's doc directory with the files above that apply.
-2. Add the module to `docs/INDEX.md` under its platform's module documentation, listing what each file covers.
-3. Add a one-line role for the module to `docs/project/architecture.md`.
-4. Link the new module from the Boundary of every module it calls or is called by.
-
-## Project Docs
-
-`docs/project/` holds facts that span the whole system; module docs hold everything specific to one module.
-
-- `prd.md` — product vision, requirements and MVP scope.
-- `architecture.md` — system structure, layers, cross-cutting patterns, and **one line per module**; module details
-  live in the module's docs.
-- `tech-stack.md` — languages, frameworks, libraries and infrastructure, with versions and rationale.
-- `local-development.md` — how to run and call the system locally.

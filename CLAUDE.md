@@ -14,12 +14,9 @@
 - Do not stop at INDEX.md — follow the links and read the actual documentation files relevant to the task.
 - Follow standards in `docs/backend/standards/` and `docs/mobile/standards/` when writing code — they represent team
   decisions. If standards conflict with the task, ask the user.
-- Follow `docs/standards/documentation.md` when writing or editing documentation.
+- Follow `docs/project/documentation-standard.md` when writing or editing documentation.
 - When writing or editing a markdown document, keep it concise and do not repeat information — state each fact once and
   cross-reference it instead of restating it.
-- Documentation states the current behaviour in the present tense - never how the code used to work or what a change
-  altered ("was X before", "no longer", "as of this task"), and never referencing `docs/tasks/` (task directories, task
-  IDs, plans). `docs/tasks/` and `docs/ADRs/` are themselves exempt: they record history by design.
 
 ### Standards Evolution
 
