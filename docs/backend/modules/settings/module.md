@@ -11,7 +11,7 @@ stores; each module purges its own data through its facade (see
 ```
 backend/src/main/java/xyz/stasiak/recipai/
 └── settings/
-    ├── SettingsController.java      # Package-private @RestController — DELETE /settings/account, subject taken from the caller's email claim
+    ├── SettingsController.java      # Package-private @RestController — DELETE /settings/account for the caller's email claim
     └── AccountDeletionService.java  # Package-private — owns the purge order; takes an email, not a Jwt, and calls facades only
 ```
 

@@ -10,18 +10,18 @@ refusal. Holds no domain knowledge — callers pass an opaque subject and resour
 ```
 backend/src/main/java/xyz/stasiak/recipai/
 └── limits/
-    ├── LimitsFacade.java                        # Public facade — delegates to LimitService and logs; reserve a unit, release one, clear a vanished subject's row, delete everything held for a subject, read a subject's balance, resolve a subject's quotas
+    ├── LimitsFacade.java                        # Public facade — the operations other modules rely on (see Behaviour); logs each call
     ├── LimitsController.java                    # Package-private @RestController — GET /limits returns the caller's resolved quotas
-    ├── LimitService.java                        # Resolves the config subject's configuration, turns a refused reserve into an exception, decides whether a release refunds, applies the passed-period rule virtually on a balance read, and holds the recipai.limits.enabled behaviour
-    ├── LimitConfig.java                         # Entity over limit_config — default row (subject IS NULL) or one subject's override; owns the kind/period predicates (isFlow, restarts, refundsOnRelease, cutoffFrom, hasPassed, resetsInSeconds) and toQuota()
-    ├── LimitConfigRepository.java               # Override-then-default resolution query, for one resource or (resolveAll) every configured one, and the @Modifying JPQL delete of a subject's override
-    ├── LimitUsage.java                          # Entity over limit_usage — read only to report a balance, via toBalance()
+    ├── LimitService.java                        # Resolves configuration and turns a refused reserve into an exception; see Behaviour, Configuration
+    ├── LimitConfig.java                         # Entity over limit_config — a default row (subject IS NULL) or one subject's override
+    ├── LimitConfigRepository.java               # Override-then-default resolution (see Behaviour → Resolution)
+    ├── LimitUsage.java                          # Entity over limit_usage — read only to report a balance
     ├── LimitUsageId.java                        # Composite key (resource, subject)
-    ├── LimitUsageRepository.java                # Native conditional upsert that *is* the indivisible reserve, the floored decrement behind release, the row delete behind clear, and the derived delete of every row for a subject
-    ├── LimitBalance.java                        # Public balance DTO (used, periodStart, resetsInSeconds), with a zero() factory
-    ├── LimitQuota.java                          # Public resolved-quota DTO (resource, kind, limit) — carries no period; the client does no period arithmetic
+    ├── LimitUsageRepository.java                # Usage writes, including the conditional upsert that is the reserve (see Behaviour → Reserve)
+    ├── LimitBalance.java                        # Public balance DTO (used, periodStart, resetsInSeconds)
+    ├── LimitQuota.java                          # Public resolved-quota DTO (resource, kind, limit) — no period; clients do no period arithmetic
     ├── LimitKind.java                           # Public enum STOCK / FLOW — rides on the refusal
-    ├── LimitPeriod.java                         # Enum DAY / WEEK / MONTH — the only place period arithmetic lives, including the countdown to the next start
+    ├── LimitPeriod.java                         # Enum DAY / WEEK / MONTH — the only place period arithmetic lives
     ├── LimitExceededException.java              # Public refusal carrying resource, kind, limit, used, optional retryAfterSeconds
     ├── LimitConfigurationMissingException.java  # Public — no configuration resolved for the resource
     ├── LimitsExceptionHandler.java              # Maps the two exceptions to 429 and 500 (ProblemDetail)
