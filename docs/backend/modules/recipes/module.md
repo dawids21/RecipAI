@@ -80,8 +80,8 @@ Composition never lowers an answer: a direct `EDITOR` on a recipe in a collectio
 still reads `EDITOR`, not the composed answer. Listing applies the same rule in bulk: a recipe is
 reachable when the caller holds a direct permission on it or any role on its collection. That
 composed set of recipe ids is what `RecipeFacade` exposes to other modules and filters its own
-lookups on. `getPermissions` only ever asks the direct half — a collection-derived reader never appears in a
-recipe's permissions list, and inviting someone who already reaches a recipe through a shared
+lookups on. `getPermissions` only ever asks the direct half — a collection-derived reader never
+appears in a recipe's permissions list, and inviting someone who already reaches a recipe through a shared
 collection still creates a direct invite, since the refusal rules see only granted rows. See
 `docs/ADRs/0007-shared-permissions-module.md`.
 
