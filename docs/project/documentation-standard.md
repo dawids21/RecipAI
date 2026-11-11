@@ -54,6 +54,8 @@ Each fact has one home — the most specific doc that owns it:
 - a file comment, for what a single file is for;
 - a section of the module's docs, for a module rule, contract or gotcha;
 - the driving module's docs, for a cross-module flow;
+- one module's `ui.md`, for a screen, widget or user flow: the module whose folder holds the screen or widget, or
+  the module the flow is about; other `ui.md` files link to it;
 - a project doc, for a system-wide fact (see [Project Docs](#project-docs)).
 
 Everywhere else, link to it by relative path and section name (e.g. "see `docs/backend/modules/limits/module.md` →
