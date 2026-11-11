@@ -33,14 +33,8 @@ in place on any other failure. A `SnackBar` reports the outcome:
   a 404 as the outcome it asked for and says nothing).
 - Any other failure: `Failed: $error`, and the row remains answerable.
 
-Accepting reloads the resource's own list so it appears in its tab immediately:
-
-| Resource type         | Reloaded                                                            |
-|------------------------|----------------------------------------------------------------------|
-| Recipe                 | the recipe list                                                     |
-| Collection              | the collection list and the recipe list                             |
-| Shopping list           | the shopping list list                                              |
-| Meal plan               | the meal plan list (which drives the calendar via its own listener) |
+Accepting reloads the resource's own list so it appears in its tab immediately (see `module.md` →
+Cross-module Flows).
 
 ## Indicator (in Main Screen)
 
@@ -51,10 +45,4 @@ pending, and the bare mail icon otherwise. Both read one shared `InvitesService`
 
 ## Load triggers
 
-The invites list loads on: `MainScreen` opening (once per session), the app returning to
-`AppLifecycleState.resumed`, opening the `/invites` screen, and pull-to-refresh. There is no polling —
-`GET /invites` has no count endpoint, so the badge is simply the loaded list's length.
-
-A reload keeps the rows and the badge on screen rather than blanking them to the spinner, so the dot does
-not blink off on every resume; only a failed load falls back to loading, giving `Retry` its feedback. The
-badge reads a loading or failed state as zero, so it never renders over unknown state.
+When the list loads, and why the indicator does not blink on a reload, are in `module.md` → Services and State.

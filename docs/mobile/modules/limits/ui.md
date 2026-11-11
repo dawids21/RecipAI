@@ -15,22 +15,8 @@
 
 ## Behaviour
 
-- **Quotas, once per session.** `LimitsService` subscribes to `AuthService.isAuthenticated` at
-  construction: it loads `GET /limits` on the flip to signed-in and clears every quota on sign-out, so
-  signing in as another account gets that account's quotas. Nothing else refreshes it — quotas are
-  near-static configuration, and an operator's change is picked up at the next app start.
-  `quotaFor(resource)` hands back that one resource's own listenable, which holds null until the quotas land
-  and returns to null on sign-out. It holds only the quotas that are the caller's own
-  (`LimitResources.perUser`); the per-list item quota is not among them, and any other resource gets a
-  listenable that stays null rather than an error.
-- **Counts, on open.** Each limited surface calls its own service's load method in `initState`, so the
-  count is a snapshot taken when the user arrived; the surface closes after the one action it gates.
-  Because the value is the subject's *recorded* balance — the same number a reserve compares against —
-  a disabled button and a refusal agree by construction.
-- **Every surface fails open.** A quota still loading, no quotas at all (limits disabled on the backend), or
-  a failed balance fetch leaves both the counter hidden and the action enabled, with the server as the
-  only thing that says no. Disabling can only ever block; it never admits an operation the server
-  would refuse.
+How quotas and counts load, and the fail-open rule every surface follows, are in `module.md` → Services and
+State.
 
 ## Limited Surfaces
 

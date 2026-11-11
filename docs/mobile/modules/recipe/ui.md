@@ -33,7 +33,7 @@
   RecipeFormWidget. Accepts InitialRecipeFormData parameter for prefilling form data (recipe details, source URL,
   images). Automatically prefills collection dropdown when user has an active collection filter. Loads the recipe
   count on open and passes the resulting counter and blocked flag down to the form (see
-  `docs/mobile/modules/limits/ui.md`).
+  `docs/mobile/modules/limits/module.md` → Services and State).
 - Edit Recipe Screen (`edit_recipe_screen.dart`) - Form-based screen for editing existing recipes using RecipeFormWidget.
 - Recipe Form Widget (`recipe_form_widget.dart`) - Reusable form widget for recipe creation and editing with ingredient
   and instruction inputs, serving size input (using ServingSizeInput widget), validation, collection dropdown menu for
@@ -57,8 +57,9 @@
   (`docs/mobile/modules/sharing/ui.md`) — email input with validation, the granted/pending permissions list, and
   cancel/unshare. Prevents users from unsharing themselves by hiding the remove button for the current user.
 - Recipe To Shopping List Screen (`recipe_to_shopping_list_screen.dart`) - Screen for adding recipe ingredients to a
-  shopping list with checkbox selection for ingredients, Select All/Deselect All toggle, shopping list selection dialog,
-  and integration with ShoppingListSyncService for queuing add operations. Navigates back to recipe detail on success.
+  shopping list: the ingredients appear in the Shopping List Review Widget (`docs/mobile/modules/shopping_list/ui.md`),
+  each with the recipe name as its source, to select, edit and add to a chosen list (see `module.md` → Cross-module
+  Flows). Navigates back to recipe detail on success.
 - Recipe Picker Screen (`recipe_picker_screen.dart`) - Full-screen screen for selecting recipes using RecipeGrid
   component with search and filter capabilities. Uses Scaffold with AppBar and standard navigation (Navigator.push/pop).
   Returns selected Recipe via Navigator.pop when user taps an item. Route: /recipes/picker.

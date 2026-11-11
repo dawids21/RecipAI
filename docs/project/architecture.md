@@ -93,37 +93,18 @@ AsyncValue<T> = Loading | Data(T) | Error(Object, StackTrace)
 
 ### Features
 
-- **`auth`** — user authentication using Firebase Authentication with Google Sign-In, or a dev repository signing in against a `dev`-profile backend when the `devAuthEnabled` flag is set
-- **`recipe`** — recipe list and detail display with 3-column grid, horizontal chip-based collection filtering ("All
-  Recipes", "Unassigned", specific collection), client-side fuzzy search, recipe create/edit forms, image carousel,
-  sharing (OWNER/EDITOR roles), and "Add to Shopping List" flow; includes the `collection` sub-feature for managing
-  recipe collections with CRUD and sharing
-- **`extraction`** — recipe extraction from URLs (WebView-based with smart URL/search detection) and images
-  (camera/gallery); extracted data is passed to the recipe create screen via InitialRecipeFormData. Also reachable as an
-  Android share target, which extracts the URL from the shared text and pre-fills the extraction screen
-- **`planning`** — meal plan calendar with weekly agenda view across multiple plans; plan management drawer with
-  create/edit/delete and role-based actions (delete requires OWNER); local visibility toggles; meal entry management
-  supporting recipe entries (with serving size) and placeholder entries (text-only); shopping list generation wizard
-  (3-step: select plans → select dates → review items)
-- **`shopping_list`** — shopping list management with list creation and display, offline-first inline item management
-  with smart text parsing, drag-and-drop reordering within active/done sections, and bulk operations (delete all
-  checked, uncheck all). The three destructive actions offer a single-step snackbar undo, scoped to the detail
-  screen's lifetime and replayed as an ordinary local mutation. Item state lives in a local sqflite store (in-memory cache + `ValueNotifier` over the DB) with
-  an append-only outbox; edits render instantly and persist across restarts while offline. Item state syncs to the
-  server by pushing the outbox (FIFO drain with version-gated conflict resolution) and pulling via a background
-  full-list poll that diffs others' changes into the local store
-- **`limits`** — holds the session's quotas (one `GET /limits` on sign-in, cleared on sign-out) and the
-  `used / limit` counter widget every limited surface renders. The count beside it comes from the
-  feature that owns the resource, so each surface can disable its action at the quota; a missing quota or a
-  failed count leaves the action enabled and the server the only thing that refuses
-- **`invites`** — the invitee-facing surface for the backend's `permissions` module: a full-screen `/invites`
-  list (accept/decline, with decline confirmed) reached from a dot-badged overflow icon and a counted menu
-  row on the Main Screen. One notifier feeds both indicator and screen; accepting reloads the resource's own
-  list so it appears in its tab immediately
-- **`sharing`** — the sharer-facing counterpart to `invites`: one generic `SharingDialog` that recipes,
-  collections, shopping lists, and meal plans all open, rendering granted users and pending invites in one
-  list with a "Pending" marker, and cancelling an invite through the same `unshare` call that removes a
-  granted user
+Module descriptions are in each module's `module.md` (see `docs/mobile/modules/<module>/module.md`, indexed in
+`docs/INDEX.md`); the role of each in the app:
+
+- **`core`** — the app shell (start-up, routing and the auth redirect, Main Screen tabs) and shared infrastructure
+- **`auth`** — signs the user in (Firebase with Google Sign-In, or a dev identity) and supplies the bearer token
+- **`recipe`** — recipes and their collections, the app's main content, with sharing and hand-offs to plans and lists
+- **`extraction`** — turns a web page, a photo or an Android share into recipe data for `recipe` creation
+- **`planning`** — meal plan calendar of recipe and note entries, and shopping list generation from it
+- **`shopping_list`** — shopping lists with an offline-first item store that syncs in the background
+- **`limits`** — the session's quotas and the `used / limit` counter every limited surface renders
+- **`invites`** — the invitee's pending invites from the backend's `permissions` module, accepted or declined
+- **`sharing`** — the sharer's generic dialog every shareable resource opens
 
 ### Routing
 

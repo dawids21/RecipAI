@@ -8,7 +8,7 @@
   performing the create with the name it returns.
 - Shopping List Create Dialog (`shopping_list_create_dialog.dart`) - Stateful dialog widget for creating shopping lists
   with TextField input and proper TextEditingController lifecycle management. Loads the list count on open, shows the
-  `used / limit` counter under the field, and disables Create at the quota (see `docs/mobile/modules/limits/ui.md`).
+  `used / limit` counter under the field, and disables Create at the quota (see `docs/mobile/modules/limits/module.md` → Services and State).
 - Shopping List Detail Screen (`shopping_list_detail_screen.dart`) - Displays individual shopping list with inline
   item widgets. Add, edit, check/uncheck, delete, and drag-and-drop reorder all apply to the local item store and
   render instantly while offline, surviving an app restart. Items are organized into two sections: active items
@@ -29,9 +29,8 @@
   synced"); a refusal because the list is full instead raises a single "This list is full - items weren't added"
   bar, not repeated while one is already on screen, so adding past the cap does not queue up one snackbar per
   rejected item. An item counter sits above the add row, pairing the list's flat item count — checked items
-  included — with the cap fetched for this list when it was opened. The detail service is a lazy singleton reused
-  across visits, so opening a list clears the cap before fetching the new one and drops a response that lands after
-  the user has moved on: the counter is either this list's cap or nothing, never the previous list's. At the cap
+  included — with the cap fetched for this list when it was opened. The counter
+  is either this list's cap or nothing, never the previous list's (see `module.md` → Services and State). At the cap
   both add surfaces close: the add widget's field is disabled and Enter-to-insert declines to open a new row, so
   the chain stops rather than producing a refusal per item. A row already open when an incoming poll reaches the
   cap is left where it is; its commit is refused and discarded by the existing path.

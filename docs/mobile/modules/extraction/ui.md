@@ -4,7 +4,7 @@
 
 Both extraction screens load the caller's extraction usage on open, render the `used / limit` counter (with
 "resets in ..." when the balance carries a countdown) and disable the extract action at the quota — see
-`docs/mobile/modules/limits/ui.md`.
+`docs/mobile/modules/limits/module.md` → Services and State.
 
 - URL Extraction Screen (`url_extraction_screen.dart`) - WebView-based screen for extracting recipes from web pages with
   smart input field that automatically detects URLs vs search queries. Supports domain patterns (example.com,
