@@ -10,6 +10,20 @@ Project-level documentation covering vision, goals, architecture, and technology
 ### Technical Standards
 Coding standards and conventions organized by domain. Located in `docs/backend/standards/` and `docs/mobile/standards/`.
 
+### Documentation Standard
+How to write and lay out documentation. Located in `docs/standards/`.
+
+---
+
+## Documentation Standard
+
+Located in `docs/standards/`
+
+### Documentation (`standards/documentation.md`)
+Standards for writing docs: the test for keeping a sentence, what docs contain and leave out, stating each fact once,
+file map comment length, the per-module doc layout for backend (`module.md`, `api.md`, `db.md`) and mobile
+(`module.md`, `ui.md`, `data.md`) including what a new module needs, and what belongs in project docs.
+
 ---
 
 ## Project Documentation
