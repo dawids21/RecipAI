@@ -124,46 +124,54 @@ Located in `docs/mobile/`
 
 ### Module Documentation
 
-Per-module documentation is in `docs/mobile/modules/<module>/`. Each module directory contains two files:
-- `codebase_structure.md` — file tree for that module
+Per-module documentation is in `docs/mobile/modules/<module>/`. A module is a folder under `mobile/lib/features/`,
+plus `core` for `main.dart`, `core/` and `shared/`. Each module directory contains two files:
+- `module.md` — what the module does, its boundary (backend endpoints, features used and using it), its file tree
+  under `mobile/lib` and `mobile/test`, and its services' state, lifetime and rules
 - `ui.md` — screens, widgets, and user flows for that module
 
-Module descriptions (what each module does) are in `docs/project/architecture.md`.
+Module descriptions (what each module does) are in each module's `module.md`; each module's one-line
+role in the app is in `docs/project/architecture.md`.
 
 #### Core (`mobile/modules/core/`)
-- `codebase_structure.md` — file tree for `main.dart`, `core/`, `shared/`
+- `module.md` — description, file tree for `main.dart`, `core/`, `shared/` and the shared test support, DI setup
+  order, the auth redirect, and what "session-scoped" means
 - `ui.md` — Main Screen, shared widgets, navigation route structure, bottom navigation bar, and authentication flow
 
 #### Auth (`mobile/modules/auth/`)
-- `codebase_structure.md` — file tree for `features/auth/`
+- `module.md` — description, file tree, the repository choice per build, and the dev identity rules
 - `ui.md` — Login Screen and authentication flow
 
 #### Recipe & Collections (`mobile/modules/recipe/`)
-- `codebase_structure.md` — file tree for `features/recipe/` including `collection/` sub-feature
+- `module.md` — description, file tree including the `collection/` sub-feature, the list/detail/collection services
+  (filter persistence, search, scoping), and the Add to Shopping List flow
 - `ui.md` — all recipe and collection screens/widgets, recipe management flow, and collections management flow
 
 #### Extraction (`mobile/modules/extraction/`)
-- `codebase_structure.md` — file tree for `features/extraction/`
-- `ui.md` — URL and image extraction screens and flow
+- `module.md` — description, file tree, and the extraction and share-intent services
+- `ui.md` — URL and image extraction screens and flow, and the share-intent flow
 
 #### Shopping Lists (`mobile/modules/shopping_list/`)
-- `codebase_structure.md` — file tree for `features/shopping_list/`
+- `module.md` — description, file tree, the item store, background sync, the open-list service (role, item quota,
+  undo), the import service, and the sign-out gotcha
 - `ui.md` — shopping list screens/widgets and management flow
 
 #### Planning (`mobile/modules/planning/`)
-- `codebase_structure.md` — file tree for `features/planning/`
+- `module.md` — description, file tree, the plan, visibility, calendar, sharing and generation services, and the
+  shopping list generation flow
 - `ui.md` — calendar and planning screens, shopping list generation wizard, and all planning flows
 
 #### Limits (`mobile/modules/limits/`)
-- `codebase_structure.md` — file tree for `features/limits/`, and where each limited resource's count lives instead
-- `ui.md` — the `used / limit` counter widget, how quotas and counts are loaded, the fail-open rule, and the surfaces that block at the quota
+- `module.md` — description, file tree, where each limited resource's count lives, how quotas and counts load, and the
+  fail-open rule
+- `ui.md` — the `used / limit` counter widget, the limit gate, and the surfaces that block at the quota
 
 #### Invites (`mobile/modules/invites/`)
-- `codebase_structure.md` — file tree for `features/invites/`
-- `ui.md` — the `/invites` screen and its states, the invite row, the app-shell indicator, load triggers, and the accept-time list reload
+- `module.md` — description, file tree, load triggers, reload and answer behaviour, and the accept-time list reload
+- `ui.md` — the `/invites` screen and its states, the invite row, and the app-shell indicator
 
 #### Sharing (`mobile/modules/sharing/`)
-- `codebase_structure.md` — file tree for `features/sharing/`
+- `module.md` — description, file tree, and the features that open the dialog
 - `ui.md` — the generic sharing dialog, its granted/pending row kinds, the cancel/unshare confirmation, the 409 refusal copy, and the four call sites that open it
 
 ---
