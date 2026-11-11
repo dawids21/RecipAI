@@ -83,7 +83,7 @@ lib/
       recipe_repository.dart
       recipe_list_service.dart
       recipe_detail_service.dart
-      recipe_list_screen.dart
+      recipe_grid.dart
       recipe_setup.dart
     planning/
       ...
