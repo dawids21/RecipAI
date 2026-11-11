@@ -2,117 +2,112 @@
 
 ## Screens and Widgets
 
-- Meal Plan Calendar Screen (`meal_plan_calendar_screen.dart`) - Agenda view displaying weekly meal plan entries with
-  week navigation strip, 7 vertical day sections (locale-aware first day of week), pull-to-refresh, and entry tap
-  handling. Features right-side drawer for plan management accessed via "Manage Plans" button (calendar icon) when
-  Planning tab is active. All dates formatted according to user locale.
-- Meal Plan Drawer (`meal_plan_drawer.dart`) - Side drawer for managing meal plans with unified list of all plans
-  (personal and shared), visibility checkboxes for filtering calendar display, and three-dot menu per plan for
-  Edit/Share/Delete actions (Delete only visible to owners, requires confirmation dialog). Share action opens
-  MealPlanSharingDialog (below). Includes "Create New Plan" button with integrated form dialog, pull-to-refresh
-  functionality, and comprehensive error handling with user-friendly messages including special handling for plan
-  limit exceeded (429).
-- Plan Form Dialog (`plan_form_dialog.dart`) - Unified modal dialog for creating and editing meal plans with name input
-  field (autofocus, validation) and color picker. In create mode it loads the plan count on open, shows the
-  `used / limit` counter and disables Create at the quota (see `docs/mobile/modules/limits/module.md` → Services and State); edit mode shows
-  neither, since editing spends nothing.
-- Plan Color Picker (`plan_color_picker.dart`) - Reusable grid-based color picker widget with 12 predefined Material
-  Design 3 colors. Selected color displays checkmark icon and thicker border.
-- Plan List Tile (`plan_list_tile.dart`) - Card widget for individual plans with color indicator (CircleAvatar), plan
-  name, visibility checkbox, and PopupMenuButton with role-based menu items (Edit, Share for all; Delete for owners
-  only).
-- Meal Plan Sharing Dialog (`meal_plan_sharing_dialog.dart`) - Binds `MealPlanSharingService` to the generic
-  `SharingDialog` (`docs/mobile/modules/sharing/ui.md`) — email input with validation, the granted/pending
-  permissions list, and cancel/unshare. Prevents users from unsharing themselves by hiding the remove button for the
-  current user. `MealPlanSharingService` refreshes the meal plans list after successful share/unshare actions.
-- Meal Entry Form Dialog (`meal_entry_form_dialog.dart`) - Modal dialog for creating and editing meal entries with plan
-  dropdown (OWNER/EDITOR only), date picker, recipe/note mode toggle (segmented button with icons), recipe selection
-  button (navigates to RecipePickerScreen), serving size input using ServingSizeInput widget (for recipes), and note
-  text input. Form content is scrollable. Supports both create mode (with defaultDate from FAB) and edit mode (with
-  pre-filled existingEntry data). Supports preselected recipe mode (when preselectedRecipe parameter is provided):
-  hides mode toggle and recipe selection UI, pre-fills serving size from recipe's default, only shows plan dropdown,
-  date picker, and serving size input. Validation ensures plan selection, recipe selection with positive serving size
-  for recipe mode, or non-empty text for note mode.
-- Week Strip (`week_strip.dart`) - Week navigation header widget showing current week range with previous/next week
-  navigation buttons and tappable week label to jump to today. Date range formatted according to user locale.
-- Day Section (`day_section.dart`) - Day container widget showing date header (highlighted for today) and list of meal
-  entries, or "No meals planned" empty state. Day header formatted according to user locale.
-- Meal Entry Calendar Card (`meal_entry_calendar_card.dart`) - Card widget for individual meal entries with background
-  color from plan color, recipe name or placeholder text, serving size, and placeholder overflow menu for edit/delete
-  actions. Text color adapts to background luminance for readability.
-- Shopping List Generation Screen (`shopping_list_generation_screen.dart`) - Multi-step wizard screen for generating
-  shopping lists from meal plan entries. Uses a PageView with 3 steps: Select Plans, Select Dates, Review Items.
-  Features an animated step indicator bar at the top. Navigation between steps is controlled programmatically (swipe
-  disabled). Back button shown in AppBar from step 2 onwards. Lazy singleton services are reset on dispose.
-- Shopping List Generation Select Plan Step (`shopping_list_generation_select_plan_step.dart`) - First step widget
-  displaying a list of meal plans with CheckboxListTile items (color indicator + name). "Next" button enabled only when
-  at least one plan is selected.
-- Shopping List Generation Select Dates Step (`shopping_list_generation_select_dates_step.dart`) - Second step widget
-  with a scrollable MonthCalendarWidget for date selection. Supports month navigation (previous/next). Loads calendar
-  data for the displayed month from ShoppingListGenerationCalendarService. "Generate Shopping List" button enabled only
-  when at least one date is selected. Shows selected date count.
-- Shopping List Generation Review Step (`shopping_list_generation_review_step.dart`) - Third step widget showing
-  generated items via ShoppingListReviewWidget. Displays a collapsible warnings banner (errorContainer styled) when
-  some meals were skipped due to inaccessible recipes, listing the inaccessible recipe names. Shows LoadingWidget
-  during generation and ApiErrorWidget on failure with retry support.
-- Shopping List Review Widget (`shopping_list_review_widget.dart`) - Widget for reviewing and selecting generated
-  shopping list items before adding them to a list. Items are displayed using ShoppingListItemWidget with drag-and-drop
-  reordering (ReorderableListView with auto-scroll), inline editing, and checkbox selection. Unchecked items appear
-  with strikethrough. Source recipe name is shown as a subtitle below each item text. "Select All / Deselect All"
-  toggle in the header. Only checked items are submitted when tapping "Add to Shopping List". Items are a mutable
-  local copy — all modifications are client-side only.
-- Month Calendar Widget (`month_calendar_widget.dart`) - Reusable month grid calendar widget with previous/next month
-  navigation, locale-aware weekday labels (respects first day of week), and tappable day cells. Each day cell shows a
-  dot indicator when the date has meal plan entries. Selected dates are highlighted with a filled circle using primary
-  color. Accepts calendarData (MealPlanCalendarData) for entry indicators.
+### Calendar
+
+- Meal Plan Calendar Screen (`meal_plan_calendar_screen.dart`) - Planning tab body: a weekly agenda with the Week
+  Strip on top, then one Day Section per day of the week, starting on the locale's first day. Pull-to-refresh
+  reloads it. Only visible plans' entries show (see `module.md` → Services and State). All dates follow the user's
+  locale.
+- Week Strip (`week_strip.dart`) - The shown week's date range with previous/next week buttons; tapping the range
+  jumps to the current week.
+- Day Section (`day_section.dart`) - A day header (highlighted for today) and that day's entries, or "No meals
+  planned".
+- Meal Entry Calendar Card (`meal_entry_calendar_card.dart`) - One entry in its plan's colour, with text that stays
+  readable on any plan colour: the recipe name and its servings, or the note text. Its menu holds Edit and Delete;
+  tapping the card opens the recipe (see the flow below).
+
+### Plan Management
+
+- Meal Plan Drawer (`meal_plan_drawer.dart`) - Right-side drawer titled "My Meal Plans", opened by the Main Screen's
+  "Manage Plans" button on the Planning tab:
+  - *Plans*: one Plan List Tile per plan, own and shared together, or "No plans yet"; pull-to-refresh reloads them.
+  - *Create*: a "Create New Plan" button at the bottom opens the Plan Form Dialog.
+  - *Errors*: every failure is a snackbar; reaching the plan quota reads "Cannot create plan: You have reached the
+    maximum number of plans".
+- Plan List Tile (`plan_list_tile.dart`) - One plan: a dot in its colour, its name, a visibility checkbox that shows
+  or hides its entries on the calendar, and a menu with Edit and Share, plus Delete for owners only.
+- Plan Form Dialog (`plan_form_dialog.dart`) - Create or edit a plan: a name field (focused on open; "Please enter a
+  plan name" when empty) and the Plan Color Picker. In create mode it shows the `used / limit` counter and disables
+  Create at the quota (see `docs/mobile/modules/limits/module.md` → Services and State); edit mode shows neither,
+  since editing spends nothing.
+- Plan Color Picker (`plan_color_picker.dart`) - A grid of 12 preset colours; the selected one shows a check mark.
+- Meal Plan Sharing Dialog (`meal_plan_sharing_dialog.dart`) - The sharing dialog for a plan
+  (`docs/mobile/modules/sharing/ui.md`).
+
+### Meal Entries
+
+- Meal Entry Form Dialog (`meal_entry_form_dialog.dart`) - Create or edit one entry:
+  - *Fields*: plan, date, a Recipe/Note toggle, then for a recipe a "Select Recipe" button (opens the Recipe Picker)
+    and the serving size, or for a note its text.
+  - *Create and edit*: create defaults the date to the shown week's start (from the calendar FAB); edit pre-fills
+    every field from the entry.
+  - *Preselected recipe* (from the recipe detail screen's Add to Meal Plan): only plan, date and serving size show,
+    with the serving size pre-filled from the recipe.
+  - *Validation*: a plan is required; a recipe entry needs a recipe and a positive serving size, a note needs text
+    ("Please enter a description").
+  - *No plans*: with no plan to add to, it shows "No Editable Plans" ("You need to create a plan with edit permissions
+    first."); a failed plan load shows "Error while loading meal plans".
+
+### Shopping List Generation
+
+- Shopping List Generation Screen (`shopping_list_generation_screen.dart`) - "Generate Shopping List" wizard in three
+  steps — Select Plans, Select Dates, Review Items — with a step indicator on top. Steps change only through the
+  step buttons, not by swiping; from step 2 on, the app bar's Back returns to the previous step. Each visit starts
+  clean (see `module.md` → Services and State).
+- Shopping List Generation Select Plan Step (`shopping_list_generation_select_plan_step.dart`) - Step 1: every meal
+  plan as a checkbox row with its colour and name. "Next" is enabled once at least one plan is selected.
+- Shopping List Generation Select Dates Step (`shopping_list_generation_select_dates_step.dart`) - Step 2: the Month
+  Calendar for the chosen plans, with the number of selected dates. "Generate Shopping List" is enabled once at least
+  one date is selected.
+- Shopping List Generation Review Step (`shopping_list_generation_review_step.dart`) - Step 3: a spinner while
+  generating, then the Shopping List Review Widget (`docs/mobile/modules/shopping_list/ui.md`); an error with Retry
+  on failure. When meals were skipped because their recipes are not shared with the user, a collapsible warning
+  banner names those recipes.
+- Month Calendar Widget (`month_calendar_widget.dart`) - A month grid with previous/next month buttons and weekday
+  labels starting on the locale's first day. Days with entries carry a dot; tapping a day toggles it, and selected
+  days are highlighted.
 
 ## Flows
 
 #### Meal Planning Management Flow
 
-1. **Bottom Navigation → Planning Tab** → MainScreen switches to Planning tab view with calendar
-2. **Manage Plans Button Tap** (calendar icon in AppBar) → Opens MealPlanDrawer overlay from right side
+1. **Bottom Navigation → Planning Tab** → Main Screen switches to Planning tab view with calendar
+2. **Manage Plans Button Tap** (in the app bar) → Meal Plan Drawer opens from the right
 3. **Pull to Refresh** (in drawer) → Meal plans reloaded from API
 4. **Visibility Checkbox Tap** (in drawer) → Toggle plan visibility → Calendar refreshes automatically to show/hide
    plan entries
 5. **Plan Menu → Delete** (owners only) → Confirmation dialog "Are you sure you want to delete...?" → Tap "Delete" →
-   Plan deleted (with all entries) → SnackBar "Plan deleted successfully" → Drawer list refreshes → Calendar refreshes
+   Plan deleted (with all entries) → snackbar "Plan deleted successfully" → Drawer list refreshes → Calendar refreshes
    to remove deleted plan entries
-6. **Plan Menu → Edit** → PlanFormDialog opens with pre-filled name and color → Edit fields → Tap "Save" → Plan
-   updated → SnackBar "Plan updated successfully" → Drawer list refreshes
-7. **Plan Menu → Share** → MealPlanSharingDialog opens → Enter email and tap "Share" → Email validated → Invite
-   created and shown as a pending row → SnackBar "Invitation sent to {email}" → Can cancel a pending invite or remove
-   a granted user (except self) via the remove icon, each confirmed → SnackBar "Meal plan unshared successfully!" →
-   Close dialog → Plan list refreshes
-8. **Create New Plan Button** (bottom of drawer) → PlanFormDialog opens → Enter name and select color → Tap "Create" →
-   Plan created → SnackBar "Plan created successfully" → New plan appears in drawer list
+6. **Plan Menu → Edit** → Plan Form Dialog opens with pre-filled name and color → Edit fields → Tap "Save" → Plan
+   updated → snackbar "Plan updated successfully" → Drawer list refreshes
+7. **Plan Menu → Share** → Meal Plan Sharing Dialog → Share by email → snackbar "Invitation sent to {email}"; cancel
+   an invite or remove a user → snackbar "Meal plan unshared successfully!" → Close dialog → Plan list refreshes
+8. **Create New Plan Button** (bottom of drawer) → Plan Form Dialog opens → Enter name and select color → Tap
+   "Create" → Plan created → snackbar "Plan created successfully" → New plan appears in drawer list
 9. **Create/Edit Validation Errors** → Name required, color required → Error messages displayed inline
 10. **Create/Edit/Delete API Errors** → Network failures, plan limit exceeded (429), permission errors (403 for
-    delete), plan not found (404) → User-friendly error messages in SnackBars
+    delete), plan not found (404) → User-friendly error messages in snackbars
 11. **Close Drawer** → Swipe left or tap outside drawer → Returns to calendar view
 12. **Switch Tabs** → Drawer closes automatically
-13. **Add Meal Entry (FAB)** → Tap FAB on calendar screen → MealEntryFormDialog opens with date defaulting to week
-    start → Select plan from dropdown → Choose Recipe or Note mode → For Recipe: tap "Select Recipe" button →
-    RecipePickerScreen opens with full-screen navigation → Search/filter and tap recipe → Navigate back with selected
-    recipe → Enter serving size → Tap "Create" → Entry added to calendar → SnackBar "Meal entry added" → Calendar
-    refreshes
-14. **Add Note Entry** → Same as step 13 but select "Note" mode → Enter text description → Tap "Create" → Note added
-    to calendar
-15. **Edit Meal Entry** → Tap three-dot menu on entry card → Select "Edit" → MealEntryFormDialog opens with pre-filled
-    data → Modify fields (plan, date, recipe, serving size, or text) → Tap "Save" → Entry updated → SnackBar "Meal
-    entry updated" → Calendar refreshes
-16. **Delete Meal Entry** → Tap three-dot menu on entry card → Select "Delete" → Confirmation dialog "Are you sure you
-    want to delete...?" → Tap "Delete" → Entry deleted → SnackBar "Meal entry deleted" → Calendar refreshes
-17. **Navigate to Recipe from Entry** → Tap on recipe entry card (not menu) → If hasRecipeAccess, navigates to Recipe
-    Detail Screen → If no access, shows SnackBar "Recipe details not shared"
+13. **Add Meal Entry (FAB)** → Tap FAB on calendar screen → Meal Entry Form Dialog opens with date defaulting to week
+    start → Select plan → For a recipe: tap "Select Recipe" → Recipe Picker → tap a recipe → back with it → enter
+    serving size; for a note: switch to "Note" and enter the text → Tap "Create" → Entry added to calendar → snackbar
+    "Meal entry added" → Calendar refreshes
+14. **Edit Meal Entry** → Tap the entry card's menu → Select "Edit" → Meal Entry Form Dialog opens with pre-filled
+    data → Modify fields → Tap "Save" → Entry updated → snackbar "Meal entry updated" → Calendar refreshes
+15. **Delete Meal Entry** → Tap the entry card's menu → Select "Delete" → Confirmation dialog "Are you sure you want
+    to delete...?" → Tap "Delete" → Entry deleted → snackbar "Meal entry deleted" → Calendar refreshes
+16. **Navigate to Recipe from Entry** → Tap a recipe entry card (not its menu) → Recipe Detail Screen if the user can
+    read the recipe, otherwise snackbar "Recipe details not shared"
 
 #### Shopping List Generation Flow
 
-1. **AppBar Menu → Generate shopping list** → Shopping List Generation Screen (`/shopping-list-generation`)
+1. **App bar menu → Generate shopping list** → Shopping List Generation Screen (`/shopping-list-generation`)
 2. **Step 1 - Select Plans** → Displays all available meal plans with checkboxes → Select one or more → Tap "Next"
 3. **Step 2 - Select Dates** → Month calendar loaded for selected plans → Navigate months with previous/next → Tap
    dates to toggle selection (dots show days with meal entries) → Tap "Generate Shopping List"
-4. **Step 3 - Review Items** → Loading indicator during generation → Generated items displayed via
-   ShoppingListReviewWidget → Warnings banner shown for skipped inaccessible recipes → Select shopping list and add
-   items → Navigate back on success
+4. **Step 3 - Review Items** → Loading indicator during generation → Generated items displayed in the review widget →
+   Warnings banner shown for skipped inaccessible recipes → Select shopping list and add items → Navigate back on
+   success
 5. **Back Button** (steps 2 and 3) → Returns to previous step

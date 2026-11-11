@@ -43,5 +43,9 @@ mobile/test/features/extraction/
   calling screen and keep nothing.
 - **`ShareIntentService`** — app-lifetime singleton registered after the router. It receives a cold-start share once,
   after the first frame, and warm-start shares as they arrive, over the `recipai/share` platform channel. A share
-  received while signed out is discarded, not deferred until sign-in. Classification rules (which text counts as a
-  URL) are in `ui.md` → Share Intent Flow.
+  received while signed out is discarded, not deferred until sign-in. Where each kind of share goes is in `ui.md` →
+  Share Intent Flow.
+- **Which shared text counts as a URL.** Text that is entirely a URL is taken as-is; otherwise the first URL embedded
+  in it is used (e.g. "Check this recipe: https://cookbook.com/recipe1"). Inside text only `http(s)://` and
+  `www.`-prefixed URLs are recognised, since bare domains would too easily match ordinary prose, and `www.` matches
+  are normalised to `https://`.

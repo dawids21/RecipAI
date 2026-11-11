@@ -10,10 +10,20 @@ display and a pre-emptive block only; the server remains the only enforcement.
   (`GET /recipes/balance` and the like) belong to the features that own each resource.
 - **Uses**: `auth` (loads and clears quotas on the sign-in state).
 - **Used by**: `recipe` (recipes, collections), `shopping_list` (lists, items), `planning` (meal plans) and
-  `extraction`. Each owns the count for its resource and holds it as the shared `LimitBalance` model; the surfaces
-  are listed in `ui.md` → Limited Surfaces. Shopping-list items are the exception on both halves: the count is the
-  length of the local item store and the quota comes from `ShoppingListDetailService`, fetched per list because an
-  item quota is configured against the list's *owner* (`docs/backend/modules/limits/module.md` → Behaviour).
+  `extraction`. Each owns the count for its resource and holds it as the shared `LimitBalance` model; the table below
+  gives each surface's sources (what each blocks is in `ui.md` → Limited Surfaces). Shopping-list items are the
+  exception on both halves: the count is the length of the local item store and the quota comes from
+  `ShoppingListDetailService`, fetched per list because an item quota is configured against the list's *owner*
+  (`docs/backend/modules/limits/module.md` → Behaviour).
+
+| Surface                                | Balance from                                     | Quota from                            |
+|----------------------------------------|--------------------------------------------------|---------------------------------------|
+| Create Recipe Screen                   | `RecipeListService.recipeBalance`                | `RECIPE`                              |
+| Recipes Collection Create Dialog       | `RecipesCollectionListService.collectionBalance` | `RECIPES_COLLECTION`                  |
+| Shopping List Create Dialog            | `ShoppingListListService.listBalance`            | `SHOPPING_LIST`                       |
+| Plan Form Dialog (create mode only)    | `MealPlanListService.planBalance`                | `MEAL_PLAN`                           |
+| URL and Image Extraction Screens       | `ExtractionService.extractionBalance`            | `EXTRACTION`                          |
+| Shopping List Detail Screen (add item) | length of the local item store                   | `ShoppingListDetailService.itemQuota` |
 
 ## File Map
 
@@ -41,6 +51,10 @@ mobile/lib/features/limits/
   snapshot taken when the user arrived; the surface closes after the one action it gates. Because the value is the
   subject's *recorded* balance — the same number a reserve compares against — a disabled button and a refusal agree
   by construction.
+- **Surfaces rebuild on either value.** The count and the quota resolve independently, so `LimitGate` rebuilds a
+  surface when either changes; one built before the quota lands would otherwise never show its counter. The surface
+  resolves its own quota and passes just that listenable in, and `LimitCounter` takes both numbers as parameters,
+  because every surface has a different count source.
 - **Every surface fails open.** A quota still loading, no quotas at all (limits disabled on the backend), or a
   failed balance fetch leaves both the counter hidden and the action enabled, with the server as the only thing that
   says no. Disabling can only ever block; it never admits an operation the server would refuse.

@@ -136,7 +136,7 @@ role in the app is in `docs/project/architecture.md`.
 #### Core (`mobile/modules/core/`)
 - `module.md` — description, file tree for `main.dart`, `core/`, `shared/` and the shared test support, DI setup
   order, the auth redirect, and what "session-scoped" means
-- `ui.md` — Main Screen, shared widgets, navigation route structure, bottom navigation bar, and authentication flow
+- `ui.md` — Main Screen, shared widgets, navigation route structure, and bottom navigation bar
 
 #### Auth (`mobile/modules/auth/`)
 - `module.md` — description, file tree, the repository choice per build, and the dev identity rules
@@ -148,7 +148,8 @@ role in the app is in `docs/project/architecture.md`.
 - `ui.md` — all recipe and collection screens/widgets, recipe management flow, and collections management flow
 
 #### Extraction (`mobile/modules/extraction/`)
-- `module.md` — description, file tree, and the extraction and share-intent services
+- `module.md` — description, file tree, the extraction and share-intent services, and which shared text counts as a
+  URL
 - `ui.md` — URL and image extraction screens and flow, and the share-intent flow
 
 #### Shopping Lists (`mobile/modules/shopping_list/`)
@@ -162,9 +163,9 @@ role in the app is in `docs/project/architecture.md`.
 - `ui.md` — calendar and planning screens, shopping list generation wizard, and all planning flows
 
 #### Limits (`mobile/modules/limits/`)
-- `module.md` — description, file tree, where each limited resource's count lives, how quotas and counts load, and the
-  fail-open rule
-- `ui.md` — the `used / limit` counter widget, the limit gate, and the surfaces that block at the quota
+- `module.md` — description, file tree, where each surface's count and quota come from, how quotas and counts load,
+  why a surface rebuilds on either, and the fail-open rule
+- `ui.md` — the `used / limit` counter widget and what each limited surface blocks at the quota
 
 #### Invites (`mobile/modules/invites/`)
 - `module.md` — description, file tree, load triggers, reload and answer behaviour, and the accept-time list reload
@@ -172,7 +173,7 @@ role in the app is in `docs/project/architecture.md`.
 
 #### Sharing (`mobile/modules/sharing/`)
 - `module.md` — description, file tree, and the features that open the dialog
-- `ui.md` — the generic sharing dialog, its granted/pending row kinds, the cancel/unshare confirmation, the 409 refusal copy, and the four call sites that open it
+- `ui.md` — the generic sharing dialog, its granted/pending row kinds, the cancel/unshare confirmation, the 409 refusal copy, and the four places that open it
 
 ---
 

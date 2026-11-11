@@ -4,79 +4,59 @@
 
 ### Main Screen
 
-- Main Screen (`main_screen.dart`) - Main application screen with embedded bottom navigation, managing recipe,
-  planning, and shopping list tabs. Displays RecipeGrid, MealPlanCalendarScreen, or ShoppingListList widgets based on
-  selected tab, with corresponding FABs (RecipeListFab, MealPlanCalendarFab, or ShoppingListListFab). Features
-  PopupMenuButton in AppBar with an "Invites" row (mail icon carrying a corner `Badge.count` while invites are
-  pending), "Recipes collections", "Generate shopping list", and logout options, followed by a "Send logs" item
-  (bug_report icon) that shares the current log file via the `recipai/share` platform channel. The overflow icon
-  itself carries a dot `Badge` whenever any invite is pending — see `docs/mobile/modules/invites/ui.md` for the
-  shared `InvitesService` notifier the dot and the Invites row's count both read.
-  When Planning tab is active, shows "Manage Plans" IconButton before the overflow menu.
+- Main Screen (`main_screen.dart`) - The signed-in shell, titled "RecipAI":
+  - *Tabs*: Recipes, Planning and Shopping (see Bottom Navigation Bar), each with its own FAB.
+  - *App bar*: on the Planning tab, a "Manage Plans" button opens the plan drawer
+    (`docs/mobile/modules/planning/ui.md`). The overflow menu holds "Invites" (with the pending-invite indicator —
+    `docs/mobile/modules/invites/ui.md` → Indicator), "Recipes collections", "Generate shopping list", "Logout" and
+    "Send logs", which shares the current log file (Android only).
+  - *Logout*: asks "Are you sure you want to logout?" before signing out.
 
 ## Shared Widgets
 
-- **Loading Widget** (`loading_widget.dart`) - Reusable loading indicator for async operations
-- **API Error Widget** (`api_error_widget.dart`) - Reusable error display with retry functionality for API failures
-- **Error Icon** (`error_icon.dart`) - Standardized error icon (64px, theme-based color)
-- **Serving Size Input** (`serving_size_input.dart`) - Reusable spinner-style control for serving size input with
-  increment/decrement buttons. Minimum value is 1 (decrement disabled at 1). Uses IconButton.outlined with Material
-  icons, displays value using headlineMedium text style. Used in RecipeFormWidget and MealEntryFormDialog.
+- **Loading Widget** (`loading_widget.dart`) - Loading indicator for async operations.
+- **API Error Widget** (`api_error_widget.dart`) - Error display with a Retry button for failed API calls.
+- **Error Icon** (`error_icon.dart`) - The app's standard error icon.
+- **Serving Size Input** (`serving_size_input.dart`) - Serving-size spinner with increment and decrement buttons;
+  minimum 1, so decrement is disabled at 1. Used in the recipe form and the meal entry dialog.
 
 ## Navigation
 
 ### Route Structure
 
-The app uses a simple GoRoute structure with embedded bottom navigation in MainScreen:
-
 #### Authentication Routes
 
-- `/login` - Authentication screen with Google Sign-In, replaced by a dev sign-in field when `devAuthEnabled` is set
-  (only accessible when unauthenticated)
+- `/login` - Login Screen (`docs/mobile/modules/auth/ui.md`); reachable only when signed out
 
 #### Main App Routes
 
-- `/` - Main screen with embedded bottom navigation (AppRoute.main)
-  - Tab 1: Recipes (default) - Displays RecipeGrid widget
-  - Tab 2: Planning - Displays MealPlanCalendarScreen widget with right-side drawer for plan management
-  - Tab 3: Shopping - Displays ShoppingListList widget
+- `/` - Main Screen
+  - Tab 1: Recipes (default)
+  - Tab 2: Planning, with the plan drawer on the right
+  - Tab 3: Shopping
 - `/recipes/url-extraction` - URL extraction screen (nested route)
 - `/recipes/image-extraction` - Image extraction screen (nested route)
 - `/recipes/create` - Recipe creation screen (nested route)
-- `/recipes/:id` - Recipe detail screen with dynamic ID parameter (nested route)
-- `/recipes/:id/edit` - Recipe edit screen with dynamic ID parameter (nested route)
+- `/recipes/:id` - Recipe detail screen (nested route)
+- `/recipes/:id/edit` - Recipe edit screen (nested route)
 - `/recipes/:id/to-shopping-list` - Add ingredients to shopping list screen (nested route)
-- `/recipes/picker` - Recipe picker screen for selecting a recipe (AppRoute.recipePicker, nested route)
-- `/recipes-collections` - Recipe collections list screen (AppRoute.recipesCollections)
-- `/invites` - Pending invites list screen (AppRoute.invites)
-- `/shopping-list-generation` - Shopping list generation wizard screen (AppRoute.shoppingListGeneration)
-- `/shopping-lists/:id` - Shopping list detail screen with dynamic ID parameter (AppRoute.shoppingListDetail)
+- `/recipes/picker` - Recipe picker screen (nested route)
+- `/recipes-collections` - Recipe collections list screen
+- `/invites` - Pending invites list screen
+- `/shopping-list-generation` - Shopping list generation wizard screen
+- `/shopping-lists/:id` - Shopping list detail screen
 
 ### Bottom Navigation Bar
 
-The app features an embedded bottom navigation bar (part of MainScreen) with tabs:
+The Main Screen's bottom navigation bar has three tabs:
 
-- **Recipes** (restaurant_menu icon) - Access recipe management features
-- **Planning** (calendar_today icon) - Access meal planning agenda view
-- **Shopping** (shopping_cart icon) - Access shopping list features
+- **Recipes** - recipe management
+- **Planning** - meal planning agenda
+- **Shopping** - shopping lists
 
-Tab state is ephemeral and not preserved across app restarts. Navigation to sub-routes (like recipe detail) pushes a new
-screen on top of MainScreen.
+The selected tab is not kept across app restarts. Sub-routes (like recipe detail) open on top of the Main Screen.
 
-### Authentication & Route Protection
+### Route Protection
 
-All routes except `/login` require user authentication. The app automatically redirects:
-
-- Unauthenticated users → `/login`
-- Authenticated users on `/login` → `/` (main screen)
-
-### Flow
-
-#### Authentication Flow
-
-1. **App Launch** → Authentication check:
-    - **If unauthenticated** → Login Screen (`/login`)
-    - **If authenticated** → Main Screen (`/`) showing Recipes tab
-2. **Login Screen → Sign-In Tap** (Google, or dev sign-in in a `devAuthEnabled` build) → Authentication process →
-   Main Screen (`/`)
-3. **Main Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
+Every route except `/login` needs a signed-in user; the redirect rule is in `module.md` → Services and State. The
+sign-in and sign-out flow is in `docs/mobile/modules/auth/ui.md` → Flow.
