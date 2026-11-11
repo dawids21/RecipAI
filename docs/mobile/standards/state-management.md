@@ -12,7 +12,7 @@ class RecipeListService {
 
   Future<void> loadRecipes() async {
     _recipes.value = await AsyncValue.guardAsync(() async {
-      return await _recipeRepository.fetchRecipes();
+      return await _recipeRepository.fetchRecipes(await _authService.idToken);
     });
   }
 }
@@ -25,7 +25,7 @@ ValueListenableBuilder(
   valueListenable: service.recipes,
   builder: (context, asyncValue, _) => asyncValue.when(
     loading: () => const CircularProgressIndicator(),
-    data: (recipes) => RecipeList(recipes: recipes),
+    data: (recipes) => Text('${recipes.length} recipes'),
     error: (e, _) => ErrorWidget(e),
   ),
 )
@@ -58,23 +58,25 @@ Repositories throw exceptions — they do not return error states. Services catc
 
 ```dart
 // Repository — throws on failure
-Future<List<Recipe>> fetchRecipes() async {
-  final response = await _apiClient.get('/recipes');
-  if (response.statusCode != 200) throw ApiException(response);
+Future<List<Recipe>> fetchRecipes(String? idToken) async {
+  final response = await _client.get(Uri.parse('$_baseUrl/recipes'), headers: ...);
+  if (response.statusCode != 200) {
+    throw Exception('Failed to load recipes: ${response.statusCode}');
+  }
   return ...;
 }
 
 // Service — guardAsync catches the exception
 Future<void> loadRecipes() async {
   _recipes.value = await AsyncValue.guardAsync(() async {
-    return await _recipeRepository.fetchRecipes();
+    return await _recipeRepository.fetchRecipes(await _authService.idToken);
   });
 }
 
 // View — handles error state
 asyncValue.when(
   loading: () => const CircularProgressIndicator(),
-  data: (recipes) => RecipeList(recipes: recipes),
+  data: (recipes) => Text('${recipes.length} recipes'),
   error: (e, _) => ErrorWidget(e),
 )
 ```

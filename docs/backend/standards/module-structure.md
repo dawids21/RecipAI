@@ -24,12 +24,12 @@ Modules expose a `public` facade (e.g., `RecipeFacade`, `ProvisioningFacade`) fo
 
 ```java
 // Correct: use the facade
-class PlanningService {
+class MealPlanService {
     private final RecipeFacade recipeFacade; // public facade
 }
 
 // Wrong: do not access internal services from outside the module
-class PlanningService {
+class MealPlanService {
     private final RecipeService recipeService; // package-private — not accessible
 }
 ```
@@ -88,15 +88,15 @@ class PermissionsApplicationService {
 
 ### RESTful Endpoint Conventions
 - Resource paths are **plural kebab-case nouns** (`/recipes`, `/shopping-lists`, `/meal-plans`)
-- Sub-actions use additional path segments as verbs (`/{id}/share`, `/{id}/check`, `/{id}/move`)
+- Sub-actions use additional path segments as verbs (`/{id}/share`, `/{id}/unshare`, `/{id}/accept`)
 - Authenticated user email is always extracted via `jwt.getClaimAsString("email")`
 
 ```java
 @RestController
 @RequestMapping("/shopping-lists")
 class ShoppingListController {
-    @PostMapping("/{id}/check")
-    void checkItem(@PathVariable UUID id, Jwt jwt) {
+    @PostMapping("/{id}/share")
+    ResponseEntity<Void> shareShoppingList(@PathVariable UUID id, @Valid @RequestBody ShareRequest request, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         ...
     }
@@ -109,7 +109,7 @@ Use `@Slf4j` (via Lombok) on all controllers and services. Call `log.debug(...)`
 ```java
 @Slf4j
 class RecipeController {
-    ResponseEntity<?> getRecipe(UUID id, Jwt jwt) {
+    RecipeDetailsDto getRecipeById(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
         String userEmail = jwt.getClaimAsString("email");
         log.debug("Getting recipe by id: {} for user: {}", id, userEmail);
         ...

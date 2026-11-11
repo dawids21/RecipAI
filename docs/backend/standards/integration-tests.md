@@ -44,7 +44,7 @@ class RecipeIntegrationTest {
     }
 
     @Test
-    void shouldReturnNotFoundWhenRecipeDoesNotExist() {
+    void shouldReturn404WhenDeletingNonExistentRecipe() {
         ...
     }
 }
