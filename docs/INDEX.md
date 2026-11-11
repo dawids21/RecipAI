@@ -152,8 +152,8 @@ role in the app is in `docs/project/architecture.md`.
 - `ui.md` — URL and image extraction screens and flow, and the share-intent flow
 
 #### Shopping Lists (`mobile/modules/shopping_list/`)
-- `module.md` — description, file tree, the item store, background sync, the open-list service (role, item quota,
-  undo), the import service, and the sign-out gotcha
+- `module.md` — description, file tree, the services (open list role, item quota, undo; import), how item sync
+  works (write path and outbox, push and rejection outcomes, poll, guarantees), and the sign-out gotcha
 - `ui.md` — shopping list screens/widgets and management flow
 
 #### Planning (`mobile/modules/planning/`)

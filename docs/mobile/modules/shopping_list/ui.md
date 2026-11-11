@@ -22,13 +22,11 @@
   checked state. Nothing is shown when a bulk action affects zero items, a second destructive action replaces the
   first snackbar so only the most recent action is undoable, and leaving the screen or letting the snackbar expire
   commits the action. A list-level sync
-  indicator next to the title reflects the current sync state (syncing / synced / offline / failure); a background
-  poll refreshes the list from the server every 10s while it is open, diffing others' changes into the local store,
-  and a retry banner surfaces on push failure. A queued change the server permanently refuses is dropped and
-  announced in a snackbar naming the item ("changed elsewhere and rolled back", "no longer exists", "could not be
-  synced"); a refusal because the list is full instead raises a single "This list is full - items weren't added"
-  bar, not repeated while one is already on screen, so adding past the cap does not queue up one snackbar per
-  rejected item. An item counter sits above the add row, pairing the list's flat item count — checked items
+  indicator next to the title reflects the current sync state (syncing / synced / offline / failure), others' changes
+  appear without a refresh, and a retry banner surfaces when pushing fails. A change the server refuses is
+  announced in a snackbar naming the item (outcomes in `module.md` → Sync → Push); a refusal because the list is full
+  instead raises a single "This list is full - items weren't added" bar, not repeated while one is already on screen,
+  so adding past the cap does not queue up one snackbar per rejected item. An item counter sits above the add row, pairing the list's flat item count — checked items
   included — with the cap fetched for this list when it was opened. The counter
   is either this list's cap or nothing, never the previous list's (see `module.md` → Services and State). At the cap
   both add surfaces close: the add widget's field is disabled and Enter-to-insert declines to open a new row, so
