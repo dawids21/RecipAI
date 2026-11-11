@@ -77,14 +77,10 @@ back to asking `RecipesCollectionService.roleOf` for that collection — the
 `RECIPES_COLLECTION_RESOURCE` key never leaves `collections` — and a caller who holds any role there
 is given a synthetic `EDITOR`, never materialised as a row. A caller who reaches neither is refused.
 Composition never lowers an answer: a direct `EDITOR` on a recipe in a collection the caller also owns
-still reads `EDITOR`, not the composed answer. `findAll`, `findAllUnassigned` and
-`accessibleRecipeIds` resolve the caller's accessible recipe ids through `PermissionsFacade` directly
-and accessible collection ids through `RecipesCollectionService.accessibleCollectionIds` (itself a
-thin wrapper over the facade), then pass both to `RecipeRepository` as `IN` parameters — no join, and
-neither set short-circuits `findAll` or `accessibleRecipeIds`, while `findAllUnassigned` still
-short-circuits on an empty recipe set alone. `accessibleRecipeIds` returns that composition as ids
-alone: it is what `RecipeFacade` exposes to other modules and what `RecipeFacade.getRecipes` filters
-on. `getPermissions` only ever asks the direct half — a collection-derived reader never appears in a
+still reads `EDITOR`, not the composed answer. Listing applies the same rule in bulk: a recipe is
+reachable when the caller holds a direct permission on it or any role on its collection. That
+composed set of recipe ids is what `RecipeFacade` exposes to other modules and filters its own
+lookups on. `getPermissions` only ever asks the direct half — a collection-derived reader never appears in a
 recipe's permissions list, and inviting someone who already reaches a recipe through a shared
 collection still creates a direct invite, since the refusal rules see only granted rows. See
 `docs/ADRs/0007-shared-permissions-module.md`.
