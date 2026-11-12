@@ -63,7 +63,8 @@ class FakeShoppingListItemRepository implements ShoppingListItemRepository {
   void _maybeFail() {
     if (offline) throw const ShoppingListNetworkException();
     if (transientFailure) throw Exception('transient 5xx');
-    if (rejectWrites) throw const ItemDiscardedException(DiscardReason.rejected);
+    if (rejectWrites)
+      throw const ItemDiscardedException(DiscardReason.rejected);
   }
 
   void putServerItem(String listId, ShoppingListItem item) {

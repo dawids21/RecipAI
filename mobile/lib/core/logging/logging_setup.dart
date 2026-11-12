@@ -19,7 +19,9 @@ Future<void> setupLogging() async {
   // `flutter logs` / the run console. Stripped from release/profile builds.
   if (kDebugMode) {
     Logger.root.onRecord.listen((record) {
-      debugPrint('${record.level.name}  ${record.loggerName}  ${record.message}');
+      debugPrint(
+        '${record.level.name}  ${record.loggerName}  ${record.message}',
+      );
       if (record.error != null) {
         debugPrint('  error: ${record.error}');
       }

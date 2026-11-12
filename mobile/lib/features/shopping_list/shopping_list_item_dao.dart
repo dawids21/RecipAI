@@ -185,7 +185,6 @@ class ShoppingListItemDao {
     if (rows.isEmpty) return null;
     return LocalShoppingListItem.fromMap(rows.first);
   }
-
 }
 
 enum OutboxKind {
