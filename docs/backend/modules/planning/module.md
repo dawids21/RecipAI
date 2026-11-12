@@ -53,9 +53,6 @@ backend/src/test/java/xyz/stasiak/recipai/
     └── MealPlanIntegrationTest.java   # Plans, entries, sharing, calendar view, list generation and the MEAL_PLAN quota
 ```
 
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.
-
 ## Limits
 
 Creating a meal plan consumes one unit of the owner's `MEAL_PLAN` budget, reserved before anything is
