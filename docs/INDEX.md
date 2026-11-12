@@ -125,10 +125,12 @@ Located in `docs/mobile/`
 ### Module Documentation
 
 Per-module documentation is in `docs/mobile/modules/<module>/`. A module is a folder under `mobile/lib/features/`,
-plus `core` for `main.dart`, `core/` and `shared/`. Each module directory contains two files:
+plus `core` for `main.dart`, `core/` and `shared/`. Each module directory contains up to three files:
 - `module.md` — what the module does, its boundary (backend endpoints, features used and using it), its file tree
   under `mobile/lib` and `mobile/test`, and its services' state, lifetime and rules
 - `ui.md` — screens, widgets, and user flows for that module
+- `data.md` — on-device database tables, columns, relationships, and indexes (only for modules that store data on the
+  device)
 
 Module descriptions (what each module does) are in each module's `module.md`; each module's one-line
 role in the app is in `docs/project/architecture.md`.
@@ -156,6 +158,7 @@ role in the app is in `docs/project/architecture.md`.
 - `module.md` — description, file tree, the services (open list role, item quota, undo; import), how item sync
   works (write path and outbox, push and rejection outcomes, poll, guarantees), and the sign-out gotcha
 - `ui.md` — shopping list screens/widgets and management flow
+- `data.md` — the sqflite `items` and `outbox` tables
 
 #### Planning (`mobile/modules/planning/`)
 - `module.md` — description, file tree, the plan, visibility, calendar, sharing and generation services, and the
@@ -197,7 +200,7 @@ Standards for routing: how to define routes in the `AppRoute` enum, how to navig
 Standards for styling: how to access the theme in build methods, the priority order for choosing styling values (`Theme.of(context)` → `AppSpacing`/`AppAnimations` constants → new constants → hardcoded), and the available `AppSpacing` and `AppAnimations` constants.
 
 ### Preferences Service (`mobile/standards/preferences-service.md`)
-Standards for local persistence: `PreferencesService` is the only approved mechanism, how to register and inject it, the synchronous read / asynchronous write pattern, and how to add a new preference.
+Standards for local persistence: `PreferencesService` is the only approved mechanism, how to register and inject it, the synchronous read / asynchronous write pattern, how to add a new preference, and the table of current preference keys with their owning module.
 
 ### Feature Flags (`mobile/standards/feature-flags.md`)
 Standards for feature flags: how to define and name flags with `bool.fromEnvironment()`, where a flag may be read (UI rendering, or implementation choice in a `*_setup.dart` / `main.dart` setup file), when to remove them, and where to document active flags.

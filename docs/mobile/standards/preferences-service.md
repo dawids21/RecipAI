@@ -44,8 +44,8 @@ await _preferencesService.clearRecipeFilter();
 
 ## Current Preferences
 
-| Preference | Key | Type | Description |
-|---|---|---|---|
-| Recipe filter collection ID | `recipe_filter_collection_id` | `String?` | Persists the selected collection chip filter across app restarts |
-| Meal plan visibility | `meal_plan_visibility` | `Map<String, bool>` (JSON) | Persists per-plan calendar visibility toggles |
-| Dev auth user name | `dev_auth_user_name` | `String?` | Dev sign-in name, used verbatim as the bearer token; see the `devAuthEnabled` flag |
+| Preference | Key | Type | Owner | Description |
+|---|---|---|---|---|
+| Recipe filter collection ID | `recipe_filter_collection_id` | `String?` | `recipe` | Persists the selected collection chip filter across app restarts |
+| Meal plan visibility | `meal_plan_visibility` | `Map<String, bool>` (JSON) | `planning` | Persists per-plan calendar visibility toggles |
+| Dev auth user name | `dev_auth_user_name` | `String?` | `auth` | Dev sign-in name, used verbatim as the bearer token; see the `devAuthEnabled` flag |
