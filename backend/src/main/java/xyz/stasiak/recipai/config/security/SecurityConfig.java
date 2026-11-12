@@ -25,7 +25,7 @@ class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(
-                                "/recipes/**", "/extract/**", "/users/**",
+                                "/recipes/**", "/extract/**",
                                 "/shopping-lists/**", "/collections/**", "/meal-plans/**", "/limits/**",
                                 "/invites/**", "/settings/**"
                         ).authenticated()
