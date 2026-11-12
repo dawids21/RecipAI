@@ -20,6 +20,3 @@ backend/src/test/java/xyz/stasiak/recipai/
 └── provisioning/
     └── ProvisioningServiceTest.java   # Unit test of quantity scaling and ingredient naming
 ```
-
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.

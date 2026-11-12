@@ -42,9 +42,6 @@ backend/src/test/java/xyz/stasiak/recipai/
     └── ShoppingListIntegrationTest.java   # Lists, sharing, versioned item writes and both shopping-list quotas
 ```
 
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.
-
 ## Limits
 
 Two independent stock quotas apply here, and a refusal of either does not resolve itself by waiting.

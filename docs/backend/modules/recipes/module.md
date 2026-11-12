@@ -77,9 +77,6 @@ backend/src/test/java/xyz/stasiak/recipai/
         └── RecipesCollectionIntegrationTest.java     # Collections, sharing and invites, and the RECIPES_COLLECTION quota
 ```
 
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.
-
 ## Access Composition
 
 `RecipeService.resolveAccess` asks `PermissionsFacade.roleOf` for a direct permission first; a direct

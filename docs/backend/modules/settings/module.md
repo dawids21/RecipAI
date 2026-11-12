@@ -24,9 +24,6 @@ backend/src/test/java/xyz/stasiak/recipai/
     └── AccountDeletionIntegrationTest.java   # DELETE /settings/account: purge, survivors, usage reset, repeat call
 ```
 
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.
-
 ## Behaviour
 
 - **Purge order** — `planning`, `shoppinglists`, `recipes`, `recipes.collections`, then `limits`, then

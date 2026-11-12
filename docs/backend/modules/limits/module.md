@@ -40,9 +40,6 @@ backend/src/test/java/xyz/stasiak/recipai/
     └── LimitsModuleArchitectureTest.java   # ArchUnit rules (see Module Boundary)
 ```
 
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.
-
 ## Module Boundary
 
 `limits` holds no domain knowledge: callers pass an opaque `subject` (a user email or a shopping

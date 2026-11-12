@@ -43,9 +43,6 @@ backend/src/test/java/xyz/stasiak/recipai/
     └── PermissionsModuleArchitectureTest.java  # ArchUnit rules (see Module Boundary)
 ```
 
-Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
-Infrastructure.
-
 ## Module Boundary
 
 `permissions` holds no domain knowledge: callers pass an opaque `resourceType` string (owned by the
