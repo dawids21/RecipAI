@@ -18,6 +18,15 @@ backend/src/main/java/xyz/stasiak/recipai/
 The module has no `dto/`, `exception/`, exception handler or facade: it raises no exception of its own
 and nothing outside it calls in.
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── settings/
+    └── AccountDeletionIntegrationTest.java   # DELETE /settings/account: purge, survivors, usage reset, repeat call
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Behaviour
 
 - **Purge order** — `planning`, `shoppinglists`, `recipes`, `recipes.collections`, then `limits`, then

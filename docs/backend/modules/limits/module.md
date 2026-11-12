@@ -31,6 +31,18 @@ backend/src/main/java/xyz/stasiak/recipai/
 
 The `Clock` the module reads time from is supplied by `config.time.TimeConfig`.
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── limits/
+    ├── LimitsIntegrationTest.java          # LimitsFacade against synthetic resource keys (see Behaviour, Usage Reads)
+    ├── LimitsApiIntegrationTest.java       # GET /limits with limits off and on
+    ├── LimitPeriodTest.java                # Unit test of DAY / WEEK / MONTH arithmetic, always at UTC
+    └── LimitsModuleArchitectureTest.java   # ArchUnit rules (see Module Boundary)
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Module Boundary
 
 `limits` holds no domain knowledge: callers pass an opaque `subject` (a user email or a shopping

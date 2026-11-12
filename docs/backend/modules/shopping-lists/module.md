@@ -36,6 +36,15 @@ backend/src/main/java/xyz/stasiak/recipai/
 Sharing types (`ResourceRole`, `PermissionDto`, `ShareRequest`, `UnshareRequest`) and the access-denied
 exception live in `permissions` — see `docs/backend/modules/permissions/module.md`.
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── shoppinglists/
+    └── ShoppingListIntegrationTest.java   # Lists, sharing, versioned item writes and both shopping-list quotas
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Limits
 
 Two independent stock quotas apply here, and a refusal of either does not resolve itself by waiting.
