@@ -18,3 +18,5 @@ recipai:
     enabled: false
   s3:
     presigned-url-expiration-minutes: 60
+  security:
+    admin-emails: admin@local.test

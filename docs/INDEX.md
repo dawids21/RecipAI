@@ -90,13 +90,14 @@ role in the system is in `docs/project/architecture.md`.
 #### Settings (`backend/modules/settings/`)
 - `module.md` — description, file tree, and the account-deletion purge order, partial-failure repair
   and missing-email refusal
-- `api.md` — `DELETE /settings/account`
+- `api.md` — `DELETE /settings/account` and the administrator's `DELETE /admin/accounts`
 
 #### Provisioning (`backend/modules/provisioning/`)
 - `module.md` — description and file tree (no HTTP endpoints, no DB tables)
 
 #### Config (`backend/modules/config/`)
-- `module.md` — description and file tree for `config.s3`, `config.security`, `config.time`
+- `module.md` — description and file tree for `config.s3`, `config.security`, `config.time`, and the
+  administrator authority (allowlist, grant rule)
 
 ---
 

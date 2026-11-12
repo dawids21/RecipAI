@@ -1,7 +1,14 @@
 @baseUrl = http://localhost:8080
 @user = alice1
+@admin = admin
 
 ### Delete the caller's account - DESTRUCTIVE: permanently removes every recipe, collection,
 # shopping list, meal plan, permission, invite and usage row belonging to {{user}}
 DELETE {{baseUrl}}/settings/account
 Authorization: Bearer {{user}}
+
+### Delete any account by email - DESTRUCTIVE: permanently removes every recipe, collection,
+# shopping list, meal plan, permission, invite and usage row belonging to {{user}}@local.test.
+# Requires the admin authority; any other caller gets 403
+DELETE {{baseUrl}}/admin/accounts?email={{user}}@local.test
+Authorization: Bearer {{admin}}

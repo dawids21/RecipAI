@@ -44,6 +44,9 @@ The token names the caller, and the two places that reference an identity want d
 Two different bearer tokens are two different users with no setup: `Bearer alice` cannot see what
 `Bearer bob` created until it is shared and the invite is accepted with `POST /invites/{id}/accept`.
 
+`Bearer admin` is the dev administrator — see `docs/backend/modules/config/module.md` → Administrator
+authority.
+
 ## Environment variables
 
 | Variable | Notes |
@@ -70,7 +73,8 @@ its requests top to bottom against a local `dev`-profile backend.
 Two status codes mislead:
 
 - **403 also means "no such route"** — the filter chain ends in `denyAll`, so a 403 on a path you
-  expected to work is usually a typo, not a permission bug.
+  expected to work is usually a typo, not a permission bug — or, under `/admin/**`, a caller that is
+  not an administrator.
 - **401 is only ever a missing or malformed token** — never a permissions problem.
 
 `docs/backend/modules/*/api.md` is the authoritative contract for every endpoint's parameters and

@@ -1,10 +1,10 @@
 # Settings Module
 
-Owns the caller's account-level operations. Today that is self-service account deletion: removing
-everything an email owns or holds across every module. The module knows only the order in which
-modules are purged — it holds no repositories, no entities, and no knowledge of what any other module
-stores; each module purges its own data through its facade (see
-`docs/ADRs/0010-account-deletion-orchestrated-over-per-module-purges.md`).
+Owns account-level operations. Today that is account deletion — by the caller for their own account,
+or by an administrator naming an email: removing everything an email owns or holds across every
+module. The module knows only the order in which modules are purged — it holds no repositories, no
+entities, and no knowledge of what any other module stores; each module purges its own data through
+its facade (see `docs/ADRs/0010-account-deletion-orchestrated-over-per-module-purges.md`).
 
 ## Codebase Structure
 
@@ -12,6 +12,7 @@ stores; each module purges its own data through its facade (see
 backend/src/main/java/xyz/stasiak/recipai/
 └── settings/
     ├── SettingsController.java      # Package-private @RestController — DELETE /settings/account for the caller's email claim
+    ├── AdminController.java         # Package-private @RestController — DELETE /admin/accounts for a named email
     └── AccountDeletionService.java  # Package-private — owns the purge order; takes an email, not a Jwt, and calls facades only
 ```
 
@@ -21,7 +22,8 @@ and nothing outside it calls in.
 ```
 backend/src/test/java/xyz/stasiak/recipai/
 └── settings/
-    └── AccountDeletionIntegrationTest.java   # DELETE /settings/account: purge, survivors, usage reset, repeat call
+    ├── AccountDeletionIntegrationTest.java        # DELETE /settings/account: purge, survivors, usage reset, repeat call
+    └── AdminAccountDeletionIntegrationTest.java   # DELETE /admin/accounts: admin purge, non-admin 403, validation 400s
 ```
 
 ## Behaviour
@@ -44,4 +46,3 @@ backend/src/test/java/xyz/stasiak/recipai/
   with nothing left to remove (an account that owns nothing returns 204).
 - **Missing email** — a null or blank email is refused with `IllegalArgumentException` before any
   module is touched, because derived deletes bind a null as `IS NULL`.
-- **Logging** — the email is logged at `INFO` on entry and exit.

@@ -6,3 +6,5 @@ spring:
 recipai:
   s3:
     presigned-url-expiration-minutes: 10
+  security:
+    admin-emails: ${RECIPAI_SECURITY_ADMIN_EMAILS:}

@@ -30,9 +30,9 @@ indexed in `docs/INDEX.md`); the role of each in the system:
 - **`permissions`** — the shared access-control module owning granted permissions and pending invites for every shareable resource
 - **`planning`** — meal plans that reference `recipes` and generate shopping lists
 - **`shoppinglists`** — shopping lists, populated manually or generated from `planning`
-- **`settings`** — self-service account deletion, ordering every module's per-account purge
+- **`settings`** — account deletion, self-service and by an administrator, ordering every module's per-account purge
 - **`provisioning`** — ingredient-to-shopping-list-item transformation used by `planning`
-- **`config.security`** — OAuth2 Resource Server / JWT validation for every request
+- **`config.security`** — OAuth2 Resource Server / JWT validation for every request, and the admin authority from a configured allowlist
 - **`config.s3`** — AWS S3 client configuration and the object-storage seam backing `recipes.images`
 - **`config.time`** — the `Clock` bean time-dependent services read instead of the system clock
 
@@ -162,14 +162,15 @@ Spring Boot profiles (`dev` / `prod`). See `docs/backend/standards/configuration
 
 Production deployments require these environment variables:
 
-| Variable                     | Purpose                                  |
-|------------------------------|------------------------------------------|
-| `SPRING_DATASOURCE_URL`      | Database connection URL                  |
-| `SPRING_DATASOURCE_USERNAME` | Database username                        |
-| `SPRING_DATASOURCE_PASSWORD` | Database password                        |
-| `SPRING_AI_API_KEY`          | API key for Spring AI Gemini integration |
-| `AWS_ACCESS_KEY_ID`          | AWS access key ID for S3 operations      |
-| `AWS_SECRET_ACCESS_KEY`      | AWS secret access key for S3 operations  |
+| Variable                        | Purpose                                                                      |
+|---------------------------------|------------------------------------------------------------------------------|
+| `SPRING_DATASOURCE_URL`         | Database connection URL                                                      |
+| `SPRING_DATASOURCE_USERNAME`    | Database username                                                            |
+| `SPRING_DATASOURCE_PASSWORD`    | Database password                                                            |
+| `SPRING_AI_API_KEY`             | API key for Spring AI Gemini integration                                     |
+| `AWS_ACCESS_KEY_ID`             | AWS access key ID for S3 operations                                          |
+| `AWS_SECRET_ACCESS_KEY`         | AWS secret access key for S3 operations                                      |
+| `RECIPAI_SECURITY_ADMIN_EMAILS` | Comma-separated administrator emails; optional, empty means no administrator |
 
 ### Mobile
 
