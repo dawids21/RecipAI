@@ -109,6 +109,5 @@ A mobile module is a folder under `mobile/lib/features/`, plus `core` (covering 
 **`ui.md`** — screens and widgets, and the flows the user goes through: what the user sees and can do. Service logic
 and rules live in `module.md` and are linked from here.
 
-**`data.md`** *(when the module stores data on the device)* — tables, columns and constraints, the schema version and
-the rule for changing it, and what survives a restart or sign-out. This data outlives app versions, so a wrong change
-breaks installed apps.
+**`data.md`** *(when the module stores data on the device)* — **Tables** (columns, constraints and meaning),
+**Relationships**, **Indexes**, and **Preferences** (the module's `PreferencesService` keys, with type and meaning).
