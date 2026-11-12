@@ -29,6 +29,7 @@ import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_service.dart';
 import '../features/recipe/recipe_picker_screen.dart';
 import '../features/recipe/recipe_to_shopping_list_screen.dart';
+import '../features/settings/account_deletion_service.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
@@ -264,7 +265,10 @@ GoRouter createAppRouter() {
             path: AppRoute.settings.path,
             name: AppRoute.settings.name,
             builder: (context, state) {
-              return SettingsScreen(authService: getIt<AuthService>());
+              return SettingsScreen(
+                authService: getIt<AuthService>(),
+                accountDeletionService: getIt<AccountDeletionService>(),
+              );
             },
           ),
           GoRoute(

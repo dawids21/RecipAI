@@ -4,7 +4,9 @@ Owns account-level operations. Today that is account deletion — by the caller 
 or by an administrator naming an email: removing everything an email owns or holds across every
 module. The module knows only the order in which modules are purged — it holds no repositories, no
 entities, and no knowledge of what any other module stores; each module purges its own data through
-its facade (see `docs/ADRs/0010-account-deletion-orchestrated-over-per-module-purges.md`).
+its facade (see `docs/ADRs/0010-account-deletion-orchestrated-over-per-module-purges.md`). The module never touches
+the Firebase identity: in self-service deletion the mobile client deletes it after the purge (see
+`docs/mobile/modules/settings/module.md` → Services and State).
 
 ## Codebase Structure
 

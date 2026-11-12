@@ -59,8 +59,8 @@ mobile/
 - **App-lifetime singletons** registered in `main()`: `PreferencesService`, the shopping-list item `Database`
   (opened before any feature setup; see `docs/mobile/modules/shopping_list/module.md`) and `AppLogSink`. Feature
   `setup*()` functions run in a fixed order after them, because later features resolve earlier ones' services:
-  auth → limits → recipe → collections → planning → shopping list → invites → extraction, then the share-intent
-  handler, which needs the router.
+  auth → settings → limits → recipe → collections → planning → shopping list → invites → extraction, then the
+  share-intent handler, which needs the router.
 - **Auth redirect.** The router listens to `AuthService.isAuthenticated`: signed out, every route redirects to
   `/login`; signed in, `/login` redirects to `/`.
 - **Session scope.** The Main Screen lives exactly as long as the user is signed in, since sign-out redirects away

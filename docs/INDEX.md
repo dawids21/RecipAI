@@ -183,8 +183,8 @@ role in the app is in `docs/project/architecture.md`.
 - `ui.md` — the generic sharing dialog, its granted/pending row kinds, the cancel/unshare confirmation, the 409 refusal copy, and the four places that open it
 
 #### Settings (`mobile/modules/settings/`)
-- `module.md` — description, file tree, and how sign-out leaves the screen through the auth redirect
-- `ui.md` — the `/settings` screen and its Send logs and Logout actions
+- `module.md` — description, file tree, the account deletion order and outcomes, and how sign-out and deletion leave the screen through the auth redirect
+- `ui.md` — the `/settings` screen, its Send logs, Logout and Delete account actions, and the deletion flow's messages
 
 ---
 

@@ -76,4 +76,12 @@ class DevAuthRepository implements AuthRepository {
     _current = null;
     _controller.add(null);
   }
+
+  /// The dev identity has nothing to re-authenticate against.
+  @override
+  Future<void> reauthenticate() async {}
+
+  /// The dev identity exists only on this device, so deleting it is signing out.
+  @override
+  Future<void> deleteIdentity() => signOut();
 }

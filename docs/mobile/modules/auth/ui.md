@@ -19,3 +19,5 @@
 2. **Login Screen → Google Sign-In Tap** (default build) → Authentication process → Main Screen (`/`)
 3. **Login Screen → Login Tap** (dev-auth build) → signed in as that name → Main Screen (`/`)
 4. **Main Screen → Settings → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
+5. **Main Screen → Settings → Delete account Tap** → Confirmation dialog → Google re-authentication → Deletion →
+   Login Screen (`/login`) (see `docs/mobile/modules/settings/ui.md` → Delete account)

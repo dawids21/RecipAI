@@ -10,7 +10,8 @@ Flags) signs in by name against a `dev`-profile backend instead (see `docs/proje
   feature's repository.
 - **Uses**: no other feature.
 - **Used by**: every feature's services (token, `email`), `limits` (loads quotas on sign-in), `core` (router
-  redirect), `settings` (sign-out), and the screens that pass the current user's email to `sharing`.
+  redirect), `settings` (sign-out and account deletion), and the screens that pass the current user's email to
+  `sharing`.
 
 ## File Map
 
@@ -37,3 +38,9 @@ mobile/lib/features/auth/
   the backend's `dev` profile. A name outside the RFC 6750 bearer-token grammar (`[a-zA-Z0-9-._~+/]`) is refused on
   sign-in, and one already persisted is cleared on start-up, so the token sent to the backend is always legal. The
   persisted name survives a restart (the session is restored on launch) and is cleared on sign-out.
+- **Re-authentication and identity deletion** exist for account deletion (see
+  `docs/mobile/modules/settings/module.md` → Services and State). In the Firebase build, re-authentication is a fresh
+  Google prompt verified against the signed-in user — dismissing it raises `ReauthCancelledException`, choosing a
+  different account fails — and identity deletion removes the Firebase user, which requires that recent
+  re-authentication. The dev build has nothing to verify: re-authentication succeeds at once and identity deletion
+  is a sign-out.

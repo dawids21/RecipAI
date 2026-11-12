@@ -76,6 +76,13 @@ class AuthService {
     _isSignOutRunning = false;
   }
 
+  /// Fresh sign-in confirming the current user before an irreversible action.
+  /// Throws ReauthCancelledException when the user dismisses the prompt.
+  Future<void> reauthenticate() => _authRepository.reauthenticate();
+
+  /// Deletes the signed-in identity. Requires a recent [reauthenticate].
+  Future<void> deleteIdentity() => _authRepository.deleteIdentity();
+
   /// Dispose resources
   void dispose() {
     _authStateSubscription.cancel();

@@ -25,6 +25,7 @@ import 'features/limits/limits_setup.dart';
 import 'features/planning/meal_plan_setup.dart';
 import 'features/recipe/collection/recipes_collection_setup.dart';
 import 'features/recipe/recipe_setup.dart';
+import 'features/settings/settings_setup.dart';
 import 'features/shopping_list/shopping_list_item_database_factory.dart';
 import 'features/shopping_list/shopping_list_setup.dart';
 
@@ -50,6 +51,7 @@ void main() async {
 
   // DI
   setupAuth();
+  setupSettings();
   setupLimits();
   setupRecipe();
   setupRecipesCollection();

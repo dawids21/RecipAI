@@ -6,6 +6,7 @@ import 'package:recipai_mobile/features/limits/limits_repository.dart';
 import 'package:recipai_mobile/features/planning/meal_plan_repository.dart';
 import 'package:recipai_mobile/features/recipe/collection/recipes_collection_repository.dart';
 import 'package:recipai_mobile/features/recipe/recipe_repository.dart';
+import 'package:recipai_mobile/features/settings/account_repository.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_item_dao.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_item_repository.dart';
 import 'package:recipai_mobile/features/shopping_list/shopping_list_repository.dart';
@@ -32,3 +33,5 @@ class MockShoppingListItemDao extends Mock implements ShoppingListItemDao {}
 class MockMealPlanRepository extends Mock implements MealPlanRepository {}
 
 class MockInvitesRepository extends Mock implements InvitesRepository {}
+
+class MockAccountRepository extends Mock implements AccountRepository {}
