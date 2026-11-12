@@ -22,3 +22,6 @@ backend/src/main/java/xyz/stasiak/recipai/
     └── time/
         └── TimeConfig.java          # Clock bean (system UTC) for time-dependent services
 ```
+
+The module has no tests of its own. Its test-side `S3Service` stand-in is shared test infrastructure — see
+`docs/backend/standards/integration-tests.md` → Shared Test Infrastructure.

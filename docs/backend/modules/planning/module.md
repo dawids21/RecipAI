@@ -47,6 +47,15 @@ backend/src/main/java/xyz/stasiak/recipai/
 Sharing types (`ResourceRole`, `PermissionDto`, `ShareRequest`, `UnshareRequest`) and the access-denied
 exception live in `permissions` — see `docs/backend/modules/permissions/module.md`.
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── planning/
+    └── MealPlanIntegrationTest.java   # Plans, entries, sharing, calendar view, list generation and the MEAL_PLAN quota
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Limits
 
 Creating a meal plan consumes one unit of the owner's `MEAL_PLAN` budget, reserved before anything is

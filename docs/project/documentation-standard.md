@@ -80,7 +80,8 @@ small modules get short docs.
 
 - **Purpose** — 2–3 lines.
 - **Boundary** — what the module owns, the facades it calls, and the modules that call its facade.
-- **File map** — `backend/src/main/...` sources.
+- **File map** — `backend/src/main/...` sources, then the module's `backend/src/test/...` classes; shared test
+  helpers are listed once in `docs/backend/standards/integration-tests.md`.
 - **Rules** *(when applicable)* — business rules and their reasons.
 - **Cross-module Flows** *(when applicable)* — one subsection per flow the module drives.
 - **Gotchas** *(when applicable)*.

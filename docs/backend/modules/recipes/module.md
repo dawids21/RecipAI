@@ -69,6 +69,17 @@ Sharing types for recipes and collections (`ResourceRole`, `PermissionDto`, `Sha
 `UnshareRequest`) and the access-denied exception live in `permissions` — see
 `docs/backend/modules/permissions/module.md`.
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── recipes/
+    ├── RecipeIntegrationTest.java                    # Recipes, sharing, collection access, ingredients and the RECIPE quota
+    └── collections/
+        └── RecipesCollectionIntegrationTest.java     # Collections, sharing and invites, and the RECIPES_COLLECTION quota
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Access Composition
 
 `RecipeService.resolveAccess` asks `PermissionsFacade.roleOf` for a direct permission first; a direct

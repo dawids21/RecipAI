@@ -54,6 +54,29 @@ A suite that shares a subject across several clients (owner, an invitee, a stran
 token per role in the same `@BeforeEach`, the way `RecipeIntegrationTest` mints `owner`, `user1` and
 `user2`.
 
+### Shared Test Infrastructure
+
+The test root holds the helpers every suite shares; each module's own tests are listed in its
+`docs/backend/modules/<module>/module.md`.
+
+```
+backend/src/test/java/xyz/stasiak/recipai/
+├── IntegrationTest.java              # The composed suite annotation (see above)
+├── LimitsEnabled.java                # Turns limits on for a @Nested class (see Testing a Suite Whose Module Is Limited)
+├── TestcontainersConfiguration.java  # The one PostgreSQL container; imports the AI and S3 test configurations
+├── TestAiConfiguration.java          # @Primary deep-stubbed ChatClient mock; suites stub it via getChatClient()
+├── TestRestClients.java              # The one place a test RestClient is built (see above)
+├── TestIdentities.java               # Fresh dev-auth tokens and their emails (see above)
+├── RecomputeMigration.java           # Runs the repeatable recompute on demand (see limits/db.md) for drift-repair tests
+├── RecipAiApplicationTests.java      # Context-loads smoke test
+└── config/s3/
+    ├── TestS3Configuration.java      # @Primary S3Service override, so no test reaches object storage
+    └── NoopS3Service.java            # Stores nothing, lists nothing; presigns to https://noop.local.test/<key>
+
+backend/src/test/resources/
+└── application-test.yml              # The test profile: limits off (see below) and a placeholder AI key
+```
+
 ### Seed and Read Through the Module's Own Methods
 
 Prefer the module's own business surface — an HTTP call, a facade method — for **seeding** a fixture as

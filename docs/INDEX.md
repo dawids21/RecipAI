@@ -44,7 +44,7 @@ Located in `docs/backend/`
 ### Module Documentation
 
 Per-module documentation is in `docs/backend/modules/<module>/`. Each module directory contains up to three files:
-- `module.md` — what the module does, its file tree, and (for limited modules) a `## Limits` section
+- `module.md` — what the module does, its file tree under `src/main` and `src/test`, and (for limited modules) a `## Limits` section
 - `api.md` — REST API endpoints for that module
 - `db.md` — database tables, relationships, and indexes for that module
 
@@ -114,7 +114,7 @@ Standards for feature module organisation: the `dto`/`exception` package layout 
 Standards for Spring Boot profile usage: which config file serves what purpose, profile activation, and rules about where secrets and environment-specific values belong.
 
 ### Integration Tests (`backend/standards/integration-tests.md`)
-Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, seeding and reading through the module's own business methods rather than hand-written SQL, and how to test a suite whose module is limited by `limits`.
+Standards for writing backend integration tests: required annotations, HTTP client choice, test data cleanup, assertion library, test method naming convention, the shared test helpers at the test root, seeding and reading through the module's own business methods rather than hand-written SQL, and how to test a suite whose module is limited by `limits`.
 
 ---
 

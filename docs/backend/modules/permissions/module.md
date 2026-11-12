@@ -36,6 +36,16 @@ backend/src/main/java/xyz/stasiak/recipai/
     └── AcceptedInvite.java                      # Package-private record (resourceType, resourceId, role) returned by InviteService.accept
 ```
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── permissions/
+    ├── InviteIntegrationTest.java              # Invite handshake and refusal rules across resource types (see Behaviour)
+    └── PermissionsModuleArchitectureTest.java  # ArchUnit rules (see Module Boundary)
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Module Boundary
 
 `permissions` holds no domain knowledge: callers pass an opaque `resourceType` string (owned by the

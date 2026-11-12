@@ -22,6 +22,15 @@ backend/src/main/java/xyz/stasiak/recipai/
     └── ExtractionFailedException.java       # AI provider returned no recipe -> 500
 ```
 
+```
+backend/src/test/java/xyz/stasiak/recipai/
+└── extraction/
+    └── ExtractionIntegrationTest.java   # /extract endpoints and the EXTRACTION budget over the mocked ChatClient
+```
+
+Shared test infrastructure is listed in `docs/backend/standards/integration-tests.md` → Shared Test
+Infrastructure.
+
 ## Limits
 
 Both endpoints consume one unit of the caller's `EXTRACTION` budget, reserved before the AI provider
