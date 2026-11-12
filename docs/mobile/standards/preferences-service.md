@@ -41,11 +41,4 @@ await _preferencesService.clearRecipeFilter();
 2. Add a typed getter method following the existing naming pattern (`getXxx()`).
 3. Add a typed setter method (`setXxx()`). For nullable values, call `remove()` when the value is `null`.
 4. Inject `PreferencesService` into any service that needs the preference.
-
-## Current Preferences
-
-| Preference | Key | Type | Owner | Description |
-|---|---|---|---|---|
-| Recipe filter collection ID | `recipe_filter_collection_id` | `String?` | `recipe` | Persists the selected collection chip filter across app restarts |
-| Meal plan visibility | `meal_plan_visibility` | `Map<String, bool>` (JSON) | `planning` | Persists per-plan calendar visibility toggles |
-| Dev auth user name | `dev_auth_user_name` | `String?` | `auth` | Dev sign-in name, used verbatim as the bearer token; see the `devAuthEnabled` flag |
+5. Document the key in the owning module's `data.md` → Preferences.

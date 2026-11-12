@@ -129,8 +129,8 @@ plus `core` for `main.dart`, `core/` and `shared/`. Each module directory contai
 - `module.md` — what the module does, its boundary (backend endpoints, features used and using it), its file tree
   under `mobile/lib` and `mobile/test`, and its services' state, lifetime and rules
 - `ui.md` — screens, widgets, and user flows for that module
-- `data.md` — on-device database tables, columns, relationships, and indexes (only for modules that store data on the
-  device)
+- `data.md` — on-device database tables, columns, relationships, indexes, and preference keys (only for modules that
+  store data on the device)
 
 Module descriptions (what each module does) are in each module's `module.md`; each module's one-line
 role in the app is in `docs/project/architecture.md`.
@@ -143,11 +143,13 @@ role in the app is in `docs/project/architecture.md`.
 #### Auth (`mobile/modules/auth/`)
 - `module.md` — description, file tree, the repository choice per build, and the dev identity rules
 - `ui.md` — Login Screen and authentication flow
+- `data.md` — the dev sign-in name preference
 
 #### Recipe & Collections (`mobile/modules/recipe/`)
 - `module.md` — description, file tree including the `collection/` sub-feature, the list/detail/collection services
   (filter persistence, search, scoping), and the Add to Shopping List flow
 - `ui.md` — all recipe and collection screens/widgets, recipe management flow, and collections management flow
+- `data.md` — the recipe list filter preference
 
 #### Extraction (`mobile/modules/extraction/`)
 - `module.md` — description, file tree, the extraction and share-intent services, and which shared text counts as a
@@ -164,6 +166,7 @@ role in the app is in `docs/project/architecture.md`.
 - `module.md` — description, file tree, the plan, visibility, calendar, sharing and generation services, and the
   shopping list generation flow
 - `ui.md` — calendar and planning screens, shopping list generation wizard, and all planning flows
+- `data.md` — the meal plan visibility preference
 
 #### Limits (`mobile/modules/limits/`)
 - `module.md` — description, file tree, where each surface's count and quota come from, how quotas and counts load,
@@ -200,7 +203,7 @@ Standards for routing: how to define routes in the `AppRoute` enum, how to navig
 Standards for styling: how to access the theme in build methods, the priority order for choosing styling values (`Theme.of(context)` → `AppSpacing`/`AppAnimations` constants → new constants → hardcoded), and the available `AppSpacing` and `AppAnimations` constants.
 
 ### Preferences Service (`mobile/standards/preferences-service.md`)
-Standards for local persistence: `PreferencesService` is the only approved mechanism, how to register and inject it, the synchronous read / asynchronous write pattern, how to add a new preference, and the table of current preference keys with their owning module.
+Standards for local persistence: `PreferencesService` is the only approved mechanism, how to register and inject it, the synchronous read / asynchronous write pattern, and how to add a new preference.
 
 ### Feature Flags (`mobile/standards/feature-flags.md`)
 Standards for feature flags: how to define and name flags with `bool.fromEnvironment()`, where a flag may be read (UI rendering, or implementation choice in a `*_setup.dart` / `main.dart` setup file), when to remove them, and where to document active flags.
