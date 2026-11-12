@@ -25,11 +25,11 @@ mobile/
 │   │   ├── app_config.dart             # Loads assets/config/app_config.json (API base URL)
 │   │   ├── async_value.dart            # AsyncValue sealed class (Loading/Data/Error) and guardAsync
 │   │   ├── get_it.dart                 # Global GetIt instance
-│   │   ├── feature_flags.dart          # Compile-time flags (see Feature Flags standard)
+│   │   ├── feature_flags.dart          # Compile-time flags (see Feature Flags)
 │   │   ├── preferences_service.dart    # SharedPreferences wrapper, the only local key-value store (see its standard)
 │   │   ├── scheduler.dart              # Scheduler/ScheduledTimer over dart:async Timer, injectable for tests (ADR-0005)
 │   │   ├── theme.dart                  # AppTheme, AppSpacing and AppAnimations
-│   │   └── logging/                    # Capture is always on; the flag gates only the share UI (see Logging standard)
+│   │   └── logging/                    # Always-on log capture and the share action (see Logging standard)
 │   │       ├── logging_setup.dart      # Wires the root logger to AppLogSink and registers the sink
 │   │       ├── app_log_sink.dart       # Rotating file sink (~1 MB active + 1 backup) under the app support dir
 │   │       └── share_logs.dart         # Shares the current log file via the recipai/share platform channel (Android only)
@@ -69,3 +69,13 @@ mobile/
   `ShoppingListListService`, `MealPlanListService`, `MealPlanCalendarService`, `MealPlanVisibilityService`,
   `InvitesService`). "Session-scoped" in the other modules' docs means this; the next sign-in builds fresh
   instances, so no list leaks from one account to the next.
+
+## Feature Flags
+
+`FeatureFlags` holds compile-time `bool` constants read with `bool.fromEnvironment()`, so a flag is set per build with
+`--dart-define=<BUILD_VARIABLE>=true` and cannot change at runtime. The rules for adding, reading and removing a flag
+are in `docs/mobile/standards/feature-flags.md`.
+
+| Flag             | Build variable     | Default | What it changes                                                                                                                                                                                   |
+|------------------|--------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `devAuthEnabled` | `DEV_AUTH_ENABLED` | `false` | Signs in by name against a `dev`-profile backend instead of Firebase: `main.dart` skips Firebase and Google Sign-In initialisation, and `setupAuth` picks the dev repository (see `docs/mobile/modules/auth/module.md` → Services and State). |

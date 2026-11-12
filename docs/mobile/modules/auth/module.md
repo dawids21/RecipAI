@@ -1,8 +1,8 @@
 # Auth Module
 
 Signs the user in and supplies the bearer token every repository sends. The default build uses Firebase
-Authentication with Google Sign-In; a `devAuthEnabled` build (see the Feature Flags standard) signs in by name against
-a `dev`-profile backend instead (see `docs/project/local-development.md`).
+Authentication with Google Sign-In; a `devAuthEnabled` build (see `docs/mobile/modules/core/module.md` → Feature
+Flags) signs in by name against a `dev`-profile backend instead (see `docs/project/local-development.md`).
 
 ## Boundary
 

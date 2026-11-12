@@ -135,7 +135,7 @@ role in the app is in `docs/project/architecture.md`.
 
 #### Core (`mobile/modules/core/`)
 - `module.md` — description, file tree for `main.dart`, `core/`, `shared/` and the shared test support, DI setup
-  order, the auth redirect, and what "session-scoped" means
+  order, the auth redirect, what "session-scoped" means, and the feature flag mechanism with the table of active flags
 - `ui.md` — Main Screen, shared widgets, navigation route structure, and bottom navigation bar
 
 #### Auth (`mobile/modules/auth/`)
@@ -200,7 +200,7 @@ Standards for styling: how to access the theme in build methods, the priority or
 Standards for local persistence: `PreferencesService` is the only approved mechanism, how to register and inject it, the synchronous read / asynchronous write pattern, and how to add a new preference.
 
 ### Feature Flags (`mobile/standards/feature-flags.md`)
-Standards for feature flags: how to define flags using `bool.fromEnvironment()`, how to use them to gate UI rendering only, when to remove them, and the table of currently active flags.
+Standards for feature flags: how to define and name flags with `bool.fromEnvironment()`, where a flag may be read (UI rendering, or implementation choice in a `*_setup.dart` / `main.dart` setup file), when to remove them, and where to document active flags.
 
 ### Logging (`mobile/standards/logging.md`)
 Standards for logging: hierarchical logger naming (`recipai.<feature>.<layer>`), level conventions, redaction rules (never log bearer tokens or request/response bodies), and the rotating file-sink + share-via-platform-channel pattern.
