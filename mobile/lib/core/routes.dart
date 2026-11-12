@@ -29,6 +29,7 @@ import '../features/recipe/recipe_detail_service.dart';
 import '../features/recipe/recipe_list_service.dart';
 import '../features/recipe/recipe_picker_screen.dart';
 import '../features/recipe/recipe_to_shopping_list_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/shopping_list/shopping_list_detail_screen.dart';
 import '../features/shopping_list/shopping_list_detail_service.dart';
 import '../features/shopping_list/shopping_list_item_import_service.dart';
@@ -47,6 +48,7 @@ enum AppRoute {
   recipeEdit('edit'), // '/recipes/:id/edit'
   recipesCollections('recipes-collections'), // '/recipes-collections'
   invites('invites'), // '/invites'
+  settings('settings'), // '/settings'
   recipeToShoppingList('to-shopping-list'), // '/recipes/:id/to-shopping-list'
   shoppingListGeneration(
     'shopping-list-generation',
@@ -256,6 +258,13 @@ GoRouter createAppRouter() {
             name: AppRoute.invites.name,
             builder: (context, state) {
               return InvitesScreen(invitesService: getIt<InvitesService>());
+            },
+          ),
+          GoRoute(
+            path: AppRoute.settings.path,
+            name: AppRoute.settings.name,
+            builder: (context, state) {
+              return SettingsScreen(authService: getIt<AuthService>());
             },
           ),
           GoRoute(

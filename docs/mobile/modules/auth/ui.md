@@ -18,4 +18,4 @@
     - **If authenticated** → Main Screen (`/`) showing Recipes tab
 2. **Login Screen → Google Sign-In Tap** (default build) → Authentication process → Main Screen (`/`)
 3. **Login Screen → Login Tap** (dev-auth build) → signed in as that name → Main Screen (`/`)
-4. **Main Screen → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)
+4. **Main Screen → Settings → Logout Tap** → Confirmation dialog → Sign out → Login Screen (`/login`)

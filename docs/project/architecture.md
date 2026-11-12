@@ -105,6 +105,7 @@ Module descriptions are in each module's `module.md` (see `docs/mobile/modules/<
 - **`limits`** — the session's quotas and the `used / limit` counter every limited surface renders
 - **`invites`** — the invitee's pending invites from the backend's `permissions` module, accepted or declined
 - **`sharing`** — the sharer's generic dialog every shareable resource opens
+- **`settings`** — the signed-in user's account actions: logout and sending logs
 
 ### Routing
 

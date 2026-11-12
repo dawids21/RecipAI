@@ -8,9 +8,8 @@
   - *Tabs*: Recipes, Planning and Shopping (see Bottom Navigation Bar), each with its own FAB.
   - *App bar*: on the Planning tab, a "Manage Plans" button opens the plan drawer
     (`docs/mobile/modules/planning/ui.md`). The overflow menu holds "Invites" (with the pending-invite indicator —
-    `docs/mobile/modules/invites/ui.md` → Indicator), "Recipes collections", "Generate shopping list", "Logout" and
-    "Send logs", which shares the current log file (Android only).
-  - *Logout*: asks "Are you sure you want to logout?" before signing out.
+    `docs/mobile/modules/invites/ui.md` → Indicator), "Recipes collections", "Generate shopping list" and "Settings"
+    (`docs/mobile/modules/settings/ui.md`).
 
 ## Shared Widgets
 
@@ -43,6 +42,7 @@
 - `/recipes/picker` - Recipe picker screen (nested route)
 - `/recipes-collections` - Recipe collections list screen
 - `/invites` - Pending invites list screen
+- `/settings` - Settings screen
 - `/shopping-list-generation` - Shopping list generation wizard screen
 - `/shopping-lists/:id` - Shopping list detail screen
 

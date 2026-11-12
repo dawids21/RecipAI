@@ -10,7 +10,7 @@ Flags) signs in by name against a `dev`-profile backend instead (see `docs/proje
   feature's repository.
 - **Uses**: no other feature.
 - **Used by**: every feature's services (token, `email`), `limits` (loads quotas on sign-in), `core` (router
-  redirect), and the screens that pass the current user's email to `sharing`.
+  redirect), `settings` (sign-out), and the screens that pass the current user's email to `sharing`.
 
 ## File Map
 

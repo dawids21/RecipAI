@@ -20,7 +20,6 @@ import '../features/shopping_list/shopping_list_list_fab.dart';
 import '../features/shopping_list/shopping_list_list_service.dart';
 import '../shared/extensions.dart';
 import 'get_it.dart';
-import 'logging/share_logs.dart';
 import 'routes.dart';
 import 'theme.dart';
 
@@ -99,40 +98,6 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  Future<void> _onLogoutTap(BuildContext context) async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Logout'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldLogout == true) {
-      try {
-        await widget.authService.signOut();
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Failed to logout: $e')));
-        }
-      }
-    }
-  }
-
   void _onBottomNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -176,10 +141,8 @@ class _MainScreenState extends State<MainScreen> {
                     context.goNamed(AppRoute.recipesCollections.name);
                   } else if (value == 'generate_shopping_list') {
                     context.goNamed(AppRoute.shoppingListGeneration.name);
-                  } else if (value == 'logout') {
-                    _onLogoutTap(context);
-                  } else if (value == 'send_logs') {
-                    shareLogs();
+                  } else if (value == 'settings') {
+                    context.goNamed(AppRoute.settings.name);
                   }
                 },
                 itemBuilder: (context) => [
@@ -218,22 +181,12 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                   const PopupMenuItem<String>(
-                    value: 'logout',
+                    value: 'settings',
                     child: Row(
                       children: [
-                        Icon(Icons.logout),
+                        Icon(Icons.settings),
                         SizedBox(width: AppSpacing.small),
-                        Text('Logout'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem<String>(
-                    value: 'send_logs',
-                    child: Row(
-                      children: [
-                        Icon(Icons.bug_report),
-                        SizedBox(width: AppSpacing.small),
-                        Text('Send logs'),
+                        Text('Settings'),
                       ],
                     ),
                   ),
