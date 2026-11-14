@@ -1,20 +1,30 @@
 @baseUrl = http://localhost:8080
 @user = alice
-@otherUser = bob
+
+### ======================================================================================
+### Budget
+### ======================================================================================
 
 ### How much of the caller's EXTRACTION budget is already spent
+# @name getExtractionBalance
 GET {{baseUrl}}/extract/balance
 Authorization: Bearer {{user}}
 
-### Extract a recipe from text — needs a real SPRING_AI_API_KEY; recipai.sh's fallback
-### dummy-key-for-local boots the server fine but fails this call
+### ======================================================================================
+### Extraction — needs a real SPRING_AI_API_KEY; recipai.sh's fallback dummy-key-for-local
+### boots the server fine but fails these calls
+### ======================================================================================
+
+### Extract a recipe from text
+# @name extractFromText
 POST {{baseUrl}}/extract/text
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
 { "text": "Pizza: 300g flour, 200ml tomato sauce, salt to taste. Make dough, then add sauce and toppings." }
 
-### Extract a recipe from an image — same SPRING_AI_API_KEY requirement as above
+### Extract a recipe from an image
+# @name extractFromImage
 POST {{baseUrl}}/extract/image
 Authorization: Bearer {{user}}
 Content-Type: multipart/form-data; boundary=RecipAIBoundary

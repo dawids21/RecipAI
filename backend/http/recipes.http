@@ -1,24 +1,25 @@
 @baseUrl = http://localhost:8080
 @user = alice
 @otherUser = bob
+# Id of an existing collection — create one with createCollection in collections.http
+@collectionId = 00000000-0000-0000-0000-000000000000
+@imageId = e36c65a2-062b-48ac-bdc9-ebffb59ecc07
+
+### ======================================================================================
+### Budget
+### ======================================================================================
 
 ### How much of the caller's RECIPE budget is already spent — /balance wins the route over
 ### GET /recipes/{id}, so it never reaches the by-id handler
+# @name getRecipeBalance
 GET {{baseUrl}}/recipes/balance
 Authorization: Bearer {{user}}
 
-### Create a collection to hold the recipe
-# @name createCollection
-POST {{baseUrl}}/collections
-Authorization: Bearer {{user}}
-Content-Type: application/json
+### ======================================================================================
+### Recipes (JSON)
+### ======================================================================================
 
-{ "name": "Italian Recipes" }
-
-###
-@collectionId = {{createCollection.response.body.$.id}}
-
-### Create a recipe (JSON)
+### Create a recipe — run this before any request that uses {{recipeId}}
 # @name createRecipe
 POST {{baseUrl}}/recipes
 Authorization: Bearer {{user}}
@@ -26,7 +27,6 @@ Content-Type: application/json
 
 {
   "name": "Pizza",
-  "recipesCollectionId": "{{collectionId}}",
   "data": {
     "ingredients": [
       { "name": "flour", "quantity": 300, "unit": "g" },
@@ -46,22 +46,27 @@ Content-Type: application/json
 @recipeId = {{createRecipe.response.body.$.id}}
 
 ### List all recipes accessible by the user
+# @name listRecipes
 GET {{baseUrl}}/recipes
 Authorization: Bearer {{user}}
 
-### List recipes filtered by collection
+### List recipes in a collection — needs {{collectionId}} set above
+# @name listRecipesInCollection
 GET {{baseUrl}}/recipes?collectionId={{collectionId}}
 Authorization: Bearer {{user}}
 
 ### List recipes not assigned to any collection
+# @name listUnassignedRecipes
 GET {{baseUrl}}/recipes?unassigned=true
 Authorization: Bearer {{user}}
 
 ### Get the recipe
+# @name getRecipe
 GET {{baseUrl}}/recipes/{{recipeId}}
 Authorization: Bearer {{user}}
 
-### Update the recipe (JSON)
+### Update the recipe and move it into a collection — needs {{collectionId}} set above
+# @name updateRecipe
 PUT {{baseUrl}}/recipes/{{recipeId}}
 Authorization: Bearer {{user}}
 Content-Type: application/json
@@ -83,42 +88,18 @@ Content-Type: application/json
   }
 }
 
-### List the recipe's permissions
-GET {{baseUrl}}/recipes/{{recipeId}}/permissions
-Authorization: Bearer {{user}}
-
-### Share the recipe with bob — creates a pending invite; answer it from invites.http as bob
-POST {{baseUrl}}/recipes/{{recipeId}}/share
-Authorization: Bearer {{user}}
-Content-Type: application/json
-
-{ "email": "{{otherUser}}@local.test", "role": "EDITOR" }
-
-### Unshare the recipe from bob
-POST {{baseUrl}}/recipes/{{recipeId}}/unshare
-Authorization: Bearer {{user}}
-Content-Type: application/json
-
-{ "email": "{{otherUser}}@local.test" }
-
 ### Delete the recipe
+# @name deleteRecipe
 DELETE {{baseUrl}}/recipes/{{recipeId}}
 Authorization: Bearer {{user}}
 
-### Delete the collection
-DELETE {{baseUrl}}/collections/{{collectionId}}
-Authorization: Bearer {{user}}
-
-
 ### ======================================================================================
-### Multipart create/update — cannot pass locally: no AWS credentials are configured, so
+### Recipes (multipart) — cannot pass locally: no AWS credentials are configured, so
 ### S3 image upload and the presigned images[]/thumbnailUrl URLs fail at call time.
 ### ======================================================================================
 
-@imageId = e36c65a2-062b-48ac-bdc9-ebffb59ecc07
-
-### Create a recipe with an image (multipart)
-# @name createRecipeMultipart
+### Create a recipe with an image
+# @name createRecipeWithImage
 POST {{baseUrl}}/recipes
 Authorization: Bearer {{user}}
 Content-Type: multipart/form-data; boundary=RecipAIBoundary
@@ -136,10 +117,11 @@ Content-Type: image/jpeg
 --RecipAIBoundary--
 
 ###
-@multipartRecipeId = {{createRecipeMultipart.response.body.$.id}}
+@imageRecipeId = {{createRecipeWithImage.response.body.$.id}}
 
-### Update the recipe with a new image (multipart)
-PUT {{baseUrl}}/recipes/{{multipartRecipeId}}
+### Update the recipe with a new image
+# @name updateRecipeWithImage
+PUT {{baseUrl}}/recipes/{{imageRecipeId}}
 Authorization: Bearer {{user}}
 Content-Type: multipart/form-data; boundary=RecipAIBoundary
 
@@ -154,3 +136,28 @@ Content-Type: image/jpeg
 
 < ./fixtures/{{imageId}}.jpg
 --RecipAIBoundary--
+
+### ======================================================================================
+### Sharing
+### ======================================================================================
+
+### List the recipe's permissions
+# @name listRecipePermissions
+GET {{baseUrl}}/recipes/{{recipeId}}/permissions
+Authorization: Bearer {{user}}
+
+### Share the recipe with bob — creates a pending invite; answer it from invites.http as bob
+# @name shareRecipe
+POST {{baseUrl}}/recipes/{{recipeId}}/share
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test", "role": "EDITOR" }
+
+### Unshare the recipe from bob
+# @name unshareRecipe
+POST {{baseUrl}}/recipes/{{recipeId}}/unshare
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "email": "{{otherUser}}@local.test" }
