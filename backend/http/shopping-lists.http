@@ -11,8 +11,7 @@
 GET {{baseUrl}}/shopping-lists/balance
 Authorization: Bearer {{user}}
 
-### The SHOPPING_LIST_ITEM quota that applies to this list — resolved from the list's OWNER, so a
-### shared editor reads the owner's number rather than their own. 204 when limits are disabled.
+### The SHOPPING_LIST_ITEM quota that applies to this list
 # @name getShoppingListItemLimit
 GET {{baseUrl}}/shopping-lists/{{listId}}/limits
 Authorization: Bearer {{user}}
@@ -78,7 +77,7 @@ Content-Type: application/json
 
 { "baseVersion": 0, "name": "Whole Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0 }
 
-### Delete the item — baseVersion is a query param here, not a body field; it is 1 after updateItem
+### Delete the item
 # @name deleteItem
 DELETE {{baseUrl}}/shopping-lists/{{listId}}/items/{{itemId}}?baseVersion=1
 Authorization: Bearer {{user}}
@@ -87,14 +86,12 @@ Authorization: Bearer {{user}}
 ### Sharing
 ### ======================================================================================
 
-### List the list's permissions — granted users and any pending invite, OWNER first; bob shows
-### up with pending: true until he accepts
+### List the list's permissions
 # @name listListPermissions
 GET {{baseUrl}}/shopping-lists/{{listId}}/permissions
 Authorization: Bearer {{user}}
 
-### Share it with bob — creates a pending invite carrying a role and a label; grants nothing until
-### bob accepts it (see invites.http for the accept/decline side)
+### Share it with bob — creates a pending invite
 # @name shareList
 POST {{baseUrl}}/shopping-lists/{{listId}}/share
 Authorization: Bearer {{user}}
