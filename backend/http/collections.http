@@ -2,11 +2,20 @@
 @user = alice
 @otherUser = bob
 
+### ======================================================================================
+### Budget
+### ======================================================================================
+
 ### How much of the caller's RECIPES_COLLECTION budget is already spent
+# @name getCollectionBalance
 GET {{baseUrl}}/collections/balance
 Authorization: Bearer {{user}}
 
-### Create a collection
+### ======================================================================================
+### Collections
+### ======================================================================================
+
+### Create a collection — run this before any request that uses {{collectionId}}
 # @name createCollection
 POST {{baseUrl}}/collections
 Authorization: Bearer {{user}}
@@ -18,21 +27,34 @@ Content-Type: application/json
 @collectionId = {{createCollection.response.body.$.id}}
 
 ### List collections accessible by the user
+# @name listCollections
 GET {{baseUrl}}/collections
 Authorization: Bearer {{user}}
 
 ### Rename the collection
+# @name renameCollection
 PUT {{baseUrl}}/collections/{{collectionId}}
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
 { "name": "European Recipes" }
 
+### Delete the collection
+# @name deleteCollection
+DELETE {{baseUrl}}/collections/{{collectionId}}
+Authorization: Bearer {{user}}
+
+### ======================================================================================
+### Sharing
+### ======================================================================================
+
 ### List the collection's permissions
+# @name listCollectionPermissions
 GET {{baseUrl}}/collections/{{collectionId}}/permissions
 Authorization: Bearer {{user}}
 
 ### Share it with bob — creates a pending invite; answer it from invites.http as bob
+# @name shareCollection
 POST {{baseUrl}}/collections/{{collectionId}}/share
 Authorization: Bearer {{user}}
 Content-Type: application/json
@@ -40,12 +62,9 @@ Content-Type: application/json
 { "email": "{{otherUser}}@local.test", "role": "EDITOR" }
 
 ### Unshare it from bob
+# @name unshareCollection
 POST {{baseUrl}}/collections/{{collectionId}}/unshare
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
 { "email": "{{otherUser}}@local.test" }
-
-### Delete the collection
-DELETE {{baseUrl}}/collections/{{collectionId}}
-Authorization: Bearer {{user}}

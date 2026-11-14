@@ -67,8 +67,10 @@ curl -sS -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer alice" local
 ### `.http` request suite
 
 `backend/http/` has a `.http` file per module (VS Code REST Client extension,
-`humao.rest-client`), chained end-to-end with no copy-paste of generated ids — open one and run
-its requests top to bottom against a local `dev`-profile backend.
+`humao.rest-client`), run against a local `dev`-profile backend. Each file covers only its own
+module's endpoints, grouped by resource, and every request carries a `# @name`. Within a file, the
+resource's `create*` request feeds its id to the rest; an id from another module (a recipe for a
+meal plan entry, a collection for a recipe, an invite) is a file variable at the top to fill in.
 
 Two status codes mislead:
 

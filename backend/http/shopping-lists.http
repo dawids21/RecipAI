@@ -2,11 +2,26 @@
 @user = alice
 @otherUser = bob
 
+### ======================================================================================
+### Budget and limits
+### ======================================================================================
+
 ### How much of the caller's SHOPPING_LIST budget is already spent
+# @name getShoppingListBalance
 GET {{baseUrl}}/shopping-lists/balance
 Authorization: Bearer {{user}}
 
-### Create a shopping list
+### The SHOPPING_LIST_ITEM quota that applies to this list — resolved from the list's OWNER, so a
+### shared editor reads the owner's number rather than their own. 204 when limits are disabled.
+# @name getShoppingListItemLimit
+GET {{baseUrl}}/shopping-lists/{{listId}}/limits
+Authorization: Bearer {{user}}
+
+### ======================================================================================
+### Shopping lists
+### ======================================================================================
+
+### Create a shopping list — run this before any request that uses {{listId}}
 # @name createList
 POST {{baseUrl}}/shopping-lists
 Authorization: Bearer {{user}}
@@ -17,8 +32,35 @@ Content-Type: application/json
 ###
 @listId = {{createList.response.body.$.id}}
 
+### List shopping lists accessible by the user
+# @name listLists
+GET {{baseUrl}}/shopping-lists
+Authorization: Bearer {{user}}
+
+### Get the list — shows each item's position and version
+# @name getList
+GET {{baseUrl}}/shopping-lists/{{listId}}
+Authorization: Bearer {{user}}
+
+### Rename the list
+# @name renameList
+PUT {{baseUrl}}/shopping-lists/{{listId}}
+Authorization: Bearer {{user}}
+Content-Type: application/json
+
+{ "name": "Monthly Groceries" }
+
+### Delete the shopping list and all its items
+# @name deleteList
+DELETE {{baseUrl}}/shopping-lists/{{listId}}
+Authorization: Bearer {{user}}
+
+### ======================================================================================
+### Items
+### ======================================================================================
+
 ### Add an item — position is client-supplied, creates never conflict
-# @name addItem1
+# @name addItem
 POST {{baseUrl}}/shopping-lists/{{listId}}/items
 Authorization: Bearer {{user}}
 Content-Type: application/json
@@ -26,74 +68,49 @@ Content-Type: application/json
 { "name": "Milk", "quantity": 2.0, "unit": "liters", "position": 1.0 }
 
 ###
-@item1Id = {{addItem1.response.body.$.id}}
+@itemId = {{addItem.response.body.$.id}}
 
-### Add a second item
-# @name addItem2
-POST {{baseUrl}}/shopping-lists/{{listId}}/items
-Authorization: Bearer {{user}}
-Content-Type: application/json
-
-{ "name": "Bread", "position": 2.0 }
-
-###
-@item2Id = {{addItem2.response.body.$.id}}
-
-### Get the list — shows each item's position and version
-GET {{baseUrl}}/shopping-lists/{{listId}}
-Authorization: Bearer {{user}}
-
-### Update the first item — version-gated: baseVersion must match the stored item
-PUT {{baseUrl}}/shopping-lists/{{listId}}/items/{{item1Id}}
+### Update the item — version-gated: baseVersion must match the stored item
+# @name updateItem
+PUT {{baseUrl}}/shopping-lists/{{listId}}/items/{{itemId}}
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
 { "baseVersion": 0, "name": "Whole Milk", "quantity": 2.0, "unit": "liters", "checked": false, "position": 1.0 }
 
-### Delete the second item — baseVersion is a query param here, not a body field
-DELETE {{baseUrl}}/shopping-lists/{{listId}}/items/{{item2Id}}?baseVersion=0
+### Delete the item — baseVersion is a query param here, not a body field; it is 1 after updateItem
+# @name deleteItem
+DELETE {{baseUrl}}/shopping-lists/{{listId}}/items/{{itemId}}?baseVersion=1
 Authorization: Bearer {{user}}
 
-### The SHOPPING_LIST_ITEM quota that applies to this list — resolved from the list's OWNER, so a
-### shared editor reads the owner's number rather than their own. 204 when limits are disabled.
-GET {{baseUrl}}/shopping-lists/{{listId}}/limits
-Authorization: Bearer {{user}}
+### ======================================================================================
+### Sharing
+### ======================================================================================
 
-### List the list's permissions - granted users and any pending invite, OWNER first
+### List the list's permissions — granted users and any pending invite, OWNER first; bob shows
+### up with pending: true until he accepts
+# @name listListPermissions
 GET {{baseUrl}}/shopping-lists/{{listId}}/permissions
 Authorization: Bearer {{user}}
 
-### Share it with bob - creates a pending invite carrying a role and a label; grants nothing until
+### Share it with bob — creates a pending invite carrying a role and a label; grants nothing until
 ### bob accepts it (see invites.http for the accept/decline side)
+# @name shareList
 POST {{baseUrl}}/shopping-lists/{{listId}}/share
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
 { "email": "{{otherUser}}@local.test", "role": "EDITOR" }
 
-### bob shows up in /permissions with pending: true until he accepts
-GET {{baseUrl}}/shopping-lists/{{listId}}/permissions
-Authorization: Bearer {{user}}
-
-### Nothing yet for bob - a pending invite grants no access
-GET {{baseUrl}}/shopping-lists
-Authorization: Bearer {{otherUser}}
-
-### Once bob accepts the invite (invites.http), the list shows up here and is readable and editable
-GET {{baseUrl}}/shopping-lists
-Authorization: Bearer {{otherUser}}
-
-###
+### The list as bob — unreadable while the invite is pending, readable once he accepts it
+# @name getListAsOtherUser
 GET {{baseUrl}}/shopping-lists/{{listId}}
 Authorization: Bearer {{otherUser}}
 
-### Unshare bob - revokes his permission if he accepted, or cancels the pending invite if he hasn't
+### Unshare bob — revokes his permission if he accepted, or cancels the pending invite if he hasn't
+# @name unshareList
 POST {{baseUrl}}/shopping-lists/{{listId}}/unshare
 Authorization: Bearer {{user}}
 Content-Type: application/json
 
 { "email": "{{otherUser}}@local.test" }
-
-### Delete the shopping list
-DELETE {{baseUrl}}/shopping-lists/{{listId}}
-Authorization: Bearer {{user}}

@@ -1,14 +1,11 @@
 @baseUrl = http://localhost:8080
+# Change to see another user's quotas — they differ only once an operator seeds an override:
+# INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
+#   VALUES (gen_random_uuid(), 'RECIPE', 'bob@local.test', 'STOCK', 50, NULL);
 @user = alice
-@otherUser = bob
 
 ### Every quota configured for the caller, resolved override-then-default. Empty on the dev profile
 ### unless RECIPAI_LIMITS_ENABLED=true — the quotas read honours the kill-switch, the /balance reads do not.
+# @name getLimits
 GET {{baseUrl}}/limits
 Authorization: Bearer {{user}}
-
-### The same quotas for a second user — differs only once an operator seeds an override for one of them:
-### INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-###   VALUES (gen_random_uuid(), 'RECIPE', 'bob@local.test', 'STOCK', 50, NULL);
-GET {{baseUrl}}/limits
-Authorization: Bearer {{otherUser}}
