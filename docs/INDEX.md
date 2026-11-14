@@ -33,7 +33,8 @@ mobile (`module.md`, `ui.md`, `data.md`).
 ### Local Development (`project/local-development.md`)
 How to run the backend locally with `recipai.sh`, the dev-profile authentication bypass and how to
 address callers with it, the environment variables a local run honours, the curl idioms for
-calling the API, and the `backend/http/` `.http` request suite.
+calling the API, the `backend/http/` `.http` request suite, and getting a production API token
+with `recipai.sh prod-token`.
 
 ---
 
