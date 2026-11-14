@@ -72,9 +72,7 @@ Content-Type: application/json
 ###
 @placeholderEntryId = {{createPlaceholderEntry.response.body.$.id}}
 
-### Update the recipe-backed entry's serving size. `planId` is documented as optional (it moves
-### the entry when provided) but must be sent regardless — omitting it 500s, since the service
-### looks the plan up by `request.planId()` unconditionally.
+### Update the recipe-backed entry's serving size
 # @name updateRecipeEntry
 PUT {{baseUrl}}/meal-plans/{{planId}}/entries/{{recipeEntryId}}
 Authorization: Bearer {{user}}
@@ -93,8 +91,7 @@ DELETE {{baseUrl}}/meal-plans/{{planId}}/entries/{{placeholderEntryId}}
 Authorization: Bearer {{user}}
 
 ### ======================================================================================
-### Calendar and shopping list generation — /calendar and /generate-shopping-list are
-### literal siblings of /meal-plans/{id}, not sub-resources of it
+### Calendar and shopping list generation
 ### ======================================================================================
 
 ### Calendar view for the next 30 days
@@ -102,8 +99,7 @@ Authorization: Bearer {{user}}
 GET {{baseUrl}}/meal-plans/calendar?startDate={{$localDatetime "YYYY-MM-DD"}}&endDate={{$localDatetime "YYYY-MM-DD" 30 d}}&planIds={{planId}}
 Authorization: Bearer {{user}}
 
-### Generate shopping list items from today's planned meals — selectedDates must reuse the
-### same date expression as the entries' date above, or it returns no items
+### Generate shopping list items from today's planned meals
 # @name generateShoppingList
 POST {{baseUrl}}/meal-plans/generate-shopping-list
 Authorization: Bearer {{user}}

@@ -1,7 +1,4 @@
 @baseUrl = http://localhost:8080
-# Change to see another user's quotas — they differ only once an operator seeds an override:
-# INSERT INTO recipai.limit_config (id, resource, subject, kind, max_value, period)
-#   VALUES (gen_random_uuid(), 'RECIPE', 'bob@local.test', 'STOCK', 50, NULL);
 @user = alice
 
 ### Every quota configured for the caller, resolved override-then-default. Empty on the dev profile
