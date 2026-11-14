@@ -4,6 +4,9 @@ settings.local.json
 # Google Play service account key (never commit)
 scripts/play-service-account.json
 
+# Desktop OAuth client used by recipai.sh prod-token (never commit)
+scripts/prod-oauth-client.json
+
 # Python virtualenv for release scripts
 scripts/.venv/
 

@@ -211,6 +211,12 @@ release_internal_mobile() {
     echo "  GitHub: $release_url"
 }
 
+prod_token() {
+    [[ $# -eq 0 ]] || abort "prod-token takes no arguments (got: $*)"
+    ensure_venv
+    "$VENV_PYTHON" "$SCRIPT_DIR/scripts/prod_token.py"
+}
+
 run_backend() {
     cd "$BACKEND_DIR"
     backend_env
@@ -328,6 +334,7 @@ Commands:
     run-backend               Run the backend in the foreground on the dev profile (Ctrl+C to stop)
     start-backend             Start the backend detached, waiting until it is healthy
     stop-backend              Stop a backend started with start-backend
+    prod-token                Copy a production API token for your Google account to the clipboard
     help                      Show this help message
 
 Signing keystores (kept in a secure location, one entry each):
@@ -341,6 +348,11 @@ Setup (one-time, required by release-internal-mobile):
     Place the Play service account key at scripts/play-service-account.json
     Install the GitHub CLI and run: gh auth login   (the token needs the 'repo' scope)
 
+Setup (one-time, required by prod-token):
+    The same venv as above
+    Place the Desktop app OAuth client at scripts/prod-oauth-client.json
+    Install wl-clipboard (Wayland) or xclip (X11)
+
 Examples:
     recipai.sh setup
     recipai.sh build-mobile
@@ -348,6 +360,7 @@ Examples:
     recipai.sh run-backend
     recipai.sh start-backend
     recipai.sh stop-backend
+    recipai.sh prod-token
     recipai.sh help
 EOF
 }
@@ -377,6 +390,10 @@ case "$1" in
         ;;
     stop-backend)
         stop_backend
+        ;;
+    prod-token)
+        shift
+        prod_token "$@"
         ;;
     help|-h|--help)
         show_help
