@@ -86,22 +86,19 @@ status codes.
 
 `./recipai.sh prod-token` copies a Firebase ID token for the developer's own Google account — the
 identity the mobile app signs in with — to the clipboard, for calls to
-`https://recipai-api.stasiak.xyz`. The token is never printed and expires after an hour; run the
-command again for a new one. An allowlisted administrator's token carries the administrator role on
-production too.
+`https://recipai-api.stasiak.xyz`. The token is never printed and expires after an hour. An
+allowlisted administrator's token carries the administrator role on production too.
 
-The first run signs in through the browser. Later runs exchange the saved Firebase refresh token,
-kept in the system keyring or, when none is available (headless, SSH), in
-`~/.local/state/recipai/prod-refresh-token` (owner-only). A refresh token has no expiry date; when
-Firebase rejects it as dead (account deleted, disabled or revoked) the command forgets it and signs
-in again. Any other failure keeps it.
+Every run signs in through the browser and nothing is stored, so no long-lived credential stays on
+the machine and a token always needs a person to finish the sign-in. It needs a local browser — over
+SSH, forward the redirect port. Clipboard history managers keep copies of the token until it expires.
 
 One-time setup:
 
 - the `scripts/.venv` from `./recipai.sh help`;
 - `scripts/prod-oauth-client.json` — the Firebase project's "Desktop app" OAuth client from Google
-  Cloud Console (gitignored);
+  Cloud Console (gitignored; Google does not treat a desktop client's secret as confidential);
 - `wl-clipboard` (Wayland) or `xclip`/`xsel` (X11).
 
-`.claude/settings.json` denies agents the command, the refresh-token file and `secret-tool`, so
-production tokens stay out of agent sessions.
+`.claude/settings.json` denies agents the command, which only guards against an accidental run — the
+browser sign-in is what keeps production tokens out of agent sessions.

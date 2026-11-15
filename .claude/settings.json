@@ -9,8 +9,6 @@
       "Bash(git commit:*)"
     ],
     "deny": [
-      "Read(~/.local/state/recipai/**)",
-      "Bash(secret-tool:*)",
       "Bash(./recipai.sh prod-token:*)"
     ]
   }
