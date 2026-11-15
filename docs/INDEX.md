@@ -23,7 +23,7 @@ Defines the product vision, the user problem being solved, functional requiremen
 Lists all languages, frameworks, libraries, build tools, infrastructure, and hosting choices for both the backend and mobile applications, including versions and rationale.
 
 ### Architecture (`project/architecture.md`)
-Describes the structural design of both applications: backend module breakdown and layer structure, mobile feature organisation and layer responsibilities, authentication flow, data flow diagram, external integrations, and deployment topology.
+Describes the structural design of both applications: backend module breakdown and layer structure, mobile feature organisation and layer responsibilities, authentication flow, data flow diagram, external integrations, deployment topology, and the public site (privacy policy and account deletion pages) on GitHub Pages.
 
 ### Documentation Standard (`project/documentation-standard.md`)
 Standards for writing docs: the test for keeping a sentence, present tense, what docs contain and leave out, stating

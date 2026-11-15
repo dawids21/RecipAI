@@ -198,7 +198,17 @@ Firebase config (`google-services.json`), API base URL in app config.
     AWS S3 (recipe images)
 
     Google Play → Android APK/AAB
+
+    GitHub Pages → public site (recipai.stasiak.xyz)
 ```
+
+### Public Site
+
+`site/` holds static HTML pages published on GitHub Pages at `https://recipai.stasiak.xyz`: the privacy policy
+(`privacy-policy.html`) and the account deletion instructions (`delete-account.html`), both linked from the Google Play
+listing; the app's Settings screen links the privacy policy. The pages state what the app collects and what account
+deletion removes, so a change to either — a new third party, a new kind of stored data, a change to the purge in
+`docs/backend/modules/settings/api.md` — needs the pages updated too.
 
 ### Docker
 
@@ -209,7 +219,10 @@ The backend is containerized using a multi-stage Dockerfile:
 
 ### CI/CD
 
-A single GitHub Actions workflow, `.github/workflows/docker-build-api.yml`, builds the backend image. It runs only
+`.github/workflows/docker-build-api.yml` builds the backend image. It runs only
 when triggered manually (`workflow_dispatch`); merging to `main` does not trigger it. It builds `backend/` with its
 Dockerfile (the Maven build runs in the Docker build stage) and pushes the image to GitHub Container Registry as
 `ghcr.io/dawids21/recipai/api`, tagged with the triggering branch name and `latest`.
+
+`.github/workflows/pages.yml` publishes `site/` to GitHub Pages on every push to `main` that changes `site/`, and on
+manual trigger.

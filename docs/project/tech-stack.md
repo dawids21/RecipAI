@@ -68,11 +68,13 @@ Maven plugins: `spring-boot-maven-plugin`, `maven-compiler-plugin`
 - **Docker Compose** — local development PostgreSQL database (`backend/compose.yaml`)
 
 ### CI/CD
-- **GitHub Actions** — manually triggered Docker image build and push to GHCR; see `architecture.md` → *CI/CD*
+- **GitHub Actions** — manually triggered Docker image build and push to GHCR, and the public site deploy; see
+  `architecture.md` → *CI/CD*
 
 ### Hosting
 - **Backend**: Self-hosted VPS
 - **Mobile**: Google Play (distribution)
+- **Public site**: GitHub Pages (privacy policy and account deletion pages; see `architecture.md` → *Public Site*)
 - **Assets**: AWS S3 (recipe image storage with presigned URLs)
 
 ---
