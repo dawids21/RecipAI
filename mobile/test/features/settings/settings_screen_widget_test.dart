@@ -91,38 +91,25 @@ void main() {
     when(() => authRepository.signOut()).thenAnswer((_) async {});
   }
 
-  testWidgets('renders Send logs above Logout', (tester) async {
+  testWidgets('renders the account actions in order', (tester) async {
     await tester.pumpWidget(app);
     await tester.pumpAndSettle();
 
-    final sendLogs = find.widgetWithText(ListTile, 'Send logs');
-    final logout = find.widgetWithText(ListTile, 'Logout');
-    expect(sendLogs, findsOneWidget);
-    expect(logout, findsOneWidget);
-    expect(
-      tester.getTopLeft(sendLogs).dy,
-      lessThan(tester.getTopLeft(logout).dy),
-    );
-  });
-
-  testWidgets('renders Privacy policy between Send logs and Logout', (
-    tester,
-  ) async {
-    await tester.pumpWidget(app);
-    await tester.pumpAndSettle();
-
-    final sendLogs = find.widgetWithText(ListTile, 'Send logs');
-    final privacyPolicy = find.widgetWithText(ListTile, 'Privacy policy');
-    final logout = find.widgetWithText(ListTile, 'Logout');
-    expect(privacyPolicy, findsOneWidget);
-    expect(
-      tester.getTopLeft(sendLogs).dy,
-      lessThan(tester.getTopLeft(privacyPolicy).dy),
-    );
-    expect(
-      tester.getTopLeft(privacyPolicy).dy,
-      lessThan(tester.getTopLeft(logout).dy),
-    );
+    final rows = [
+      'Send logs',
+      'Privacy policy',
+      'Logout',
+      'Delete account',
+    ].map((label) => find.widgetWithText(ListTile, label)).toList();
+    for (final row in rows) {
+      expect(row, findsOneWidget);
+    }
+    for (var i = 1; i < rows.length; i++) {
+      expect(
+        tester.getTopLeft(rows[i - 1]).dy,
+        lessThan(tester.getTopLeft(rows[i]).dy),
+      );
+    }
   });
 
   testWidgets('tapping Logout shows the confirmation dialog', (tester) async {
@@ -167,19 +154,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Failed to logout'), findsOneWidget);
-  });
-
-  testWidgets('renders Delete account below Logout', (tester) async {
-    await tester.pumpWidget(app);
-    await tester.pumpAndSettle();
-
-    final logout = find.widgetWithText(ListTile, 'Logout');
-    final deleteAccount = find.widgetWithText(ListTile, 'Delete account');
-    expect(deleteAccount, findsOneWidget);
-    expect(
-      tester.getTopLeft(logout).dy,
-      lessThan(tester.getTopLeft(deleteAccount).dy),
-    );
   });
 
   testWidgets('tapping Delete account shows the confirmation dialog', (
