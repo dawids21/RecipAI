@@ -1,8 +1,7 @@
 @baseUrl = http://localhost:8080
 @user = bob
-# Id of a pending invite — copy one from listInvites. Invites are created by the share requests in
-# recipes.http, collections.http, meal-plans.http and shopping-lists.http.
-@inviteId = 00000000-0000-0000-0000-000000000000
+# Invites are created by the share requests in recipes.http, collections.http, meal-plans.http and
+# shopping-lists.http.
 
 ### Everything waiting for the caller, across every resource type
 # @name listInvites
@@ -11,10 +10,12 @@ Authorization: Bearer {{user}}
 
 ### Accept — the resource becomes visible to the caller with the role the invite carries
 # @name acceptInvite
+# @prompt inviteId Id of a pending invite — copy one from listInvites
 POST {{baseUrl}}/invites/{{inviteId}}/accept
 Authorization: Bearer {{user}}
 
 ### Decline — 204, the resource stays invisible and the invite is gone from both sides
 # @name declineInvite
+# @prompt inviteId Id of a pending invite — copy one from listInvites
 POST {{baseUrl}}/invites/{{inviteId}}/decline
 Authorization: Bearer {{user}}

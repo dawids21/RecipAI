@@ -1,8 +1,6 @@
 @baseUrl = http://localhost:8080
 @user = alice
 @otherUser = bob
-# Id of an existing collection — create one with createCollection in collections.http
-@collectionId = 00000000-0000-0000-0000-000000000000
 @imageId = e36c65a2-062b-48ac-bdc9-ebffb59ecc07
 
 ### ======================================================================================
@@ -50,8 +48,9 @@ Content-Type: application/json
 GET {{baseUrl}}/recipes
 Authorization: Bearer {{user}}
 
-### List recipes in a collection — needs {{collectionId}} set above
+### List recipes in a collection
 # @name listRecipesInCollection
+# @prompt collectionId Id of an existing collection — create one with createCollection in collections.http
 GET {{baseUrl}}/recipes?collectionId={{collectionId}}
 Authorization: Bearer {{user}}
 
@@ -65,8 +64,9 @@ Authorization: Bearer {{user}}
 GET {{baseUrl}}/recipes/{{recipeId}}
 Authorization: Bearer {{user}}
 
-### Update the recipe and move it into a collection — needs {{collectionId}} set above
+### Update the recipe and move it into a collection
 # @name updateRecipe
+# @prompt collectionId Id of an existing collection — create one with createCollection in collections.http
 PUT {{baseUrl}}/recipes/{{recipeId}}
 Authorization: Bearer {{user}}
 Content-Type: application/json

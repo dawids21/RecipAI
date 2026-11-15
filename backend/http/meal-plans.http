@@ -1,8 +1,6 @@
 @baseUrl = http://localhost:8080
 @user = alice
 @otherUser = bob
-# Id of an existing recipe — create one with createRecipe in recipes.http
-@recipeId = 00000000-0000-0000-0000-000000000000
 
 ### ======================================================================================
 ### Budget
@@ -50,8 +48,9 @@ Authorization: Bearer {{user}}
 ### Entries
 ### ======================================================================================
 
-### Add a recipe-backed entry for today — needs {{recipeId}} set above
+### Add a recipe-backed entry for today
 # @name createRecipeEntry
+# @prompt recipeId Id of an existing recipe — create one with createRecipe in recipes.http
 POST {{baseUrl}}/meal-plans/{{planId}}/entries
 Authorization: Bearer {{user}}
 Content-Type: application/json
@@ -74,6 +73,7 @@ Content-Type: application/json
 
 ### Update the recipe-backed entry's serving size
 # @name updateRecipeEntry
+# @prompt recipeId Id of an existing recipe — create one with createRecipe in recipes.http
 PUT {{baseUrl}}/meal-plans/{{planId}}/entries/{{recipeEntryId}}
 Authorization: Bearer {{user}}
 Content-Type: application/json

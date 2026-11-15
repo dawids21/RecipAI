@@ -70,7 +70,8 @@ curl -sS -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer alice" local
 `humao.rest-client`), run against a local `dev`-profile backend. Each file covers only its own
 module's endpoints, grouped by resource, and every request carries a `# @name`. Within a file, the
 resource's `create*` request feeds its id to the rest; an id from another module (a recipe for a
-meal plan entry, a collection for a recipe, an invite) is a file variable at the top to fill in.
+meal plan entry, a collection for a recipe, an invite) is asked for on send by a `# @prompt` on
+each request that uses it.
 
 Two status codes mislead:
 
