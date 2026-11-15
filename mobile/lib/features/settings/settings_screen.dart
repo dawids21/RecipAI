@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/logging/share_logs.dart';
 import '../../core/theme.dart';
@@ -21,6 +22,10 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static final _privacyPolicyUrl = Uri.parse(
+    'https://recipai.stasiak.xyz/privacy-policy.html',
+  );
+
   bool _isDeleting = false;
 
   Future<void> _onLogoutTap(BuildContext context) async {
@@ -131,6 +136,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _onPrivacyPolicyTap() async {
+    final messenger = ScaffoldMessenger.of(context);
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        _privacyPolicyUrl,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not open the privacy policy')),
+      );
+    }
+  }
+
   Future<void> _onSendLogsTap() async {
     await shareLogs();
   }
@@ -161,6 +184,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           leading: const Icon(Icons.bug_report),
                           title: const Text('Send logs'),
                           onTap: _onSendLogsTap,
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          contentPadding: AppSpacing.listTilePadding,
+                          leading: const Icon(Icons.privacy_tip),
+                          title: const Text('Privacy policy'),
+                          trailing: const Icon(Icons.open_in_new),
+                          onTap: _onPrivacyPolicyTap,
                         ),
                         const Divider(height: 1),
                         ListTile(

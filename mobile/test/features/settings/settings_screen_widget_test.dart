@@ -105,6 +105,26 @@ void main() {
     );
   });
 
+  testWidgets('renders Privacy policy between Send logs and Logout', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app);
+    await tester.pumpAndSettle();
+
+    final sendLogs = find.widgetWithText(ListTile, 'Send logs');
+    final privacyPolicy = find.widgetWithText(ListTile, 'Privacy policy');
+    final logout = find.widgetWithText(ListTile, 'Logout');
+    expect(privacyPolicy, findsOneWidget);
+    expect(
+      tester.getTopLeft(sendLogs).dy,
+      lessThan(tester.getTopLeft(privacyPolicy).dy),
+    );
+    expect(
+      tester.getTopLeft(privacyPolicy).dy,
+      lessThan(tester.getTopLeft(logout).dy),
+    );
+  });
+
   testWidgets('tapping Logout shows the confirmation dialog', (tester) async {
     await openLogoutDialog(tester);
 
