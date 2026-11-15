@@ -342,16 +342,12 @@ Signing keystores (kept in a secure location, one entry each):
     upload_keystore.jks  copy into mobile/android/ for release builds only;
                          build-mobile generates upload-key.properties from it
 
-Setup (one-time, required by release-internal-mobile):
+Setup (one-time, required by release-internal-mobile and prod-token):
     python3 -m venv scripts/.venv
     scripts/.venv/bin/pip install -r scripts/requirements.txt
-    Place the Play service account key at scripts/play-service-account.json
-    Install the GitHub CLI and run: gh auth login   (the token needs the 'repo' scope)
-
-Setup (one-time, required by prod-token):
-    The same venv as above
-    Place the Desktop app OAuth client at scripts/prod-oauth-client.json
-    Install wl-clipboard (Wayland) or xclip (X11)
+    release-internal-mobile: place the Play service account key at scripts/play-service-account.json
+    release-internal-mobile: install the GitHub CLI and run: gh auth login   (needs the 'repo' scope)
+    prod-token: install wl-clipboard (Wayland) or xclip (X11)
 
 Examples:
     recipai.sh setup

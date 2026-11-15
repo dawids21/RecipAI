@@ -6,9 +6,6 @@ mobile app signs in with. Every run signs in through the browser; nothing is
 stored, so no long-lived credential is left on the machine. The ID token is never
 printed: it goes to the clipboard only.
 
-Requires scripts/prod-oauth-client.json, the "Desktop app" OAuth client of the
-Firebase project downloaded from Google Cloud Console.
-
 Usage:
     python3 scripts/prod_token.py
 """
@@ -26,11 +23,13 @@ import urllib.request
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-OAUTH_CLIENT_PATH = os.path.join(SCRIPT_DIR, "prod-oauth-client.json")
-# The Firebase project's Web API key (public by design). The key in google-services.json is
-# restricted to the Android app, so Firebase refuses it from a desktop.
+# Google Cloud Console → APIs & Services → Credentials → "Browser key (auto created by Firebase)".
+# Public by design; the key in google-services.json is restricted to the Android app.
 FIREBASE_WEB_API_KEY = ""
+# The project's "Desktop app" OAuth client. Google does not treat a desktop client's secret as
+# confidential (it ships inside every copy of the app), so both values are committed.
+OAUTH_CLIENT_ID = ""
+OAUTH_CLIENT_SECRET = ""
 SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.email"]
 SIGN_IN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp"
 
@@ -80,8 +79,8 @@ def copy_to_clipboard(command: list[str], text: str) -> None:
 
 def firebase_api_key() -> str:
     if not FIREBASE_WEB_API_KEY:
-        fail("FIREBASE_WEB_API_KEY in scripts/prod_token.py is empty — copy the Web API key "
-             "from Firebase Console → Project settings → General")
+        fail("FIREBASE_WEB_API_KEY in scripts/prod_token.py is empty — copy the Browser key "
+             "from Google Cloud Console → APIs & Services → Credentials")
     return FIREBASE_WEB_API_KEY
 
 
@@ -105,13 +104,22 @@ def post_json(url: str, api_key: str, body: dict) -> dict:
 
 
 def google_id_token() -> str:
-    if not os.path.isfile(OAUTH_CLIENT_PATH):
-        fail(
-            "scripts/prod-oauth-client.json is missing — download the Desktop app OAuth "
-            "client of the Firebase project from Google Cloud Console and place it there"
-        )
+    if not (OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET):
+        fail("OAUTH_CLIENT_ID or OAUTH_CLIENT_SECRET in scripts/prod_token.py is empty — copy "
+             "them from the Desktop app OAuth client in Google Cloud Console → APIs & Services "
+             "→ Credentials")
     print("Opening the browser to sign in with Google...", file=sys.stderr)
-    flow = InstalledAppFlow.from_client_secrets_file(OAUTH_CLIENT_PATH, scopes=SCOPES)
+    flow = InstalledAppFlow.from_client_config(
+        {
+            "installed": {
+                "client_id": OAUTH_CLIENT_ID,
+                "client_secret": OAUTH_CLIENT_SECRET,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=SCOPES,
+    )
     # "online" stops Google from issuing a refresh token; the library defaults to "offline".
     credentials = flow.run_local_server(port=0, open_browser=True, access_type="online")
     if not credentials.id_token:
