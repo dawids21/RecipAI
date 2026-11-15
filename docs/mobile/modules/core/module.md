@@ -22,7 +22,7 @@ mobile/
 │   ├── core/
 │   │   ├── routes.dart                 # AppRoute enum, GoRouter with the auth redirect; builds every screen with its services
 │   │   ├── main_screen.dart            # Bottom-navigation shell; owns session-scoped services (see Services and State)
-│   │   ├── app_config.dart             # Loads assets/config/app_config.json (API base URL)
+│   │   ├── app_config.dart             # Config values: --dart-define, then app_config.json, then default
 │   │   ├── async_value.dart            # AsyncValue sealed class (Loading/Data/Error) and guardAsync
 │   │   ├── get_it.dart                 # Global GetIt instance
 │   │   ├── feature_flags.dart          # Compile-time flags (see Feature Flags)
@@ -43,7 +43,7 @@ mobile/
 │       └── user_role.dart              # UserRole enum (OWNER/EDITOR) with API conversion
 ├── assets/
 │   └── config/
-│       └── app_config.json             # App configuration (API base URL)
+│       └── app_config.json             # App configuration (API base URL, privacy policy URL)
 ├── test/                               # Mirrors lib/ (see Widget Testing standard); feature tests are in each module.md
 │   ├── shared/
 │   │   └── extensions_test.dart        # URL detection and in-text URL extraction

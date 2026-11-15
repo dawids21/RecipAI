@@ -206,9 +206,7 @@ Firebase config (`google-services.json`), API base URL in app config.
 
 `site/` holds static HTML pages published on GitHub Pages at `https://recipai.stasiak.xyz`: the privacy policy
 (`privacy-policy.html`) and the account deletion instructions (`delete-account.html`), both linked from the Google Play
-listing; the app's Settings screen links the privacy policy. The pages state what the app collects and what account
-deletion removes, so a change to either — a new third party, a new kind of stored data, a change to the purge in
-`docs/backend/modules/settings/api.md` — needs the pages updated too.
+listing.
 
 ### Docker
 
