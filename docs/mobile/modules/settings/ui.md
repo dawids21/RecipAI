@@ -9,8 +9,9 @@ Full-screen list titled "Settings", reached from the Main Screen's overflow menu
 
 - **Send logs** — shares the current log file (Android only; see `docs/mobile/standards/logging.md` → File Sink +
   Share).
-- **Privacy policy** — opens the published privacy policy (see `docs/project/architecture.md` → Public Site) in the
-  browser; if it cannot open, a `Could not open the privacy policy` snackbar.
+- **Privacy policy** — opens the privacy policy (the `PRIVACY_POLICY_URL` config value; see
+  `docs/project/architecture.md` → Public Site) in the browser; if it cannot open, a `Could not open the privacy
+  policy` snackbar.
 - **Logout** — asks "Are you sure you want to logout?" (`Cancel` / `Logout`). Confirming signs out to the Login
   Screen (`docs/mobile/modules/auth/ui.md` → Flow); a failed sign-out shows `Failed to logout: $error` and leaves
   the user on the screen.
