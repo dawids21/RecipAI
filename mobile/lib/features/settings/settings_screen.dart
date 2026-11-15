@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/app_config.dart';
 import '../../core/logging/share_logs.dart';
 import '../../core/theme.dart';
 import '../../shared/loading_widget.dart';
@@ -22,10 +23,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static final _privacyPolicyUrl = Uri.parse(
-    'https://recipai.stasiak.xyz/privacy-policy.html',
-  );
-
   bool _isDeleting = false;
 
   Future<void> _onLogoutTap(BuildContext context) async {
@@ -141,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     var opened = false;
     try {
       opened = await launchUrl(
-        _privacyPolicyUrl,
+        Uri.parse(AppConfig.privacyPolicyUrl),
         mode: LaunchMode.externalApplication,
       );
     } catch (_) {

@@ -6,6 +6,9 @@ import 'package:logging/logging.dart';
 class AppConfig {
   static const String _defaultApiBaseUrl = 'http://10.0.2.2:8080';
   static const String _apiBaseUrlKey = 'API_BASE_URL';
+  static const String _defaultPrivacyPolicyUrl =
+      'https://recipai.stasiak.xyz/privacy-policy.html';
+  static const String _privacyPolicyUrlKey = 'PRIVACY_POLICY_URL';
 
   static final Logger _logger = Logger('AppConfig');
 
@@ -23,19 +26,28 @@ class AppConfig {
     }
   }
 
-  static String get apiBaseUrl {
-    // 1. Try environment variable first (for runtime configuration)
-    const String envUrl = String.fromEnvironment(_apiBaseUrlKey);
-    if (envUrl.isNotEmpty) {
-      return envUrl;
-    }
+  static String get apiBaseUrl => _resolve(
+    _apiBaseUrlKey,
+    const String.fromEnvironment(_apiBaseUrlKey),
+    _defaultApiBaseUrl,
+  );
 
-    // 2. Try loaded config file
-    if (_config != null && _config![_apiBaseUrlKey] != null) {
-      return _config![_apiBaseUrlKey] as String;
-    }
+  static String get privacyPolicyUrl => _resolve(
+    _privacyPolicyUrlKey,
+    const String.fromEnvironment(_privacyPolicyUrlKey),
+    _defaultPrivacyPolicyUrl,
+  );
 
-    // 3. Fall back to default
-    return _defaultApiBaseUrl;
+  /// Resolves a value from, in order: the `--dart-define` value [envValue],
+  /// the loaded config file, then [defaultValue].
+  static String _resolve(String key, String envValue, String defaultValue) {
+    if (envValue.isNotEmpty) {
+      return envValue;
+    }
+    final configValue = _config?[key];
+    if (configValue is String) {
+      return configValue;
+    }
+    return defaultValue;
   }
 }
