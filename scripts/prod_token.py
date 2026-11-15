@@ -25,11 +25,11 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 # Google Cloud Console → APIs & Services → Credentials → "Browser key (auto created by Firebase)".
 # Public by design; the key in google-services.json is restricted to the Android app.
-FIREBASE_WEB_API_KEY = ""
+FIREBASE_WEB_API_KEY = "AIzaSyBRrAJqlEVI4OZ1vsuxsVlK_X9jE8CDD8I"
 # The project's "Desktop app" OAuth client. Google does not treat a desktop client's secret as
 # confidential (it ships inside every copy of the app), so both values are committed.
-OAUTH_CLIENT_ID = ""
-OAUTH_CLIENT_SECRET = ""
+OAUTH_CLIENT_ID = "934414686934-nv83nrdbi0ipk7gae6rst1pkd82fep71.apps.googleusercontent.com"
+OAUTH_CLIENT_SECRET = "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"
 SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.email"]
 SIGN_IN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp"
 
