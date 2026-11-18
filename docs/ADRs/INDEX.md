@@ -49,3 +49,9 @@ ADRs carry no status field: a record in this directory is an accepted decision.
   Admin emails are configuration granted as an authority at the token-conversion seam and
   enforced by a matcher in the existing chain, avoiding custom claims' refresh delay and
   service account, and a roles table's migration, while keeping the move to either reversible.
+- [ADR-0012: Shopping-list tidy is committed by one atomic server endpoint](0012-shopping-list-tidy-atomic-server-endpoint.md) —
+  Merges and regrouping are applied all-or-nothing against every active item's version, rather than expanded into
+  per-item outbox writes, so a conflict never leaves a partly merged list; the apply releases item quota per delete.
+- [ADR-0013: All AI calls draw on one shared per-user AI budget](0013-shared-ai-budget.md) —
+  The extraction budget is renamed to `AI` (default 3) and shared by every AI feature, with the model client moved to
+  shared configuration, instead of one budget per feature.
